@@ -14,15 +14,13 @@
 
 import urllib2
 import urllib
-from StringIO import StringIO
 import logging
-import re
 
 import pandas as pd
 
-from base_predictor import BasePredictor
-from common import normalize_hla_allele_name, seq_to_str, convert_str
-from peptide_binding_measure import (
+from .base_predictor import BasePredictor
+from .common import seq_to_str, convert_str
+from .peptide_binding_measure import (
         IC50_FIELD_NAME, PERCENTILE_RANK_FIELD_NAME
 )
 
@@ -235,7 +233,7 @@ class IedbMhc1(IedbBasePredictor):
             method=method,
             url=url)
 
-class IedbMhc1(IedbBasePredictor):
+class IedbMhc2(IedbBasePredictor):
     def __init__(self,
             alleles,
             method='recommended',

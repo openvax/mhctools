@@ -1,6 +1,6 @@
 import logging
 
-from mhc_common import normalize_hla_allele_name
+from .common import normalize_hla_allele_name
 
 
 class BasePredictor(object):
