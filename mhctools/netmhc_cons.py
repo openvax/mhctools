@@ -13,19 +13,13 @@
 # limitations under the License.
 
 import logging
-import os
-import subprocess
 import tempfile
-import time
-
-import numpy as np
 import pandas as pd
 
-from process_helpers import run_multiple_commands_redirect_stdout
-from cleanup_context import CleanupFiles
-from common import normalize_hla_allele_name
-from file_formats import create_input_fasta_file, parse_netmhc_stdout
-from base_commandline_predictor import BaseCommandlinePredictor
+from .process_helpers import run_multiple_commands_redirect_stdout
+from .cleanup_context import CleanupFiles
+from .file_formats import create_input_fasta_file, parse_netmhc_stdout
+from .base_commandline_predictor import BaseCommandlinePredictor
 
 class NetMHCcons(BaseCommandlinePredictor):
     def __init__(
@@ -34,14 +28,13 @@ class NetMHCcons(BaseCommandlinePredictor):
             netmhc_command = "netMHCcons",
             epitope_lengths=[9]):
         BaseCommandlinePredictor.__init__(
+            self,
             name="NetMHCcons",
             command=netmhc_command,
             hla_alleles=hla_alleles,
             epitope_lengths=epitope_lengths)
 
-
-
-    def predict(self, df, mutation_window_size = None):
+    def predict(self, df, mutation_window_size=None):
         """
         Given a dataframe of mutated amino acid sequences, run each sequence
         through NetMHCcons.
