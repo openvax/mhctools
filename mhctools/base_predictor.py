@@ -47,7 +47,7 @@ class BasePredictor(object):
             raise TypeError("Expected epitope_lengths : list, got %s : %s" % (
                 epitope_lengths, type(epitope_lengths)))
         for length in epitope_lengths:
-            if not isisntance(length, int):
+            if not isinstance(length, int):
                 raise TypeError(
                     "Element of epitope_lengths must be int, got %s : %s" % (
                         length, type(length)))

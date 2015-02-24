@@ -1,16 +1,11 @@
-
 import tempfile
-import os
 import logging
-import time
-
-import numpy as np
 import pandas as pd
 
-from cleanup_context import CleanupFiles
-
-from file_formats import create_input_fasta_file, parse_xls_file
-from base_commandline_predictor import BaseCommandlinePredictor
+from .cleanup_context import CleanupFiles
+from .file_formats import create_input_fasta_file, parse_xls_file
+from .base_commandline_predictor import BaseCommandlinePredictor
+from .process_helpers import run_command
 
 class NetMHCpan(BaseCommandlinePredictor):
 

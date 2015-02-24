@@ -1,5 +1,8 @@
-from base_predictor import BasePredictor
-from process_helpers import run_command
+import logging
+from subprocess import check_output
+
+from .base_predictor import BasePredictor
+from .process_helpers import run_command
 
 class BaseCommandlinePredictor(BasePredictor):
     """
@@ -35,19 +38,20 @@ class BaseCommandlinePredictor(BasePredictor):
         valid_alleles = None
         if supported_allele_flag:
             try:
-                valid_alleles_str = check_output([self.netmhc_command, "-listMHC"])
+                valid_alleles_str = check_output([self.command, "-listMHC"])
 
                 assert len(valid_alleles_str) > 0, \
-                    "%s returned empty allele list" % self.self.netmhc_command
+                    "%s returned empty allele list" % self.self.command
                 valid_alleles = set([])
                 for line in valid_alleles_str.split("\n"):
                     if not line.startswith("#"):
                         valid_alleles.add(line)
             except:
-                logging.warning("Failed to run %s -listMHC", self.netmhc_command)
+                logging.warning("Failed to run %s -listMHC", self.command)
 
 
-        MHCBasePredictor.__init__(
+        BasePredictor.__init__(
+            self,
             hla_alleles,
             epitope_lengths,
             valid_alleles=valid_alleles)
