@@ -78,6 +78,7 @@ def normalize_hla_allele_name(hla):
         - A2
         - A*03:02
         - A02:02
+        - A0202
         - A:02:03
         - A*02:01:01
         - HLA-A*02:01:01G

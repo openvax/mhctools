@@ -15,6 +15,7 @@ hla_alleles = [
 	'A2',
 	'A2:01',
 	'HLA-A2',
+    'A0201',
 ]
 
 def test_long_names():
