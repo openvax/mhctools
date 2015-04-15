@@ -18,7 +18,7 @@ import tempfile
 from common import normalize_hla_allele_name
 from peptide_binding_measure import IC50_FIELD_NAME, PERCENTILE_RANK_FIELD_NAME
 
-def create_input_fasta_file(df, mutation_window_size = None):
+def create_input_fasta_file(df, mutation_window_size=None):
     """
     Turn peptide entries from a dataframe into a FASTA file.
     If mutation_window_size is an integer >0 then only use subsequence
@@ -36,7 +36,7 @@ def create_input_fasta_file(df, mutation_window_size = None):
     # create input file for all peptide sequences and also
     # put the entries into a dictionary so we can read out the results later
     for i, mutation_entry in enumerate(records):
-        seq =  mutation_entry['SourceSequence']
+        seq = mutation_entry['SourceSequence']
         if mutation_window_size:
             start = max(
                 0,
@@ -51,7 +51,7 @@ def create_input_fasta_file(df, mutation_window_size = None):
         input_file.write(">%s\n" % identifier)
         input_file.write(seq)
         # newline unless at end of file
-        if  i + 1 < n_records:
+        if i + 1 < n_records:
             input_file.write("\n")
     input_file.close()
     return input_file.name, peptide_entries
@@ -67,7 +67,7 @@ def create_binding_result_row(
         log_ic50,
         ic50,
         rank,
-        mutation_window_size = None):
+        mutation_window_size=None):
     # if we have a bad IC50 score we might still get a salvageable
     # log of the score. Strangely, this is necessary sometimes!
     if invalid_binding_score(ic50):
@@ -84,7 +84,7 @@ def create_binding_result_row(
     if invalid_binding_score(rank) or rank > 100:
         logging.warn(
             "Invalid percentile rank %s for %s w/ allele %s",
-                rank, epitope, allele)
+            rank, epitope, allele)
         return None
 
     if mutation_window_size:
@@ -124,7 +124,7 @@ def create_binding_result_row(
     new_row[PERCENTILE_RANK_FIELD_NAME] = rank
     return new_row
 
-def parse_netmhc_stdout(contents, peptide_entries, mutation_window_size = None):
+def parse_netmhc_stdout(contents, peptide_entries, mutation_window_size=None):
     """
     Parse the output format for NetMHC predictors, which looks like:
 
@@ -187,17 +187,17 @@ def parse_netmhc_stdout(contents, peptide_entries, mutation_window_size = None):
                 log_affinity,
                 ic50,
                 rank,
-                mutation_window_size = mutation_window_size)
+                mutation_window_size=mutation_window_size)
 
             if not new_row:
                 # if we encountered an error, skip this line
-                logging.warn("Skipping allele=%s epitope=%s ic50=%s",
-                    allele, epitope, ic50)
+                logging.warn("Skipping allele=%s peptide=%s ic50=%s",
+                    allele, peptide, ic50)
                 continue
             results.append(new_row)
     return results
 
-def parse_xls_file(contents, peptide_entries, mutation_window_size = None):
+def parse_xls_file(contents, peptide_entries, mutation_window_size=None):
     """
     XLS is a wacky output format used by NetMHCpan and NetMHCcons
     for peptide binding predictions.
@@ -222,17 +222,17 @@ def parse_xls_file(contents, peptide_entries, mutation_window_size = None):
         pos = int(line[0])
         epitope = line[1]
         identifier = line[2]
-
         assert identifier in peptide_entries, \
-            "Bad identifier %s, epitopes = %s" % (identifier, epitopes.head())
+            "Bad identifier %s, epitopes = %s" % (
+                identifier, peptide_entries.head())
         mutation_entry = peptide_entries[identifier]
         for i, allele in enumerate(alleles):
             # we start at an offset of 3 to skip the allele-invariant
             # pos, epitope, identifier columns
             # each allele has three columns: log IC50, IC50, rank
-            log_ic50 = float(line[3+3*i])
-            ic50 = float(line[3+3*i+1])
-            rank = float(line[3+3*i+2])
+            log_ic50 = float(line[3 + 3 * i])
+            ic50 = float(line[3 + 3 * i + 1])
+            rank = float(line[3 + 3 * i + 2])
 
             new_row = create_binding_result_row(
                 mutation_entry,
@@ -242,7 +242,7 @@ def parse_xls_file(contents, peptide_entries, mutation_window_size = None):
                 log_ic50,
                 ic50,
                 rank,
-                mutation_window_size = mutation_window_size)
+                mutation_window_size=mutation_window_size)
             if not new_row:
                 # if we encountered an error, skip this line
                 logging.warn("Skipping allele=%s epitope=%s ic50=%s",

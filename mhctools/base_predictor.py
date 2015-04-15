@@ -7,8 +7,11 @@ class BasePredictor(object):
     """
     Base class for all MHC binding predictors.
     """
-    def __init__(self, hla_alleles, epitope_lengths,
-                 valid_alleles=None):
+    def __init__(
+            self,
+            hla_alleles,
+            epitope_lengths,
+            valid_alleles=None):
         """
         Parameters
         ----------
@@ -34,7 +37,8 @@ class BasePredictor(object):
         if not isinstance(epitope_lengths, list):
             raise TypeError(
                 'Expected epitope_lengths : list, got %s : %s' % (
-                epitope_lengths, type(epitope_lengths)))
+                    epitope_lengths,
+                    type(epitope_lengths)))
         for length in epitope_lengths:
             if not isinstance(length, int):
                 raise TypeError(
@@ -61,8 +65,7 @@ class BasePredictor(object):
 
             # For some reason netMHCpan drops the '*' in names, so
             # 'HLA-A*03:01' becomes 'HLA-A03:01'
-            if (valid_alleles and
-                allele.replace('*', '') not in valid_alleles):
+            if (valid_alleles and allele.replace('*', '') not in valid_alleles):
                 logging.warning('Skipping %s (not available)'
                                 % allele)
             else:

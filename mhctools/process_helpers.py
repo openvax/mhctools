@@ -1,7 +1,6 @@
 import logging
 import os
 from subprocess import Popen, CalledProcessError
-import tempfile
 import time
 
 class AsyncProcess(object):
@@ -14,9 +13,9 @@ class AsyncProcess(object):
     def __init__(
             self,
             args,
-            suppress_stdout = True,
-            suppress_stderr = False,
-            redirect_stdout = None):
+            suppress_stdout=True,
+            suppress_stderr=False,
+            redirect_stdout=None):
         assert len(args) > 0
         self.cmd = args[0]
 
@@ -27,7 +26,7 @@ class AsyncProcess(object):
         with open(os.devnull, 'w') as devnull:
             stdout = devnull if suppress_stdout else redirect_stdout
             stderr = devnull if suppress_stderr else None
-            self.process = Popen(args, stdout = stdout, stderr = stderr)
+            self.process = Popen(args, stdout=stdout, stderr=stderr)
 
     def wait(self):
         ret_code = self.process.wait()
@@ -116,7 +115,7 @@ def run_multiple_commands_redirect_stdout(
             print " ".join(args), ">", f.name
         p = AsyncProcess(
             args,
-            redirect_stdout = f,
+            redirect_stdout=f,
             **kwargs)
         processes.append(p)
 
