@@ -1,6 +1,6 @@
 import numpy as np
 
-class PeptideBindingMeasure(object):
+class BindingMeasure(object):
     """
     We could use affinity/stability measures informally but it's cleaner
     to keep track of the names, direction, and lower/upper bounds of
@@ -14,8 +14,7 @@ class PeptideBindingMeasure(object):
             self,
             name,
             units,
-            record_field_name,
-            cutoff_is_upper_bound,
+            bigger_is_better,
             min_value=-np.inf,
             min_inclusive=False,
             max_value=np.inf,
@@ -33,7 +32,7 @@ class PeptideBindingMeasure(object):
             of per-allele records, which field should we look at in those
             records?
 
-        cutoff_is_upper_bound : bool
+        bigger_is_better : bool
             When filtering affinities by cutoff, should we pass records which
             are below the cutoff (e.g. for IC50 affinity) or above the cutoff
             (e.g. for stability)?
@@ -44,18 +43,37 @@ class PeptideBindingMeasure(object):
         """
         self.name = name
         self.units = units
-        self.record_field_name = record_field_name
-        self.cutoff_is_upper_bound = cutoff_is_upper_bound
+        self.bigger_is_better = bigger_is_better
         self.min_value = min_value
         self.min_inclusive = min_inclusive
         self.max_value = max_value
         self.max_inclusive = max_inclusive
 
     def __str__(self):
-        return "%s(units=%s, field=%s, cutoff_is_upper_bound=%s)" % (
-            self.name, self.units, self.prediction_record_field,
-            self.cutoff_is_upper_bound
+        return "%s(units=%s, bigger_is_better=%s)" % (
+            self.name,
+            self.units,
+            self.bigger_is_better
         )
+
+    def fields(self):
+        return (
+            self.name,
+            self.units,
+            self.bigger_is_better,
+            self.min_value,
+            self.min_inclusive,
+            self.max_value,
+            self.max_inclusive
+        )
+
+    def __hash__(self):
+        return hash(self.fields())
+
+    def __eq__(self, other):
+        return (
+            isinstance(other, BindingMeasure) and
+            self.fields() == other.fields())
 
     def __repr__(self):
         return str(self)
@@ -86,20 +104,8 @@ class PeptideBindingMeasure(object):
                 "Given value (%s) too high (max_value=%s)" % (
                     value, self.max_value)
 
-    def extract_value(self, record):
-        field_name = self.record_field_name
-        if hasattr(record, field_name):
-            return getattr(field_name)
-        else:
-            assert isinstance(record, dict), \
-                "Invalid prediction record type %s : %s" % (
-                    record, type(record))
-            assert field_name in record
-            return record[field_name]
-
-    def value_is_binder(self, value, cutoff):
-        """
-        Is the predicted binding value stronger than the given cutoff?
+    def is_binder(self, value, binding_cutoff):
+        """Is the predicted binding value stronger than the given cutoff?
 
         Parameters
         ----------
@@ -109,41 +115,21 @@ class PeptideBindingMeasure(object):
         cutoff : float
         """
         self.check_binding_value(value)
-        if self.cutoff_is_upper_bound:
-            return value <= cutoff
+        if self.bigger_is_better:
+            return value <= binding_cutoff
         else:
-            return value >= cutoff
-
-    def record_is_binder(self, record, cutoff):
-        value = self.extract_value(record)
-        return self.value_is_binder(value, cutoff)
+            return value >= binding_cutoff
 
 
-# used by other modules to name prediction fields
-IC50_FIELD_NAME = "MHC_IC50"
-ic50_binding_measure = PeptideBindingMeasure(
+ic50_nM = BindingMeasure(
     name="IC50",
     units="nM",
-    record_field_name=IC50_FIELD_NAME,
-    cutoff_is_upper_bound=True,
+    bigger_is_better=False,
     min_value=0.0)
 
-PERCENTILE_RANK_FIELD_NAME = "MHC_Percentile_Rank"
-percentile_binding_measure = PeptideBindingMeasure(
-    name="PercentileRank",
-    units="%",
-    record_field_name=PERCENTILE_RANK_FIELD_NAME,
-    cutoff_is_upper_bound=True,
-    min_value=0.0,
-    min_inclusive=True,
-    max_value=100.0,
-    max_inclusive=True)
-
-STABILITY_FIELD_NAME = "MHC_Stability"
-stability_binding_measure = PeptideBindingMeasure(
-    name="Stability",
+stability_minutes = BindingMeasure(
+    name="Stability (minutes)",
     units="minutes",
-    record_field_name=STABILITY_FIELD_NAME,
-    cutoff_is_upper_bound=False,
+    bigger_is_better=True,
     min_value=0.0,
     min_inclusive=False)

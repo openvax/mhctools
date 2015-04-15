@@ -16,7 +16,7 @@ import numpy as np
 import tempfile
 
 from common import normalize_hla_allele_name
-from peptide_binding_measure import IC50_FIELD_NAME, PERCENTILE_RANK_FIELD_NAME
+from peptide_binding_measure import ic50_nM, ic50_percentile_rank
 
 def create_input_fasta_file(df, mutation_window_size=None):
     """
@@ -124,8 +124,8 @@ def create_binding_result_row(
     new_row['EpitopeStart'] = pos
     new_row['EpitopeEnd'] = pos + len(epitope)
     new_row['Epitope'] = epitope
-    new_row[IC50_FIELD_NAME] = ic50
-    new_row[PERCENTILE_RANK_FIELD_NAME] = rank
+    new_row[ic50_nM.name] = ic50
+    new_row[ic50_percentile_rank.name] = rank
     return new_row
 
 def parse_netmhc_stdout(contents, peptide_entries, mutation_window_size=None):

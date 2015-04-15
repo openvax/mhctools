@@ -103,20 +103,21 @@ class IedbBasePredictor(BasePredictor):
 
     def __init__(
             self,
-            hla_alleles,
+            alleles,
             epitope_lengths,
-            method,
+            prediction_method,
             url):
         BasePredictor.__init__(
             self,
-            hla_alleles=hla_alleles,
+            alleles=alleles,
             epitope_lengths=epitope_lengths)
 
-        if method not in VALID_IEDB_METHODS:
+        if prediction_method not in VALID_IEDB_METHODS:
             raise ValueError(
-                "Invalid IEDB MHC binding prediction method: %s" % (method,))
+                "Invalid IEDB MHC binding prediction method: %s" % (
+                    prediction_method,))
 
-        self.method = method
+        self.prediction_method = prediction_method
 
         if not isinstance(url, str):
             raise TypeError("Expected URL to be string, not %s : %s" % (
@@ -126,7 +127,7 @@ class IedbBasePredictor(BasePredictor):
     def _get_iedb_request_params(self, sequence, allele):
 
         params = {
-            "method": seq_to_str(self.method),
+            "method": seq_to_str(self.prediction_method),
             "length": seq_to_str(self.epitope_lengths),
             "sequence_text": sequence,
             # have to repeat allele for each length
@@ -134,7 +135,7 @@ class IedbBasePredictor(BasePredictor):
         }
         return params
 
-    def predict(self, data):
+    def predict(self, peptides):
         """
         Given a dataframe with long amino acid sequences in the
         'SourceSequence' field, return an augmented dataframe
@@ -144,16 +145,17 @@ class IedbBasePredictor(BasePredictor):
         # take each mutated sequence in the dataframe
         # and general MHC binding scores for all k-mer substrings
         responses = {}
-        for i, peptide in enumerate(data.SourceSequence):
+        for i, peptide in enumerate(peptides):
             for allele in self.alleles:
                 key = (peptide, allele)
                 if key not in responses:
                     request = self._get_iedb_request_params(peptide, allele)
                     logging.info(
                         "Calling IEDB (%s) with request %s",
-                        self._url,
+                        self.url,
                         request)
-                    response_df = _query_iedb(request, self._url)
+                    response_df = _query_iedb(request, self.url)
+                    print("after query", response_df)
                     response_df.rename(
                         columns={
                             'peptide': 'Epitope',
@@ -165,6 +167,7 @@ class IedbBasePredictor(BasePredictor):
                         inplace=True)
                     response_df['EpitopeStart'] -= 1
                     response_df['EpitopeEnd'] -= 1
+                    print("after rename", response_df)
                     responses[key] = response_df
                 else:
                     logging.info(
@@ -180,17 +183,21 @@ class IedbBasePredictor(BasePredictor):
         # named 'level_0', and 'level_1'. We want to rename the former
         # and delete the latter.
         responses = pd.concat(responses).reset_index()
+        print("concat", responses)
         responses['SourceSequence'] = responses['level_0']
         del responses['level_0']
         del responses['level_1']
+        print("dropped levels", responses)
 
         # IEDB has inclusive end positions, change to exclusive
         responses['EpitopeEnd'] += 1
 
-        assert 'ann_rank' in responses, responses.head()
+        assert 'ann_rank' in responses, \
+            "Missing 'ann_rank' in %s" % (responses.head(),)
         responses[PERCENTILE_RANK_FIELD_NAME] = responses['ann_rank']
 
-        assert 'ann_ic50' in responses, responses.head()
+        assert 'ann_ic50' in responses, \
+            "Missing 'ann_ic50' in %s" % (responses.head(),)
         responses[IC50_FIELD_NAME] = responses['ann_ic50']
 
         # instead of just building up a new dataframe I'm expliciting
@@ -209,37 +216,34 @@ class IedbBasePredictor(BasePredictor):
         for field in drop_fields:
             if field in responses:
                 responses = responses.drop(field, axis=1)
-
-        result = data.merge(responses, on='SourceSequence')
-
+        print("Dropped fields", responses)
         # some of the MHC scores come back as all NaN so drop them
-        result = result.dropna(axis=1, how='all')
-
-        return result
+        responses = responses.dropna(axis=1, how='all')
+        return responses
 
 class IedbMhc1(IedbBasePredictor):
     def __init__(
             self,
             alleles,
             epitope_lengths=[9],
-            method='recommended',
+            prediction_method='recommended',
             url='http://tools-api.iedb.org/tools_api/mhci/'):
         IedbBasePredictor.__init__(
             self,
             alleles=alleles,
             epitope_lengths=epitope_lengths,
-            method=method,
+            prediction_method=prediction_method,
             url=url)
 
 class IedbMhc2(IedbBasePredictor):
     def __init__(self,
             alleles,
-            method='recommended',
+            prediction_method='recommended',
             url='http://tools-api.iedb.org/tools_api/mhcii/'):
         IedbBasePredictor.__init__(
             self,
             alleles=alleles,
             # only epitope lengths of 15 currently supported by IEDB's web API
             epitope_lengths=[15],
-            method=method,
+            prediction_method=prediction_method,
             url=url)
