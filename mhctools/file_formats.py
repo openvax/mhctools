@@ -29,14 +29,13 @@ def create_input_fasta_file(df, mutation_window_size=None):
     """
     input_file = tempfile.NamedTemporaryFile(
         "w", prefix="peptide", delete=False)
-
     peptide_entries = {}
-    records = df.to_records()
-    n_records = len(records)
+    n_records = len(df)
     # create input file for all peptide sequences and also
     # put the entries into a dictionary so we can read out the results later
-    for i, mutation_entry in enumerate(records):
-        seq = mutation_entry['SourceSequence']
+    for i, mutation_entry in df.iterrows():
+        seq =  mutation_entry['SourceSequence']
+        original_seq = mutation_entry['OriginalSequence']
         if mutation_window_size:
             start = max(
                 0,
@@ -45,11 +44,15 @@ def create_input_fasta_file(df, mutation_window_size=None):
                 len(seq),
                 mutation_entry.MutationEnd + mutation_window_size)
             seq = seq[start:stop]
+            original_seq = original_seq[start:stop]
         identifier = "%s_%s" % (i, mutation_entry['Gene'][:5])
+        mutation_entry['SourceSequence'] = seq
+        mutation_entry['OriginalSequence'] = original_seq
         peptide_entries[identifier] = mutation_entry
 
         input_file.write(">%s\n" % identifier)
         input_file.write(seq)
+
         # newline unless at end of file
         if i + 1 < n_records:
             input_file.write("\n")
@@ -107,6 +110,7 @@ def create_binding_result_row(
     new_row['alt'] = mutation_entry.alt
 
     new_row['SourceSequence'] = mutation_entry.SourceSequence
+    new_row['OriginalSequence'] = mutation_entry.OriginalSequence
     new_row['MutationStart'] = mutation_entry.MutationStart
     new_row['MutationEnd'] = mutation_entry.MutationEnd
     new_row['GeneInfo'] = mutation_entry.GeneInfo
@@ -213,6 +217,10 @@ def parse_xls_file(contents, peptide_entries, mutation_window_size=None):
     lines = [line.split("\t")
              for line in contents.split("\n")
              if len(line) > 0]
+
+    if len(lines) == 0:
+        return []
+
     # top line of XLS file has alleles
     alleles = [x for x in lines[0] if len(x) > 0]
     # skip alleles and column headers

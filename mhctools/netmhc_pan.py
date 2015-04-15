@@ -21,7 +21,7 @@ class NetMHCpan(BaseCommandlinePredictor):
             hla_alleles=hla_alleles,
             epitope_lengths=epitope_lengths)
 
-    def predict(self, df, mutation_window_size=None):
+    def predict(self, df, mutation_window_size=None, raise_on_error=False):
         """
         Given a dataframe of mutated amino acid sequences, run each sequence
         through NetMHCpan.
@@ -69,6 +69,9 @@ class NetMHCpan(BaseCommandlinePredictor):
                 peptide_entries,
                 mutation_window_size=mutation_window_size)
 
+        # TODO(tavi) Unwise to just return an empty DataFrame.
         if len(results) == 0:
-            raise ValueError("No epitopes from netMHCpan")
+            if raise_on_error:
+                raise ValueError("No epitopes from netMHCpan")
+            return pd.DataFrame()
         return pd.DataFrame.from_records(results)
