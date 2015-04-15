@@ -7,7 +7,7 @@ from .process_helpers import run_command
 
 class BaseCommandlinePredictor(BasePredictor):
     """
-    Base class for MHC binding predictors that run a local external 
+    Base class for MHC binding predictors that run a local external
     program and write their output to a local file.
     """
     def __init__(

@@ -25,7 +25,7 @@ class NetMHCcons(BaseCommandlinePredictor):
     def __init__(
             self,
             hla_alleles,
-            netmhc_command = "netMHCcons",
+            netmhc_command="netMHCcons",
             epitope_lengths=[9]):
         BaseCommandlinePredictor.__init__(
             self,
@@ -75,10 +75,11 @@ class NetMHCcons(BaseCommandlinePredictor):
                         delete=False)
                 command = [
                     self.command,
-                        "-length", str(length),
-                        "-f", input_filename,
-                        "-a", allele,
-                        '-tdir', temp_dirname]
+                    "-length", str(length),
+                    "-f", input_filename,
+                    "-a", allele,
+                    "-tdir", temp_dirname
+                ]
                 commands[output_file] = command
 
         results = []
@@ -90,15 +91,15 @@ class NetMHCcons(BaseCommandlinePredictor):
             filenames_to_delete.append(f.name)
 
         with CleanupFiles(
-                filenames = filenames_to_delete,
-                directories = dirs):
+                filenames=filenames_to_delete,
+                directories=dirs):
             run_multiple_commands_redirect_stdout(
-                commands, print_commands = True)
+                commands, print_commands=True)
             for output_file, command in commands.iteritems():
                 # closing/opening looks insane
                 # but I was getting empty files otherwise
                 output_file.close()
-                with  open(output_file.name, 'r') as f:
+                with open(output_file.name, 'r') as f:
                     rows = parse_netmhc_stdout(
                         f.read(),
                         peptide_entries,

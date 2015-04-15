@@ -101,132 +101,130 @@ def _query_iedb(request_values, url):
 
 class IedbBasePredictor(BasePredictor):
 
-  def __init__(
-        self,
-        hla_alleles,
-        epitope_lengths,
-        method,
-        url):
-    MHCBasePredictor.__init__(
-        self,
-        hla_alleles=hla_alleles,
-        epitope_lengths=epitope_lengths)
+    def __init__(
+            self,
+            hla_alleles,
+            epitope_lengths,
+            method,
+            url):
+        BasePredictor.__init__(
+            self,
+            hla_alleles=hla_alleles,
+            epitope_lengths=epitope_lengths)
 
-    if method not in VALID_IEDB_METHODS:
-        raise ValueError(
-            "Invalid IEDB MHC binding prediction method: %s" % (method,))
+        if method not in VALID_IEDB_METHODS:
+            raise ValueError(
+                "Invalid IEDB MHC binding prediction method: %s" % (method,))
 
-    self.method = method
+        self.method = method
 
-    if not isinstance(url, str):
-        raise TypeError("Expected URL to be string, not %s : %s" % (
-            url, type(url)))
-    self.url = url
+        if not isinstance(url, str):
+            raise TypeError("Expected URL to be string, not %s : %s" % (
+                url, type(url)))
+        self.url = url
 
+    def _get_iedb_request_params(self, sequence, allele):
 
-  def _get_iedb_request_params(self, sequence, allele):
+        params = {
+            "method": seq_to_str(self.method),
+            "length": seq_to_str(self.epitope_lengths),
+            "sequence_text": sequence,
+            # have to repeat allele for each length
+            "allele": ",".join([allele] * len(self.epitope_lengths)),
+        }
+        return params
 
-    params = {
-        "method" : seq_to_str(self.method),
-        "length" : seq_to_str(self.epitope_lengths),
-        "sequence_text" : sequence,
-        # have to repeat allele for each length
-        "allele" : ",".join([allele] * len(self.epitope_lengths)),
-    }
-    return params
+    def predict(self, data):
+        """
+        Given a dataframe with long amino acid sequences in the
+        'SourceSequence' field, return an augmented dataframe
+        with shorter k-mers in the 'Epitope' column and several
+        columns of MHC binding predictions with names such as 'percentile_rank'
+        """
+        # take each mutated sequence in the dataframe
+        # and general MHC binding scores for all k-mer substrings
+        responses = {}
+        for i, peptide in enumerate(data.SourceSequence):
+            for allele in self.alleles:
+                key = (peptide, allele)
+                if key not in responses:
+                    request = self._get_iedb_request_params(peptide, allele)
+                    logging.info(
+                        "Calling IEDB (%s) with request %s",
+                        self._url,
+                        request)
+                    response_df = _query_iedb(request, self._url)
+                    response_df.rename(
+                        columns={
+                            'peptide': 'Epitope',
+                            'length': 'EpitopeLength',
+                            'start': 'EpitopeStart',
+                            'end': 'EpitopeEnd',
+                            'allele': 'Allele',
+                        },
+                        inplace=True)
+                    response_df['EpitopeStart'] -= 1
+                    response_df['EpitopeEnd'] -= 1
+                    responses[key] = response_df
+                else:
+                    logging.info(
+                        "Already made predictions for peptide %s with allele %s",
+                        peptide,
+                        allele)
 
+        # concatenating the responses makes a MultiIndex with two columns
+        # - SourceSequence
+        # - index of epitope from that sequence's IEDB call
+        #
+        # ...when we reset the index, we turn these into two columns
+        # named 'level_0', and 'level_1'. We want to rename the former
+        # and delete the latter.
+        responses = pd.concat(responses).reset_index()
+        responses['SourceSequence'] = responses['level_0']
+        del responses['level_0']
+        del responses['level_1']
 
-  def predict(self, data):
-    """
-    Given a dataframe with long amino acid sequences in the
-    'SourceSequence' field, return an augmented dataframe
-    with shorter k-mers in the 'Epitope' column and several
-    columns of MHC binding predictions with names such as 'percentile_rank'
-    """
-    # take each mutated sequence in the dataframe
-    # and general MHC binding scores for all k-mer substrings
-    responses = {}
-    for i, peptide in enumerate(data.SourceSequence):
-        for allele in self.alleles:
-            key = (peptide, allele)
-            if key not in responses:
-                request = self._get_iedb_request_params(peptide, allele)
-                logging.info(
-                    "Calling IEDB (%s) with request %s",
-                    self._url,
-                    request)
-                response_df = _query_iedb(request, self._url)
-                response_df.rename(
-                    columns={
-                        'peptide': 'Epitope',
-                        'length' : 'EpitopeLength',
-                        'start' : 'EpitopeStart',
-                        'end' : 'EpitopeEnd',
-                        'allele' : 'Allele',
-                    },
-                    inplace=True)
-                response_df['EpitopeStart'] -= 1
-                response_df['EpitopeEnd'] -= 1
-                responses[key] = response_df
-            else:
-                logging.info(
-                    "Already made predictions for peptide %s with allele %s",
-                    peptide,
-                    allele)
+        # IEDB has inclusive end positions, change to exclusive
+        responses['EpitopeEnd'] += 1
 
-    # concatenating the responses makes a MultiIndex with two columns
-    # - SourceSequence
-    # - index of epitope from that sequence's IEDB call
-    #
-    # ...when we reset the index, we turn these into two columns
-    # named 'level_0', and 'level_1'. We want to rename the former
-    # and delete the latter.
-    responses = pd.concat(responses).reset_index()
-    responses['SourceSequence'] = responses['level_0']
-    del responses['level_0']
-    del responses['level_1']
+        assert 'ann_rank' in responses, responses.head()
+        responses[PERCENTILE_RANK_FIELD_NAME] = responses['ann_rank']
 
-    # IEDB has inclusive end positions, change to exclusive
-    responses['EpitopeEnd'] += 1
+        assert 'ann_ic50' in responses, responses.head()
+        responses[IC50_FIELD_NAME] = responses['ann_ic50']
 
-    assert 'ann_rank' in responses, responses.head()
-    responses[PERCENTILE_RANK_FIELD_NAME] = responses['ann_rank']
+        # instead of just building up a new dataframe I'm expliciting
+        # dropping fields here to document what other information is available
+        drop_fields = (
+            'seq_num',
+            'method',
+            'ann_ic50',
+            'ann_rank',
+            'consensus_percentile_rank',
+            'smm_ic50',
+            'smm_rank',
+            'comblib_sidney2008_score',
+            'comblib_sidney2008_rank'
+        )
+        for field in drop_fields:
+            if field in responses:
+                responses = responses.drop(field, axis=1)
 
-    assert 'ann_ic50' in responses, responses.head()
-    responses[IC50_FIELD_NAME] = responses['ann_ic50']
+        result = data.merge(responses, on='SourceSequence')
 
-    # instead of just building up a new dataframe I'm expliciting
-    # dropping fields here to document what other information is available
-    drop_fields = (
-        'seq_num',
-        'method',
-        'ann_ic50',
-        'ann_rank',
-        'consensus_percentile_rank',
-        'smm_ic50',
-        'smm_rank',
-        'comblib_sidney2008_score',
-        'comblib_sidney2008_rank'
-    )
-    for field in drop_fields:
-        if field in responses:
-            responses = responses.drop(field, axis = 1)
+        # some of the MHC scores come back as all NaN so drop them
+        result = result.dropna(axis=1, how='all')
 
-    result = data.merge(responses, on='SourceSequence')
-
-    # some of the MHC scores come back as all NaN so drop them
-    result = result.dropna(axis=1, how='all')
-
-    return result
+        return result
 
 class IedbMhc1(IedbBasePredictor):
-    def __init__(self,
-        alleles,
-        epitope_lengths=[9],
-        method='recommended',
-        url='http://tools-api.iedb.org/tools_api/mhci/'):
-
-        IEDB_MHC_Binding_Predictor.__init__(
+    def __init__(
+            self,
+            alleles,
+            epitope_lengths=[9],
+            method='recommended',
+            url='http://tools-api.iedb.org/tools_api/mhci/'):
+        IedbBasePredictor.__init__(
             self,
             alleles=alleles,
             epitope_lengths=epitope_lengths,
@@ -238,12 +236,10 @@ class IedbMhc2(IedbBasePredictor):
             alleles,
             method='recommended',
             url='http://tools-api.iedb.org/tools_api/mhcii/'):
-
-      IEDB_MHC_Binding_Predictor.__init__(
-        self,
-        alleles=alleles,
-        # only epitope lengths of 15 currently supported by IEDB's web API
-        epitope_lengths=[15],
-        method=method,
-        url=url)
-
+        IedbBasePredictor.__init__(
+            self,
+            alleles=alleles,
+            # only epitope lengths of 15 currently supported by IEDB's web API
+            epitope_lengths=[15],
+            method=method,
+            url=url)

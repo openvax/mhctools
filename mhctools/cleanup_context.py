@@ -10,10 +10,10 @@ class CleanupFiles(object):
     """
     def __init__(
             self,
-            files = [],
-            filenames = [],
-            dictionaries = [],
-            directories = []):
+            files=[],
+            filenames=[],
+            dictionaries=[],
+            directories=[]):
         self.files = [f for f in files]
         self.filenames = [f for f in filenames]
         self.dictionaries = [d for d in dictionaries]

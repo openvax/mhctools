@@ -16,9 +16,9 @@ class PeptideBindingMeasure(object):
             units,
             record_field_name,
             cutoff_is_upper_bound,
-            min_value = -np.inf,
+            min_value=-np.inf,
             min_inclusive=False,
-            max_value = np.inf,
+            max_value=np.inf,
             max_inclusive=False):
         """
         Parameters
@@ -44,7 +44,7 @@ class PeptideBindingMeasure(object):
         """
         self.name = name
         self.units = units
-        self.record_field_name  = record_field_name
+        self.record_field_name = record_field_name
         self.cutoff_is_upper_bound = cutoff_is_upper_bound
         self.min_value = min_value
         self.min_inclusive = min_inclusive
@@ -89,14 +89,13 @@ class PeptideBindingMeasure(object):
     def extract_value(self, record):
         field_name = self.record_field_name
         if hasattr(record, field_name):
-           return getattr(record_field_name)
+            return getattr(field_name)
         else:
             assert isinstance(record, dict), \
                 "Invalid prediction record type %s : %s" % (
                     record, type(record))
             assert field_name in record
             return record[field_name]
-
 
     def value_is_binder(self, value, cutoff):
         """
@@ -127,9 +126,7 @@ ic50_binding_measure = PeptideBindingMeasure(
     units="nM",
     record_field_name=IC50_FIELD_NAME,
     cutoff_is_upper_bound=True,
-    min_value = 0.0)
-
-
+    min_value=0.0)
 
 PERCENTILE_RANK_FIELD_NAME = "MHC_Percentile_Rank"
 percentile_binding_measure = PeptideBindingMeasure(
@@ -137,7 +134,7 @@ percentile_binding_measure = PeptideBindingMeasure(
     units="%",
     record_field_name=PERCENTILE_RANK_FIELD_NAME,
     cutoff_is_upper_bound=True,
-    min_value = 0.0,
+    min_value=0.0,
     min_inclusive=True,
     max_value=100.0,
     max_inclusive=True)

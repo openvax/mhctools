@@ -19,7 +19,7 @@ import pandas as pd
 from peptide_binding_measure import IC50_FIELD_NAME, PERCENTILE_RANK_FIELD_NAME
 
 
-def generate_scored_epitopes(mutated_regions, alleles = ['HLA-A*02:01']):
+def generate_scored_epitopes(mutated_regions, alleles=['HLA-A*02:01']):
     records = []
     # if wer'e not running the MHC prediction then we have to manually
     # extract 9mer substrings
@@ -29,11 +29,11 @@ def generate_scored_epitopes(mutated_regions, alleles = ['HLA-A*02:01']):
         for i in xrange(len(seq) - epitope_length + 1):
             for allele in alleles:
                 record = {}
-                record['Epitope'] = seq[i:i+epitope_length]
+                record['Epitope'] = seq[i:i + epitope_length]
                 record['EpitopeStart'] = i
                 record['EpitopeEnd'] = i + epitope_length
                 record['SourceSequence'] = seq
-                record[PERCENTILE_RANK_FIELD_NAME] = random.randint(0,99)
+                record[PERCENTILE_RANK_FIELD_NAME] = random.randint(0, 99)
                 record[IC50_FIELD_NAME] = random.random() * 10000.0
                 record['Allele'] = allele
                 for k, v in row.iteritems():

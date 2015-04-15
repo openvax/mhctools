@@ -11,8 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import logging
-import re
 
 MHC_1_GENE_SET = set(["A", "B", "C", "E", "F", "G", "K", "L"])
 MHC_2_GENE_SET = set(["DM", "DO", "DP", "DQ", "DR"])
@@ -26,7 +24,7 @@ def seq_to_str(obj):
     if isinstance(obj, (unicode, str)):
         return obj
     elif isinstance(obj, (list, tuple)):
-        return  ",".join([str(x) for x in obj])
+        return ",".join([str(x) for x in obj])
     else:
         return str(obj)
 
@@ -44,7 +42,7 @@ def convert_str(obj):
     except:
         return str(obj)
 
-def _parse_substring(hla, pred, max_len = None):
+def _parse_substring(hla, pred, max_len=None):
     """
     Extract substring of letters for which predicate is True
     """
@@ -56,17 +54,17 @@ def _parse_substring(hla, pred, max_len = None):
         max_len = min(max_len, len(hla))
     while pos < max_len and pred(hla[pos]):
         result += hla[pos]
-        pos +=1
+        pos += 1
     return result, hla[pos:]
 
-def _parse_letters(hla, max_len = None):
-    return _parse_substring(hla, lambda c: c.isalpha(), max_len  = max_len)
+def _parse_letters(hla, max_len=None):
+    return _parse_substring(hla, lambda c: c.isalpha(), max_len=max_len)
 
-def _parse_numbers(hla, max_len = None):
-    return _parse_substring(hla, lambda c: c.isdigit(), max_len = max_len)
+def _parse_numbers(hla, max_len=None):
+    return _parse_substring(hla, lambda c: c.isdigit(), max_len=max_len)
 
-def _parse_not_numbers(hla, max_len = None):
-    return _parse_substring(hla, lambda c: not c.isdigit(), max_len = max_len)
+def _parse_not_numbers(hla, max_len=None):
+    return _parse_substring(hla, lambda c: not c.isdigit(), max_len=max_len)
 
 def normalize_hla_allele_name(hla):
     """
@@ -104,7 +102,7 @@ def normalize_hla_allele_name(hla):
     assert sep in ("", ":", "*"), \
         "Malformed separator %s in HLA type %s" % (sep, original)
 
-    family, hla = _parse_numbers(hla, max_len = 2)
+    family, hla = _parse_numbers(hla, max_len=2)
 
     sep, hla = _parse_not_numbers(hla)
 
@@ -113,16 +111,13 @@ def normalize_hla_allele_name(hla):
 
     allele, hla = _parse_numbers(hla)
 
-    #assert len(hla) == 0, \
-    #    "Unexpected suffix %s in HLA type %s" % (hla, original)
-
     if len(family) == 1:
         family = "0" + family
     if len(allele) == 0:
         allele = "01"
     elif len(allele) == 1:
         allele = "0" + allele
-    return "HLA-%s*%s:%s" % (gene, family, allele )
+    return "HLA-%s*%s:%s" % (gene, family, allele)
 
 def compact_hla_allele_name(hla):
     long_name = normalize_hla_allele_name(hla)
