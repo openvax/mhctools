@@ -16,7 +16,7 @@ import numpy as np
 import tempfile
 
 from common import normalize_hla_allele_name
-from peptide_binding_measure import ic50_nM, ic50_percentile_rank
+from binding_measure import ic50_nM
 
 def create_input_fasta_file(df, mutation_window_size=None):
     """
@@ -34,7 +34,7 @@ def create_input_fasta_file(df, mutation_window_size=None):
     # create input file for all peptide sequences and also
     # put the entries into a dictionary so we can read out the results later
     for i, mutation_entry in df.iterrows():
-        seq =  mutation_entry['SourceSequence']
+        seq = mutation_entry['SourceSequence']
         original_seq = mutation_entry['OriginalSequence']
         if mutation_window_size:
             start = max(
@@ -125,7 +125,7 @@ def create_binding_result_row(
     new_row['EpitopeEnd'] = pos + len(epitope)
     new_row['Epitope'] = epitope
     new_row[ic50_nM.name] = ic50
-    new_row[ic50_percentile_rank.name] = rank
+    new_row[ic50_nM.name + " Percentile Rank"] = rank
     return new_row
 
 def parse_netmhc_stdout(contents, peptide_entries, mutation_window_size=None):

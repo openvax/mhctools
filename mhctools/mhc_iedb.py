@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import io
 import urllib2
 import urllib
 import logging
@@ -29,58 +30,69 @@ A note about prediction methods, copied from the IEDB website:
 
 The prediction method list box allows choosing from a number of MHC class I
 binding prediction methods:
-- Artificial neural network (ANN),
-- Stabilized matrix method (SMM),
+- Artificial neural network (ANN) (is that just NetMHC?)
+- Stabilized matrix method (SMM)
 - SMM with a Peptide:MHC Binding Energy Covariance matrix (SMMPMBEC),
-- Scoring Matrices  from Combinatorial Peptide Libraries (Comblib_Sidney2008),
+- NetMHCpan
+- NetMHCcons
+Excluded because IEDB results lack unique IC50 & Percentile Rank columns:
+- Scoring Matrices from Combinatorial Peptide Libraries (Comblib_Sidney2008),
 - Consensus,
-- NetMHCpan.
-
-IEDB recommended is the default prediction method selection.
-Based on availability of predictors and previously observed predictive
-performance, this selection tries to use the best possible method for a given
-MHC molecule. Currently for peptide:MHC-I binding prediction, for a given MHC
-molecule, IEDB Recommended uses the Consensus method consisting of ANN, SMM,
-and CombLib if any corresponding predictor is available for the molecule.
-Otherwise, NetMHCpan is used. This choice was motivated by the expected
-predictive performance of the methods in decreasing order:
-    Consensus > ANN > SMM > NetMHCpan > CombLib.
 """
 
-VALID_IEDB_METHODS = [
-    'recommended',
-    'consensus',
-    'netmhcpan',
-    'ann',
-    'smmpmbec',
-    'smm',
-    'comblib_sidney2008'
+VALID_CLASS_I_METHODS = [
+    "netmhccons",
+    "netmhcpan",
+    "ann",
+    "smmpmbec",
+    "smm",
+    "pickpocket"
 ]
 
+VALID_CLASS_II_METHODS = [
+    "NetMHCIIpan",
+    "nn_align",
+    "smm_align",
+]
 
 def _parse_iedb_response(response):
-    """
-    Take the binding predictions returned by IEDB's web API
+    """Take the binding predictions returned by IEDB's web API
     and parse them into a DataFrame
+
+    Expect response to look like:
+    allele  seq_num start   end length  peptide ic50    rank
+    HLA-A*01:01 1   2   10  9   LYNTVATLY   2145.70 3.7
+    HLA-A*01:01 1   5   13  9   TVATLYCVH   2216.49 3.9
+    HLA-A*01:01 1   7   15  9   ATLYCVHQR   2635.42 5.1
+    HLA-A*01:01 1   4   12  9   NTVATLYCV   6829.04 20
+    HLA-A*01:01 1   1   9   9   SLYNTVATL   8032.38 24
+    HLA-A*01:01 1   8   16  9   TLYCVHQRI   8853.90 26
+    HLA-A*01:01 1   3   11  9   YNTVATLYC   9865.62 29
+    HLA-A*01:01 1   6   14  9   VATLYCVHQ   27575.71    58
+    HLA-A*01:01 1   10  18  9   YCVHQRIDV   48929.64    74
+    HLA-A*01:01 1   9   17  9   LYCVHQRID   50000.00    75
     """
-    lines = response.split("\n")
-
-    # manually parsing since Pandas is insane
-    header_names = lines[0].split("\t")
-
-    d = {}
-    for col_name in header_names:
-        d[col_name] = []
-
-    for line in lines[1:]:
-        line = line.strip()
-        if len(line) > 0:
-            fields = line.split('\t')
-            for i, header_name in enumerate(header_names):
-                value = convert_str(fields[i] if len(fields) > i else None)
-                d[header_name].append(value)
-    return pd.DataFrame(d)
-
+    if len(response) == 0:
+        raise ValueError("Empty response from IEDB!")
+    df = pd.read_csv(io.BytesIO(response), delim_whitespace=True, header=0)
+    if len(df) == 0:
+        raise ValueError(
+            "No binding predictions in response from IEDB: %s" % (response,))
+    required_columns = [
+        "allele",
+        "peptide",
+        "ic50",
+        "rank",
+        "start",
+        "end",
+    ]
+    for column in required_columns:
+        if column not in df.columns:
+            raise ValueError(
+                "Response from IEDB is missing '%s' column: %s" % (
+                    column,
+                    df.ix[0],))
+    return df
 
 def _query_iedb(request_values, url):
     """
@@ -111,12 +123,6 @@ class IedbBasePredictor(BasePredictor):
             self,
             alleles=alleles,
             epitope_lengths=epitope_lengths)
-
-        if prediction_method not in VALID_IEDB_METHODS:
-            raise ValueError(
-                "Invalid IEDB MHC binding prediction method: %s" % (
-                    prediction_method,))
-
         self.prediction_method = prediction_method
 
         if not isinstance(url, str):
@@ -226,8 +232,12 @@ class IedbMhc1(IedbBasePredictor):
             self,
             alleles,
             epitope_lengths=[9],
-            prediction_method='recommended',
-            url='http://tools-api.iedb.org/tools_api/mhci/'):
+            prediction_method="netmhccons",
+            url="http://tools-api.iedb.org/tools_api/mhci/"):
+        if prediction_method not in VALID_CLASS_I_METHODS:
+            raise ValueError(
+                "Invalid IEDB MHC class I binding prediction method: %s" % (
+                    prediction_method,))
         IedbBasePredictor.__init__(
             self,
             alleles=alleles,
@@ -238,8 +248,12 @@ class IedbMhc1(IedbBasePredictor):
 class IedbMhc2(IedbBasePredictor):
     def __init__(self,
             alleles,
-            prediction_method='recommended',
-            url='http://tools-api.iedb.org/tools_api/mhcii/'):
+            prediction_method="NetMHCIIpan",
+            url="http://tools-api.iedb.org/tools_api/mhcii/"):
+        if prediction_method not in VALID_CLASS_II_METHODS:
+            raise ValueError(
+                "Invalid IEDB MHC class II binding prediction method: %s" % (
+                    prediction_method,))
         IedbBasePredictor.__init__(
             self,
             alleles=alleles,
