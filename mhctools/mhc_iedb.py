@@ -20,11 +20,10 @@ import logging
 import pandas as pd
 
 from .base_predictor import BasePredictor
-from .common import seq_to_str, convert_str
-from .peptide_binding_measure import (
-        IC50_FIELD_NAME, PERCENTILE_RANK_FIELD_NAME
-)
-
+from .binding_measure import ic50_nM
+from .binding_prediction import BindingPrediction
+from .epitope_collection import EpitopeCollection
+from .common import seq_to_str
 """
 A note about prediction methods, copied from the IEDB website:
 
@@ -141,97 +140,46 @@ class IedbBasePredictor(BasePredictor):
         }
         return params
 
-    def predict(self, peptides):
-        """
-        Given a dataframe with long amino acid sequences in the
-        'SourceSequence' field, return an augmented dataframe
-        with shorter k-mers in the 'Epitope' column and several
-        columns of MHC binding predictions with names such as 'percentile_rank'
+    def predict(self, amino_acid_sequences):
+        """Given a dictionary mapping unique keys to amino acid sequences,
+        run MHC binding predictions on all candidate epitopes extracted from
+        sequences and return a EpitopeCollection.
         """
         # take each mutated sequence in the dataframe
         # and general MHC binding scores for all k-mer substrings
-        responses = {}
-        for i, peptide in enumerate(peptides):
+        binding_predictions = []
+        for sequence_key, amino_acid_sequence in amino_acid_sequences.items():
             for allele in self.alleles:
-                key = (peptide, allele)
-                if key not in responses:
-                    request = self._get_iedb_request_params(peptide, allele)
+                    request = self._get_iedb_request_params(
+                        amino_acid_sequences, allele)
                     logging.info(
-                        "Calling IEDB (%s) with request %s",
-                        self.url,
-                        request)
+                        "Calling IEDB (%s) with request %s", self.url, request)
                     response_df = _query_iedb(request, self.url)
-                    print("after query", response_df)
-                    response_df.rename(
-                        columns={
-                            'peptide': 'Epitope',
-                            'length': 'EpitopeLength',
-                            'start': 'EpitopeStart',
-                            'end': 'EpitopeEnd',
-                            'allele': 'Allele',
-                        },
-                        inplace=True)
-                    response_df['EpitopeStart'] -= 1
-                    response_df['EpitopeEnd'] -= 1
-                    print("after rename", response_df)
-                    responses[key] = response_df
-                else:
-                    logging.info(
-                        "Already made predictions for peptide %s with allele %s",
-                        peptide,
-                        allele)
-
-        # concatenating the responses makes a MultiIndex with two columns
-        # - SourceSequence
-        # - index of epitope from that sequence's IEDB call
-        #
-        # ...when we reset the index, we turn these into two columns
-        # named 'level_0', and 'level_1'. We want to rename the former
-        # and delete the latter.
-        responses = pd.concat(responses).reset_index()
-        print("concat", responses)
-        responses['SourceSequence'] = responses['level_0']
-        del responses['level_0']
-        del responses['level_1']
-        print("dropped levels", responses)
-
-        # IEDB has inclusive end positions, change to exclusive
-        responses['EpitopeEnd'] += 1
-
-        assert 'ann_rank' in responses, \
-            "Missing 'ann_rank' in %s" % (responses.head(),)
-        responses[PERCENTILE_RANK_FIELD_NAME] = responses['ann_rank']
-
-        assert 'ann_ic50' in responses, \
-            "Missing 'ann_ic50' in %s" % (responses.head(),)
-        responses[IC50_FIELD_NAME] = responses['ann_ic50']
-
-        # instead of just building up a new dataframe I'm expliciting
-        # dropping fields here to document what other information is available
-        drop_fields = (
-            'seq_num',
-            'method',
-            'ann_ic50',
-            'ann_rank',
-            'consensus_percentile_rank',
-            'smm_ic50',
-            'smm_rank',
-            'comblib_sidney2008_score',
-            'comblib_sidney2008_rank'
-        )
-        for field in drop_fields:
-            if field in responses:
-                responses = responses.drop(field, axis=1)
-        print("Dropped fields", responses)
-        # some of the MHC scores come back as all NaN so drop them
-        responses = responses.dropna(axis=1, how='all')
-        return responses
+                    binding_predictions.extend([
+                        BindingPrediction(
+                            allele=row['allele'],
+                            peptide=row['peptide'],
+                            length=row['length'],
+                            # IEDB's start is base-1, subtract 1
+                            # to make it base 0
+                            start=row['start'] - 1,
+                            # end should be base-0 exclusive, same as
+                            # IEDB's base 1 inclusive
+                            end=row['end'],
+                            value=row['ic50'],
+                            percentile=row['rank'],
+                            measure=ic50_nM,
+                            prediction_method_name=self.prediction_method)
+                        for (_, row)
+                        in response_df.iterrows()
+                    ])
+        return EpitopeCollection(binding_predictions)
 
 class IedbMhc1(IedbBasePredictor):
     def __init__(
             self,
             alleles,
-            epitope_lengths=[9],
+            epitope_lengths=[8, 9, 10, 11],
             prediction_method="netmhccons",
             url="http://tools-api.iedb.org/tools_api/mhci/"):
         if prediction_method not in VALID_CLASS_I_METHODS:
@@ -248,6 +196,7 @@ class IedbMhc1(IedbBasePredictor):
 class IedbMhc2(IedbBasePredictor):
     def __init__(self,
             alleles,
+            epitope_lengths=[15, 16, 17, 18, 19, 20],
             prediction_method="NetMHCIIpan",
             url="http://tools-api.iedb.org/tools_api/mhcii/"):
         if prediction_method not in VALID_CLASS_II_METHODS:
@@ -258,6 +207,6 @@ class IedbMhc2(IedbBasePredictor):
             self,
             alleles=alleles,
             # only epitope lengths of 15 currently supported by IEDB's web API
-            epitope_lengths=[15],
+            epitope_lengths=epitope_lengths,
             prediction_method=prediction_method,
             url=url)

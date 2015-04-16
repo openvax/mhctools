@@ -2,7 +2,6 @@
 from collections import defaultdict
 
 class EpitopeCollection(object):
-
     def __init__(self, binding_predictions):
         self.binding_predictions = list(sorted(set(binding_predictions)))
 
@@ -11,6 +10,12 @@ class EpitopeCollection(object):
 
     def __iter__(self):
         return iter(self.binding_predictions)
+
+    def __str__(self):
+        return "<EpitopeCollection with %d elements>" % (len(self),)
+
+    def __repr__(self):
+        return str(self)
 
     def filter(self, filter_fn):
         return self.__class__(x for x in self if filter_fn(x))
