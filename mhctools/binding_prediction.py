@@ -10,6 +10,7 @@ from alleles to a list of ShortPeptidePrediction objects, such as:
                 allele="HLA-A*02:01",
                 peptide="MEEPQSDPS",
                 length=9,
+                source_sequence="MEEPQSDPSV",
                 start=0,
                 end=9,
                 value=0.9,
@@ -20,6 +21,7 @@ from alleles to a list of ShortPeptidePrediction objects, such as:
                 allele="HLA-A*02:01",
                 peptide="EEPQSDPSV",
                 length=9,
+                source_sequence="MEEPQSDPSV",
                 start=1,
                 end=10,
                 value=20.9,
@@ -30,7 +32,7 @@ from alleles to a list of ShortPeptidePrediction objects, such as:
     }
 """
 
-BindingPrediction = namedtuple("ShortPeptidePrediction",
+BindingPrediction = namedtuple("BindingPrediction",
     [
         # HLA allele, e.g. "HLA-A*02:01"
         "allele",
@@ -38,9 +40,13 @@ BindingPrediction = namedtuple("ShortPeptidePrediction",
         "peptide",
         # length of peptide
         "length",
-        # base 0 half-open start position of this peptide in a larger sequence
+        # longer amino acid sequence from which peptide originated
+        "source_sequence",
+        # "key" of source sequence is often the ID from a FASTA file
+        "source_sequence_key",
+        # base 1 inclusive start position of this peptide in larger sequence
         "start",
-        # base 0 half-open end position of this peptide in a larger sequence
+        # base 1 inclusive end position of this peptide in larger sequence
         "end",
         # predicted binding value
         "value",

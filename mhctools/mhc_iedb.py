@@ -140,39 +140,45 @@ class IedbBasePredictor(BasePredictor):
         }
         return params
 
-    def predict(self, amino_acid_sequences):
+    def predict(self, fasta_dictionary):
         """Given a dictionary mapping unique keys to amino acid sequences,
         run MHC binding predictions on all candidate epitopes extracted from
         sequences and return a EpitopeCollection.
+
+        Parameters
+        ----------
+        fasta_dictionary : dict
+            Mapping of protein identifiers to protein amino acid sequences
         """
         # take each mutated sequence in the dataframe
         # and general MHC binding scores for all k-mer substrings
         binding_predictions = []
-        for sequence_key, amino_acid_sequence in amino_acid_sequences.items():
+        for key, amino_acid_sequence in fasta_dictionary.items():
             for allele in self.alleles:
-                    request = self._get_iedb_request_params(
-                        amino_acid_sequences, allele)
-                    logging.info(
-                        "Calling IEDB (%s) with request %s", self.url, request)
-                    response_df = _query_iedb(request, self.url)
-                    binding_predictions.extend([
-                        BindingPrediction(
-                            allele=row['allele'],
-                            peptide=row['peptide'],
-                            length=row['length'],
-                            # IEDB's start is base-1, subtract 1
-                            # to make it base 0
-                            start=row['start'] - 1,
-                            # end should be base-0 exclusive, same as
-                            # IEDB's base 1 inclusive
-                            end=row['end'],
-                            value=row['ic50'],
-                            percentile=row['rank'],
-                            measure=ic50_nM,
-                            prediction_method_name=self.prediction_method)
-                        for (_, row)
-                        in response_df.iterrows()
-                    ])
+                request = self._get_iedb_request_params(
+                    amino_acid_sequence, allele)
+                logging.info(
+                    "Calling IEDB (%s) with request %s",
+                    self.url,
+                    request)
+                response_df = _query_iedb(request, self.url)
+                binding_predictions.extend([
+                    BindingPrediction(
+                        allele=row['allele'],
+                        peptide=row['peptide'],
+                        length=row['length'],
+                        source_sequence=amino_acid_sequence,
+                        source_sequence_key=key,
+                        # IEDB's start/end are 1-based inclusive coordinates
+                        start=row['start'],
+                        end=row['end'],
+                        value=row['ic50'],
+                        percentile_rank=row['rank'],
+                        measure=ic50_nM,
+                        prediction_method_name=self.prediction_method)
+                    for (_, row)
+                    in response_df.iterrows()
+                ])
         return EpitopeCollection(binding_predictions)
 
 class IedbMhc1(IedbBasePredictor):

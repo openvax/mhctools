@@ -50,11 +50,7 @@ class BindingMeasure(object):
         self.max_inclusive = max_inclusive
 
     def __str__(self):
-        return "%s(units=%s, bigger_is_better=%s)" % (
-            self.name,
-            self.units,
-            self.bigger_is_better
-        )
+        return "%s(units=%s)" % (self.name, self.units)
 
     def fields(self):
         return (
