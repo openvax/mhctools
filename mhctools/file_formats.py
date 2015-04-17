@@ -62,15 +62,40 @@ def create_input_fasta_file(df, mutation_window_size=None):
 def invalid_binding_score(x):
     return x < 0 or np.isnan(x) or np.isinf(x)
 
-def create_binding_result_row(
-        mutation_entry,
-        allele,
+def create_binding_prediction_object(
         pos,
+        key,
+        allele,
         epitope,
-        log_ic50,
         ic50,
         rank,
-        mutation_window_size=None):
+        log_ic50):
+    """
+    Parameters
+    ----------
+    pos : int
+        Base0 starting position in source sequence that all epitopes were
+        extracted from
+
+    key : str
+        Unique identifier for source sequence
+
+    allele : str
+        HLA allele, e.g. HLA-A*02:01
+
+    epitope : str
+        Short amino acid sequence
+
+    ic50 : float
+        Predicted binding affinity
+
+    rank : float
+        Percentile rank of the binding affinity for that allele
+
+    log_ic50 : float
+        NetMHC sometimes gives invalid IC50 values but we can still reconstruct
+        the value from its log_50000 score.
+    """
     # if we have a bad IC50 score we might still get a salvageable
     # log of the score. Strangely, this is necessary sometimes!
     if invalid_binding_score(ic50):
@@ -90,14 +115,9 @@ def create_binding_result_row(
             rank, epitope, allele)
         return None
 
-    if mutation_window_size:
-        # if we clipped parts of the amino acid sequence which don't
-        # overlap mutations then we have to offset epitope positions by
-        # however much was removed from the beginning of the sequence
-        original_start = max(
-            0,
-            mutation_entry.MutationStart - mutation_window_size)
-        pos += original_start
+    return BindingPrediction(
+
+    )
 
     # keep track of original genetic variant that
     # gave rise to this epitope
@@ -128,7 +148,10 @@ def create_binding_result_row(
     new_row[ic50_nM.name + " Percentile Rank"] = rank
     return new_row
 
-def parse_netmhc_stdout(contents, peptide_entries, mutation_window_size=None):
+def parse_netmhc_stdout(
+        contents,
+        peptide_entries,
+        mutation_window_size=None):
     """
     Parse the output format for NetMHC predictors, which looks like:
 
@@ -163,13 +186,13 @@ def parse_netmhc_stdout(contents, peptide_entries, mutation_window_size=None):
         fields = line.split()
         n_required_fields = 7
         if len(fields) >= n_required_fields:
-            pos, allele, peptide, ident, log_affinity, ic50, rank = \
+            pos, allele, peptide, key, log_affinity, ic50, rank = \
                 fields[:n_required_fields]
             try:
                 pos = int(pos)
                 allele = str(allele)
                 peptide = str(peptide)
-                ident = str(ident)
+                key = str(key)
                 log_affinity = float(log_affinity)
                 ic50 = float(ic50)
                 rank = float(rank)
@@ -178,12 +201,9 @@ def parse_netmhc_stdout(contents, peptide_entries, mutation_window_size=None):
                 # then skip this line
                 continue
 
-            assert ident in peptide_entries, \
-                "Unknown identifier %s in NetMHC output"
 
-            mutation_entry = peptide_entries[ident]
 
-            new_row = create_binding_result_row(
+            binding_prediction = create_binding_prediction_object(
                 mutation_entry,
                 allele,
                 pos,
