@@ -169,9 +169,9 @@ class IedbBasePredictor(BasePredictor):
                         length=row['length'],
                         source_sequence=amino_acid_sequence,
                         source_sequence_key=key,
-                        # IEDB's start/end are 1-based inclusive coordinates
-                        start=row['start'],
-                        end=row['end'],
+                        # IEDB's start is 1-based, need to subtract 1
+                        base0_start=row['start'] - 1,
+                        base_end=row['end'] - 1,
                         value=row['ic50'],
                         percentile_rank=row['rank'],
                         measure=ic50_nM,

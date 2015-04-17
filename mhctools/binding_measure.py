@@ -50,7 +50,7 @@ class BindingMeasure(object):
         self.max_inclusive = max_inclusive
 
     def __str__(self):
-        return "%s(units=%s)" % (self.name, self.units)
+        return "%s_%s" % (self.name, self.units)
 
     def fields(self):
         return (
@@ -124,7 +124,7 @@ ic50_nM = BindingMeasure(
     min_value=0.0)
 
 stability_minutes = BindingMeasure(
-    name="Stability (minutes)",
+    name="Stability",
     units="minutes",
     bigger_is_better=True,
     min_value=0.0,

@@ -1,5 +1,8 @@
-
 from collections import defaultdict
+
+import pandas as pd
+
+from .binding_prediction import BindingPrediction
 
 class EpitopeCollection(object):
     def __init__(self, binding_predictions):
@@ -16,6 +19,9 @@ class EpitopeCollection(object):
 
     def __repr__(self):
         return str(self)
+
+    def __getitem__(self, idx):
+        return self.binding_predictions[idx]
 
     def filter(self, filter_fn):
         return self.__class__(x for x in self if filter_fn(x))
@@ -48,3 +54,8 @@ class EpitopeCollection(object):
 
     def groupby_allele_and_peptide(self):
         return self.groupby(key_fn=lambda x: (x.allele, x.peptide))
+
+    def dataframe(self):
+        return pd.DataFrame(
+            self.binding_predictions,
+            columns=BindingPrediction._fields)

@@ -1,35 +1,39 @@
 from collections import namedtuple
 
 """
-Given a longer amino acid sequence such as MEEPQSDPSV
-result of a binding predictor can be represented as a dictionary
-from alleles to a list of ShortPeptidePrediction objects, such as:
-    {
-        "HLA-A*02:01" : [
-            ShortPeptidePrediction(
-                allele="HLA-A*02:01",
-                peptide="MEEPQSDPS",
-                length=9,
-                source_sequence="MEEPQSDPSV",
-                start=0,
-                end=9,
-                value=0.9,
-                prediction_method_name="NetMHC",
-                measure=ic50_nM,
-                prediction_method_name="NetMHC"),
-            ShortPeptidePrediction(
-                allele="HLA-A*02:01",
-                peptide="EEPQSDPSV",
-                length=9,
-                source_sequence="MEEPQSDPSV",
-                start=1,
-                end=10,
-                value=20.9,
-                percentile_rank=
-                measure=ic50_nM,
-                prediction_method_name="NetMHC"),
-        ]
-    }
+Given the following single sequence FASTA file:
+    >seq0
+    MEEPQSDPSV
+the result of a binding predictor for HLA-A*02:01 will be
+a collection of the following BindingPrediction objects:
+    [
+        BindingPrediction(
+            allele="HLA-A*02:01",
+            peptide="MEEPQSDPS",
+            length=9,
+            base0_start=0,
+            base0_end=9,
+            value=0.9,
+            percentile_rank=1.3,
+            measure=ic50_nM,
+            prediction_method_name="NetMHC",
+            source_sequence="MEEPQSDPSV",
+            source_sequence_key="seq0",
+        ),
+        BindingPrediction(
+            allele="HLA-A*02:01",
+            peptide="EEPQSDPSV",
+            length=9,
+            base0_start=1,
+            base0_end=10,
+            value=20.9,
+            percentile_rank=39.9,
+            measure=ic50_nM,
+            prediction_method_name="NetMHC",
+            source_sequence="MEEPQSDPSV",
+            source_sequence_key="seq0",
+        ),
+    ]
 """
 
 BindingPrediction = namedtuple("BindingPrediction",
@@ -40,14 +44,10 @@ BindingPrediction = namedtuple("BindingPrediction",
         "peptide",
         # length of peptide
         "length",
-        # longer amino acid sequence from which peptide originated
-        "source_sequence",
-        # "key" of source sequence is often the ID from a FASTA file
-        "source_sequence_key",
-        # base 1 inclusive start position of this peptide in larger sequence
-        "start",
-        # base 1 inclusive end position of this peptide in larger sequence
-        "end",
+        # start position of this peptide in larger sequence
+        "base0_start",
+        # end position of this peptide in larger sequence
+        "base0_end",
         # predicted binding value
         "value",
         # what is the predicted value measured (a BindingMeasure object)
@@ -56,4 +56,8 @@ BindingPrediction = namedtuple("BindingPrediction",
         "percentile_rank",
         # name of predictor e.g. "NetMHC"
         "prediction_method_name",
+        # longer amino acid sequence from which peptide originated
+        "source_sequence",
+        # "key" of source sequence is often the ID from a FASTA file
+        "source_sequence_key",
     ])
