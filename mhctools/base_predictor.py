@@ -75,7 +75,7 @@ class BasePredictor(object):
             missing_alleles = [
                 allele
                 for allele in alleles
-                if allele.replace("*", "") not in valid_alleles
+                if allele not in valid_alleles
             ]
             if len(missing_alleles) > 0:
                 raise ValueError("Unsupported HLA alleles: %s" % (

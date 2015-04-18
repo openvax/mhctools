@@ -10,8 +10,8 @@ def test_netmhc_pan():
         alleles=alleles,
         epitope_lengths=[9])
     fasta_dictionary = {
-        "SMAD4-001 c.10A>T": "ASIINFKELA",
-        "TP53-001 c.2000incC": "ASILLLVFYW"
+        "SMAD4-001": "ASIINFKELA",
+        "TP53-001": "ASILLLVFYW"
     }
     epitope_collection = pan_predictor.predict(
         fasta_dictionary=fasta_dictionary)

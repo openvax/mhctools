@@ -1,15 +1,61 @@
 
-SPECIES_PREFIXES = {
-    "BoLA",
-    "DLA"    # dogs
-    "HLA",   # human
-    "OVA",   # ovine (sheep)
-    "SLA",   # swine (pigs)
-    "H-2",   # mice
-    "Mamu",  # Rhesus macaques
-}
+# copied from https://www.ebi.ac.uk/ipd/mhc/species.html
+SPECIES_PREFIXES = dict(
+    human="HLA",
+    cattle="BoLA",
+    bison="Bibi",
+    dog="DLA",
+    sheep=["OVA", "Ovar", "Ovca"],
+    swine="SLA",
+    mouse="H2",
+    rainbow_trout="Onmy",
+    rat=["Rano", "Rara", "RT1"],
+    salmon="Sasa",
+    cat="FLA",
+    horse=["ELA", "Eqca"],
+    chimp=["Patr", "ChLA"],
+    bonobo="Papa",
+    white_handed_gibbon="Hyla",
+    gorilla="Gogo",
+    orangutan=["Popy", "OrLA"],
+    blue_monkey="Cemi",
+    de_brazzas_monkey="Cene",
+    vervet_monkey="Chae",
+    mantled_colobus="Cogu",
+    black_mangabey="Loat",
+    stump_tailed_macaque="Maar",
+    crab_eating_macaque="Mafa",
+    japanese_macaque="Mafu",
+    rhesus_macaque=["Mamu", "RhLA", "Rhla"],
+    pig_tailed_macaque="Mane",
+    lion_tailed_macaque="Masi",
+    drill="Male",
+    mandrill="Masp",
+    olive_baboon="Paan",
+    yellow_baboon="Pacy",
+    hamadryas_baboon="Paha",
+    guinea_baboon="Papp",
+    chacma_baboon="Paur",
+    entelus_langur="Pren",
+    gelada_baboon="Thge",
+    owl_monkey=["Aoaz", "Aovo"],
+    northern_night_owl_monkey=["Aona", "Aoni", "OmLA"],
+    long_haired_spider_monkey="Atbe",
+    brown_headed_spider_monkey="Atfu",
+    marmoset=["Caja", "MaLA"],
+    pygmy_marmoset="Cepy",
+    dusk_titi_monkey="Camo",
+    tufted_capuchin="Ceap",
+    golden_lion_tamarin="Lero",
+    white_faced_saki="Pipi",
+    saddle_backed_tamarin="Safu",
+    red_crested_tamarin="Sage",
+    moustached_tamarin="Samy",
+    cotton_top_tamarin="Saoe",
+    squirrel_moneky="Sasc",
+    lemur="Leca")
 
-def _parse_hla_allele_name(hla):
+def parse_allele_name(name):
     """Takes an allele name and splits it into four parts:
         1) species prefix
         2) gene name
@@ -28,67 +74,77 @@ def _parse_hla_allele_name(hla):
             "01",   # allele code
         )
     """
-    original = hla
-    hla = hla.strip().upper()
+    original = name
+    name = name.strip()
 
-    for
-    if "H-2" in hla:
-        # mouse allele
-        species_species = "H-2"
-        parts = hla.split("H-2")
-    else:
-        parts = hla.split("-")
+    if len(name) == 0:
+        raise ValueError("Empty HLA name")
 
-    if len(parts) == 1:
-        # no prefix, assume it's a human allele
-        hla = parts[0]
-    elif len(parts) == 2:
-        prefix, hla = parts
-    else:
-        raise ValueError("Invalid MHC allele: %s" % (hla,))
+    species = None
+    for species_list in SPECIES_PREFIXES.values():
+        if isinstance(species_list, str):
+            species_list = [species_list]
+        for curr_species in species_list:
+            prefix = name[:len(curr_species) + 1].upper()
+            if prefix == (curr_species.upper().replace("-", "") + "-"):
+                species = curr_species
+                name = name[len(curr_species) + 1:]
+                break
 
-    if prefix in {"SLA", "BoLA"}:
-        # parse gene names like SLA-1, BoLA-2, BoLA-N
-        gene, hla = _parse_until(hla, ":")
-    elif prefix == "H-2":
-        print(hla)
-        assert False
+    if not species:
+        # assume that a missing species name means we're dealing with a
+        # human HLA allele
+        if "-" in name:
+            raise ValueError("Can't parse allele name: %s" % original)
+        species = "HLA"
+
+    if len(name) == 0:
+        raise ValueError("Incomplete HLA name: %s" % (original,))
+
+    if name[0].isalpha():
+        gene, name = _parse_letters(name)
+    elif name[0].isdigit():
+        gene, name = _parse_numbers(name)
     else:
-        # gene name is sequence of letters at start of HLA string
-        gene, hla = _parse_letters(hla)
+        raise ValueError("Can't parse gene name from allele: %s" % original)
 
     if len(gene) == 0:
         raise ValueError("No HLA gene name given in %s" % original)
-    if len(hla) == 0:
+    if len(name) == 0:
         raise ValueError("Malformed HLA type %s" % original)
 
     gene = gene.upper()
 
     # skip initial separator
-    sep, hla = _parse_not_numbers(hla)
-    if sep not in ("", ":", "*", "-"):
-        raise ValueError(
-            "Malformed separator %s in HLA type %s" % (sep, original))
+    sep, name = _parse_separator(name)
+    # if all that's left is e.g. "0201" then only parse the
+    # first two digits as the family code
+    if len(name) == 4:
+        family, name = _parse_numbers(name, max_len=2)
+    else:
+        family, name = _parse_numbers(name, max_len=3)
 
-    family, hla = _parse_numbers(hla, max_len=2)
+    sep, name = _parse_separator(name)
 
-    sep, hla = _parse_not_numbers(hla)
-
-    if sep not in ("", ":"):
-        raise ValueError(
-            "Malformed separator %s in HLA type %s" % (sep, original))
-
-    allele, hla = _parse_numbers(hla)
+    allele_code, name = _parse_numbers(name)
 
     if len(family) == 1:
         family = "0" + family
-    if len(allele) == 0:
-        allele = "01"
-    elif len(allele) == 1:
-        allele = "0" + allele
+    elif len(family) == 3 and family[0] == "0":
+        family = family[1:]
+
+    if len(allele_code) == 0:
+        allele_code = "01"
+    elif len(allele_code) == 1:
+        # change HLA-A*2:01 into HLA-A*02:01
+        allele_code = "0" + allele_code
+    elif len(allele_code) == 3 and allele_code[0] == "0":
+        # normalize HLA-A*002:01 into HLA-A*02:01
+        allele_code = allele_code[1:]
+
     return species, gene, family, allele_code
 
-_normalized_allele_cache
+_normalized_allele_cache = {}
 def normalize_allele_name(raw_allele):
     """MHC alleles are named with a frustatingly loose system. It's not uncommon
     to see dozens of different forms for the same allele.
@@ -128,66 +184,43 @@ def normalize_allele_name(raw_allele):
     """
     if raw_allele in _normalized_allele_cache:
         return _normalized_allele_cache[raw_allele]
-    (species, gene, family, allele_code) = _parse_allele_name(raw_allele)
-    normalized = "%s-%s*%s:%s" % (species, gene, family, allele)
+    (species, gene, family, allele_code) = parse_allele_name(raw_allele)
+    normalized = "%s-%s*%s:%s" % (species, gene, family, allele_code)
     _normalized_allele_cache[raw_allele] = normalized
     return normalized
 
-MHC_1_GENE_SET = set(["A", "B", "C", "E", "F", "G", "K", "L"])
-MHC_2_GENE_SET = set(["DM", "DO", "DP", "DQ", "DR"])
-
-def compact_hla_allele_name(hla):
-    long_name = normalize_allele_name(hla)
+def compact_allele_name(allele):
+    long_name = normalize_allele_name(allele)
     # turn HLA-A*02:01 into A0201
-    return long_name[4:].replace("*", "").replace(":", "")
+    return long_name.split("-")[1].replace("*", "").replace(":", "")
 
-def mhc_class_from_normalized_allele_name(normalized_hla):
-    """
-    Given a normalized HLA allele name, returns 1 or 2 (corresponding to the
-    MHC class).
-
-    Returns 1 for: HLA-A, HLA-B, HLA-C, HLA-E, HLA-F, HLA-G, HLA-K, HLA-L
-    Returns 2 for: HLA-DM, HLA-DO, HLA-DP, HLA-DQ, HLA-DR
-    """
-    assert normalized_hla.startswith("HLA-") and all(
-        delim in normalized_hla for delim in set(["*", ":", "-"])), \
-        "Expected normalized HLA allele name, but received %s" % normalized_hla
-
-    gene_end_pos = normalized_hla.index("*")
-    gene = normalized_hla[4:gene_end_pos]
-
-    if gene in MHC_1_GENE_SET:
-        return 1
-    elif gene in MHC_2_GENE_SET:
-        return 2
-    raise ValueError(
-        "HLA gene %s is not a part of the MHC 1 or MHC 2 gene sets." % gene)
-    return 1
-
-
-def _parse_substring(hla, pred, max_len=None):
+def _parse_substring(allele, pred, max_len=None):
     """
     Extract substring of letters for which predicate is True
     """
     result = ""
     pos = 0
     if max_len is None:
-        max_len = len(hla)
+        max_len = len(allele)
     else:
-        max_len = min(max_len, len(hla))
-    while pos < max_len and pred(hla[pos]):
-        result += hla[pos]
+        max_len = min(max_len, len(allele))
+    while pos < max_len and pred(allele[pos]):
+        result += allele[pos]
         pos += 1
-    return result, hla[pos:]
+    return result, allele[pos:]
 
-def _parse_letters(hla, max_len=None):
-    return _parse_substring(hla, lambda c: c.isalpha(), max_len=max_len)
+def _parse_letters(allele, max_len=None):
+    return _parse_substring(allele, lambda c: c.isalpha(), max_len=max_len)
 
-def _parse_numbers(hla, max_len=None):
-    return _parse_substring(hla, lambda c: c.isdigit(), max_len=max_len)
+def _parse_numbers(allele, max_len=None):
+    return _parse_substring(allele, lambda c: c.isdigit(), max_len=max_len)
 
-def _parse_not_numbers(hla, max_len=None):
-    return _parse_substring(hla, lambda c: not c.isdigit(), max_len=max_len)
+def _parse_not_numbers(allele, max_len=None):
+    return _parse_substring(allele, lambda c: not c.isdigit(), max_len=max_len)
 
-def _parse_until(hla, sep):
-    return _parse_substring(hla, lambda c: c != sep)
+def _parse_until(allele, sep):
+    return _parse_substring(allele, lambda c: c != sep)
+
+SEPARATORS = {":", "*", "-"}
+def _parse_separator(allele, max_len=None):
+    return _parse_substring(allele, lambda c: c in SEPARATORS, max_len=max_len)
