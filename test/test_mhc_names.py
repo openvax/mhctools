@@ -1,6 +1,7 @@
 from nose.tools import eq_
 from mhctools.alleles import (
     normalize_allele_name,
+    parse_allele_name,
     compact_allele_name
 )
 
@@ -22,13 +23,13 @@ def test_hla_long_names():
     expected = "HLA-A*02:01"
     for name in hla_alleles:
         result = normalize_allele_name(name)
-        eq_(expected, result)
+        eq_(result, expected)
 
 def test_hla_short_names():
     expected = "A0201"
     for name in hla_alleles:
         result = compact_allele_name(name)
-        eq_(expected, result)
+        eq_(result, expected)
 
 def test_macaque_alleles():
     allele_name = "Mamu-B*082:02"
@@ -41,10 +42,26 @@ def test_macaque_alleles():
     eq_(normalize_allele_name(allele_name), "Mamu-B*07:02")
     eq_(compact_allele_name(allele_name), "B0702")
 
-def test_swine_alleles():
-    pass
-    """
-    allele_name = "Mamu-B*082:02"
-    eq_(normalize_allele_name(allele_name), allele_name)
-    eq_(compact_allele_name(allele_name), "Mamu-B8202")
-    """
+def test_dog_class2_allele():
+    species, gene, family, allele_code = parse_allele_name("DLA-DQA1*00101")
+    eq_(species, "DLA")
+    eq_(gene, "DQA1")
+    eq_(family, "01")
+    eq_(allele_code, "01")
+
+def test_sheep_class1_allele():
+    species, gene, family, allele_code = parse_allele_name("Ovar-N*50001")
+    eq_(species, "Ovar")
+    eq_(gene, "N")
+    eq_(family, "500")
+    eq_(allele_code, "01")
+
+def test_sheep_class2_allele():
+    species, gene, family, allele_code = parse_allele_name("Ovar-DRB1*0804")
+    eq_(species, "Ovar")
+    eq_(gene, "DRB1")
+    eq_(family, "08")
+    eq_(allele_code, "04")
+
+# TODO: test swine and mouse alleles, since both
+# can be significantly different from other species

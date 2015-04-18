@@ -101,7 +101,13 @@ def parse_allele_name(name):
     if len(name) == 0:
         raise ValueError("Incomplete HLA name: %s" % (original,))
 
-    if name[0].isalpha():
+    if name[0] == "D":
+        # MHC class II genes like "DQA1" need to be parsed with both
+        # letters and numbers
+        gene, name = _parse_alphanum(name)
+    elif name[0].isalpha():
+        # if there are more separators to come, then assume the gene names
+        # can have the form "DQA1"
         gene, name = _parse_letters(name)
     elif name[0].isdigit():
         gene, name = _parse_numbers(name)
@@ -208,6 +214,9 @@ def _parse_substring(allele, pred, max_len=None):
         result += allele[pos]
         pos += 1
     return result, allele[pos:]
+
+def _parse_alphanum(allele, max_len=None):
+    return _parse_substring(allele, lambda c: c.isalnum(), max_len=max_len)
 
 def _parse_letters(allele, max_len=None):
     return _parse_substring(allele, lambda c: c.isalpha(), max_len=max_len)
