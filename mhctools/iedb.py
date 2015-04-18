@@ -21,8 +21,7 @@ import pandas as pd
 
 from .base_predictor import BasePredictor
 from .binding_measure import ic50_nM
-from .binding_prediction import BindingPrediction
-from .epitope_collection import EpitopeCollection
+from .epitope_collection_builder import EpitopeCollectionBuilder
 from .common import seq_to_str
 """
 A note about prediction methods, copied from the IEDB website:
@@ -152,7 +151,9 @@ class IedbBasePredictor(BasePredictor):
         """
         # take each mutated sequence in the dataframe
         # and general MHC binding scores for all k-mer substrings
-        binding_predictions = []
+        builder = EpitopeCollectionBuilder(
+            fasta_dictionary=fasta_dictionary,
+            prediction_method_name=self.prediction_method)
         for key, amino_acid_sequence in fasta_dictionary.items():
             for allele in self.alleles:
                 request = self._get_iedb_request_params(
@@ -162,24 +163,17 @@ class IedbBasePredictor(BasePredictor):
                     self.url,
                     request)
                 response_df = _query_iedb(request, self.url)
-                binding_predictions.extend([
-                    BindingPrediction(
-                        allele=row['allele'],
-                        peptide=row['peptide'],
-                        length=row['length'],
-                        source_sequence=amino_acid_sequence,
+                for _, row in response_df.iterrows():
+                    builder.add_binding_prediction(
                         source_sequence_key=key,
                         # IEDB's start is 1-based, need to subtract 1
-                        base0_start=row['start'] - 1,
-                        base_end=row['end'] - 1,
+                        offset=row['start'] - 1,
+                        allele=row['allele'],
+                        peptide=row['peptide'],
                         value=row['ic50'],
                         percentile_rank=row['rank'],
-                        measure=ic50_nM,
-                        prediction_method_name=self.prediction_method)
-                    for (_, row)
-                    in response_df.iterrows()
-                ])
-        return EpitopeCollection(binding_predictions)
+                        measure=ic50_nM)
+        return builder.get_collection()
 
 class IedbMhc1(IedbBasePredictor):
     def __init__(

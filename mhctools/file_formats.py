@@ -11,14 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import logging
-import numpy as np
 import tempfile
 
-from common import normalize_hla_allele_name
-from binding_measure import ic50_nM
+from .epitope_collection_builder import EpitopeCollectionBuilder
 
-def create_input_fasta_file(df, mutation_window_size=None):
+def create_input_fasta_file(fasta_dictionary):
     """
     Turn peptide entries from a dataframe into a FASTA file.
     If mutation_window_size is an integer >0 then only use subsequence
@@ -29,129 +26,21 @@ def create_input_fasta_file(df, mutation_window_size=None):
     """
     input_file = tempfile.NamedTemporaryFile(
         "w", prefix="peptide", delete=False)
-    peptide_entries = {}
-    n_records = len(df)
-    # create input file for all peptide sequences and also
-    # put the entries into a dictionary so we can read out the results later
-    for i, mutation_entry in df.iterrows():
-        seq = mutation_entry['SourceSequence']
-        original_seq = mutation_entry['OriginalSequence']
-        if mutation_window_size:
-            start = max(
-                0,
-                mutation_entry.MutationStart - mutation_window_size)
-            stop = min(
-                len(seq),
-                mutation_entry.MutationEnd + mutation_window_size)
-            seq = seq[start:stop]
-            original_seq = original_seq[start:stop]
-        identifier = "%s_%s" % (i, mutation_entry['Gene'][:5])
-        mutation_entry['SourceSequence'] = seq
-        mutation_entry['OriginalSequence'] = original_seq
-        peptide_entries[identifier] = mutation_entry
-
-        input_file.write(">%s\n" % identifier)
-        input_file.write(seq)
+    n_fasta_records = len(fasta_dictionary)
+    for i, (key, source_sequence) in enumerate(fasta_dictionary.items()):
+        input_file.write(">%s\n%s" % (key, source_sequence))
 
         # newline unless at end of file
-        if i + 1 < n_records:
+        if i + 1 < n_fasta_records:
             input_file.write("\n")
     input_file.close()
-    return input_file.name, peptide_entries
+    return input_file.name
 
-def invalid_binding_score(x):
-    return x < 0 or np.isnan(x) or np.isinf(x)
-
-def create_binding_prediction_object(
-        pos,
-        key,
-        allele,
-        epitope,
-        ic50,
-        rank,
-        log_ic50):
-    """
-    Parameters
-    ----------
-    pos : int
-        Base0 starting position in source sequence that all epitopes were
-        extracted from
-
-    key : str
-        Unique identifier for source sequence
-
-    allele : str
-        HLA allele, e.g. HLA-A*02:01
-
-    epitope : str
-        Short amino acid sequence
-
-    ic50 : float
-        Predicted binding affinity
-
-    rank : float
-        Percentile rank of the binding affinity for that allele
-
-    log_ic50 : float
-        NetMHC sometimes gives invalid IC50 values but we can still reconstruct
-        the value from its log_50000 score.
-    """
-    # if we have a bad IC50 score we might still get a salvageable
-    # log of the score. Strangely, this is necessary sometimes!
-    if invalid_binding_score(ic50):
-        ic50 = 50000 ** (-log_ic50 + 1)
-        # if IC50 is still NaN or otherwise invalid, abort
-        if invalid_binding_score(ic50):
-            logging.warn(
-                "Invalid IC50 value %0.4f for %s w/ allele %s",
-                ic50,
-                epitope,
-                allele)
-            return None
-
-    if invalid_binding_score(rank) or rank > 100:
-        logging.warn(
-            "Invalid percentile rank %s for %s w/ allele %s",
-            rank, epitope, allele)
-        return None
-
-    return BindingPrediction(
-
-    )
-
-    # keep track of original genetic variant that
-    # gave rise to this epitope
-    new_row = {}
-
-    # fields shared by all epitopes from this sequence
-    new_row['chr'] = mutation_entry.chr
-    new_row['pos'] = mutation_entry.pos
-    new_row['ref'] = mutation_entry.ref
-    new_row['alt'] = mutation_entry.alt
-
-    new_row['SourceSequence'] = mutation_entry.SourceSequence
-    new_row['OriginalSequence'] = mutation_entry.OriginalSequence
-    new_row['MutationStart'] = mutation_entry.MutationStart
-    new_row['MutationEnd'] = mutation_entry.MutationEnd
-    new_row['GeneInfo'] = mutation_entry.GeneInfo
-    new_row['Gene'] = mutation_entry.Gene
-    new_row["GeneMutationInfo"] = mutation_entry.GeneMutationInfo
-    new_row['PeptideMutationInfo'] = mutation_entry.PeptideMutationInfo
-    new_row['TranscriptId'] = mutation_entry.TranscriptId
-
-    # fields specific to this epitope
-    new_row['Allele'] = normalize_hla_allele_name(allele)
-    new_row['EpitopeStart'] = pos
-    new_row['EpitopeEnd'] = pos + len(epitope)
-    new_row['Epitope'] = epitope
-    new_row[ic50_nM.name] = ic50
-    new_row[ic50_nM.name + " Percentile Rank"] = rank
-    return new_row
 
 def parse_netmhc_stdout(
-        contents,
-        peptide_entries,
-        mutation_window_size=None):
+        netmhc_output,
+        fasta_dictionary,
+        prediction_method_name="netmhc"):
     """
     Parse the output format for NetMHC predictors, which looks like:
 
@@ -175,13 +64,16 @@ def parse_netmhc_stdout(
      10  HLA-A*02:03    THIIIASSS   id0         0.040     32361.18   50.00
      11  HLA-A*02:03    HIIIASSSL   id0         0.515       189.74    4.00 <= WB
     """
-    lines = contents.split("\n")
+    builder = EpitopeCollectionBuilder(
+        fasta_dictionary=fasta_dictionary,
+        prediction_method_name=prediction_method_name)
+
+    lines = netmhc_output.split("\n")
     lines = [l.strip() for l in lines]
     # remove empty lines
     lines = [l for l in lines if len(l) > 0]
     # remove comments
     lines = [l for l in lines if not l.startswith("#")]
-    results = []
     for line in lines:
         fields = line.split()
         n_required_fields = 7
@@ -200,28 +92,20 @@ def parse_netmhc_stdout(
                 # if position or affinity values can't be parsed,
                 # then skip this line
                 continue
+            builder.add_binding_prediction(
+                source_sequence_key=key,
+                offset=pos,
+                peptide=peptide,
+                allele=allele,
+                ic50=ic50,
+                rank=rank,
+                log_ic50=log_affinity)
+    return builder.get_collection()
 
-
-
-            binding_prediction = create_binding_prediction_object(
-                mutation_entry,
-                allele,
-                pos,
-                peptide,
-                log_affinity,
-                ic50,
-                rank,
-                mutation_window_size=mutation_window_size)
-
-            if not new_row:
-                # if we encountered an error, skip this line
-                logging.warn("Skipping allele=%s peptide=%s ic50=%s",
-                    allele, peptide, ic50)
-                continue
-            results.append(new_row)
-    return results
-
-def parse_xls_file(contents, peptide_entries, mutation_window_size=None):
+def parse_xls_file(
+        xls_contents,
+        fasta_dictionary,
+        prediction_method_name):
     """
     XLS is a wacky output format used by NetMHCpan and NetMHCcons
     for peptide binding predictions.
@@ -234,26 +118,29 @@ def parse_xls_file(contents, peptide_entries, mutation_window_size=None):
          '1-log50k', 'nM', 'Rank',
          ...'Ave', 'NB']
     """
-    lines = [line.split("\t")
-             for line in contents.split("\n")
-             if len(line) > 0]
+    lines = [
+        line.split("\t")
+        for line in xls_contents.split("\n")
+        if len(line) > 0
+    ]
 
     if len(lines) == 0:
-        return []
+        raise ValueError("Empty XLS file for %s result" % (
+            prediction_method_name,))
 
     # top line of XLS file has alleles
     alleles = [x for x in lines[0] if len(x) > 0]
     # skip alleles and column headers
     lines = lines[2:]
-    results = []
+
+    builder = EpitopeCollectionBuilder(
+        fasta_dictionary=fasta_dictionary,
+        prediction_method_name=prediction_method_name)
+
     for line in lines:
         pos = int(line[0])
         epitope = line[1]
         identifier = line[2]
-        assert identifier in peptide_entries, \
-            "Bad identifier %s, epitopes = %s" % (
-                identifier, peptide_entries.head())
-        mutation_entry = peptide_entries[identifier]
         for i, allele in enumerate(alleles):
             # we start at an offset of 3 to skip the allele-invariant
             # pos, epitope, identifier columns
@@ -261,20 +148,12 @@ def parse_xls_file(contents, peptide_entries, mutation_window_size=None):
             log_ic50 = float(line[3 + 3 * i])
             ic50 = float(line[3 + 3 * i + 1])
             rank = float(line[3 + 3 * i + 2])
-
-            new_row = create_binding_result_row(
-                mutation_entry,
-                allele,
-                pos,
-                epitope,
-                log_ic50,
-                ic50,
-                rank,
-                mutation_window_size=mutation_window_size)
-            if not new_row:
-                # if we encountered an error, skip this line
-                logging.warn("Skipping allele=%s epitope=%s ic50=%s",
-                    allele, epitope, ic50)
-                continue
-            results.append(new_row)
-    return results
+            builder.add_binding_prediction(
+                source_sequence_key=identifier,
+                offset=pos,
+                peptide=epitope,
+                allele=allele,
+                ic50=ic50,
+                rank=rank,
+                log_ic50=log_ic50)
+    return builder.get_collection()

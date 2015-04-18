@@ -1,6 +1,6 @@
 from typechecks import require_iterable_of
 
-from .common import normalize_hla_allele_name
+from .alleles import normalize_allele_name
 
 
 class BasePredictor(object):
@@ -66,7 +66,7 @@ class BasePredictor(object):
         """
         require_iterable_of(alleles, str, "HLA alleles")
         alleles = [
-            normalize_hla_allele_name(allele.strip().upper())
+            normalize_allele_name(allele.strip().upper())
             for allele in alleles
         ]
         if valid_alleles:

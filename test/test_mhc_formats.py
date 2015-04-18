@@ -1,11 +1,8 @@
 from mhctools.file_formats import parse_netmhc_stdout
-from mhctools.peptide_binding_measure import (
-    IC50_FIELD_NAME,
-    PERCENTILE_RANK_FIELD_NAME,
-)
+
 
 def test_mhc_stdout():
-    s = """
+    netmhc_output = """
     # Affinity Threshold for Strong binding peptides  50.000',
     # Affinity Threshold for Weak binding peptides 500.000',
     # Rank Threshold for Strong binding peptides   0.500',
@@ -26,32 +23,21 @@ def test_mhc_stdout():
      10  HLA-A*02:03    THIIIASSS   id0         0.040     32361.18   50.00
      11  HLA-A*02:03    HIIIASSSL   id0         0.515       189.74    4.00 <= WB
     """
-    class MutationEntry(object):
-    	pass
 
-    mutation_entry = MutationEntry()
-    mutation_entry.SourceSequence = "QQQQQYFPEITHIIASSSL"
-    mutation_entry.MutationStart = 2
-    mutation_entry.MutationEnd = 3
-    mutation_entry.GeneInfo = "TP53 missense"
-    mutation_entry.Gene = "TP53"
-    mutation_entry.GeneMutationInfo = "g.2 some mutation info"
-    mutation_entry.PeptideMutationInfo = "p.2 T>Q"
-    mutation_entry.TranscriptId = "TID0"
-    mutation_entry.chr = 'X'
-    mutation_entry.pos = 39393
-    mutation_entry.ref = 'A'
-    mutation_entry.alt = 'T'
+    fasta_dictionary = {
+      "id0": "QQQQQYFPEITHIIASSSL"
+    }
 
-    peptide_entries = {"id0": mutation_entry}
+    epitope_collection = parse_netmhc_stdout(
+      netmhc_output,
+      fasta_dictionary=fasta_dictionary,
+      prediction_method_name="netmhc")
 
-    rows = parse_netmhc_stdout(s, peptide_entries)
+    assert len(epitope_collection) == 12
 
-    assert len(rows) == 12
-
-    for i in xrange(len(rows)):
-        assert rows[i]['EpitopeStart'] == i
-        assert rows[i]['Allele'] == 'HLA-A*02:03'
-
-    assert rows[0][IC50_FIELD_NAME] == 38534.25
-    assert rows[0][PERCENTILE_RANK_FIELD_NAME] == 50.00
+    for i, entry in enumerate(epitope_collection):
+        assert entry.offset == i
+        assert entry.allele == 'HLA-A*02:03'
+        if i == 0:
+            assert entry.value == 38534.25
+            assert entry.percentile_rank == 50.0

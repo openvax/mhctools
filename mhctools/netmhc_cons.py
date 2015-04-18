@@ -14,12 +14,12 @@
 
 import logging
 import tempfile
-import pandas as pd
 
-from .process_helpers import run_multiple_commands_redirect_stdout
-from .cleanup_context import CleanupFiles
-from .file_formats import create_input_fasta_file, parse_netmhc_stdout
 from .base_commandline_predictor import BaseCommandlinePredictor
+from .cleanup_context import CleanupFiles
+from .epitope_collection import EpitopeCollection
+from .file_formats import create_input_fasta_file, parse_netmhc_stdout
+from .process_helpers import run_multiple_commands_redirect_stdout
 
 class NetMHCcons(BaseCommandlinePredictor):
     def __init__(
@@ -100,18 +100,11 @@ class NetMHCcons(BaseCommandlinePredictor):
                 # but I was getting empty files otherwise
                 output_file.close()
                 with open(output_file.name, 'r') as f:
-                    rows = parse_netmhc_stdout(
+                    binding_predictions = parse_netmhc_stdout(
                         f.read(),
                         peptide_entries,
                         mutation_window_size=mutation_window_size)
-                results.extend(rows)
+                results.extend(binding_predictions)
 
         assert len(results) > 0, "No epitopes from netMHCcons"
-
-        df = pd.DataFrame.from_records(results)
-        unique_alleles = set(df.Allele)
-        assert len(unique_alleles) == len(self.alleles), \
-            "Expected %d alleles (%s) but got %d (%s)" % (
-                len(self.alleles), self.alleles,
-                len(unique_alleles), unique_alleles)
-        return df
+        return EpitopeCollection(results)

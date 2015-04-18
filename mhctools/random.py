@@ -14,12 +14,10 @@
 
 import random
 
-from .binding_prediction import BindingPrediction
-from .epitope_collection import EpitopeCollection
+from .epitope_collection_builder import EpitopeCollectionBuilder
 from .binding_measure import ic50_nM
 
-class RandomPredictor(object):
-
+class RandomBindingPredictor(object):
     def __init__(
             self,
             alleles=['HLA-A*02:01'],
@@ -27,25 +25,22 @@ class RandomPredictor(object):
         self.alleles = alleles
         self.epitope_lengths = epitope_lengths
 
-    def predict(self, fasta_dict):
-        binding_predictions = []
+    def predict(self, fasta_dictionary):
+        builder = EpitopeCollectionBuilder(
+            fasta_dictionary=fasta_dictionary,
+            prediction_method_name="random",
+            binding_measure=ic50_nM)
         # if wer'e not running the MHC prediction then we have to manually
         # extract 9mer substrings
-        for key, sequence in fasta_dict.items():
+        for key, sequence in fasta_dictionary.items():
             for epitope_length in self.epitope_lengths:
                 for i in xrange(len(sequence) - epitope_length + 1):
                     for allele in self.alleles:
-                        binding_predictions.append(
-                            BindingPrediction(
-                                allele=allele,
-                                peptide=sequence[i:i + epitope_length],
-                                length=epitope_length,
-                                base0_start=i,
-                                base0_end=i + epitope_length - 1,
-                                value=random.random() * 10000.0,
-                                percentile_rank=random.randint(0, 99),
-                                prediction_method_name="random",
-                                binding_measure=ic50_nM,
-                                source_sequence=sequence,
-                                source_sequence_key=key))
-        return EpitopeCollection(binding_predictions)
+                        builder.add_binding_prediction(
+                            source_sequence_key=key,
+                            offset=i,
+                            allele=allele,
+                            peptide=sequence[i:i + epitope_length],
+                            value=random.random() * 10000.0,
+                            percentile_rank=random.randint(0, 99))
+        return builder.get_collection()
