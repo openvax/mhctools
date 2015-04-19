@@ -2,9 +2,9 @@ import tempfile
 import logging
 import pandas as pd
 
+from .base_commandline_predictor import BaseCommandlinePredictor
 from .cleanup_context import CleanupFiles
 from .file_formats import create_input_fasta_file, parse_xls_file
-from .base_commandline_predictor import BaseCommandlinePredictor
 from .process_helpers import run_command
 
 class NetMHCpan(BaseCommandlinePredictor):

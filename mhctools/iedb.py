@@ -175,7 +175,7 @@ class IedbBasePredictor(BasePredictor):
                         measure=ic50_nM)
         return builder.get_collection()
 
-class IedbMhc1(IedbBasePredictor):
+class IedbMhcClass1(IedbBasePredictor):
     def __init__(
             self,
             alleles,
@@ -193,7 +193,7 @@ class IedbMhc1(IedbBasePredictor):
             prediction_method=prediction_method,
             url=url)
 
-class IedbMhc2(IedbBasePredictor):
+class IedbMhcClass2(IedbBasePredictor):
     def __init__(self,
             alleles,
             epitope_lengths=[15, 16, 17, 18, 19, 20],

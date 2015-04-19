@@ -5,29 +5,48 @@ from mhctools.alleles import (
     compact_allele_name
 )
 
-hla_alleles = [
+
+# TODO: test swine and rat alleles since those
+# can be significantly different from other species we've implementeds
+
+# Rat alleles:
+# - RT1-Bb*u
+# - RT1-Db1*a
+# - RT1-DMa*a
+# - RT1-9.5*f
+# - RT1-M3-1*av1
+
+# TODO: test human and mice class II alleles
+
+hla_02_01_names = [
     "HLA-A*02:01",
     "HLA-A*0201",
     "A*02:01",
     "A*0201",
     "HLA-A02:01",
+    # no punctuation
     "A0201",
     "HLA-A0201",
+    "A0201",
     "A2",
     "A2:01",
-    "HLA-A2",
-    "A0201",
+    "HLA-A2"
+    # lower case
+    "hla-a*0201"
+    "a*0201",
+    "a*02:01",
+    "a0201"
 ]
 
 def test_hla_long_names():
     expected = "HLA-A*02:01"
-    for name in hla_alleles:
+    for name in hla_02_01_names:
         result = normalize_allele_name(name)
         eq_(result, expected)
 
 def test_hla_short_names():
     expected = "A0201"
-    for name in hla_alleles:
+    for name in hla_02_01_names:
         result = compact_allele_name(name)
         eq_(result, expected)
 
@@ -43,25 +62,31 @@ def test_macaque_alleles():
     eq_(compact_allele_name(allele_name), "B0702")
 
 def test_dog_class2_allele():
-    species, gene, family, allele_code = parse_allele_name("DLA-DQA1*00101")
-    eq_(species, "DLA")
-    eq_(gene, "DQA1")
-    eq_(family, "01")
-    eq_(allele_code, "01")
+    eq_(parse_allele_name("DLA-DQA1*00101"), ("DLA", "DQA1", "01", "01"))
 
 def test_sheep_class1_allele():
-    species, gene, family, allele_code = parse_allele_name("Ovar-N*50001")
-    eq_(species, "Ovar")
-    eq_(gene, "N")
-    eq_(family, "500")
-    eq_(allele_code, "01")
+    eq_(parse_allele_name("Ovar-N*50001"), ("Ovar", "N", "500", "01"))
 
 def test_sheep_class2_allele():
-    species, gene, family, allele_code = parse_allele_name("Ovar-DRB1*0804")
-    eq_(species, "Ovar")
-    eq_(gene, "DRB1")
-    eq_(family, "08")
-    eq_(allele_code, "04")
+    eq_(parse_allele_name("Ovar-DRB1*0804"), ("Ovar", "DRB1", "08", "04"))
 
-# TODO: test swine and mouse alleles, since both
-# can be significantly different from other species
+def test_mouse_class1_alleles():
+    # H2-Kk
+    eq_(parse_allele_name("H2-Kk"), ("H2", "K", "", "k"))
+    eq_(normalize_allele_name("H2-Kk"), "H2-Kk")
+    eq_(compact_allele_name("H2-Kk"), "Kk")
+
+    # with a hyphen in "H-2"
+    eq_(parse_allele_name("H-2-Kk"), ("H2", "K", "", "k"))
+    eq_(normalize_allele_name("H-2-Kk"), "H2-Kk")
+    eq_(compact_allele_name("H-2-Kk"), "Kk")
+
+    # H2-Db
+    eq_(parse_allele_name("H2-Db"), ("H2", "D", "", "b"))
+    eq_(normalize_allele_name("H2-Db"), "H2-Db")
+    eq_(compact_allele_name("H2-Db"), "Db")
+
+    # with hyphen in "H-2"
+    eq_(parse_allele_name("H-2-Db"), ("H2", "D", "", "b"))
+    eq_(normalize_allele_name("H-2-Db"), "H2-Db")
+    eq_(compact_allele_name("H-2-Db"), "Db")

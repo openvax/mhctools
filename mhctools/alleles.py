@@ -55,6 +55,38 @@ SPECIES_PREFIXES = dict(
     squirrel_moneky="Sasc",
     lemur="Leca")
 
+def parse_mouse_allele_name(name):
+    """Parses mouse MHc alleles such as H2-Kd, H-2-Db, H2-IAb.
+    Returns pair of (gene, allele_code).
+    """
+    original = name
+
+    if name.startswith("H2"):
+        name = name[2:]
+    elif name.startswith("H-2"):
+        name = name[3:]
+
+    _, name = _parse_separator(name)
+
+    # special logic for mouse alleles
+    if name.startswith("I"):
+        # class II mouse allele
+        if len(name) < 3:
+            raise ValueError("Incomplete mouse MHC allele: %s" % original)
+        elif len(name) > 3:
+            raise ValueError("Malformed mouse MHC allele: %s" % original)
+        # mice don't seem to have allele families, only a small list of
+        # alleles per gene code as single lowercase letters
+        return name[:2].upper(), name[2].lower()
+
+    else:
+        # class I mouse allele
+        if len(name) < 2:
+            raise ValueError("Incomplete mouse MHC allele: %s" % original)
+        elif len(name) > 2:
+            raise ValueError("Malformed mouse MHC allele: %s" % original)
+        return name[0].upper(), name[1].lower()
+
 def parse_allele_name(name):
     """Takes an allele name and splits it into four parts:
         1) species prefix
@@ -73,33 +105,40 @@ def parse_allele_name(name):
             "02",   # allele family
             "01",   # allele code
         )
+
+    The logic for other species mostly resembles the naming system for humans,
+    except for mice, rats, and swine, which have archaic nomenclature.
     """
     original = name
     name = name.strip()
 
     if len(name) == 0:
-        raise ValueError("Empty HLA name")
+        raise ValueError("Can't normalize empty MHC allele name")
 
+    if name.startswith("H2") or name.startswith("H-2"):
+        gene, allele_code = parse_mouse_allele_name(name)
+        # mice don't have allele families
+        return ("H2", gene, "", allele_code)
     species = None
     for species_list in SPECIES_PREFIXES.values():
         if isinstance(species_list, str):
             species_list = [species_list]
         for curr_species in species_list:
             prefix = name[:len(curr_species) + 1].upper()
-            if prefix == (curr_species.upper().replace("-", "") + "-"):
+            if prefix == (curr_species.upper() + "-"):
                 species = curr_species
                 name = name[len(curr_species) + 1:]
                 break
 
-    if not species:
+    if len(name) == 0:
+        raise ValueError("Incomplete MHC allele name: %s" % (original,))
+
+    elif not species:
         # assume that a missing species name means we're dealing with a
         # human HLA allele
         if "-" in name:
             raise ValueError("Can't parse allele name: %s" % original)
         species = "HLA"
-
-    if len(name) == 0:
-        raise ValueError("Incomplete HLA name: %s" % (original,))
 
     if name[0] == "D":
         # MHC class II genes like "DQA1" need to be parsed with both
@@ -115,9 +154,9 @@ def parse_allele_name(name):
         raise ValueError("Can't parse gene name from allele: %s" % original)
 
     if len(gene) == 0:
-        raise ValueError("No HLA gene name given in %s" % original)
+        raise ValueError("No MHC gene name given in %s" % original)
     if len(name) == 0:
-        raise ValueError("Malformed HLA type %s" % original)
+        raise ValueError("Malformed MHC type %s" % original)
 
     gene = gene.upper()
 
@@ -191,7 +230,15 @@ def normalize_allele_name(raw_allele):
     if raw_allele in _normalized_allele_cache:
         return _normalized_allele_cache[raw_allele]
     (species, gene, family, allele_code) = parse_allele_name(raw_allele)
-    normalized = "%s-%s*%s:%s" % (species, gene, family, allele_code)
+    if len(family) > 0:
+        normalized = "%s-%s*%s:%s" % (species, gene, family, allele_code)
+    else:
+        # mice don't have allele families
+        # e.g. H2-Kd
+        # species = H2
+        # gene = K
+        # allele = d
+        normalized = "%s-%s%s" % (species, gene, allele_code)
     _normalized_allele_cache[raw_allele] = normalized
     return normalized
 
