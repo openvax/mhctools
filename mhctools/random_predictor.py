@@ -41,6 +41,6 @@ class RandomBindingPredictor(object):
                             offset=i,
                             allele=allele,
                             peptide=sequence[i:i + epitope_length],
-                            value=random.random() * 10000.0,
-                            percentile_rank=random.randint(0, 99))
+                            ic50=random.random() * 10000.0,
+                            rank=random.randint(0, 99))
         return builder.get_collection()
