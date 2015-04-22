@@ -1,6 +1,6 @@
-import logging
+from typechecks import require_iterable_of
 
-from .common import normalize_hla_allele_name
+from .alleles import normalize_allele_name
 
 
 class BasePredictor(object):
@@ -9,16 +9,16 @@ class BasePredictor(object):
     """
     def __init__(
             self,
-            hla_alleles,
+            alleles,
             epitope_lengths,
             valid_alleles=None):
         """
         Parameters
         ----------
-        hla_alleles : list
+        alleles : list
             List of strings containing names of HLA alleles we're
             making predictions for. Example:
-            ["HLA-A*02:01", "HLA-B*07:02"]
+                ["HLA-A*02:01", "HLA-B*07:02"]
 
         epitope_lengths : list or int
             List of epitope lengths to make predictions for, or
@@ -28,8 +28,7 @@ class BasePredictor(object):
             If given, constrain HLA alleles to be contained within
             this set.
         """
-        self.alleles = self._process_alleles(hla_alleles,
-                                             valid_alleles)
+        self.alleles = self._check_hla_alleles(alleles, valid_alleles)
 
         if isinstance(epitope_lengths, int):
             epitope_lengths = [epitope_lengths]
@@ -47,31 +46,42 @@ class BasePredictor(object):
 
         self.epitope_lengths = epitope_lengths
 
+    def __repr__(self):
+        return str(self)
+
+    def __str__(self):
+        return "%s(alleles=%s, epitope_lengths=%s)" % (
+            self.__class__.__name__,
+            self.alleles,
+            self.epitope_lengths)
+
     @staticmethod
-    def _process_alleles(hla_alleles, valid_alleles=None):
+    def _check_hla_alleles(
+            alleles,
+            valid_alleles=None):
         """
         Given a list of HLA alleles and an optional list of valid
         HLA alleles, return a set of alleles that we will pass into
         the MHC binding predictor.
         """
-        alleles = []
-        for allele in hla_alleles:
-            if not isinstance(allele, str):
-                raise TypeError(
-                    'Expected allele to be string, got %s : %s' % (
-                        allele, type(allele)))
-            allele = normalize_hla_allele_name(
-                allele.strip().upper())
-
+        require_iterable_of(alleles, str, "HLA alleles")
+        alleles = [
+            normalize_allele_name(allele.strip().upper())
+            for allele in alleles
+        ]
+        if valid_alleles:
             # For some reason netMHCpan drops the '*' in names, so
             # 'HLA-A*03:01' becomes 'HLA-A03:01'
-            if (valid_alleles and allele.replace('*', '') not in valid_alleles):
-                logging.warning('Skipping %s (not available)'
-                                % allele)
-            else:
-                alleles.append(allele)
+            missing_alleles = [
+                allele
+                for allele in alleles
+                if allele not in valid_alleles
+            ]
+            if len(missing_alleles) > 0:
+                raise ValueError("Unsupported HLA alleles: %s" % (
+                    missing_alleles,))
 
         # Don't run the MHC predictor twice for homozygous alleles,
         # only run it for unique alleles
-        alleles = set(alleles)
+        alleles = list(set(alleles))
         return alleles

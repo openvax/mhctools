@@ -1,6 +1,7 @@
 import logging
 from subprocess import check_output
 
+from .alleles import normalize_allele_name
 from .base_predictor import BasePredictor
 from .process_helpers import run_command
 
@@ -14,7 +15,7 @@ class BaseCommandlinePredictor(BasePredictor):
             self,
             name,
             command,
-            hla_alleles,
+            alleles,
             epitope_lengths,
             supported_allele_flag='-listMHC'):
         self.name = name
@@ -22,20 +23,20 @@ class BaseCommandlinePredictor(BasePredictor):
 
         if not isinstance(command, str):
             raise TypeError(
-                'Expected %s command to be string, got %s : %s' % (
+                "Expected %s command to be string, got %s : %s" % (
                     name, command, type(command)))
 
         try:
             run_command([command])
         except:
-            raise SystemError('Failed to run %s' % command)
+            raise SystemError("Failed to run %s" % command)
 
         valid_alleles = self._determine_valid_alleles(
             command, supported_allele_flag)
 
         BasePredictor.__init__(
             self,
-            hla_alleles,
+            alleles,
             epitope_lengths,
             valid_alleles=valid_alleles)
 
@@ -54,9 +55,19 @@ class BaseCommandlinePredictor(BasePredictor):
                     '%s returned empty allele list' % command
                 valid_alleles = set([])
                 for line in valid_alleles_str.split('\n'):
-                    if not line.startswith('#'):
-                        valid_alleles.add(line)
+                    line = line.strip()
+                    if not line.startswith('#') and len(line) > 0:
+                        try:
+                            allele = normalize_allele_name(line)
+                            valid_alleles.add(allele)
+                        except ValueError as error:
+                            logging.info("Skipping allele %s: %s" % (
+                                line, error))
+                            continue
             except:
-                logging.warning('Failed to run %s %s', command,
-                                supported_allele_flag)
+                logging.warning(
+                    "Failed to run %s %s",
+                    command,
+                    supported_allele_flag)
+                raise
         return valid_alleles

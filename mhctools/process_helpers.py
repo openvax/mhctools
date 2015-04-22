@@ -125,5 +125,4 @@ def run_multiple_commands_redirect_stdout(
     elapsed_time = time.time() - start_time
     logging.info("Ran %d commands in %0.4f seconds",
         len(multiple_args_dict),
-        elapsed_time
-    )
+        elapsed_time)

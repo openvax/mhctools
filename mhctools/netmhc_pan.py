@@ -2,47 +2,30 @@ import tempfile
 import logging
 import pandas as pd
 
+from .base_commandline_predictor import BaseCommandlinePredictor
 from .cleanup_context import CleanupFiles
 from .file_formats import create_input_fasta_file, parse_xls_file
-from .base_commandline_predictor import BaseCommandlinePredictor
 from .process_helpers import run_command
 
 class NetMHCpan(BaseCommandlinePredictor):
 
     def __init__(
             self,
-            hla_alleles,
+            alleles,
             netmhc_command="netMHCpan",
             epitope_lengths=[9]):
         BaseCommandlinePredictor.__init__(
             self,
             name="NetMHCpan",
             command=netmhc_command,
-            hla_alleles=hla_alleles,
+            alleles=alleles,
             epitope_lengths=epitope_lengths)
 
-    def predict(self, df, mutation_window_size=None, raise_on_error=False):
-        """
-        Given a dataframe of mutated amino acid sequences, run each sequence
-        through NetMHCpan.
-        If mutation_window_size is not None then only make predictions for that
-        number residues away from mutations.
-
-        Expects the input DataFrame to have the following fields:
-            - SourceSequence
-            - MutationStart
-            - MutationEnd
-            - GeneInfo
-            - Gene
-            - GeneMutationInfo
-            - PeptideMutationInfo
-            - TranscriptId
-        """
-
-        input_filename, peptide_entries = create_input_fasta_file(
-            df,
-            mutation_window_size=mutation_window_size
-        )
+    def predict(
+            self,
+            fasta_dictionary,
+            raise_on_error=True):
+        input_filename = create_input_fasta_file(fasta_dictionary)
 
         alleles_str = \
             ",".join(allele.replace("*", "") for allele in self.alleles)
@@ -64,14 +47,15 @@ class NetMHCpan(BaseCommandlinePredictor):
                 filenames=[input_filename],
                 files=[output_file]):
             run_command(command)
-            results = parse_xls_file(
-                output_file.read(),
-                peptide_entries,
-                mutation_window_size=mutation_window_size)
+            file_contents = output_file.read()
+            epitope_collection = parse_xls_file(
+                file_contents,
+                fasta_dictionary=fasta_dictionary,
+                prediction_method_name="netmhcpan")
 
         # TODO(tavi) Unwise to just return an empty DataFrame.
-        if len(results) == 0:
+        if len(epitope_collection) == 0:
             if raise_on_error:
                 raise ValueError("No epitopes from netMHCpan")
             return pd.DataFrame()
-        return pd.DataFrame.from_records(results)
+        return epitope_collection

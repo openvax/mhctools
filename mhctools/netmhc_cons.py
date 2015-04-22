@@ -14,12 +14,12 @@
 
 import logging
 import tempfile
-import pandas as pd
 
-from .process_helpers import run_multiple_commands_redirect_stdout
-from .cleanup_context import CleanupFiles
-from .file_formats import create_input_fasta_file, parse_netmhc_stdout
 from .base_commandline_predictor import BaseCommandlinePredictor
+from .cleanup_context import CleanupFiles
+from .epitope_collection import EpitopeCollection
+from .file_formats import create_input_fasta_file, parse_netmhc_stdout
+from .process_helpers import run_multiple_commands_redirect_stdout
 
 class NetMHCcons(BaseCommandlinePredictor):
     def __init__(
@@ -34,27 +34,13 @@ class NetMHCcons(BaseCommandlinePredictor):
             hla_alleles=hla_alleles,
             epitope_lengths=epitope_lengths)
 
-    def predict(self, df, mutation_window_size=None):
+    def predict(self, fasta_dictionary):
         """
-        Given a dataframe of mutated amino acid sequences, run each sequence
-        through NetMHCcons.
-        If mutation_window_size is not None then only make predictions for that
-        number residues away from mutations.
-
-        Expects the input DataFrame to have the following fields:
-            - SourceSequence
-            - MutationStart
-            - MutationEnd
-            - GeneInfo
-            - Gene
-            - GeneMutationInfo
-            - PeptideMutationInfo
-            - TranscriptId
+        Given a dictionary mapping sequence identifiers to amino acid sequences,
+        return an EpitopeCollection of binding predictions.
         """
 
-        input_filename, peptide_entries = create_input_fasta_file(
-            df,
-            mutation_window_size=mutation_window_size)
+        input_filename = create_input_fasta_file(fasta_dictionary)
 
         output_files = {}
         commands = {}
@@ -82,7 +68,7 @@ class NetMHCcons(BaseCommandlinePredictor):
                 ]
                 commands[output_file] = command
 
-        results = []
+        epitope_collections = []
 
         # Cleanup either when finished or if an exception gets raised by
         # deleting the input and output files
@@ -100,18 +86,16 @@ class NetMHCcons(BaseCommandlinePredictor):
                 # but I was getting empty files otherwise
                 output_file.close()
                 with open(output_file.name, 'r') as f:
-                    rows = parse_netmhc_stdout(
-                        f.read(),
-                        peptide_entries,
-                        mutation_window_size=mutation_window_size)
-                results.extend(rows)
+                    epitope_collection = parse_netmhc_stdout(
+                        netmhc_output=f.read(),
+                        fasta_dictionary=fasta_dictionary,
+                        prediction_method_name="netmhccons")
+                    epitope_collections.append(epitope_collection)
 
-        assert len(results) > 0, "No epitopes from netMHCcons"
+        assert len(epitope_collections) > 0, "No epitopes from netMHCcons"
 
-        df = pd.DataFrame.from_records(results)
-        unique_alleles = set(df.Allele)
-        assert len(unique_alleles) == len(self.alleles), \
-            "Expected %d alleles (%s) but got %d (%s)" % (
-                len(self.alleles), self.alleles,
-                len(unique_alleles), unique_alleles)
-        return df
+        # flatten all epitope collections into a single object
+        return EpitopeCollection([
+            binding_prediction
+            for sublist in epitope_collections
+            for binding_prediction in sublist])
