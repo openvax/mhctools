@@ -101,7 +101,8 @@ class BindingMeasure(object):
                     value, self.max_value)
 
     def is_binder(self, value, binding_cutoff):
-        """Is the predicted binding value stronger than the given cutoff?
+        """Is the predicted binding value stronger than (or equal to) the given
+        cutoff?
 
         Parameters
         ----------

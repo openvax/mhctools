@@ -2,7 +2,8 @@ from nose.tools import eq_
 from mhctools.alleles import (
     normalize_allele_name,
     parse_allele_name,
-    compact_allele_name
+    compact_allele_name,
+    AlleleName,
 )
 
 
@@ -62,31 +63,38 @@ def test_macaque_alleles():
     eq_(compact_allele_name(allele_name), "B0702")
 
 def test_dog_class2_allele():
-    eq_(parse_allele_name("DLA-DQA1*00101"), ("DLA", "DQA1", "01", "01"))
+    eq_(parse_allele_name("DLA-DQA1*00101"),
+        AlleleName("DLA", "DQA1", "01", "01"))
 
 def test_sheep_class1_allele():
-    eq_(parse_allele_name("Ovar-N*50001"), ("Ovar", "N", "500", "01"))
+    eq_(parse_allele_name("Ovar-N*50001"),
+        AlleleName("Ovar", "N", "500", "01"))
 
 def test_sheep_class2_allele():
-    eq_(parse_allele_name("Ovar-DRB1*0804"), ("Ovar", "DRB1", "08", "04"))
+    eq_(parse_allele_name("Ovar-DRB1*0804"),
+        AlleleName("Ovar", "DRB1", "08", "04"))
 
 def test_mouse_class1_alleles():
     # H2-Kk
-    eq_(parse_allele_name("H2-Kk"), ("H2", "K", "", "k"))
+    eq_(parse_allele_name("H2-Kk"),
+        AlleleName("H2", "K", "", "k"))
     eq_(normalize_allele_name("H2-Kk"), "H2-Kk")
     eq_(compact_allele_name("H2-Kk"), "Kk")
 
     # with a hyphen in "H-2"
-    eq_(parse_allele_name("H-2-Kk"), ("H2", "K", "", "k"))
+    eq_(parse_allele_name("H-2-Kk"),
+        AlleleName("H2", "K", "", "k"))
     eq_(normalize_allele_name("H-2-Kk"), "H2-Kk")
     eq_(compact_allele_name("H-2-Kk"), "Kk")
 
     # H2-Db
-    eq_(parse_allele_name("H2-Db"), ("H2", "D", "", "b"))
+    eq_(parse_allele_name("H2-Db"),
+        AlleleName("H2", "D", "", "b"))
     eq_(normalize_allele_name("H2-Db"), "H2-Db")
     eq_(compact_allele_name("H2-Db"), "Db")
 
     # with hyphen in "H-2"
-    eq_(parse_allele_name("H-2-Db"), ("H2", "D", "", "b"))
+    eq_(parse_allele_name("H-2-Db"),
+        AlleleName("H2", "D", "", "b"))
     eq_(normalize_allele_name("H-2-Db"), "H2-Db")
     eq_(compact_allele_name("H-2-Db"), "Db")

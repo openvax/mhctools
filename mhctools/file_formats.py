@@ -137,17 +137,18 @@ def parse_xls_file(
         fasta_dictionary=fasta_dictionary,
         prediction_method_name=prediction_method_name)
 
-    for line in lines:
-        pos = int(line[0])
-        epitope = line[1]
-        identifier = line[2]
+    for fields in lines:
+        pos = int(fields[0])
+        epitope = fields[1]
+        identifier = fields[2]
         for i, allele in enumerate(alleles):
             # we start at an offset of 3 to skip the allele-invariant
             # pos, epitope, identifier columns
             # each allele has three columns: log IC50, IC50, rank
-            log_ic50 = float(line[3 + 3 * i])
-            ic50 = float(line[3 + 3 * i + 1])
-            rank = float(line[3 + 3 * i + 2])
+            offset = 3 + 3 * i
+            log_ic50 = float(fields[offset])
+            ic50 = float(fields[offset + 1])
+            rank = float(fields[offset + 2])
             builder.add_binding_prediction(
                 source_sequence_key=identifier,
                 offset=pos,

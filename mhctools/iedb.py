@@ -30,12 +30,14 @@ The prediction method list box allows choosing from a number of MHC class I
 binding prediction methods:
 - Artificial neural network (ANN) (is that just NetMHC?)
 - Stabilized matrix method (SMM)
-- SMM with a Peptide:MHC Binding Energy Covariance matrix (SMMPMBEC),
+- SMM with a Peptide:MHC Binding Energy Covariance matrix (SMMPMBEC)
+- PickPocket
 - NetMHCpan
 - NetMHCcons
+
 Excluded because IEDB results lack unique IC50 & Percentile Rank columns:
-- Scoring Matrices from Combinatorial Peptide Libraries (Comblib_Sidney2008),
-- Consensus,
+- Scoring Matrices from Combinatorial Peptide Libraries (Comblib_Sidney2008)
+- Consensus
 """
 
 VALID_CLASS_I_METHODS = [

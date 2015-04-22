@@ -1,3 +1,4 @@
+from collections import namedtuple
 
 # copied from https://www.ebi.ac.uk/ipd/mhc/species.html
 SPECIES_PREFIXES = dict(
@@ -26,7 +27,7 @@ SPECIES_PREFIXES = dict(
     stump_tailed_macaque="Maar",
     crab_eating_macaque="Mafa",
     japanese_macaque="Mafu",
-    rhesus_macaque=["Mamu", "RhLA", "Rhla"],
+    rhesus_macaque=["Mamu", "RhLA"],
     pig_tailed_macaque="Mane",
     lion_tailed_macaque="Masi",
     drill="Male",
@@ -52,10 +53,16 @@ SPECIES_PREFIXES = dict(
     red_crested_tamarin="Sage",
     moustached_tamarin="Samy",
     cotton_top_tamarin="Saoe",
-    squirrel_moneky="Sasc",
+    squirrel_monkey="Sasc",
     lemur="Leca")
 
-def parse_mouse_allele_name(name):
+AlleleName = namedtuple("AlleleName", [
+    "species",
+    "gene",
+    "allele_family",
+    "allele_code"])
+
+def _parse_mouse_allele_name(name):
     """Parses mouse MHc alleles such as H2-Kd, H-2-Db, H2-IAb.
     Returns pair of (gene, allele_code).
     """
@@ -98,12 +105,12 @@ def parse_allele_name(name):
         "HLA-A*02:01"
         "A0201"
         "A00201"
-    The result should be a four-tuple:
-        (
-            "HLA",  # species prefix
-            "A",    # gene name
-            "02",   # allele family
-            "01",   # allele code
+    The result is a AlleleName object. Example:
+        AlleleName(
+            species="HLA",  # species prefix
+            gene="A",    # gene name
+            allele_family="02",   # allele family
+            allele_code="01",   # allele code
         )
 
     The logic for other species mostly resembles the naming system for humans,
@@ -116,9 +123,9 @@ def parse_allele_name(name):
         raise ValueError("Can't normalize empty MHC allele name")
 
     if name.startswith("H2") or name.startswith("H-2"):
-        gene, allele_code = parse_mouse_allele_name(name)
+        gene, allele_code = _parse_mouse_allele_name(name)
         # mice don't have allele families
-        return ("H2", gene, "", allele_code)
+        return AlleleName("H2", gene, "", allele_code)
     species = None
     for species_list in SPECIES_PREFIXES.values():
         if isinstance(species_list, str):
@@ -186,8 +193,7 @@ def parse_allele_name(name):
     elif len(allele_code) == 3 and allele_code[0] == "0":
         # normalize HLA-A*002:01 into HLA-A*02:01
         allele_code = allele_code[1:]
-
-    return species, gene, family, allele_code
+    return AlleleName(species, gene, family, allele_code)
 
 _normalized_allele_cache = {}
 def normalize_allele_name(raw_allele):
@@ -229,16 +235,23 @@ def normalize_allele_name(raw_allele):
     """
     if raw_allele in _normalized_allele_cache:
         return _normalized_allele_cache[raw_allele]
-    (species, gene, family, allele_code) = parse_allele_name(raw_allele)
-    if len(family) > 0:
-        normalized = "%s-%s*%s:%s" % (species, gene, family, allele_code)
+    parsed_allele = parse_allele_name(raw_allele)
+    if len(parsed_allele.allele_family) > 0:
+        normalized = "%s-%s*%s:%s" % (
+            parsed_allele.species,
+            parsed_allele.gene,
+            parsed_allele.allele_family,
+            parsed_allele.allele_code)
     else:
         # mice don't have allele families
         # e.g. H2-Kd
         # species = H2
         # gene = K
         # allele = d
-        normalized = "%s-%s%s" % (species, gene, allele_code)
+        normalized = "%s-%s%s" % (
+            parsed_allele.species,
+            parsed_allele.gene,
+            parsed_allele.allele_code)
     _normalized_allele_cache[raw_allele] = normalized
     return normalized
 
