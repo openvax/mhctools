@@ -20,7 +20,6 @@ import logging
 import pandas as pd
 
 from .base_predictor import BasePredictor
-from .binding_measure import ic50_nM
 from .epitope_collection_builder import EpitopeCollectionBuilder
 from .common import seq_to_str
 """
@@ -112,7 +111,6 @@ def _query_iedb(request_values, url):
 
 
 class IedbBasePredictor(BasePredictor):
-
     def __init__(
             self,
             alleles,
@@ -129,6 +127,13 @@ class IedbBasePredictor(BasePredictor):
             raise TypeError("Expected URL to be string, not %s : %s" % (
                 url, type(url)))
         self.url = url
+
+    def __str__(self):
+        return "%s(alleles=%s, epitope_lengths=%s, method=\"%s\")" % (
+            self.__class__.__name__,
+            self.alleles,
+            self.epitope_lengths,
+            self.prediction_method)
 
     def _get_iedb_request_params(self, sequence, allele):
 
@@ -172,9 +177,8 @@ class IedbBasePredictor(BasePredictor):
                         offset=row['start'] - 1,
                         allele=row['allele'],
                         peptide=row['peptide'],
-                        value=row['ic50'],
-                        percentile_rank=row['rank'],
-                        measure=ic50_nM)
+                        ic50=row['ic50'],
+                        rank=row['rank'])
         return builder.get_collection()
 
 class IedbMhcClass1(IedbBasePredictor):

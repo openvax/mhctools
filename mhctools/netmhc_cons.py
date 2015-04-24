@@ -40,7 +40,8 @@ class NetMHCcons(BaseCommandlinePredictor):
         return an EpitopeCollection of binding predictions.
         """
 
-        input_filename = create_input_fasta_file(fasta_dictionary)
+        input_filename, sequence_key_mapping = create_input_fasta_file(
+            fasta_dictionary)
 
         output_files = {}
         commands = {}
@@ -89,6 +90,7 @@ class NetMHCcons(BaseCommandlinePredictor):
                     epitope_collection = parse_netmhc_stdout(
                         netmhc_output=f.read(),
                         fasta_dictionary=fasta_dictionary,
+                        sequence_key_mapping=sequence_key_mapping,
                         prediction_method_name="netmhccons")
                     epitope_collections.append(epitope_collection)
 

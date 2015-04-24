@@ -6,7 +6,8 @@ from .binding_prediction import BindingPrediction
 
 class EpitopeCollection(object):
     def __init__(self, binding_predictions):
-        self.binding_predictions = list(sorted(set(binding_predictions)))
+        self.binding_predictions = list(
+            sorted(set(binding_predictions), key=lambda x: x.percentile_rank))
 
     def __len__(self):
         return len(self.binding_predictions)

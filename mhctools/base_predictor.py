@@ -1,3 +1,5 @@
+import logging
+
 from typechecks import require_iterable_of
 
 from .alleles import normalize_allele_name
@@ -28,6 +30,10 @@ class BasePredictor(object):
             If given, constrain HLA alleles to be contained within
             this set.
         """
+        # I find myself often constructing a predictor with just one allele
+        # so as a convenience, allow user to not wrap that allele as a list
+        if isinstance(alleles, str):
+            alleles = [alleles]
         self.alleles = self._check_hla_alleles(alleles, valid_alleles)
 
         if isinstance(epitope_lengths, int):
@@ -78,8 +84,8 @@ class BasePredictor(object):
                 if allele not in valid_alleles
             ]
             if len(missing_alleles) > 0:
-                raise ValueError("Unsupported HLA alleles: %s" % (
-                    missing_alleles,))
+                logging.warn(
+                    "Unsupported HLA alleles: %s", missing_alleles)
 
         # Don't run the MHC predictor twice for homozygous alleles,
         # only run it for unique alleles

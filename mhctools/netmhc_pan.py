@@ -25,7 +25,8 @@ class NetMHCpan(BaseCommandlinePredictor):
             self,
             fasta_dictionary,
             raise_on_error=True):
-        input_filename = create_input_fasta_file(fasta_dictionary)
+        input_filename, sequence_key_mapping = create_input_fasta_file(
+            fasta_dictionary)
 
         alleles_str = \
             ",".join(allele.replace("*", "") for allele in self.alleles)
@@ -50,6 +51,7 @@ class NetMHCpan(BaseCommandlinePredictor):
             file_contents = output_file.read()
             epitope_collection = parse_xls_file(
                 file_contents,
+                sequence_key_mapping=sequence_key_mapping,
                 fasta_dictionary=fasta_dictionary,
                 prediction_method_name="netmhcpan")
 

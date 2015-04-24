@@ -27,18 +27,22 @@ def create_input_fasta_file(fasta_dictionary):
     input_file = tempfile.NamedTemporaryFile(
         "w", prefix="peptide", delete=False)
     n_fasta_records = len(fasta_dictionary)
-    for i, (key, source_sequence) in enumerate(fasta_dictionary.items()):
-        input_file.write(">%s\n%s" % (key, source_sequence))
-
+    sequence_key_mapping = {}
+    for i, (original_key, seq) in enumerate(fasta_dictionary.items()):
+        unique_id = str(i)
+        sanitized = original_key.replace(" ", "_").replace("|", "_")
+        key = sanitized[: 14 - len(unique_id)] + "_" + unique_id
+        sequence_key_mapping[key] = original_key
+        input_file.write(">%s\n%s" % (key, seq))
         # newline unless at end of file
         if i + 1 < n_fasta_records:
             input_file.write("\n")
     input_file.close()
-    return input_file.name
-
+    return input_file.name, sequence_key_mapping
 
 def parse_netmhc_stdout(
         netmhc_output,
+        sequence_key_mapping,
         fasta_dictionary,
         prediction_method_name="netmhc"):
     """
@@ -92,8 +96,9 @@ def parse_netmhc_stdout(
                 # if position or affinity values can't be parsed,
                 # then skip this line
                 continue
+            original_key = sequence_key_mapping[key]
             builder.add_binding_prediction(
-                source_sequence_key=key,
+                source_sequence_key=original_key,
                 offset=pos,
                 peptide=peptide,
                 allele=allele,
@@ -104,6 +109,7 @@ def parse_netmhc_stdout(
 
 def parse_xls_file(
         xls_contents,
+        sequence_key_mapping,
         fasta_dictionary,
         prediction_method_name):
     """
@@ -140,7 +146,7 @@ def parse_xls_file(
     for fields in lines:
         pos = int(fields[0])
         epitope = fields[1]
-        identifier = fields[2]
+        key = fields[2]
         for i, allele in enumerate(alleles):
             # we start at an offset of 3 to skip the allele-invariant
             # pos, epitope, identifier columns
@@ -149,8 +155,9 @@ def parse_xls_file(
             log_ic50 = float(fields[offset])
             ic50 = float(fields[offset + 1])
             rank = float(fields[offset + 2])
+            original_key = sequence_key_mapping[key]
             builder.add_binding_prediction(
-                source_sequence_key=identifier,
+                source_sequence_key=original_key,
                 offset=pos,
                 peptide=epitope,
                 allele=allele,
