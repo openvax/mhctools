@@ -49,12 +49,15 @@ class BaseCommandlinePredictor(BasePredictor):
         valid_alleles = None
         if supported_allele_flag:
             try:
-                valid_alleles_str = check_output(
-                    [command, supported_allele_flag])
+                # convert to str since Python3 returns a `bytes` object
+                valid_alleles = check_output([
+                    command, supported_allele_flag
+                ])
+                valid_alleles_str = valid_alleles.decode("ascii", "ignore")
                 assert len(valid_alleles_str) > 0, \
                     '%s returned empty allele list' % command
                 valid_alleles = set([])
-                for line in valid_alleles_str.split('\n'):
+                for line in valid_alleles_str.split("\n"):
                     line = line.strip()
                     if not line.startswith('#') and len(line) > 0:
                         try:

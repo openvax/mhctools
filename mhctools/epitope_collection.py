@@ -27,10 +27,23 @@ class EpitopeCollection(object):
     def filter(self, filter_fn):
         return self.__class__(x for x in self if filter_fn(x))
 
-    def filter_by_binding_threshold(self, threshold):
-        return self.filter(lambda x: x.measure.is_binder(x.value, threshold))
+    def strong_binders(self, threshold=None):
+        """
+        No default threshold since we're not sure if we're always going to
+        be predicting IC50 affinity (as opposed to stability or some other
+        criterion)
+        """
+        if len(self) == 0:
+            return self
 
-    def filter_by_percentile_rank(self, max_rank):
+        def filter_fn(x):
+            if threshold is None:
+                return x.measure.is_binder(x.value)
+            else:
+                return x.measure.is_binder(x.value, threshold)
+        return self.filter(filter_fn)
+
+    def strong_binders_by_rank(self, max_rank=2.0):
         return self.filter(lambda x: x.percentile_rank <= max_rank)
 
     def groupby(self, key_fn):

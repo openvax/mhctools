@@ -73,7 +73,7 @@ def run_multiple_commands(multiple_args_lists, print_commands=True, **kwargs):
     processes = []
     for args in multiple_args_lists:
         if print_commands:
-            print " ".join(args)
+            print(" ".join(args))
         p = AsyncProcess(args, **kwargs)
         processes.append(p)
 
@@ -112,7 +112,7 @@ def run_multiple_commands_redirect_stdout(
     processes = []
     for f, args in multiple_args_dict.iteritems():
         if print_commands:
-            print " ".join(args), ">", f.name
+            print(" ".join(args), ">", f.name)
         p = AsyncProcess(
             args,
             redirect_stdout=f,

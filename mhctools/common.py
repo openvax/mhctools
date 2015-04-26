@@ -12,6 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Python3 doesn't have a unicode classes
+try:
+    string_classes = (unicode, str)
+except NameError:
+    string_classes = (str,)
 
 def seq_to_str(obj):
     """
@@ -19,7 +24,7 @@ def seq_to_str(obj):
     If, however, the argument is a single object, return its string
     representation.
     """
-    if isinstance(obj, (unicode, str)):
+    if isinstance(obj, string_classes):
         return obj
     elif isinstance(obj, (list, tuple)):
         return ",".join([str(x) for x in obj])

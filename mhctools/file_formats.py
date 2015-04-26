@@ -13,6 +13,8 @@
 # limitations under the License.
 import tempfile
 
+from varcode import Variant, MutationEffect
+
 from .epitope_collection_builder import EpitopeCollectionBuilder
 
 def create_input_fasta_file(fasta_dictionary):
@@ -30,7 +32,20 @@ def create_input_fasta_file(fasta_dictionary):
     sequence_key_mapping = {}
     for i, (original_key, seq) in enumerate(fasta_dictionary.items()):
         unique_id = str(i)
-        sanitized = original_key.replace(" ", "_").replace("|", "_")
+        # make a nicer string representation for Variants and Effects
+        # if those are the keys we're given
+        if isinstance(original_key, (Variant, MutationEffect)):
+            unsanitized_string = original_key.short_description
+        else:
+            unsanitized_string = str(original_key)
+        sanitized = "".join([
+            c if c.isalnum() else "_"
+            for c in unsanitized_string
+        ])
+        # this looks crazy but NetMHCpan seems to require key lengths
+        # of 15 or shorter, but since I still want the generated FASTA
+        # file to be vaguely readable I'm combining a truncation of the
+        # original key with a unique indentifier
         key = sanitized[: 14 - len(unique_id)] + "_" + unique_id
         sequence_key_mapping[key] = original_key
         input_file.write(">%s\n%s" % (key, seq))
@@ -38,6 +53,8 @@ def create_input_fasta_file(fasta_dictionary):
         if i + 1 < n_fasta_records:
             input_file.write("\n")
     input_file.close()
+    with open(input_file.name, 'r') as f:
+        print(f.read())
     return input_file.name, sequence_key_mapping
 
 def parse_netmhc_stdout(

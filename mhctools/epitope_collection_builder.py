@@ -83,7 +83,7 @@ class EpitopeCollectionBuilder(object):
             raise ValueError("Sequence identifier %s not found in %s" % (
                 source_sequence_key, self.fasta_dictionary))
 
-        source_sequence = self.fasta_dictionary[source_sequence_key]
+        source_sequence = str(self.fasta_dictionary[source_sequence_key])
 
         binding_prediction = BindingPrediction(
                     source_sequence_key=source_sequence_key,

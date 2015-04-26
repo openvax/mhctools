@@ -13,8 +13,14 @@
 # limitations under the License.
 
 import io
-import urllib2
-import urllib
+try:
+    # For Python 3.0 and later
+    from urllib.request import urlopen, Request
+    from urllib.parse import urlencode
+except ImportError:
+    # Fall back to Python 2's urllib2
+    from urllib2 import urlopen, Request
+    from urllib import urlencode
 import logging
 
 import pandas as pd
@@ -104,11 +110,10 @@ def _query_iedb(request_values, url):
 
     Parse the response into a DataFrame.
     """
-    data = urllib.urlencode(request_values)
-    req = urllib2.Request(url, data)
-    response = urllib2.urlopen(req).read()
+    data = urlencode(request_values)
+    req = Request(url, data.encode("ascii"))
+    response = urlopen(req).read()
     return _parse_iedb_response(response)
-
 
 class IedbBasePredictor(BasePredictor):
     def __init__(

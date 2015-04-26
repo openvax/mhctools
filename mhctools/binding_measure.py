@@ -15,6 +15,7 @@ class BindingMeasure(object):
             name,
             units,
             bigger_is_better,
+            default_cutoff,
             min_value=-np.inf,
             min_inclusive=False,
             max_value=np.inf,
@@ -32,6 +33,9 @@ class BindingMeasure(object):
             of per-allele records, which field should we look at in those
             records?
 
+        default_cutoff : float
+            Default value separating strong from weak binders
+
         bigger_is_better : bool
             When filtering affinities by cutoff, should we pass records which
             are below the cutoff (e.g. for IC50 affinity) or above the cutoff
@@ -44,6 +48,7 @@ class BindingMeasure(object):
         self.name = name
         self.units = units
         self.bigger_is_better = bigger_is_better
+        self.default_cutoff = default_cutoff
         self.min_value = min_value
         self.min_inclusive = min_inclusive
         self.max_value = max_value
@@ -57,6 +62,7 @@ class BindingMeasure(object):
             self.name,
             self.units,
             self.bigger_is_better,
+            self.default_cutoff,
             self.min_value,
             self.min_inclusive,
             self.max_value,
@@ -100,7 +106,7 @@ class BindingMeasure(object):
                 "Given value (%s) too high (max_value=%s)" % (
                     value, self.max_value)
 
-    def is_binder(self, value, binding_cutoff):
+    def is_binder(self, value, binding_cutoff=None):
         """Is the predicted binding value stronger than (or equal to) the given
         cutoff?
 
@@ -111,22 +117,27 @@ class BindingMeasure(object):
 
         cutoff : float
         """
-        self.check_binding_value(value)
-        if self.bigger_is_better:
-            return value <= binding_cutoff
+        if binding_cutoff is None:
+            binding_cutoff = self.default_cutoff
         else:
+            self.check_binding_value(value)
+        if self.bigger_is_better:
             return value >= binding_cutoff
-
+        else:
+            return value <= binding_cutoff
 
 ic50_nM = BindingMeasure(
     name="IC50",
     units="nM",
     bigger_is_better=False,
+    default_cutoff=500.0,
     min_value=0.0)
 
 stability_minutes = BindingMeasure(
     name="Stability",
     units="minutes",
     bigger_is_better=True,
+    # 6 hours
+    default_cutoff=360.0,
     min_value=0.0,
     min_inclusive=False)
