@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import tempfile
 
 from varcode import Variant, MutationEffect
@@ -26,9 +27,6 @@ def create_input_fasta_file(fasta_dictionary):
     Return the name of closed file which has to be manually deleted,
     and a dictionary from FASTA IDs to peptide records.
     """
-    if isinstance(fasta_dictionary, str):
-        fasta_dictionary = {"seq": fasta_dictionary}
-
     input_file = tempfile.NamedTemporaryFile(
         "w", prefix="peptide", delete=False)
     n_fasta_records = len(fasta_dictionary)
