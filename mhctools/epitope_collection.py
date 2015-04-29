@@ -1,31 +1,19 @@
 from collections import defaultdict
 
 import pandas as pd
-
+from varcode import Collection
 from .binding_prediction import BindingPrediction
 
-class EpitopeCollection(object):
+class EpitopeCollection(Collection):
+    """
+    Collection of BindingPrediction objects
+    """
     def __init__(self, binding_predictions):
-        self.binding_predictions = list(
-            sorted(set(binding_predictions), key=lambda x: x.percentile_rank))
-
-    def __len__(self):
-        return len(self.binding_predictions)
-
-    def __iter__(self):
-        return iter(self.binding_predictions)
-
-    def __str__(self):
-        return "<EpitopeCollection with %d elements>" % (len(self),)
-
-    def __repr__(self):
-        return str(self)
-
-    def __getitem__(self, idx):
-        return self.binding_predictions[idx]
-
-    def filter(self, filter_fn):
-        return self.__class__(x for x in self if filter_fn(x))
+        Collection.__init__(
+            self,
+            elements=binding_predictions,
+            distinct=True,
+            sort_key=lambda x: x.percentile_rank)
 
     def strong_binders(self, threshold=None):
         """
@@ -71,5 +59,5 @@ class EpitopeCollection(object):
 
     def dataframe(self):
         return pd.DataFrame(
-            self.binding_predictions,
+            self.elements,
             columns=BindingPrediction._fields)

@@ -34,7 +34,7 @@ class RandomBindingPredictor(object):
         # extract 9mer substrings
         for key, sequence in fasta_dictionary.items():
             for epitope_length in self.epitope_lengths:
-                for i in xrange(len(sequence) - epitope_length + 1):
+                for i in range(len(sequence) - epitope_length + 1):
                     for allele in self.alleles:
                         builder.add_binding_prediction(
                             source_sequence_key=key,

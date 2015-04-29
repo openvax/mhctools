@@ -59,9 +59,9 @@ def create_input_fasta_file(fasta_dictionary):
 
 def parse_netmhc_stdout(
         netmhc_output,
-        sequence_key_mapping,
         fasta_dictionary,
-        prediction_method_name="netmhc"):
+        prediction_method_name="netmhc",
+        sequence_key_mapping=None):
     """
     Parse the output format for NetMHC predictors, which looks like:
 
@@ -85,6 +85,7 @@ def parse_netmhc_stdout(
      10  HLA-A*02:03    THIIIASSS   id0         0.040     32361.18   50.00
      11  HLA-A*02:03    HIIIASSSL   id0         0.515       189.74    4.00 <= WB
     """
+
     builder = EpitopeCollectionBuilder(
         fasta_dictionary=fasta_dictionary,
         prediction_method_name=prediction_method_name)
@@ -113,7 +114,12 @@ def parse_netmhc_stdout(
                 # if position or affinity values can't be parsed,
                 # then skip this line
                 continue
-            original_key = sequence_key_mapping[key]
+            if sequence_key_mapping:
+                original_key = sequence_key_mapping[key]
+            else:
+                # if sequence_key_mapping isn't provided then let's assume it's the
+                # identity function
+                original_key = key
             builder.add_binding_prediction(
                 source_sequence_key=original_key,
                 offset=pos,
@@ -126,9 +132,9 @@ def parse_netmhc_stdout(
 
 def parse_xls_file(
         xls_contents,
-        sequence_key_mapping,
         fasta_dictionary,
-        prediction_method_name):
+        prediction_method_name,
+        sequence_key_mapping=None):
     """
     XLS is a wacky output format used by NetMHCpan and NetMHCcons
     for peptide binding predictions.
@@ -172,7 +178,10 @@ def parse_xls_file(
             log_ic50 = float(fields[offset])
             ic50 = float(fields[offset + 1])
             rank = float(fields[offset + 2])
-            original_key = sequence_key_mapping[key]
+            if sequence_key_mapping:
+                original_key = sequence_key_mapping[key]
+            else:
+                original_key = key
             builder.add_binding_prediction(
                 source_sequence_key=original_key,
                 offset=pos,

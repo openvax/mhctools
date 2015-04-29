@@ -186,38 +186,68 @@ class IedbBasePredictor(BasePredictor):
                         rank=row['rank'])
         return builder.get_collection()
 
-class IedbMhcClass1(IedbBasePredictor):
+IEDB_MHC_CLASS_I_URL = "http://tools-api.iedb.org/tools_api/mhci/"
+
+class IedbNetMHCcons(IedbBasePredictor):
     def __init__(
             self,
             alleles,
-            epitope_lengths=[8, 9, 10, 11],
-            prediction_method="netmhccons",
-            url="http://tools-api.iedb.org/tools_api/mhci/"):
-        if prediction_method not in VALID_CLASS_I_METHODS:
-            raise ValueError(
-                "Invalid IEDB MHC class I binding prediction method: %s" % (
-                    prediction_method,))
+            epitope_lengths=[8, 9, 10, 11]):
         IedbBasePredictor.__init__(
             self,
             alleles=alleles,
             epitope_lengths=epitope_lengths,
-            prediction_method=prediction_method,
-            url=url)
+            prediction_method="netmhccons",
+            url=IEDB_MHC_CLASS_I_URL)
 
-class IedbMhcClass2(IedbBasePredictor):
-    def __init__(self,
+class IedbNetMHCpan(IedbBasePredictor):
+    def __init__(
+            self,
+            alleles,
+            epitope_lengths=[8, 9, 10, 11]):
+        IedbBasePredictor.__init__(
+            self,
+            alleles=alleles,
+            epitope_lengths=epitope_lengths,
+            prediction_method="netmhcpan",
+            url=IEDB_MHC_CLASS_I_URL)
+
+class IedbSMM(IedbBasePredictor):
+    def __init__(
+            self,
+            alleles,
+            epitope_lengths=[8, 9, 10, 11]):
+        IedbBasePredictor.__init__(
+            self,
+            alleles=alleles,
+            epitope_lengths=epitope_lengths,
+            prediction_method="smm",
+            url=IEDB_MHC_CLASS_I_URL)
+
+class IedbSMM_PMBEC(IedbBasePredictor):
+    def __init__(
+            self,
+            alleles,
+            epitope_lengths=[8, 9, 10, 11]):
+        IedbBasePredictor.__init__(
+            self,
+            alleles=alleles,
+            epitope_lengths=epitope_lengths,
+            prediction_method="smmpmbec",
+            url=IEDB_MHC_CLASS_I_URL)
+
+IEDB_MHC_CLASS_II_URL = "http://tools-api.iedb.org/tools_api/mhcii/"
+
+class IedbNetMHCIIpan(IedbBasePredictor):
+    def __init__(
+            self,
             alleles,
             epitope_lengths=[15, 16, 17, 18, 19, 20],
-            prediction_method="NetMHCIIpan",
-            url="http://tools-api.iedb.org/tools_api/mhcii/"):
-        if prediction_method not in VALID_CLASS_II_METHODS:
-            raise ValueError(
-                "Invalid IEDB MHC class II binding prediction method: %s" % (
-                    prediction_method,))
+            url=IEDB_MHC_CLASS_II_URL):
         IedbBasePredictor.__init__(
             self,
             alleles=alleles,
             # only epitope lengths of 15 currently supported by IEDB's web API
             epitope_lengths=epitope_lengths,
-            prediction_method=prediction_method,
-            url=url)
+            prediction_method="NetMHCIIpan",
+            url=IEDB_MHC_CLASS_II_URL)

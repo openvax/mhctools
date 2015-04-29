@@ -36,8 +36,9 @@ def test_mhc_stdout():
     assert len(epitope_collection) == 12
 
     for i, entry in enumerate(epitope_collection):
-        assert entry.offset == i
-        assert entry.allele == 'HLA-A*02:03'
+        assert entry.allele == 'HLA-A*02:03', \
+            "Expected entry %s to have allele 'HLA-A*02:03'" (entry,)
         if i == 0:
-            assert entry.value == 38534.25
-            assert entry.percentile_rank == 50.0
+            # expect the epitopes to be sorted in increasing IC50
+            assert entry.value == 189.74
+            assert entry.percentile_rank == 4.00

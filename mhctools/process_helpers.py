@@ -13,18 +13,13 @@ class AsyncProcess(object):
     def __init__(
             self,
             args,
-            suppress_stdout=True,
             suppress_stderr=False,
-            redirect_stdout=None):
+            redirect_stdout_file=None):
         assert len(args) > 0
         self.cmd = args[0]
 
-        # if we've specified an output target then don't suppress it
-        if redirect_stdout:
-            suppress_stdout = False
-
         with open(os.devnull, 'w') as devnull:
-            stdout = devnull if suppress_stdout else redirect_stdout
+            stdout = redirect_stdout_file if redirect_stdout_file else devnull
             stderr = devnull if suppress_stderr else None
             self.process = Popen(args, stdout=stdout, stderr=stderr)
 

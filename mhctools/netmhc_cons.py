@@ -94,7 +94,8 @@ class NetMHCcons(BaseCommandlinePredictor):
                         prediction_method_name="netmhccons")
                     epitope_collections.append(epitope_collection)
 
-        assert len(epitope_collections) > 0, "No epitopes from netMHCcons"
+        if len(epitope_collections) == 0:
+            raise ValueError("No epitopes from netMHCcons")
 
         # flatten all epitope collections into a single object
         return EpitopeCollection([
