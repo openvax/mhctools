@@ -9,8 +9,8 @@ from mhctools import NetMHCpan
 predictor = NetMHCpan(alleles=["A*02:01", "hla-a0101"])
 
 # scan the short proteins 1L2Y and 1L3Y for epitopes
-protein_sequences = (
-  {"1L2Y": "NLYIQWLKDGGPSSGRPPPS",
+protein_sequences = {
+  "1L2Y": "NLYIQWLKDGGPSSGRPPPS",
   "1L3Y": "ECDTINCERYNGQVCGGPGRGLCFCGKCRCHPGFEGSACQA"
 }
 
