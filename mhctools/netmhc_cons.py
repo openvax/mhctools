@@ -17,6 +17,7 @@ import tempfile
 
 from .base_commandline_predictor import BaseCommandlinePredictor
 from .cleanup_context import CleanupFiles
+from .common import check_sequence_dictionary
 from .epitope_collection import EpitopeCollection
 from .file_formats import create_input_fasta_file, parse_netmhc_stdout
 from .process_helpers import run_multiple_commands_redirect_stdout
@@ -39,7 +40,7 @@ class NetMHCcons(BaseCommandlinePredictor):
         Given a dictionary mapping sequence identifiers to amino acid sequences,
         return an EpitopeCollection of binding predictions.
         """
-
+        fasta_dictionary = check_sequence_dictionary(fasta_dictionary)
         input_filename, sequence_key_mapping = create_input_fasta_file(
             fasta_dictionary)
 

@@ -44,3 +44,9 @@ def convert_str(obj):
             return float(obj)
     except:
         return str(obj)
+
+def check_sequence_dictionary(fasta_dictionary):
+    if isinstance(fasta_dictionary, str):
+        # sometimes we want to make predictions for just one sequence
+        return {"seq": fasta_dictionary}
+    return fasta_dictionary

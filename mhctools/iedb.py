@@ -27,7 +27,7 @@ import pandas as pd
 
 from .base_predictor import BasePredictor
 from .epitope_collection_builder import EpitopeCollectionBuilder
-from .common import seq_to_str
+from .common import seq_to_str, check_sequence_dictionary
 """
 A note about prediction methods, copied from the IEDB website:
 
@@ -158,9 +158,11 @@ class IedbBasePredictor(BasePredictor):
 
         Parameters
         ----------
-        fasta_dictionary : dict
-            Mapping of protein identifiers to protein amino acid sequences
+        fasta_dictionary : dict or string
+            Mapping of protein identifiers to protein amino acid sequences.
+            If string then converted to dictionary.
         """
+        fasta_dictionary = check_sequence_dictionary(fasta_dictionary)
         # take each mutated sequence in the dataframe
         # and general MHC binding scores for all k-mer substrings
         builder = EpitopeCollectionBuilder(

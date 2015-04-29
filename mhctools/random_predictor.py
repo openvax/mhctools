@@ -15,6 +15,7 @@
 import random
 
 from .epitope_collection_builder import EpitopeCollectionBuilder
+from .common import check_sequence_dictionary
 from .binding_measure import ic50_nM
 
 class RandomBindingPredictor(object):
@@ -26,6 +27,7 @@ class RandomBindingPredictor(object):
         self.epitope_lengths = epitope_lengths
 
     def predict(self, fasta_dictionary):
+        fasta_dictionary = check_sequence_dictionary(fasta_dictionary)
         builder = EpitopeCollectionBuilder(
             fasta_dictionary=fasta_dictionary,
             prediction_method_name="random",
