@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import print_function, division, absolute_import
 import logging
 import tempfile
 
@@ -43,7 +44,6 @@ class NetMHCcons(BaseCommandlinePredictor):
         fasta_dictionary = check_sequence_dictionary(fasta_dictionary)
         input_filename, sequence_key_mapping = create_input_fasta_file(
             fasta_dictionary)
-
         output_files = {}
         commands = {}
         dirs = []
