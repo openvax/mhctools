@@ -28,9 +28,9 @@ mhc_classes = [
 def test_MAGE_epitope():
     """
     Test the A1 MAGE epitope from
-        "Identification of a Titin-Derived HLA-A1–Presented Peptide
-         as a Cross-Reactive Target for Engineered MAGE A3–Directed
-         T Cells"
+        Identification of a Titin-Derived HLA-A1-Presented Peptide
+        as a Cross-Reactive Target for Engineered MAGE A3-Directed
+        T Cells
     """
     for mhc_class in mhc_classes:
         mhc_model = mhc_class("HLA-A*01:01", epitope_lengths=9)
