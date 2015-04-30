@@ -54,8 +54,6 @@ def create_input_fasta_file(fasta_dictionary):
         if i + 1 < n_fasta_records:
             input_file.write("\n")
     input_file.close()
-    with open(input_file.name, 'r') as f:
-        print(f.read())
     return input_file.name, sequence_key_mapping
 
 def parse_netmhc_stdout(

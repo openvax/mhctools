@@ -22,12 +22,18 @@ class EpitopeCollection(Collection):
     """
     Collection of BindingPrediction objects
     """
-    def __init__(self, binding_predictions):
+    def __init__(
+            self,
+            binding_predictions,
+            path=None,
+            distinct=True,
+            sort_key=lambda x: x.percentile_rank):
         Collection.__init__(
             self,
             elements=binding_predictions,
-            distinct=True,
-            sort_key=lambda x: x.percentile_rank)
+            path=path,
+            distinct=distinct,
+            sort_key=sort_key)
 
     def strong_binders(self, threshold=None):
         """
