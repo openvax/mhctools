@@ -18,7 +18,7 @@ import logging
 
 from .base_commandline_predictor import BaseCommandlinePredictor
 from .cleanup_context import CleanupFiles
-from .common import check_sequence_dictionary
+from .common import check_sequence_dictionary, seq_to_str
 from .file_formats import create_input_fasta_file, parse_netmhc_stdout
 from .process_helpers import AsyncProcess
 
@@ -49,7 +49,7 @@ class NetMHCpan(BaseCommandlinePredictor):
                 delete=False)
         args = [
             self.command,
-            "-l", "9",
+            "-l", seq_to_str(self.epitope_lengths),
             "-f", input_filename,
             "-a", alleles_str
         ]
