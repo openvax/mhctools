@@ -28,7 +28,7 @@ class EpitopeCollection(Collection):
             binding_predictions,
             path=None,
             distinct=True,
-            sort_key=lambda x: x.percentile_rank):
+            sort_key=lambda x: x.value):
         Collection.__init__(
             self,
             elements=binding_predictions,
