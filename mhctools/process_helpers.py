@@ -125,7 +125,7 @@ def run_multiple_commands_redirect_stdout(
             print(" ".join(args), ">", f.name)
         p = AsyncProcess(
             args,
-            redirect_stdout=f,
+            redirect_stdout_file=f,
             **kwargs)
         processes.append(p)
 

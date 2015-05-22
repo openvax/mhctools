@@ -26,15 +26,17 @@ from .process_helpers import run_multiple_commands_redirect_stdout
 class NetMHCcons(BaseCommandlinePredictor):
     def __init__(
             self,
-            hla_alleles,
+            alleles,
             netmhc_command="netMHCcons",
             epitope_lengths=[9]):
         BaseCommandlinePredictor.__init__(
             self,
             name="NetMHCcons",
             command=netmhc_command,
-            hla_alleles=hla_alleles,
-            epitope_lengths=epitope_lengths)
+            alleles=alleles,
+            epitope_lengths=epitope_lengths,
+            # netMHCcons does not have a supported allele flag
+            supported_allele_flag=None)
 
     def predict(self, fasta_dictionary):
         """
@@ -47,7 +49,8 @@ class NetMHCcons(BaseCommandlinePredictor):
         output_files = {}
         commands = {}
         dirs = []
-        for i, allele in enumerate(self.alleles):
+        alleles = [allele.replace("*", "") for allele in self.alleles]
+        for i, allele in enumerate(alleles):
             for length in self.epitope_lengths:
                 temp_dirname = tempfile.mkdtemp(
                     prefix="tmp_netmhccons_length_%d" % length)
