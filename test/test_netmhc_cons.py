@@ -4,7 +4,7 @@ from mhctools.alleles import normalize_allele_name
 
 DEFAULT_ALLELE = 'HLA-A*02:01'
 
-def test_netmhc_pan():
+def test_netmhc_cons():
     alleles = [normalize_allele_name(DEFAULT_ALLELE)]
     cons_predictor = NetMHCcons(
         alleles=alleles,
