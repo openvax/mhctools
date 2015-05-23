@@ -28,7 +28,9 @@ class NetMHCcons(BaseCommandlinePredictor):
             self,
             alleles,
             netmhc_command="netMHCcons",
-            epitope_lengths=[9]):
+            epitope_lengths=[9],
+            max_file_records=None):
+        self.max_file_records = max_file_records
         BaseCommandlinePredictor.__init__(
             self,
             name="NetMHCcons",
@@ -38,14 +40,14 @@ class NetMHCcons(BaseCommandlinePredictor):
             # netMHCcons does not have a supported allele flag
             supported_allele_flag=None)
 
-    def predict(self, fasta_dictionary, max_file_records=None):
+    def predict(self, fasta_dictionary):
         """
         Given a dictionary mapping sequence identifiers to amino acid sequences,
         return an EpitopeCollection of binding predictions.
         """
         fasta_dictionary = check_sequence_dictionary(fasta_dictionary)
         input_filenames, sequence_key_mapping = create_input_fasta_files(
-            fasta_dictionary, max_file_records=max_file_records)
+            fasta_dictionary, max_file_records=self.max_file_records)
         output_files = {}
         commands = {}
         dirs = []

@@ -21,9 +21,6 @@ def test_netmhc_cons():
 
 def test_netmhc_cons_chunking():
     alleles = [normalize_allele_name(DEFAULT_ALLELE)]
-    cons_predictor = NetMHCcons(
-        alleles=alleles,
-        epitope_lengths=[9])
     fasta_dictionary = {
         "SMAD4-001": "ASIINFKELA",
         "TP53-001": "ASILLLVFYW",
@@ -34,9 +31,12 @@ def test_netmhc_cons_chunking():
         "TP53-005": "ASILLLVFYG"
     }
     for max_file_records in [1, 3, 5, 14, 20]:
-        epitope_collection = cons_predictor.predict(
-            fasta_dictionary=fasta_dictionary,
+        cons_predictor = NetMHCcons(
+            alleles=alleles,
+            epitope_lengths=[9],
             max_file_records=max_file_records)
+        epitope_collection = cons_predictor.predict(
+            fasta_dictionary=fasta_dictionary)
         assert len(epitope_collection) == 14, \
             "Expected 14 epitopes from %s" % (epitope_collection,)
         source_keys = []
