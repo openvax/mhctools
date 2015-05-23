@@ -14,24 +14,37 @@
 
 from __future__ import print_function, division, absolute_import
 import tempfile
+from math import ceil
 
 from varcode import Variant, MutationEffect
 
 from .epitope_collection_builder import EpitopeCollectionBuilder
 
-def create_input_fasta_file(fasta_dictionary):
+def create_input_fasta_files(fasta_dictionary, max_file_records=None):
     """
-    Turn peptide entries from a dataframe into a FASTA file.
+    Turn peptide entries from a dataframe into one or more FASTA files.
     If mutation_window_size is an integer >0 then only use subsequence
     around mutated residues.
 
-    Return the name of closed file which has to be manually deleted,
+    Return the name of closed files which have to be manually deleted,
     and a dictionary from FASTA IDs to peptide records.
+
+    If max_file_records is not provided, one file is created.
+    If max_file_records is provided, each file will only hold (at most)
+    max_file_records records.
     """
-    input_file = tempfile.NamedTemporaryFile(
-        "w", prefix="peptide", delete=False)
     n_fasta_records = len(fasta_dictionary)
+    input_files = []
+    # A file for every max_file_records records
+    i_range = [0] if not max_file_records else range(
+        int(ceil(n_fasta_records / float(max_file_records))))
+    for i in i_range:
+        input_file = tempfile.NamedTemporaryFile(
+            "w_%s" % i, prefix="peptide", delete=False)
+        input_files.append(input_file)
+
     sequence_key_mapping = {}
+    file_counter = 0
     for i, (original_key, seq) in enumerate(fasta_dictionary.items()):
         unique_id = str(i)
         # make a nicer string representation for Variants and Effects
@@ -50,12 +63,23 @@ def create_input_fasta_file(fasta_dictionary):
         # original key with a unique indentifier
         key = sanitized[: 14 - len(unique_id)] + "_" + unique_id
         sequence_key_mapping[key] = original_key
-        input_file.write(">%s\n%s" % (key, seq))
-        # newline unless at end of file
+        input_files[file_counter].write(">%s\n%s" % (key, seq))
+        # Don't add a newline after the last record
         if i + 1 < n_fasta_records:
-            input_file.write("\n")
-    input_file.close()
-    return input_file.name, sequence_key_mapping
+            # If we are splitting files, don't add a newline as the
+            # last line
+            if max_file_records:
+                if (i + 1) % max_file_records != 0:
+                    input_files[file_counter].write("\n")
+                else:
+                    file_counter += 1
+            else:
+                input_files[file_counter].write("\n")
+    input_file_names = []
+    for input_file in input_files:
+        input_file_names.append(input_file.name)
+        input_file.close()
+    return input_file_names, sequence_key_mapping
 
 def parse_netmhc_stdout(
         netmhc_output,

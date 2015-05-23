@@ -18,3 +18,33 @@ def test_netmhc_cons():
 
     assert len(epitope_collection) == 4, \
         "Expected 4 epitopes from %s" % (epitope_collection,)
+
+def test_netmhc_cons_chunking():
+    alleles = [normalize_allele_name(DEFAULT_ALLELE)]
+    cons_predictor = NetMHCcons(
+        alleles=alleles,
+        epitope_lengths=[9])
+    fasta_dictionary = {
+        "SMAD4-001": "ASIINFKELA",
+        "TP53-001": "ASILLLVFYW",
+        "SMAD4-002": "ASIINFKELS",
+        "TP53-002": "ASILLLVFYS",
+        "TP53-003": "ASILLLVFYT",
+        "TP53-004": "ASILLLVFYG",
+        "TP53-005": "ASILLLVFYG"
+    }
+    for max_file_records in [1, 3, 5, 14, 20]:
+        epitope_collection = cons_predictor.predict(
+            fasta_dictionary=fasta_dictionary,
+            max_file_records=max_file_records)
+        assert len(epitope_collection) == 14, \
+            "Expected 14 epitopes from %s" % (epitope_collection,)
+        source_keys = []
+        for epitope in epitope_collection:
+            source_keys.append(epitope.source_sequence_key)
+        for fasta_key in fasta_dictionary.keys():
+            fasta_count = source_keys.count(fasta_key)
+            assert fasta_count == 2, \
+                ("Expected each fasta key to appear twice, once for "
+                 "each length, but saw %s %d time(s)" % (
+                     fasta_key, fasta_count))
