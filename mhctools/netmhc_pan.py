@@ -19,7 +19,7 @@ import logging
 from .base_commandline_predictor import BaseCommandlinePredictor
 from .cleanup_context import CleanupFiles
 from .common import check_sequence_dictionary, seq_to_str
-from .file_formats import create_input_fasta_file, parse_netmhc_stdout
+from .file_formats import create_input_fasta_files, parse_netmhc_stdout
 from .process_helpers import AsyncProcess
 
 class NetMHCpan(BaseCommandlinePredictor):
@@ -38,8 +38,11 @@ class NetMHCpan(BaseCommandlinePredictor):
 
     def predict(self, fasta_dictionary):
         fasta_dictionary = check_sequence_dictionary(fasta_dictionary)
-        input_filename, sequence_key_mapping = create_input_fasta_file(
+        input_filenames, sequence_key_mapping = create_input_fasta_files(
             fasta_dictionary)
+        # TODO: We are not currently using the file chunking
+        # functionality here. See NetMHCcons.
+        input_filename = input_filenames[0]
 
         alleles_str = \
             ",".join(allele.replace("*", "") for allele in self.alleles)
