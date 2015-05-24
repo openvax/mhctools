@@ -104,6 +104,11 @@ class NetMHCcons(BaseCommandlinePredictor):
                         prediction_method_name="netmhccons")
                     epitope_collections.append(epitope_collection)
 
+        if len(epitope_collections) != len(commands):
+            raise ValueError("Expected an epitope collection for each "
+                             "command (%d), but instead there are %d" %
+                             (len(commands), len(epitope_collections)))
+
         if len(epitope_collections) == 0:
             raise ValueError("No epitopes from netMHCcons")
 
