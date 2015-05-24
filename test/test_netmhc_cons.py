@@ -34,7 +34,9 @@ def test_netmhc_cons_chunking():
         cons_predictor = NetMHCcons(
             alleles=alleles,
             epitope_lengths=[9],
-            max_file_records=max_file_records)
+            max_file_records=max_file_records,
+            process_limit=2
+        )
         epitope_collection = cons_predictor.predict(
             fasta_dictionary=fasta_dictionary)
         assert len(epitope_collection) == 14, \
