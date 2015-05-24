@@ -113,11 +113,15 @@ def run_multiple_commands_redirect_stdout(
         else:
             while processes.full():
                 # Are there any done processes?
+                some_done = False
                 for possibly_done in processes.queue:
                     if possibly_done.poll():
                         possibly_done.wait()
                         processes.queue.remove(possibly_done)
-                # Check again in a second
+                        some_done = True
+                # Check again in a second if there weren't
+                if some_done:
+                    break
                 time.sleep(polling_freq)
             processes.put(p)
 
