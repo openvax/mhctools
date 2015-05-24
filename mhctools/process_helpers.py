@@ -32,6 +32,8 @@ class AsyncProcess(object):
             redirect_stdout_file=None):
         assert len(args) > 0
         self.cmd = args[0]
+        self.args = args
+        self.redirect_stdout_file = redirect_stdout_file
 
         with open(os.devnull, 'w') as devnull:
             stdout = redirect_stdout_file if redirect_stdout_file else devnull
@@ -101,15 +103,20 @@ def run_multiple_commands_redirect_stdout(
     assert all(hasattr(f, 'name') for f in multiple_args_dict.keys())
     start_time = time.time()
     processes = Queue(maxsize=process_limit)
-    for f, args in multiple_args_dict.iteritems():
+
+    def add_to_queue(process):
         if print_commands:
-            print(" ".join(args), ">", f.name)
+            print(" ".join(process.args), ">",
+                  process.redirect_stdout_file.name)
+        processes.put(process)
+
+    for f, args in multiple_args_dict.iteritems():
         p = AsyncProcess(
             args,
             redirect_stdout_file=f,
             **kwargs)
         if not processes.full():
-            processes.put(p)
+            add_to_queue(p)
         else:
             while processes.full():
                 # Are there any done processes?
@@ -125,7 +132,7 @@ def run_multiple_commands_redirect_stdout(
                     break
                 # Check again in a second if there weren't
                 time.sleep(polling_freq)
-            processes.put(p)
+            add_to_queue(p)
 
     # Wait for all the rest of the processes
     while not processes.empty():
