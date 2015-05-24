@@ -29,8 +29,10 @@ class NetMHCcons(BaseCommandlinePredictor):
             alleles,
             netmhc_command="netMHCcons",
             epitope_lengths=[9],
-            max_file_records=None):
+            max_file_records=None,
+            process_limit=0):
         self.max_file_records = max_file_records
+        self.process_limit = process_limit
         BaseCommandlinePredictor.__init__(
             self,
             name="NetMHCcons",
@@ -88,7 +90,8 @@ class NetMHCcons(BaseCommandlinePredictor):
                 filenames=filenames_to_delete,
                 directories=dirs):
             run_multiple_commands_redirect_stdout(
-                commands, print_commands=True)
+                commands, print_commands=True,
+                process_limit=self.process_limit)
             for output_file, command in commands.iteritems():
                 # closing/opening looks insane
                 # but I was getting empty files otherwise

@@ -17,6 +17,7 @@ import logging
 import os
 from subprocess import Popen, CalledProcessError
 import time
+from Queue import Queue
 
 class AsyncProcess(object):
     """
@@ -61,7 +62,8 @@ def run_command(args, **kwargs):
     elapsed_time = time.time() - start_time
     logging.info("%s took %0.4f seconds", cmd, elapsed_time)
 
-def run_multiple_commands(multiple_args_lists, print_commands=True, **kwargs):
+def run_multiple_commands(multiple_args_lists, print_commands=True,
+                          process_limit=0, **kwargs):
     """
     Run multiple shell commands in parallel.
 
@@ -75,20 +77,28 @@ def run_multiple_commands(multiple_args_lists, print_commands=True, **kwargs):
 
     print_commands : bool
         Print shell commands before running them
+
+   process_limit : int
+        Limit the number of concurrent processes to this number. 0
+        if there is no limit.
     """
     assert len(multiple_args_lists) > 0
     assert all(len(args) > 0 for args in multiple_args_lists)
     start_time = time.time()
     command_names = [args[0] for args in multiple_args_lists]
-    processes = []
+    processes = Queue(maxsize=process_limit)
     for args in multiple_args_lists:
         if print_commands:
             print(" ".join(args))
         p = AsyncProcess(args, **kwargs)
-        processes.append(p)
+        if not processes.full():
+            processes.put(p)
+        else:
+            processes.get().wait()
+            processes.put(p)
 
-    for p in processes:
-        p.wait()
+    while not processes.empty():
+        processes.get().wait()
 
     elapsed_time = time.time() - start_time
     logging.info("Ran %d commands (%s) in %0.4f seconds",
@@ -100,6 +110,7 @@ def run_multiple_commands(multiple_args_lists, print_commands=True, **kwargs):
 def run_multiple_commands_redirect_stdout(
         multiple_args_dict,
         print_commands=True,
+        process_limit=0,
         **kwargs):
     """
     Run multiple shell commands in parallel, write each of their
@@ -114,12 +125,16 @@ def run_multiple_commands_redirect_stdout(
 
     print_commands : bool
         Print shell commands before running them.
+
+    process_limit : int
+        Limit the number of concurrent processes to this number. 0
+        if there is no limit.
     """
     assert len(multiple_args_dict) > 0
     assert all(len(args) > 0 for args in multiple_args_dict.values())
     assert all(hasattr(f, 'name') for f in multiple_args_dict.keys())
     start_time = time.time()
-    processes = []
+    processes = Queue(maxsize=process_limit)
     for f, args in multiple_args_dict.iteritems():
         if print_commands:
             print(" ".join(args), ">", f.name)
@@ -127,10 +142,13 @@ def run_multiple_commands_redirect_stdout(
             args,
             redirect_stdout_file=f,
             **kwargs)
-        processes.append(p)
+        if not processes.full():
+            processes.put(p)
+        else:
+            processes.get().wait()
 
-    for p in processes:
-        p.wait()
+    while not processes.empty():
+        processes.get().wait()
 
     elapsed_time = time.time() - start_time
     logging.info("Ran %d commands in %0.4f seconds",
