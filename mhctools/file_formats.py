@@ -37,11 +37,9 @@ def create_input_fasta_files(fasta_dictionary, max_file_records=None):
     input_files = []
     # A file for every max_file_records records
     i_range = [0] if not max_file_records else range(
-        int(ceil(n_fasta_records / float(max_file_records))))
-    for i in i_range:
-        input_file = tempfile.NamedTemporaryFile(
-            "w_%s" % i, prefix="peptide", delete=False)
-        input_files.append(input_file)
+        int(ceil(n_fasta_records / max_file_records)))
+    input_files = [tempfile.NamedTemporaryFile(
+        "w_%s" % i, prefix="peptide", delete=False) for i in i_range]
 
     sequence_key_mapping = {}
     file_counter = 0
