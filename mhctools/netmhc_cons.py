@@ -20,7 +20,7 @@ from .base_commandline_predictor import BaseCommandlinePredictor
 from .cleanup_context import CleanupFiles
 from .common import check_sequence_dictionary
 from .epitope_collection import EpitopeCollection
-from .file_formats import create_input_fasta_file, parse_netmhc_stdout
+from .file_formats import create_input_fasta_files, parse_netmhc_stdout
 from .process_helpers import run_multiple_commands_redirect_stdout
 
 class NetMHCcons(BaseCommandlinePredictor):
@@ -28,7 +28,11 @@ class NetMHCcons(BaseCommandlinePredictor):
             self,
             alleles,
             netmhc_command="netMHCcons",
-            epitope_lengths=[9]):
+            epitope_lengths=[9],
+            max_file_records=None,
+            process_limit=0):
+        self.max_file_records = max_file_records
+        self.process_limit = process_limit
         BaseCommandlinePredictor.__init__(
             self,
             name="NetMHCcons",
@@ -44,40 +48,41 @@ class NetMHCcons(BaseCommandlinePredictor):
         return an EpitopeCollection of binding predictions.
         """
         fasta_dictionary = check_sequence_dictionary(fasta_dictionary)
-        input_filename, sequence_key_mapping = create_input_fasta_file(
-            fasta_dictionary)
+        input_filenames, sequence_key_mapping = create_input_fasta_files(
+            fasta_dictionary, max_file_records=self.max_file_records)
         output_files = {}
         commands = {}
         dirs = []
         alleles = [allele.replace("*", "") for allele in self.alleles]
-        for i, allele in enumerate(alleles):
-            for length in self.epitope_lengths:
-                temp_dirname = tempfile.mkdtemp(
-                    prefix="tmp_netmhccons_length_%d" % length)
-                logging.info(
-                    "Created temporary directory %s for allele %s, length %d",
-                    temp_dirname,
-                    allele,
-                    length)
-                dirs.append(temp_dirname)
-                output_file = tempfile.NamedTemporaryFile(
+        for i, input_filename in enumerate(input_filenames):
+            for j, allele in enumerate(alleles):
+                for length in self.epitope_lengths:
+                    temp_dirname = tempfile.mkdtemp(
+                        prefix="tmp_netmhccons_length_%d" % length)
+                    logging.info(
+                        "Created temporary directory %s for allele %s, length %d",
+                        temp_dirname,
+                        allele,
+                        length)
+                    dirs.append(temp_dirname)
+                    output_file = tempfile.NamedTemporaryFile(
                         "w",
-                        prefix="netMHCcons_output_%d" % i,
+                        prefix="netMHCcons_output_%d_%d" % (i, j),
                         delete=False)
-                command = [
-                    self.command,
-                    "-length", str(length),
-                    "-f", input_filename,
-                    "-a", allele,
-                    "-tdir", temp_dirname
-                ]
-                commands[output_file] = command
+                    command = [
+                        self.command,
+                        "-length", str(length),
+                        "-f", input_filename,
+                        "-a", allele,
+                        "-tdir", temp_dirname
+                    ]
+                    commands[output_file] = command
 
         epitope_collections = []
 
         # Cleanup either when finished or if an exception gets raised by
         # deleting the input and output files
-        filenames_to_delete = [input_filename]
+        filenames_to_delete = input_filenames
         for f in output_files.keys():
             filenames_to_delete.append(f.name)
 
@@ -85,7 +90,8 @@ class NetMHCcons(BaseCommandlinePredictor):
                 filenames=filenames_to_delete,
                 directories=dirs):
             run_multiple_commands_redirect_stdout(
-                commands, print_commands=True)
+                commands, print_commands=True,
+                process_limit=self.process_limit)
             for output_file, command in commands.iteritems():
                 # closing/opening looks insane
                 # but I was getting empty files otherwise
@@ -97,6 +103,11 @@ class NetMHCcons(BaseCommandlinePredictor):
                         sequence_key_mapping=sequence_key_mapping,
                         prediction_method_name="netmhccons")
                     epitope_collections.append(epitope_collection)
+
+        if len(epitope_collections) != len(commands):
+            raise ValueError("Expected an epitope collection for each "
+                             "command (%d), but instead there are %d" %
+                             (len(commands), len(epitope_collections)))
 
         if len(epitope_collections) == 0:
             raise ValueError("No epitopes from netMHCcons")
