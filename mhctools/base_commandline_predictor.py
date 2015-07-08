@@ -78,8 +78,9 @@ class BaseCommandlinePredictor(BasePredictor):
                     line = line.strip()
                     if not line.startswith('#') and len(line) > 0:
                         try:
-                            allele = normalize_allele_name(line)
-                            valid_alleles.add(allele)
+                            # We don't need to normalize, as this is the
+                            # actual allele name that we passed into the predictor.
+                            valid_alleles.add(line)
                         except ValueError as error:
                             logging.info("Skipping allele %s: %s" % (
                                 line, error))

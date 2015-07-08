@@ -32,12 +32,17 @@ class NetMHCIIpan(BaseCommandlinePredictor):
             epitope_lengths=[15, 16, 17, 18, 19, 20]):
 
         def normalize_allele(allele_name):
-            # netMHCIIpan has some unique requirements for allele formats, which
-            # look like: DRB1_0101
+            """
+            netMHCIIpan has some unique requirements for allele formats,
+            expecting the following forms:
+             - DRB1_0101 (for standard alleles)
+             - HLA-DQA10501-DQB10636 (for specifying alpha and beta alleles)
+            """
             allele_name = normalize_allele_name(allele_name)
-            allele_name = allele_name.replace("HLA-", "")
-            allele_name = allele_name.replace(":", "")
-            allele_name = allele_name.replace("*", "_")
+            allele_name = allele_name.replace("HLA-", "").replace(
+                ":", "").replace("*", "_")
+            if "-" in allele_name:
+                allele_name = ("HLA-%s" % allele_name).replace("_", "")
             return allele_name
 
         BaseCommandlinePredictor.__init__(
@@ -46,8 +51,7 @@ class NetMHCIIpan(BaseCommandlinePredictor):
             command=netmhc_command,
             alleles=alleles,
             epitope_lengths=epitope_lengths,
-            # netMHCIIpan does not have a supported allele flag)
-            supported_allele_flag=None,
+            supported_allele_flag="-list",
             normalize_allele_func=normalize_allele)
 
     def predict(self, fasta_dictionary):
