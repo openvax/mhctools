@@ -32,7 +32,8 @@ class BaseCommandlinePredictor(BasePredictor):
             command,
             alleles,
             epitope_lengths,
-            supported_allele_flag='-listMHC'):
+            supported_allele_flag='-listMHC',
+            normalize_allele_func=normalize_allele_name):
         self.name = name
         self.command = command
 
@@ -53,7 +54,8 @@ class BaseCommandlinePredictor(BasePredictor):
             self,
             alleles,
             epitope_lengths,
-            valid_alleles=valid_alleles)
+            valid_alleles=valid_alleles,
+            normalize_allele_func=normalize_allele_func)
 
     @staticmethod
     def _determine_valid_alleles(command, supported_allele_flag):

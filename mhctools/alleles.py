@@ -77,6 +77,15 @@ AlleleName = namedtuple("AlleleName", [
     "allele_family",
     "allele_code"])
 
+AlphaBetaAlleleName = namedtuple("AlphaBetaAlleleName", [
+    "species",
+    "gene_alpha",
+    "gene_beta",
+    "allele_family_alpha",
+    "allele_family_beta",
+    "allele_code_alpha",
+    "allele_code_beta"])
+
 def _parse_mouse_allele_name(name):
     """Parses mouse MHc alleles such as H2-Kd, H-2-Db, H2-IAb.
     Returns pair of (gene, allele_code).
@@ -120,7 +129,8 @@ def parse_allele_name(name):
         "HLA-A*02:01"
         "A0201"
         "A00201"
-    The result is a AlleleName object. Example:
+    The result is a AlleleName object. (Or, in circumstances where the alpha
+    and beta alleles are specified, an AlphaBetaAlleleName.) Example:
         AlleleName(
             species="HLA",  # species prefix
             gene="A",    # gene name
@@ -154,21 +164,18 @@ def parse_allele_name(name):
 
     if len(name) == 0:
         raise ValueError("Incomplete MHC allele name: %s" % (original,))
-
     elif not species:
         # assume that a missing species name means we're dealing with a
         # human HLA allele
-        if "-" in name:
-            raise ValueError("Can't parse allele name: %s" % original)
         species = "HLA"
 
-    if name[0] == "D":
+    is_class_ii = False
+    if name[0].upper() == "D":
         # MHC class II genes like "DQA1" need to be parsed with both
         # letters and numbers
         gene, name = _parse_alphanum(name)
+        is_class_ii = True
     elif name[0].isalpha():
-        # if there are more separators to come, then assume the gene names
-        # can have the form "DQA1"
         gene, name = _parse_letters(name)
     elif name[0].isdigit():
         gene, name = _parse_numbers(name)
@@ -181,6 +188,14 @@ def parse_allele_name(name):
         raise ValueError("Malformed MHC type %s" % original)
 
     gene = gene.upper()
+
+    beta_name = None
+    if '-' in name:
+        name_parts = name.split("-")
+        if len(name_parts) != 2:
+            raise ValueError("Too many allele separators in %s" % original)
+        name = name_parts[0]
+        beta_name = name_parts[1]
 
     # skip initial separator
     sep, name = _parse_separator(name)
@@ -196,18 +211,36 @@ def parse_allele_name(name):
     allele_code, name = _parse_numbers(name)
 
     if len(family) == 1:
+        # change HLA-A*2:01 into HLA-A*02:01
         family = "0" + family
     elif len(family) == 3 and family[0] == "0":
-        family = family[1:]
+        # HLA class II alleles can have length-3 families
+        # See http://www.cbs.dtu.dk/services/NetMHCIIpan/alleles_name.list
+        if not is_class_ii:
+            # normalize HLA-A*002:01 into HLA-A*02:01
+            family = family[1:]
 
     if len(allele_code) == 0:
         allele_code = "01"
     elif len(allele_code) == 1:
-        # change HLA-A*2:01 into HLA-A*02:01
+        # change HLA-A*02:1 into HLA-A*02:01
         allele_code = "0" + allele_code
     elif len(allele_code) == 3 and allele_code[0] == "0":
-        # normalize HLA-A*002:01 into HLA-A*02:01
+        # normalize HLA-A*02:001 into HLA-A*02:01
         allele_code = allele_code[1:]
+
+    # If the allele is actually an alpha allele name combined with
+    # a beta allele name, re-run the parsing on the beta portion.
+    if beta_name:
+        gene_alpha = gene
+        family_alpha = family
+        allele_code_alpha = allele_code
+        _, gene_beta, family_beta, allele_code_beta = parse_allele_name(beta_name)
+        return AlphaBetaAlleleName(species, gene_alpha, gene_beta,
+                                   family_alpha, family_beta,
+                                   allele_code_alpha,
+                                   allele_code_beta)
+
     return AlleleName(species, gene, family, allele_code)
 
 _normalized_allele_cache = {}
@@ -245,28 +278,42 @@ def normalize_allele_name(raw_allele):
         - HLA-A2
         - A2
 
-    These should all be normalized to:
+    these should all be normalized to:
         HLA-A*02:01
     """
     if raw_allele in _normalized_allele_cache:
         return _normalized_allele_cache[raw_allele]
     parsed_allele = parse_allele_name(raw_allele)
-    if len(parsed_allele.allele_family) > 0:
-        normalized = "%s-%s*%s:%s" % (
+
+    if 'AlphaBetaAlleleName' in str(type(parsed_allele)):
+        # TODO: Handle the MHC class II case for mice, who lack
+        # allele families
+        normalized = "%s-%s*%s:%s-%s*%s:%s" % (
             parsed_allele.species,
-            parsed_allele.gene,
-            parsed_allele.allele_family,
-            parsed_allele.allele_code)
+            parsed_allele.gene_alpha,
+            parsed_allele.allele_family_alpha,
+            parsed_allele.allele_code_alpha,
+            parsed_allele.gene_beta,
+            parsed_allele.allele_family_beta,
+            parsed_allele.allele_code_beta)
     else:
-        # mice don't have allele families
-        # e.g. H2-Kd
-        # species = H2
-        # gene = K
-        # allele = d
-        normalized = "%s-%s%s" % (
-            parsed_allele.species,
-            parsed_allele.gene,
-            parsed_allele.allele_code)
+        if len(parsed_allele.allele_family) > 0:
+            normalized = "%s-%s*%s:%s" % (
+                parsed_allele.species,
+                parsed_allele.gene,
+                parsed_allele.allele_family,
+                parsed_allele.allele_code)
+        else:
+            # mice don't have allele families
+            # e.g. H2-Kd
+            # species = H2
+            # gene = K
+            # allele = d
+            normalized = "%s-%s%s" % (
+                parsed_allele.species,
+                parsed_allele.gene,
+                parsed_allele.allele_code)
+
     _normalized_allele_cache[raw_allele] = normalized
     return normalized
 
