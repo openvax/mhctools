@@ -37,7 +37,7 @@ except:
 if __name__ == '__main__':
     setup(
         name='mhctools',
-        version="0.0.6",
+        version="0.0.8",
         description="Python interface to running command-line and web-based MHC binding predictors",
         author="Alex Rubinsteyn",
         author_email="alex {dot} rubinsteyn {at} mssm {dot} edu",
