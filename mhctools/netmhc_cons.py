@@ -92,7 +92,7 @@ class NetMHCcons(BaseCommandlinePredictor):
             run_multiple_commands_redirect_stdout(
                 commands, print_commands=True,
                 process_limit=self.process_limit)
-            for output_file, command in commands.iteritems():
+            for output_file, command in commands.items():
                 # closing/opening looks insane
                 # but I was getting empty files otherwise
                 output_file.close()

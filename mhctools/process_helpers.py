@@ -111,7 +111,7 @@ def run_multiple_commands_redirect_stdout(
                   process.redirect_stdout_file.name)
         processes.put(process)
 
-    for f, args in multiple_args_dict.iteritems():
+    for f, args in multiple_args_dict.items():
         p = AsyncProcess(
             args,
             redirect_stdout_file=f,
