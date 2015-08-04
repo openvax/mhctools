@@ -18,7 +18,7 @@ import os
 from subprocess import Popen, CalledProcessError
 import time
 
-from six.moves import queue
+from six.moves.queue import Queue
 
 class AsyncProcess(object):
     """
@@ -103,7 +103,7 @@ def run_multiple_commands_redirect_stdout(
     assert all(len(args) > 0 for args in multiple_args_dict.values())
     assert all(hasattr(f, 'name') for f in multiple_args_dict.keys())
     start_time = time.time()
-    processes = queue(maxsize=process_limit)
+    processes = Queue(maxsize=process_limit)
 
     def add_to_queue(process):
         if print_commands:
