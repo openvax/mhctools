@@ -28,7 +28,8 @@ class BasePredictor(object):
             self,
             alleles,
             epitope_lengths,
-            valid_alleles=None):
+            valid_alleles=None,
+            normalize_allele_func=normalize_allele_name):
         """
         Parameters
         ----------
@@ -49,7 +50,8 @@ class BasePredictor(object):
         # so as a convenience, allow user to not wrap that allele as a list
         if isinstance(alleles, str):
             alleles = [alleles]
-        self.alleles = self._check_hla_alleles(alleles, valid_alleles)
+        self.alleles = self._check_hla_alleles(alleles, normalize_allele_func,
+                                               valid_alleles)
 
         if isinstance(epitope_lengths, int):
             epitope_lengths = [epitope_lengths]
@@ -79,6 +81,7 @@ class BasePredictor(object):
     @staticmethod
     def _check_hla_alleles(
             alleles,
+            normalize_allele_func,
             valid_alleles=None):
         """
         Given a list of HLA alleles and an optional list of valid
@@ -87,7 +90,7 @@ class BasePredictor(object):
         """
         require_iterable_of(alleles, str, "HLA alleles")
         alleles = [
-            normalize_allele_name(allele.strip().upper())
+            normalize_allele_func(allele.strip().upper())
             for allele in alleles
         ]
         if valid_alleles:

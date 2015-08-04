@@ -120,10 +120,16 @@ def parse_netmhc_stdout(
     lines = [l for l in lines if not l.startswith("#")]
     for line in lines:
         fields = line.split()
-        n_required_fields = 7
+        is_mhciipan = prediction_method_name == "netmhciipan"
+        n_required_fields = 9 if is_mhciipan else 7
         if len(fields) >= n_required_fields:
-            pos, allele, peptide, key, log_affinity, ic50, rank = \
-                fields[:n_required_fields]
+            # netMHCIIpan has some extra fields
+            if is_mhciipan:
+                pos, allele, peptide, key, Pos, Core, log_affinity, ic50, rank = \
+                    fields[:n_required_fields]
+            else:
+                pos, allele, peptide, key, log_affinity, ic50, rank = \
+                    fields[:n_required_fields]
             try:
                 pos = int(pos)
                 allele = str(allele)

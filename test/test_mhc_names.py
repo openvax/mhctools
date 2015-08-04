@@ -17,7 +17,7 @@ from mhctools.alleles import (
 # - RT1-9.5*f
 # - RT1-M3-1*av1
 
-# TODO: test human and mice class II alleles
+# TODO: test mice class II alleles
 
 hla_02_01_names = [
     "HLA-A*02:01",
@@ -31,9 +31,9 @@ hla_02_01_names = [
     "A0201",
     "A2",
     "A2:01",
-    "HLA-A2"
+    "HLA-A2",
     # lower case
-    "hla-a*0201"
+    "hla-a*0201",
     "a*0201",
     "a*02:01",
     "a0201"
@@ -51,6 +51,22 @@ def test_hla_short_names():
         result = compact_allele_name(name)
         eq_(result, expected)
 
+def test_human_class2():
+    expected = "HLA-DRB1*01:02"
+    for name in ["DRB1*0102",
+                 "HLA-DRB1*0102",
+                 "HLA-DRB1*01:02"]:
+        result = normalize_allele_name(name)
+        eq_(result, expected)
+
+def test_human_class2_alpha_beta():
+    expected = "HLA-DPA1*01:05-DPB1*100:01"
+    for name in ["HLA-DPA1*01:05-DPB1*100:01",
+                 "hla-dpa1*0105-dpb1*10001",
+                 "dpa1*0105-dpb1*10001"]:
+        result = normalize_allele_name(name)
+        eq_(result, expected)
+
 def test_macaque_alleles():
     allele_name = "Mamu-B*082:02"
     eq_(normalize_allele_name(allele_name), "Mamu-B*82:02")
@@ -64,7 +80,7 @@ def test_macaque_alleles():
 
 def test_dog_class2_allele():
     eq_(parse_allele_name("DLA-DQA1*00101"),
-        AlleleName("DLA", "DQA1", "01", "01"))
+        AlleleName("DLA", "DQA1", "001", "01"))
 
 def test_sheep_class1_allele():
     eq_(parse_allele_name("Ovar-N*50001"),
