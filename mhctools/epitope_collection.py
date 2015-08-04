@@ -17,6 +17,7 @@ from collections import defaultdict
 
 import pandas as pd
 from varcode import Collection
+
 from .binding_prediction import BindingPrediction
 
 class EpitopeCollection(Collection):

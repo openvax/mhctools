@@ -13,18 +13,11 @@
 # limitations under the License.
 
 from __future__ import print_function, division, absolute_import
-
-import io
-try:
-    # For Python 3.0 and later
-    from urllib.request import urlopen, Request
-    from urllib.parse import urlencode
-except ImportError:
-    # Fall back to Python 2's urllib2
-    from urllib2 import urlopen, Request
-    from urllib import urlencode
 import logging
+import io
 
+from six.moves.urllib.request import urlopen, Request
+from six.moves.urllib.parse import urlencode
 import pandas as pd
 
 from .base_predictor import BasePredictor
