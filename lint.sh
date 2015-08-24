@@ -1,7 +1,7 @@
 #!/bin/bash
 set -o errexit
 
-find . -name '*.py' \
+find mhctools test -name '*.py' \
   | xargs pylint \
   --errors-only \
   --disable=print-statement
