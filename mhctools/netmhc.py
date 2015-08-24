@@ -15,6 +15,7 @@
 from __future__ import print_function, division, absolute_import
 import tempfile
 import logging
+from os import remove
 
 from .base_commandline_predictor import BaseCommandlinePredictor
 from .cleanup_context import CleanupFiles
@@ -54,28 +55,29 @@ class NetMHC(BaseCommandlinePredictor):
             ",".join(allele.replace("*", "") for allele in self.alleles)
 
         epitope_collections = []
-
+        # dictionary from output file paths to commands
+        commands = {}
         for peptide_length in self.epitope_lengths:
             output_file = tempfile.NamedTemporaryFile(
                     "w",
                     prefix="netMHC_output_peplen%d" % peptide_length,
                     delete=False)
 
-            args = [
+            command = [
                 self.command,
                 input_filename,
                 "--peplen", str(peptide_length),
                 "--nodirect",  # approximate 10mer predictions using 9mers
                 "--mhc", alleles_str
             ]
-            logging.info(" ".join(args))
+            commands[output_file] = command
 
-            with CleanupFiles(
-                    filenames=[input_filename],
-                    files=[output_file]):
+        for output_file, command in commands.items():
+            with CleanupFiles(files=[output_file]):
                 process = AsyncProcess(
-                    args=args,
+                    args=command,
                     redirect_stdout_file=output_file)
+                print(" ".join(command))
                 process.wait()
                 # need to flush written output and re-open for read
                 output_file.close()
@@ -91,7 +93,7 @@ class NetMHC(BaseCommandlinePredictor):
                         logging.warn(file_contents)
                         raise ValueError("No epitopes from netMHC")
                     epitope_collections.append(epitope_collection)
-
+        remove(input_filename)
         # flatten all epitope collections into a single object
         return EpitopeCollection([
             binding_prediction
