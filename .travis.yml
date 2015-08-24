@@ -6,6 +6,7 @@ python:
 addons:
   apt:
     packages:
+      # Needed for NetMHC
       tcsh
 env:
   global:
