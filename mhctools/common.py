@@ -16,6 +16,7 @@ from __future__ import print_function, division, absolute_import
 
 # Python3 doesn't have a unicode classes
 try:
+    # pylint: disable=undefined-variable
     string_classes = (unicode, str)
 except NameError:
     string_classes = (str,)
