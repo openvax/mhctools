@@ -44,5 +44,5 @@ def test_HIV_epitope():
     for mhc_class in mhc_classes:
         mhc_model = mhc_class("HLA-A*02:01", epitope_lengths=9)
         epitope = mhc_model.predict("SLYNTVATL")[0]
-        assert epitope.percentile_rank < 1.0, \
-            "Expected %s to have percentile rank <= 1.0" % epitope
+        assert epitope.percentile_rank <= 4.0, \
+            "Expected %s to have percentile rank <= 3.0" % str(epitope)
