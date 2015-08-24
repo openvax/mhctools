@@ -86,6 +86,7 @@ class BaseCommandlinePredictor(BasePredictor):
                         logging.info("Skipping allele %s: %s" % (
                             line, error))
                         continue
+            return valid_alleles
         except:
             logging.warning(
                 "Failed to run %s %s",
