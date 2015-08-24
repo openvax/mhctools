@@ -85,32 +85,33 @@ def _parse_mouse_allele_name(name):
     Returns pair of (gene, allele_code).
     """
     original = name
-
-    if name.startswith("H2"):
+    if name.upper().startswith("H2"):
         name = name[2:]
-    elif name.startswith("H-2"):
+    elif name.upper().startswith("H-2"):
         name = name[3:]
-
     _, name = _parse_separator(name)
 
     # special logic for mouse alleles
-    if name.startswith("I"):
+    if name.upper().startswith("I"):
         # class II mouse allele
-        if len(name) < 3:
-            raise AlleleParseError("Incomplete mouse MHC allele: %s" % original)
-        elif len(name) > 3:
-            raise AlleleParseError("Malformed mouse MHC allele: %s" % original)
-        # mice don't seem to have allele families, only a small list of
-        # alleles per gene code as single lowercase letters
-        return name[:2].upper(), name[2].lower()
-
-    else:
-        # class I mouse allele
         if len(name) < 2:
             raise AlleleParseError("Incomplete mouse MHC allele: %s" % original)
-        elif len(name) > 2:
-            raise AlleleParseError("Malformed mouse MHC allele: %s" % original)
-        return name[0].upper(), name[1].lower()
+        gene_name = name[:2]
+        name = name[2:]
+    else:
+        # class I mouse allele
+        if len(name) < 1:
+            raise AlleleParseError("Incomplete mouse MHC allele: %s" % original)
+        gene_name = name[0]
+        name = name[1:]
+    _, name = _parse_separator(name)
+
+    if len(name) != 1:
+        raise AlleleParseError(
+            "Malformed mouse MHC allele: %s, parse error at %s" % (
+                original, name))
+    allele = name[0]
+    return gene_name.upper(), allele.lower()
 
 def parse_allele_name(name):
     """Takes an allele name and splits it into four parts:
