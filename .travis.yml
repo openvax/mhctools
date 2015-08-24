@@ -11,9 +11,9 @@ before_install:
   - export PATH=/home/travis/miniconda/bin:$PATH
   - conda update --yes conda
 install:
-  - conda install --yes python=$TRAVIS_PYTHON_VERSION numpy scipy nose pandas
+  - conda install --yes python=$TRAVIS_PYTHON_VERSION numpy scipy nose
   - pip install -r requirements.txt
-  - python install .
+  - pip install .
 script: nosetests test && ./lint.sh
 deploy:
   provider: pypi
