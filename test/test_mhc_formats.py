@@ -1,8 +1,70 @@
-from mhctools.file_formats import parse_netmhc_stdout
-
+from mhctools.file_formats import parse_netmhcpan_stdout, parse_netmhc_stdout
 
 def test_mhc_stdout():
+    """
+    Test parsing of NetMHC output of predictions of HLA-A*02:01
+    and HLA-A*02:03 for three epitopes:
+      - CFTWNQMNL
+      - SLYNTVATL
+      - SLYNTVATF
+    """
+
     netmhc_output = """
+NetMHC version 3.4. 9mer predictions using Artificial Neural Networks - Direct. Allele HLA-A02:01.
+Strong binder threshold  50 nM. Weak binder threshold score 500 nM
+
+
+
+----------------------------------------------------------------------------------------------------
+ pos    peptide      logscore affinity(nM) Bind Level    Protein Name     Allele
+----------------------------------------------------------------------------------------------------
+   0  CFTWNQMNL         0.085        19899                       seq4 HLA-A02:01
+--------------------------------------------------------------------------------------------------
+   0  SLYNTVATL         0.579           94         WB            seq5 HLA-A02:01
+--------------------------------------------------------------------------------------------------
+   0  SLYNTVATF         0.289         2186                       seq6 HLA-A02:01
+--------------------------------------------------------------------------------------------------
+
+
+
+NetMHC version 3.4. 9mer predictions using Artificial Neural Networks - Direct. Allele HLA-A02:03.
+Strong binder threshold  50 nM. Weak binder threshold score 500 nM
+
+
+
+----------------------------------------------------------------------------------------------------
+ pos    peptide      logscore affinity(nM) Bind Level    Protein Name     Allele
+----------------------------------------------------------------------------------------------------
+   0  CFTWNQMNL         0.113        14800                       seq4 HLA-A02:03
+--------------------------------------------------------------------------------------------------
+   0  SLYNTVATL         0.730           18         SB            seq5 HLA-A02:03
+--------------------------------------------------------------------------------------------------
+   0  SLYNTVATF         0.493          239         WB            seq6 HLA-A02:03
+--------------------------------------------------------------------------------------------------
+    """
+    fasta_dictionary = {
+      "seq4": "CFTWNQMNL",
+      "seq5": "SLYNTVATL",
+      "seq6": "SLYNTVATF",
+    }
+    epitope_collection = parse_netmhc_stdout(
+      netmhc_output,
+      fasta_dictionary=fasta_dictionary,
+      prediction_method_name="netmhcpan")
+    assert len(epitope_collection) == 2 * len(fasta_dictionary), \
+      "Wrong number of binding predictions: %d (expected %d)" % (
+        len(epitope_collection, 2 * len(fasta_dictionary)))
+    for i, entry in enumerate(epitope_collection):
+        # make sure both allele's tables get parsed
+        assert entry.allele in ('HLA-A*02:01', 'HLA-A*02:03')
+        # expect the HIV epitope SLYNTVATL to be a predicted binder for both
+        # alleles
+        if entry.peptide == "SLYNTVATL":
+            assert entry.value < 100
+
+
+def test_mhcpan_stdout():
+    netmhcpan_output = """
     # Affinity Threshold for Strong binding peptides  50.000',
     # Affinity Threshold for Weak binding peptides 500.000',
     # Rank Threshold for Strong binding peptides   0.500',
@@ -28,16 +90,16 @@ def test_mhc_stdout():
       "id0": "QQQQQYFPEITHIIASSSL"
     }
 
-    epitope_collection = parse_netmhc_stdout(
-      netmhc_output,
+    epitope_collection = parse_netmhcpan_stdout(
+      netmhcpan_output,
       fasta_dictionary=fasta_dictionary,
-      prediction_method_name="netmhc")
+      prediction_method_name="netmhcpan")
 
     assert len(epitope_collection) == 12
 
     for i, entry in enumerate(epitope_collection):
         assert entry.allele == 'HLA-A*02:03', \
-            "Expected entry %s to have allele 'HLA-A*02:03'" (entry,)
+            "Expected entry %s to have allele 'HLA-A*02:03'" % (entry,)
         if i == 0:
             # expect the epitopes to be sorted in increasing IC50
             assert entry.value == 189.74

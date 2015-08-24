@@ -15,6 +15,9 @@
 from __future__ import print_function, division, absolute_import
 from collections import namedtuple
 
+class AlleleParseError(Exception):
+    pass
+
 # copied from https://www.ebi.ac.uk/ipd/mhc/species.html
 SPECIES_PREFIXES = dict(
     human="HLA",
@@ -23,7 +26,7 @@ SPECIES_PREFIXES = dict(
     dog="DLA",
     sheep=["OVA", "Ovar", "Ovca"],
     swine="SLA",
-    mouse="H2",
+    mouse=["H2"],
     rainbow_trout="Onmy",
     rat=["Rano", "Rara", "RT1"],
     salmon="Sasa",
@@ -94,9 +97,9 @@ def _parse_mouse_allele_name(name):
     if name.startswith("I"):
         # class II mouse allele
         if len(name) < 3:
-            raise ValueError("Incomplete mouse MHC allele: %s" % original)
+            raise AlleleParseError("Incomplete mouse MHC allele: %s" % original)
         elif len(name) > 3:
-            raise ValueError("Malformed mouse MHC allele: %s" % original)
+            raise AlleleParseError("Malformed mouse MHC allele: %s" % original)
         # mice don't seem to have allele families, only a small list of
         # alleles per gene code as single lowercase letters
         return name[:2].upper(), name[2].lower()
@@ -104,9 +107,9 @@ def _parse_mouse_allele_name(name):
     else:
         # class I mouse allele
         if len(name) < 2:
-            raise ValueError("Incomplete mouse MHC allele: %s" % original)
+            raise AlleleParseError("Incomplete mouse MHC allele: %s" % original)
         elif len(name) > 2:
-            raise ValueError("Malformed mouse MHC allele: %s" % original)
+            raise AlleleParseError("Malformed mouse MHC allele: %s" % original)
         return name[0].upper(), name[1].lower()
 
 def parse_allele_name(name):
@@ -137,10 +140,10 @@ def parse_allele_name(name):
     if len(name) == 0:
         raise ValueError("Can't normalize empty MHC allele name")
 
-    if name.startswith("H2") or name.startswith("H-2"):
+    if name.upper().startswith("H2") or name.upper().startswith("H-2"):
         gene, allele_code = _parse_mouse_allele_name(name)
         # mice don't have allele families
-        return AlleleName("H2", gene, "", allele_code)
+        return AlleleName("H-2", gene, "", allele_code)
     species = None
     for species_list in SPECIES_PREFIXES.values():
         if isinstance(species_list, str):
@@ -153,13 +156,12 @@ def parse_allele_name(name):
                 break
 
     if len(name) == 0:
-        raise ValueError("Incomplete MHC allele name: %s" % (original,))
-
+        raise AlleleParseError("Incomplete MHC allele name: %s" % (original,))
     elif not species:
         # assume that a missing species name means we're dealing with a
         # human HLA allele
         if "-" in name:
-            raise ValueError("Can't parse allele name: %s" % original)
+            raise AlleleParseError("Can't parse allele name: %s" % original)
         species = "HLA"
 
     if name[0] == "D":
@@ -173,12 +175,13 @@ def parse_allele_name(name):
     elif name[0].isdigit():
         gene, name = _parse_numbers(name)
     else:
-        raise ValueError("Can't parse gene name from allele: %s" % original)
+        raise AlleleParseError(
+            "Can't parse gene name from allele: %s" % original)
 
     if len(gene) == 0:
-        raise ValueError("No MHC gene name given in %s" % original)
+        raise AlleleParseError("No MHC gene name given in %s" % original)
     if len(name) == 0:
-        raise ValueError("Malformed MHC type %s" % original)
+        raise AlleleParseError("Malformed MHC type %s" % original)
 
     gene = gene.upper()
 
@@ -259,8 +262,8 @@ def normalize_allele_name(raw_allele):
             parsed_allele.allele_code)
     else:
         # mice don't have allele families
-        # e.g. H2-Kd
-        # species = H2
+        # e.g. H-2-Kd
+        # species = H-2
         # gene = K
         # allele = d
         normalized = "%s-%s%s" % (
@@ -270,10 +273,15 @@ def normalize_allele_name(raw_allele):
     _normalized_allele_cache[raw_allele] = normalized
     return normalized
 
-def compact_allele_name(allele):
-    long_name = normalize_allele_name(allele)
-    # turn HLA-A*02:01 into A0201
-    return long_name.split("-")[1].replace("*", "").replace(":", "")
+def compact_allele_name(raw_allele):
+    """
+    Turn HLA-A*02:01 into A0201 or H-2-D-b into H-2Db
+    """
+    parsed_allele = parse_allele_name(raw_allele)
+    return "%s%s%s" % (
+        parsed_allele.gene,
+        parsed_allele.allele_family,
+        parsed_allele.allele_code)
 
 def _parse_substring(allele, pred, max_len=None):
     """

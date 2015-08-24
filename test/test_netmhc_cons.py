@@ -30,7 +30,7 @@ def test_netmhc_cons_chunking():
         "TP53-004": "ASILLLVFYG",
         "TP53-005": "ASILLLVFYG"
     }
-    for max_file_records in [1, 3, 5, 14, 20]:
+    for max_file_records in [1, 5, 20]:
         for process_limit in [1, 2, 10]:
             cons_predictor = NetMHCcons(
                 alleles=alleles,
@@ -51,3 +51,7 @@ def test_netmhc_cons_chunking():
                     ("Expected each fasta key to appear twice, once for "
                      "each length, but saw %s %d time(s)" % (
                          fasta_key, fasta_count))
+
+if __name__ == "__main__":
+    test_netmhc_cons()
+    test_netmhc_cons_chunking()

@@ -20,7 +20,7 @@ from .base_commandline_predictor import BaseCommandlinePredictor
 from .cleanup_context import CleanupFiles
 from .common import check_sequence_dictionary
 from .epitope_collection import EpitopeCollection
-from .file_formats import create_input_fasta_files, parse_netmhc_stdout
+from .file_formats import create_input_fasta_files, parse_netmhcpan_stdout
 from .process_helpers import run_multiple_commands_redirect_stdout
 
 class NetMHCcons(BaseCommandlinePredictor):
@@ -97,7 +97,7 @@ class NetMHCcons(BaseCommandlinePredictor):
                 # but I was getting empty files otherwise
                 output_file.close()
                 with open(output_file.name, 'r') as f:
-                    epitope_collection = parse_netmhc_stdout(
+                    epitope_collection = parse_netmhcpan_stdout(
                         netmhc_output=f.read(),
                         fasta_dictionary=fasta_dictionary,
                         sequence_key_mapping=sequence_key_mapping,

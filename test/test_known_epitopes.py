@@ -19,10 +19,8 @@ import mhctools
 
 mhc_classes = [
     mhctools.NetMHCpan,
-    mhctools.IedbNetMHCcons,
-    mhctools.IedbNetMHCpan,
-    mhctools.IedbSMM,
-    mhctools.IedbSMM_PMBEC,
+    mhctools.NetMHCcons,
+    mhctools.NetMHC,
 ]
 
 def test_MAGE_epitope():
@@ -36,5 +34,14 @@ def test_MAGE_epitope():
         mhc_model = mhc_class("HLA-A*01:01", epitope_lengths=9)
         epitope = mhc_model.predict("ESDPIVAQY")[0]
         assert epitope.value < 500, "Expected %s to have IC50 < 500nM" % epitope
-        assert epitope.percentile_rank < 1.0, \
-            "Expected %s to have percentile rank <= 1.0" % epitope
+
+def test_HIV_epitope():
+    """
+    Test the A2 HIV epitope from
+        The HIV-1 HLA-A2-SLYNTVATL Is a Help-Independent CTL Epitope
+    """
+    for mhc_class in mhc_classes:
+        mhc_model = mhc_class("HLA-A*02:01", epitope_lengths=9)
+        epitope = mhc_model.predict("SLYNTVATL")[0]
+        assert epitope.value < 500, \
+            "Expected %s to have IC50 < 500nM" % (epitope,)

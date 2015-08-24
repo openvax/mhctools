@@ -79,13 +79,97 @@ def create_input_fasta_files(fasta_dictionary, max_file_records=None):
         input_file.close()
     return input_file_names, sequence_key_mapping
 
+
+def split_stdout_lines(stdout):
+    """
+    Given the standard output from NetMHC/NetMHCpan/NetMHCcons tools,
+    drop all {comments, lines of hyphens, empty lines} and split the
+    remaining lines by whitespace.
+    """
+    for l in stdout.split("\n"):
+        l = l.strip()
+        if len(l) > 0 and not l.startswith("#"):
+            yield l.split()
+
 def parse_netmhc_stdout(
         netmhc_output,
         fasta_dictionary,
         prediction_method_name="netmhc",
         sequence_key_mapping=None):
     """
-    Parse the output format for NetMHC predictors, which looks like:
+    Parse the output format for NetMHC, which looks like:
+
+    ----------------------------------------------------------------------------------------------------
+    pos    peptide      logscore affinity(nM) Bind Level    Protein Name     Allele
+    ----------------------------------------------------------------------------------------------------
+    0  SIINKFELL         0.437          441         WB              A1 HLA-A02:01
+    --------------------------------------------------------------------------------------------------
+    0  SIINKFFFQ         0.206         5411                         A2 HLA-A02:01
+    1  IINKFFFQQ         0.128        12544                         A2 HLA-A02:01
+    2  INKFFFQQQ         0.046        30406                         A2 HLA-A02:01
+    3  NKFFFQQQQ         0.050        29197                         A2 HLA-A02:01
+    --------------------------------------------------------------------------------------------------
+
+    ...this is similar to the NetMHCpan output, but the columns are in a
+    different order and the percentile rank column is missing.
+    """
+
+    builder = EpitopeCollectionBuilder(
+        fasta_dictionary=fasta_dictionary,
+        prediction_method_name=prediction_method_name)
+
+    for fields in split_stdout_lines(netmhc_output):
+        if len(fields) >= 6:
+            pos, peptide, log_affinity, ic50 = fields[:4]
+            # annoyingly, the space between "affinity" and "Protein Name" may
+            # have "WB" for weak binders and "SB" for strong binders. Couldn't
+            # they at least have left those at the end?
+            #
+            # WARNING: if the sequence key is called "SB" or "WB" then those
+            # lines will be ignored.
+            #
+            # TODO: use NetMHC's XLS output instead? Strangely, it seems
+            # different from the format parsed below.
+            if fields[4] == "WB" or fields[4] == "SB":
+                if len(fields) < 7:
+                    continue
+                key, allele = fields[5:7]
+            else:
+                key, allele = fields[4:6]
+            try:
+                pos = int(pos)
+                allele = str(allele)
+                peptide = str(peptide)
+                key = str(key)
+                log_affinity = float(log_affinity)
+                ic50 = float(ic50)
+            except:
+                # if position or affinity values can't be parsed,
+                # then skip this line
+                continue
+            if sequence_key_mapping:
+                original_key = sequence_key_mapping[key]
+            else:
+                # if sequence_key_mapping isn't provided then let's assume it's the
+                # identity function
+                original_key = key
+            builder.add_binding_prediction(
+                source_sequence_key=original_key,
+                offset=pos,
+                peptide=peptide,
+                allele=allele,
+                ic50=ic50,
+                log_ic50=log_affinity,
+                rank=0.0)
+    return builder.get_collection()
+
+def parse_netmhcpan_stdout(
+        netmhc_output,
+        fasta_dictionary,
+        prediction_method_name="netmhcpan",
+        sequence_key_mapping=None):
+    """
+    Parse the output format for NetMHCpan and NetMHCcons, which looks like:
 
     # Affinity Threshold for Strong binding peptides  50.000',
     # Affinity Threshold for Weak binding peptides 500.000',
@@ -112,14 +196,7 @@ def parse_netmhc_stdout(
         fasta_dictionary=fasta_dictionary,
         prediction_method_name=prediction_method_name)
 
-    lines = netmhc_output.split("\n")
-    lines = [l.strip() for l in lines]
-    # remove empty lines
-    lines = [l for l in lines if len(l) > 0]
-    # remove comments
-    lines = [l for l in lines if not l.startswith("#")]
-    for line in lines:
-        fields = line.split()
+    for fields in split_stdout_lines(netmhc_output):
         n_required_fields = 7
         if len(fields) >= n_required_fields:
             pos, allele, peptide, key, log_affinity, ic50, rank = \

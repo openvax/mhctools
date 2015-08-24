@@ -74,27 +74,29 @@ def test_sheep_class2_allele():
     eq_(parse_allele_name("Ovar-DRB1*0804"),
         AlleleName("Ovar", "DRB1", "08", "04"))
 
-def test_mouse_class1_alleles():
+def test_mouse_class1_alleles_H2_Kk():
     # H2-Kk
     eq_(parse_allele_name("H2-Kk"),
-        AlleleName("H2", "K", "", "k"))
-    eq_(normalize_allele_name("H2-Kk"), "H2-Kk")
-    eq_(compact_allele_name("H2-Kk"), "Kk")
+        AlleleName("H-2", "K", "", "k"))
+    eq_(normalize_allele_name("H2-Kk"), "H-2-Kk")
+    eq_(compact_allele_name("H-2-Kk"), "Kk")
 
     # with a hyphen in "H-2"
     eq_(parse_allele_name("H-2-Kk"),
-        AlleleName("H2", "K", "", "k"))
-    eq_(normalize_allele_name("H-2-Kk"), "H2-Kk")
+        AlleleName("H-2", "K", "", "k"))
+    eq_(normalize_allele_name("H-2-Kk"), "H-2-Kk")
     eq_(compact_allele_name("H-2-Kk"), "Kk")
 
+
+def test_mouse_class1_alleles_H2_Db():
     # H2-Db
     eq_(parse_allele_name("H2-Db"),
-        AlleleName("H2", "D", "", "b"))
-    eq_(normalize_allele_name("H2-Db"), "H2-Db")
+        AlleleName("H-2", "D", "", "b"))
+    eq_(normalize_allele_name("H2-Db"), "H-2-Db")
     eq_(compact_allele_name("H2-Db"), "Db")
 
     # with hyphen in "H-2"
     eq_(parse_allele_name("H-2-Db"),
-        AlleleName("H2", "D", "", "b"))
-    eq_(normalize_allele_name("H-2-Db"), "H2-Db")
+        AlleleName("H-2", "D", "", "b"))
+    eq_(normalize_allele_name("H-2-Db"), "H-2-Db")
     eq_(compact_allele_name("H-2-Db"), "Db")

@@ -8,6 +8,7 @@ from .iedb import (
     IedbSMM_PMBEC,
     IedbNetMHCIIpan,
 )
+from .netmhc import NetMHC
 from .netmhc_cons import NetMHCcons
 from .netmhc_pan import NetMHCpan
 from .random_predictor import RandomBindingPredictor
@@ -21,6 +22,7 @@ __all__ = [
     "IedbSMM",
     "IedbSMM_PMBEC",
     "IedbNetMHCIIpan",
+    "NetMHC",
     "NetMHCcons",
     "NetMHCpan",
     "RandomBindingPredictor",
