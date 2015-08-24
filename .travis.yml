@@ -3,6 +3,13 @@ language: python
 python:
 - "2.7"
 - "3.4"
+addons:
+  apt:
+    packages:
+    - python-scipy
+    - python3-scipy
+virtualenv: # Needed in conjunction with apt-get'ing scipy
+  system_site_packages: true
 install:
 - pip install -r requirements.txt
 - python install .  
