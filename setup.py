@@ -55,7 +55,7 @@ if __name__ == '__main__':
         install_requires=[
             'numpy>=1.7',
             'pandas>=0.13.1',
-            'varcode >=0.8.0',
+            'varcode >=0.3.17',
             'six >=1.9.0'
         ],
         long_description=readme,
