@@ -18,6 +18,7 @@ Make sure all binding predictors give a high IC50 and percentile rank.
 import mhctools
 
 mhc_classes = [
+    mhctools.NetMHCcons,
     mhctools.NetMHCpan,
     mhctools.NetMHCcons,
     mhctools.NetMHC,
@@ -43,5 +44,5 @@ def test_HIV_epitope():
     for mhc_class in mhc_classes:
         mhc_model = mhc_class("HLA-A*02:01", epitope_lengths=9)
         epitope = mhc_model.predict("SLYNTVATL")[0]
-        assert epitope.value < 500, \
-            "Expected %s to have IC50 < 500nM" % (epitope,)
+        assert epitope.percentile_rank < 1.0, \
+            "Expected %s to have percentile rank <= 1.0" % epitope
