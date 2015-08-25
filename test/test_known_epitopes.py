@@ -18,6 +18,7 @@ Make sure all binding predictors give a high IC50 and percentile rank.
 import mhctools
 
 mhc_classes = [
+    mhctools.NetMHCcons,
     mhctools.NetMHCpan,
     mhctools.NetMHCcons,
     mhctools.NetMHC,

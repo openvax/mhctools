@@ -58,7 +58,7 @@ class EpitopeCollection(Collection):
 
     def groupby(self, key_fn):
         groups = defaultdict(list)
-        for binding_prediction in self.binding_predictions:
+        for binding_prediction in self.elements:
             key = key_fn(binding_prediction)
             groups[key].append(binding_prediction)
         # want to create an EpitopeCollection for each group

@@ -37,7 +37,7 @@ except:
 if __name__ == '__main__':
     setup(
         name='mhctools',
-        version="0.1.3",
+        version="0.1.4",
         description="Python interface to running command-line and web-based MHC binding predictors",
         author="Alex Rubinsteyn",
         author_email="alex {dot} rubinsteyn {at} mssm {dot} edu",
@@ -55,8 +55,8 @@ if __name__ == '__main__':
         install_requires=[
             'numpy>=1.7',
             'pandas>=0.13.1',
-            'varcode >=0.3.17',
-            'six >=1.9.0'
+            'varcode>=0.3.17',
+            'six>=1.9.0'
         ],
         long_description=readme,
         packages=['mhctools'],

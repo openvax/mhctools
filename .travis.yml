@@ -1,0 +1,39 @@
+sudo: false  # Use container-based infrastructure
+language: python
+python:
+  - "2.7"
+  - "3.4"
+addons:
+  apt:
+    packages:
+      # Needed for NetMHC
+      tcsh
+env:
+  global:
+    # MHC_BUNDLE_PASS
+    - secure: "TIminZrp9m1kMXhemqz8Zx4BjojIoEYZJnNrDrL6T/pKMpP5FQ6sprj8meGfNse4ApRIPmp5lhqxbPOe7Cg7ooetIcORekjRueHwRkYXqgMbgffgZYuEJTAGLKFsBDEXFD1kWT7igmvXFsP1T0bb1TxRPK93Q5G+e1dEAm6Iqwo="
+# Setup anaconda for easily running scipy on Travis; see https://gist.github.com/dan-blanchard/7045057
+before_install:
+  - wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
+  - chmod +x miniconda.sh
+  - ./miniconda.sh -b
+  - export PATH=/home/travis/miniconda/bin:$PATH
+  - conda update --yes conda
+  - git clone https://mhcbundle:$MHC_BUNDLE_PASS@github.com/hammerlab/netmhc-bundle.git
+  - export NETMHC_BUNDLE_HOME=$PWD/netmhc-bundle
+  - mkdir tmp
+  - export NETMHC_BUNDLE_TMPDIR=$PWD/tmp
+  - export PATH=$PATH:$NETMHC_BUNDLE_HOME/bin
+install:
+  - conda install --yes python=$TRAVIS_PYTHON_VERSION numpy scipy nose pandas
+  - pip install -r requirements.txt
+  - pip install .
+script: nosetests test && ./lint.sh
+deploy:
+  provider: pypi
+  user: hammerlab
+  password: # See http://docs.travis-ci.com/user/encryption-keys/
+    secure: "gJSWl4PLXKtVc2ERwbzfd4qKk9Yy4T8dpfR7Q89VLVXTd7Tv1SsEknShJZUFaCPN85aYFcAWsoOI6vSlBSdXeTONU/pmPgcWOLfiErsgCqUs6qq7edOhrtOS307SREX4oF6AF2iyJduWAF4NPq+9IoJUROIiB4u5qeUtWfVu2Eo="
+  on:
+    tags: true
+    branch: master
