@@ -32,7 +32,8 @@ class BaseCommandlinePredictor(BasePredictor):
             command,
             alleles,
             epitope_lengths,
-            supported_allele_flag='-listMHC'):
+            supported_allele_flag='-listMHC',
+            normalize_allele_func=normalize_allele_name):
         self.name = name
         self.command = command
         self.supported_allele_flag = supported_allele_flag
@@ -59,7 +60,8 @@ class BaseCommandlinePredictor(BasePredictor):
             self,
             alleles,
             epitope_lengths,
-            valid_alleles=valid_alleles)
+            valid_alleles=valid_alleles,
+            normalize_allele_func=normalize_allele_func)
 
     @staticmethod
     def _determine_valid_alleles(command, supported_allele_flag):
@@ -80,8 +82,9 @@ class BaseCommandlinePredictor(BasePredictor):
                 line = line.strip()
                 if not line.startswith('#') and len(line) > 0:
                     try:
-                        allele = normalize_allele_name(line)
-                        valid_alleles.add(allele)
+                        # We don't need to normalize, as this is the actual allele name that
+                        # the predictor is expecting.
+                        valid_alleles.add(line)
                     except AlleleParseError as error:
                         logging.info("Skipping allele %s: %s" % (
                             line, error))
