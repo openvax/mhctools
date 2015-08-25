@@ -28,8 +28,7 @@ class BasePredictor(object):
             self,
             alleles,
             epitope_lengths,
-            valid_alleles=None,
-            normalize_allele_func=normalize_allele_name):
+            valid_alleles=None):
         """
         Parameters
         ----------
@@ -45,17 +44,12 @@ class BasePredictor(object):
         valid_alleles : list, optional
             If given, constrain HLA alleles to be contained within
             this set.
-
-        normalize_allele_func : function, optional
-            If given, normalize alleles using this function when
-            comparing them with the predictor's valid set of
-            alleles.
         """
         # I find myself often constructing a predictor with just one allele
         # so as a convenience, allow user to not wrap that allele as a list
         if isinstance(alleles, str):
             alleles = [alleles]
-        self.alleles = self._check_hla_alleles(alleles, normalize_allele_func, valid_alleles)
+        self.alleles = self._check_hla_alleles(alleles, valid_alleles)
 
         if isinstance(epitope_lengths, int):
             epitope_lengths = [epitope_lengths]
@@ -85,7 +79,6 @@ class BasePredictor(object):
     @staticmethod
     def _check_hla_alleles(
             alleles,
-            normalize_allele_func,
             valid_alleles=None):
         """
         Given a list of HLA alleles and an optional list of valid
@@ -94,7 +87,7 @@ class BasePredictor(object):
         """
         require_iterable_of(alleles, str, "HLA alleles")
         alleles = [
-            normalize_allele_func(allele.strip().upper())
+            normalize_allele_name(allele.strip().upper())
             for allele in alleles
         ]
         if valid_alleles:

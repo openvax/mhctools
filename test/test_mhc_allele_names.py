@@ -61,70 +61,73 @@ def test_macaque_alleles():
     eq_(compact_allele_name(allele_name), "B0702")
 
 def test_dog_class2_allele():
-    eq_(parse_allele_name("DLA-DQA1*00101")[0],
+    eq_(parse_allele_name("DLA-DQA1*00101"),
         AlleleName("DLA", "DQA1", "01", "01"))
 
 def test_sheep_class1_allele():
-    eq_(parse_allele_name("Ovar-N*50001")[0],
+    eq_(parse_allele_name("Ovar-N*50001"),
         AlleleName("Ovar", "N", "500", "01"))
 
 def test_sheep_class2_allele():
-    eq_(parse_allele_name("Ovar-DRB1*0804")[0],
+    eq_(parse_allele_name("Ovar-DRB1*0804"),
         AlleleName("Ovar", "DRB1", "08", "04"))
 
 def test_mouse_class1_alleles_H2_Kk():
     # H2-Kk
-    eq_(parse_allele_name("H2-Kk")[0],
+    eq_(parse_allele_name("H2-Kk"),
         AlleleName("H-2", "K", "", "k"))
     eq_(normalize_allele_name("H2-Kk"), "H-2-Kk")
     eq_(compact_allele_name("H-2-Kk"), "Kk")
 
     # with a hyphen in "H-2"
-    eq_(parse_allele_name("H-2-Kk")[0],
+    eq_(parse_allele_name("H-2-Kk"),
         AlleleName("H-2", "K", "", "k"))
     eq_(normalize_allele_name("H-2-Kk"), "H-2-Kk")
     eq_(compact_allele_name("H-2-Kk"), "Kk")
 
 def test_mouse_class1_alleles_H2_Db():
     # H2-Db
-    eq_(parse_allele_name("H2-Db")[0],
+    eq_(parse_allele_name("H2-Db"),
         AlleleName("H-2", "D", "", "b"))
     eq_(normalize_allele_name("H2-Db"), "H-2-Db")
     eq_(compact_allele_name("H2-Db"), "Db")
 
     # with hyphen in "H-2"
-    eq_(parse_allele_name("H-2-Db")[0],
+    eq_(parse_allele_name("H-2-Db"),
         AlleleName("H-2", "D", "", "b"))
     eq_(normalize_allele_name("H-2-Db"), "H-2-Db")
     eq_(compact_allele_name("H-2-Db"), "Db")
 
 def test_human_class2():
     expected = "HLA-DRB1*01:02"
+    expected_compact = "DRB10102"
     for name in ["DRB10102",
                  "DRB1*0102",
                  "HLA-DRB1*0102",
                  "HLA-DRB1*01:02"]:
-        result = normalize_allele_name(name)
-        eq_(result, expected)
+        eq_(normalize_allele_name(name), expected)
+        eq_(compact_allele_name(name), expected_compact)
 
 def test_human_class2_alpha_beta():
     expected = "HLA-DPA1*01:05-DPB1*100:01"
+    expected_compact = "DPA10105-DPB110001"
     for name in ["DPA10105-DPB110001",
                  "HLA-DPA1*01:05-DPB1*100:01",
                  "hla-dpa1*0105-dpb1*10001",
-                 "dpa1*0105-dpb1*10001"]:
-        result = normalize_allele_name(name)
-        eq_(result, expected)
+                 "dpa1*0105-dpb1*10001",
+                 "HLA-DPA1*01:05/DPB1*100:01"]:
+        eq_(normalize_allele_name(name), expected)
+        eq_(compact_allele_name(name), expected_compact)
 
 def test_mouse_class2_alleles():
     # H2-IAb
-    eq_(parse_allele_name("H2-IAb")[0],
+    eq_(parse_allele_name("H2-IAb"),
         AlleleName("H-2", "IA", "", "b"))
     eq_(normalize_allele_name("H2-IAb"), "H-2-IAb")
     eq_(compact_allele_name("H2-IAb"), "IAb")
 
     # with hyphen in "H-2"
-    eq_(parse_allele_name("H-2-IAb")[0],
+    eq_(parse_allele_name("H-2-IAb"),
         AlleleName("H-2", "IA", "", "b"))
     eq_(normalize_allele_name("H-2-IAb"), "H-2-IAb")
     eq_(compact_allele_name("H-2-IAb"), "IAb")

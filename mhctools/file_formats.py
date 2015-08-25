@@ -167,9 +167,10 @@ def parse_netmhcpan_stdout(
         netmhc_output,
         fasta_dictionary,
         prediction_method_name="netmhcpan",
-        sequence_key_mapping=None):
+        sequence_key_mapping=None,
+        is_netmhcpanii=False):
     """
-    Parse the output format for NetMHCpan, NetMHCcons, and NetMHCIIpan*, which looks like:
+    Parse the output format for NetMHCpan, NetMHCIIpan* and NetMHCcons, which looks like:
 
      * netMHCIIpan has two extra fields
 
@@ -199,12 +200,10 @@ def parse_netmhcpan_stdout(
         prediction_method_name=prediction_method_name)
 
     # netMHCIIpan has some extra fields
-    is_mhciipan = prediction_method_name == "netmhciipan"
-    n_required_fields = 9 if is_mhciipan else 7
-
+    n_required_fields = 9 if is_netmhcpanii else 7
     for fields in split_stdout_lines(netmhc_output):
         if len(fields) >= n_required_fields:
-            if is_mhciipan:
+            if is_netmhcpanii:
                 pos, allele, peptide, key, Pos, Core, log_affinity, ic50, rank = (
                     fields[:n_required_fields])
             else:

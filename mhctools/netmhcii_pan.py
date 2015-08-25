@@ -16,7 +16,7 @@ from __future__ import print_function, division, absolute_import
 import tempfile
 import logging
 
-from .alleles import parse_allele_name
+from .alleles import parse_classi_or_classii_allele_name
 from .base_commandline_predictor import BaseCommandlinePredictor
 from .cleanup_context import CleanupFiles
 from .common import check_sequence_dictionary, seq_to_str
@@ -30,36 +30,34 @@ class NetMHCIIpan(BaseCommandlinePredictor):
             alleles,
             netmhc_command="netMHCIIpan",
             epitope_lengths=[15, 16, 17, 18, 19, 20]):
-
-        def normalize_allele(allele_name):
-            """
-            netMHCIIpan has some unique requirements for allele formats,
-            expecting the following forms:
-             - DRB1_0101 (for standard alleles)
-             - HLA-DQA10501-DQB10636 (for specifying alpha and beta alleles)
-            """
-            parsed_alleles = parse_allele_name(allele_name)
-            if len(parsed_alleles) == 1:
-                return "%s_%s%s" % (parsed_alleles[0].gene,
-                                    parsed_alleles[0].allele_family,
-                                    parsed_alleles[0].allele_code)
-            else:
-                return "HLA-%s%s%s-%s%s%s" % (
-                    parsed_alleles[0].gene,
-                    parsed_alleles[0].allele_family,
-                    parsed_alleles[0].allele_code,
-                    parsed_alleles[1].gene,
-                    parsed_alleles[1].allele_family,
-                    parsed_alleles[1].allele_code)
-
         BaseCommandlinePredictor.__init__(
             self,
             name="NetMHCIIpan",
             command=netmhc_command,
             alleles=alleles,
             epitope_lengths=epitope_lengths,
-            supported_allele_flag="-list",
-            normalize_allele_func=normalize_allele)
+            supported_allele_flag="-list")
+
+    def normalize_allele(self, allele_name):
+        """
+        netMHCIIpan has some unique requirements for allele formats,
+        expecting the following forms:
+         - DRB1_0101 (for non-alpha/beta pairs)
+         - HLA-DQA10501-DQB10636 (for alpha and beta pairs)
+        """
+        parsed_alleles = parse_classi_or_classii_allele_name(allele_name)
+        if len(parsed_alleles) == 1:
+            return "%s_%s%s" % (parsed_alleles[0].gene,
+                                parsed_alleles[0].allele_family,
+                                parsed_alleles[0].allele_code)
+        else:
+            return "HLA-%s%s%s-%s%s%s" % (
+                parsed_alleles[0].gene,
+                parsed_alleles[0].allele_family,
+                parsed_alleles[0].allele_code,
+                parsed_alleles[1].gene,
+                parsed_alleles[1].allele_family,
+                parsed_alleles[1].allele_code)
 
     def predict(self, fasta_dictionary):
         fasta_dictionary = check_sequence_dictionary(fasta_dictionary)
@@ -70,7 +68,7 @@ class NetMHCIIpan(BaseCommandlinePredictor):
         input_filename = input_filenames[0]
 
         alleles_str = \
-            ",".join(allele.replace("*", "") for allele in self.alleles)
+            ",".join(self.normalize_allele(allele) for allele in self.alleles)
         output_file = tempfile.NamedTemporaryFile(
                 "w",
                 prefix="netMHCIIpan_output",
@@ -98,7 +96,8 @@ class NetMHCIIpan(BaseCommandlinePredictor):
                     file_contents,
                     sequence_key_mapping=sequence_key_mapping,
                     fasta_dictionary=fasta_dictionary,
-                    prediction_method_name="netmhciipan")
+                    prediction_method_name="netmhciipan",
+                    is_netmhcpanii=True)
 
         if len(epitope_collection) == 0:
             logging.warn(file_contents)

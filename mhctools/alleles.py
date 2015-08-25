@@ -113,7 +113,7 @@ def _parse_mouse_allele_name(name):
     allele = name[0]
     return gene_name.upper(), allele.lower()
 
-def parse_allele_name(name):
+def parse_classi_or_classii_allele_name(name):
     """
     Handle different forms of both single and alpha-beta allele names.
     Alpha-beta alleles may look like:
@@ -122,17 +122,22 @@ def parse_allele_name(name):
     HLA-DPA1*01:05-DPB1*100:01
     hla-dpa1*0105-dpb1*10001
     dpa1*0105-dpb1*10001
+    HLA-DPA1*01:05/DPB1*100:01
     """
-    species, name = split_species(name)
+    species, name = split_species_prefix(name)
+
+    # Handle the case where alpha/beta pairs are separated with a /.
+    name = name.replace("/", "-")
+
     parts = name.split("-")
     assert len(parts) <= 2, "Allele has too many parts: %s" % name
     if len(parts) == 1:
-        return (parse_single_allele_name(name, species),)
+        return (parse_allele_name(name, species),)
     else:
-        return (parse_single_allele_name(parts[0], species),
-                parse_single_allele_name(parts[1], species))
+        return (parse_allele_name(parts[0], species),
+                parse_allele_name(parts[1], species))
 
-def split_species(name):
+def split_species_prefix(name):
     """
     Splits off the species component of the allele name from the rest of it.
 
@@ -150,12 +155,15 @@ def split_species(name):
                 return (species, name)
     return (species, name)
 
-def parse_single_allele_name(name, species=None):
+def parse_allele_name(name, species_prefix=None):
     """Takes an allele name and splits it into four parts:
         1) species prefix
         2) gene name
         3) allele family
         4) allele code
+
+    If species_prefix is provided, that is used instead of getting the species prefix from the name. 
+    (And in that case, a species prefix in the name will result in an error being raised.)
 
     For example, in all of the following inputs:
         "HLA-A*02:01"
@@ -178,10 +186,12 @@ def parse_single_allele_name(name, species=None):
     if len(name) == 0:
         raise ValueError("Can't normalize empty MHC allele name")
 
-    species_from_name, name = split_species(name)
-    if species:
-        assert not species_from_name, ("If a species is passed in, we better not have another "
-                                       "species in the name itself.")
+    species_from_name, name = split_species_prefix(name)
+    if species_prefix:
+        if species_from_name:
+            raise ValueError("If a species is passed in, we better not have another "
+                             "species in the name itself.")
+        species = species_prefix
     else:
         species = species_from_name
 
@@ -250,20 +260,11 @@ def parse_single_allele_name(name, species=None):
 
 _normalized_allele_cache = {}
 def normalize_allele_name(raw_allele):
-    """Cache repeated calls to non-compact normalized alleles.
-
-    See normalize_allele_name_uncache for details.
-    Also see parse_allele_name for details regarding alpha-beta pairs.
-    """
-    if raw_allele in _normalized_allele_cache:
-        return _normalized_allele_cache[raw_allele]
-    normalized = normalize_allele_name_uncached(raw_allele, is_compact=False)
-    _normalized_allele_cache[raw_allele] = normalized
-    return normalized
-
-def normalize_allele_name_uncached(raw_allele, is_compact=False):
     """MHC alleles are named with a frustratingly loose system. It's not uncommon
     to see dozens of different forms for the same allele.
+
+    Note: this function works with both class I and class II allele names (including
+    alpha/beta pairs).
 
     For example, these all refer to the same MHC sequence:
         - HLA-A*02:01
@@ -298,38 +299,50 @@ def normalize_allele_name_uncached(raw_allele, is_compact=False):
     These should all be normalized to:
         HLA-A*02:01
     """
-    parsed_alleles = parse_allele_name(raw_allele)
+    if raw_allele in _normalized_allele_cache:
+        return _normalized_allele_cache[raw_allele]
+    parsed_alleles = parse_classi_or_classii_allele_name(raw_allele)
     species = parsed_alleles[0].species
-    normalized = species if not is_compact else ""
+    normalized_list = [species]
     for parsed_allele in parsed_alleles:
-        assert parsed_allele.species == species, \
-            "Multiple species referenced in the same allele name: %s and %s" % (
-                parsed_allele.species, species)
         if len(parsed_allele.allele_family) > 0:
-            normalized += "%s%s%s%s%s%s" % (
-                "-" if not is_compact else "",
+            normalized_list.append("%s*%s:%s" % (
                 parsed_allele.gene,
-                "*" if not is_compact else "",
                 parsed_allele.allele_family,
-                ":" if not is_compact else "",
-                parsed_allele.allele_code)
+                parsed_allele.allele_code))
         else:
             # mice don't have allele families
             # e.g. H-2-Kd
             # species = H-2
             # gene = K
             # allele = d
-            normalized += "%s%s%s" % (
-                "-" if not is_compact else "",
+            normalized_list.append("%s%s" % (
                 parsed_allele.gene,
-                parsed_allele.allele_code)
+                parsed_allele.allele_code))
+    normalized = "-".join(normalized_list)
+    _normalized_allele_cache[raw_allele] = normalized
     return normalized
 
 def compact_allele_name(raw_allele):
     """
-    Turn HLA-A*02:01 into A0201 or H-2-D-b into H-2Db
+    Turn HLA-A*02:01 into A0201 or H-2-D-b into H-2Db or
+    HLA-DPA1*01:05-DPB1*100:01 into DPA10105-DPB110001
     """
-    return normalize_allele_name_uncached(raw_allele, is_compact=True)
+    parsed_alleles = parse_classi_or_classii_allele_name(raw_allele)
+    species = parsed_alleles[0].species
+    normalized_list = []
+    for parsed_allele in parsed_alleles:
+        if len(parsed_allele.allele_family) > 0:
+            normalized_list.append("%s%s%s" % (
+                parsed_allele.gene,
+                parsed_allele.allele_family,
+                parsed_allele.allele_code))
+        else:
+            # mice don't have allele families
+            normalized_list.append("%s%s" % (
+                parsed_allele.gene,
+                parsed_allele.allele_code))
+    return "-".join(normalized_list)
 
 def _parse_substring(allele, pred, max_len=None):
     """
