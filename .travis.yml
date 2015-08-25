@@ -33,6 +33,6 @@ deploy:
   provider: pypi
   user: hammerlab
   password: # See http://docs.travis-ci.com/user/encryption-keys/
-    secure: "gJSWl4PLXKtVc2ERwbzfd4qKk9Yy4T8dpfR7Q89VLVXTd7Tv1SsEknShJZUFaCPN85aYFcAWsoOI6vSlBSdXeTONU/pmPgcWOLfiErsgCqUs6qq7edOhrtOS307SREX4oF6AF2iyJduWAF4NPq+9IoJUROIiB4u5qeUtWfVu2Eo="
+    secure: "KTo/ea1UJ4fSjXrK7YxHZSBlpEtx6zONzwRgIX8Ec3DRQmlhskIky8YD6nrmH4yjm7pNJOx0DNF2x9kF1qAXLjlLNWBp1V6dk+nSEmyW0MfX08Kw2dEn9N1+P0O9EcVUqnMXO7I8JSG8GDkBYhngwMDUCsm1YDHWU9f7tx/se2k="
   on:
     branch: master
