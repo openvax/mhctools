@@ -123,11 +123,20 @@ def parse_classi_or_classii_allele_name(name):
     hla-dpa1*0105-dpb1*10001
     dpa1*0105-dpb1*10001
     HLA-DPA1*01:05/DPB1*100:01
+
+    Other class II alleles may look like:
+
+    DRB1_0102
+    DRB101:02
+    HLA-DRB1_0102
     """
     species, name = split_species_prefix(name)
 
     # Handle the case where alpha/beta pairs are separated with a /.
     name = name.replace("/", "-")
+
+    # Ignored underscores, such as with DRB1_0102
+    name = name.replace("_", "")
 
     parts = name.split("-")
     assert len(parts) <= 2, "Allele has too many parts: %s" % name
