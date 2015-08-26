@@ -26,7 +26,7 @@ SPECIES_PREFIXES = dict(
     dog="DLA",
     sheep=["OVA", "Ovar", "Ovca"],
     swine="SLA",
-    mouse=["H2"],
+    mouse=["H2", "H-2"],
     rainbow_trout="Onmy",
     rat=["Rano", "Rara", "RT1"],
     salmon="Sasa",
@@ -113,12 +113,57 @@ def _parse_mouse_allele_name(name):
     allele = name[0]
     return gene_name.upper(), allele.lower()
 
-def parse_allele_name(name):
+def parse_classi_or_classii_allele_name(name):
+    """
+    Handle different forms of both single and alpha-beta allele names.
+    Alpha-beta alleles may look like:
+
+    DPA10105-DPB110001
+    HLA-DPA1*01:05-DPB1*100:01
+    hla-dpa1*0105-dpb1*10001
+    dpa1*0105-dpb1*10001
+    HLA-DPA1*01:05/DPB1*100:01
+    """
+    species, name = split_species_prefix(name)
+
+    # Handle the case where alpha/beta pairs are separated with a /.
+    name = name.replace("/", "-")
+
+    parts = name.split("-")
+    assert len(parts) <= 2, "Allele has too many parts: %s" % name
+    if len(parts) == 1:
+        return (parse_allele_name(name, species),)
+    else:
+        return (parse_allele_name(parts[0], species),
+                parse_allele_name(parts[1], species))
+
+def split_species_prefix(name):
+    """
+    Splits off the species component of the allele name from the rest of it.
+
+    Given "HLA-A*02:01", returns ("HLA", "A*02:01").
+    """
+    species = None
+    for species_list in SPECIES_PREFIXES.values():
+        if isinstance(species_list, str):
+            species_list = [species_list]
+        for curr_species in species_list:
+            prefix = name[:len(curr_species) + 1].upper()
+            if prefix == (curr_species.upper() + "-"):
+                species = curr_species
+                name = name[len(curr_species) + 1:]
+                return (species, name)
+    return (species, name)
+
+def parse_allele_name(name, species_prefix=None):
     """Takes an allele name and splits it into four parts:
         1) species prefix
         2) gene name
         3) allele family
         4) allele code
+
+    If species_prefix is provided, that is used instead of getting the species prefix from the name. 
+    (And in that case, a species prefix in the name will result in an error being raised.)
 
     For example, in all of the following inputs:
         "HLA-A*02:01"
@@ -141,20 +186,19 @@ def parse_allele_name(name):
     if len(name) == 0:
         raise ValueError("Can't normalize empty MHC allele name")
 
-    if name.upper().startswith("H2") or name.upper().startswith("H-2"):
-        gene, allele_code = _parse_mouse_allele_name(name)
+    species_from_name, name = split_species_prefix(name)
+    if species_prefix:
+        if species_from_name:
+            raise ValueError("If a species is passed in, we better not have another "
+                             "species in the name itself.")
+        species = species_prefix
+    else:
+        species = species_from_name
+
+    if species == "H-2" or species == "H2":
+        gene, allele_code = _parse_mouse_allele_name("H-2-" + name)
         # mice don't have allele families
         return AlleleName("H-2", gene, "", allele_code)
-    species = None
-    for species_list in SPECIES_PREFIXES.values():
-        if isinstance(species_list, str):
-            species_list = [species_list]
-        for curr_species in species_list:
-            prefix = name[:len(curr_species) + 1].upper()
-            if prefix == (curr_species.upper() + "-"):
-                species = curr_species
-                name = name[len(curr_species) + 1:]
-                break
 
     if len(name) == 0:
         raise AlleleParseError("Incomplete MHC allele name: %s" % (original,))
@@ -165,10 +209,10 @@ def parse_allele_name(name):
             raise AlleleParseError("Can't parse allele name: %s" % original)
         species = "HLA"
 
-    if name[0] == "D":
+    if name[0].upper() == "D":
         # MHC class II genes like "DQA1" need to be parsed with both
         # letters and numbers
-        gene, name = _parse_alphanum(name)
+        gene, name = _parse_alphanum(name, 4)
     elif name[0].isalpha():
         # if there are more separators to come, then assume the gene names
         # can have the form "DQA1"
@@ -216,8 +260,11 @@ def parse_allele_name(name):
 
 _normalized_allele_cache = {}
 def normalize_allele_name(raw_allele):
-    """MHC alleles are named with a frustatingly loose system. It's not uncommon
+    """MHC alleles are named with a frustratingly loose system. It's not uncommon
     to see dozens of different forms for the same allele.
+
+    Note: this function works with both class I and class II allele names (including
+    alpha/beta pairs).
 
     For example, these all refer to the same MHC sequence:
         - HLA-A*02:01
@@ -254,35 +301,48 @@ def normalize_allele_name(raw_allele):
     """
     if raw_allele in _normalized_allele_cache:
         return _normalized_allele_cache[raw_allele]
-    parsed_allele = parse_allele_name(raw_allele)
-    if len(parsed_allele.allele_family) > 0:
-        normalized = "%s-%s*%s:%s" % (
-            parsed_allele.species,
-            parsed_allele.gene,
-            parsed_allele.allele_family,
-            parsed_allele.allele_code)
-    else:
-        # mice don't have allele families
-        # e.g. H-2-Kd
-        # species = H-2
-        # gene = K
-        # allele = d
-        normalized = "%s-%s%s" % (
-            parsed_allele.species,
-            parsed_allele.gene,
-            parsed_allele.allele_code)
+    parsed_alleles = parse_classi_or_classii_allele_name(raw_allele)
+    species = parsed_alleles[0].species
+    normalized_list = [species]
+    for parsed_allele in parsed_alleles:
+        if len(parsed_allele.allele_family) > 0:
+            normalized_list.append("%s*%s:%s" % (
+                parsed_allele.gene,
+                parsed_allele.allele_family,
+                parsed_allele.allele_code))
+        else:
+            # mice don't have allele families
+            # e.g. H-2-Kd
+            # species = H-2
+            # gene = K
+            # allele = d
+            normalized_list.append("%s%s" % (
+                parsed_allele.gene,
+                parsed_allele.allele_code))
+    normalized = "-".join(normalized_list)
     _normalized_allele_cache[raw_allele] = normalized
     return normalized
 
 def compact_allele_name(raw_allele):
     """
-    Turn HLA-A*02:01 into A0201 or H-2-D-b into H-2Db
+    Turn HLA-A*02:01 into A0201 or H-2-D-b into H-2Db or
+    HLA-DPA1*01:05-DPB1*100:01 into DPA10105-DPB110001
     """
-    parsed_allele = parse_allele_name(raw_allele)
-    return "%s%s%s" % (
-        parsed_allele.gene,
-        parsed_allele.allele_family,
-        parsed_allele.allele_code)
+    parsed_alleles = parse_classi_or_classii_allele_name(raw_allele)
+    species = parsed_alleles[0].species
+    normalized_list = []
+    for parsed_allele in parsed_alleles:
+        if len(parsed_allele.allele_family) > 0:
+            normalized_list.append("%s%s%s" % (
+                parsed_allele.gene,
+                parsed_allele.allele_family,
+                parsed_allele.allele_code))
+        else:
+            # mice don't have allele families
+            normalized_list.append("%s%s" % (
+                parsed_allele.gene,
+                parsed_allele.allele_code))
+    return "-".join(normalized_list)
 
 def _parse_substring(allele, pred, max_len=None):
     """

@@ -11,6 +11,7 @@ from .iedb import (
 from .netmhc import NetMHC
 from .netmhc_cons import NetMHCcons
 from .netmhc_pan import NetMHCpan
+from .netmhcii_pan import NetMHCIIpan
 from .random_predictor import RandomBindingPredictor
 
 __all__ = [
@@ -25,5 +26,6 @@ __all__ = [
     "NetMHC",
     "NetMHCcons",
     "NetMHCpan",
+    "NetMHCIIpan",
     "RandomBindingPredictor",
 ]

@@ -27,8 +27,10 @@ strongest_predicted_binder = epitope_collection[0]
 ```
 ## API
 
-The following models are available in `mhctools`: 
+The following models are available in `mhctools`:
+* `NetMHC`: requires locally installed version of [NetMHC](http://www.cbs.dtu.dk/services/NetMHC/)
 * `NetMHCpan`: requires locally installed version of [NetMHCpan](http://www.cbs.dtu.dk/services/NetMHCpan/)
+* `NetMHCIIpan`: requires locally installed version of [NetMHCIIpan](http://www.cbs.dtu.dk/services/NetMHCIIpan/)
 * `NetMHCcons`: requires locally installed version of [NetMHCcons](http://www.cbs.dtu.dk/services/NetMHCcons/)
 * `IedbMhcClass1`: Uses IEDB's REST API for class I binding predictions.
 * `IedbMhcClass2`: Uses IEDB's REST API for class II binding predictions.
