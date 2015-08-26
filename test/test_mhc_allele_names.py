@@ -101,7 +101,10 @@ def test_mouse_class1_alleles_H2_Db():
 def test_human_class2():
     expected = "HLA-DRB1*01:02"
     expected_compact = "DRB10102"
-    for name in ["DRB10102",
+    for name in ["DRB1_0102",
+                 "DRB101:02",
+                 "HLA-DRB1_0102",
+                 "DRB10102",
                  "DRB1*0102",
                  "HLA-DRB1*0102",
                  "HLA-DRB1*01:02"]:
