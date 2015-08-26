@@ -25,7 +25,7 @@ before_install:
   - export NETMHC_BUNDLE_TMPDIR=$PWD/tmp
   - export PATH=$PATH:$NETMHC_BUNDLE_HOME/bin
 install:
-  - conda install --yes python=$TRAVIS_PYTHON_VERSION numpy scipy nose pandas
+  - conda install --yes python=$TRAVIS_PYTHON_VERSION numpy scipy nose pandas matplotlib
   - pip install -r requirements.txt
   - pip install .
 script: nosetests test && ./lint.sh
