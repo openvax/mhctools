@@ -28,7 +28,11 @@ install:
   - conda install --yes python=$TRAVIS_PYTHON_VERSION numpy scipy nose pandas matplotlib
   - pip install -r requirements.txt
   - pip install .
-script: nosetests test && ./lint.sh
+  - pip install coveralls
+script:
+  - nosetests test --with-coverage --cover-package=mhctools && ./lint.sh
+after_success:
+  coveralls
 deploy:
   provider: pypi
   user: hammerlab
