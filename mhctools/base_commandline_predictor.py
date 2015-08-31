@@ -64,7 +64,7 @@ class BaseCommandlinePredictor(BasePredictor):
         except UnsupportedAllele as e:
             additional_message = ("\nRun command %s %s to see a list of valid alleles" % (
                 command, supported_allele_flag) if supported_allele_flag else "")
-            raise UnsupportedAllele(e.message + additional_message)
+            raise UnsupportedAllele(str(e) + additional_message)
 
     @staticmethod
     def _determine_valid_alleles(command, supported_allele_flag):
