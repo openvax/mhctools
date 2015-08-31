@@ -17,7 +17,7 @@ import logging
 from subprocess import check_output
 
 from .alleles import normalize_allele_name, AlleleParseError
-from .base_predictor import BasePredictor
+from .base_predictor import BasePredictor, UnsupportedAllele
 from .process_helpers import run_command
 
 
@@ -55,11 +55,16 @@ class BaseCommandlinePredictor(BasePredictor):
                 raise SystemError("Failed to run %s" % command)
             valid_alleles = None
 
-        BasePredictor.__init__(
-            self,
-            alleles,
-            epitope_lengths,
-            valid_alleles=valid_alleles)
+        try:
+            BasePredictor.__init__(
+                self,
+                alleles,
+                epitope_lengths,
+                valid_alleles=valid_alleles)
+        except UnsupportedAllele as e:
+            additional_message = ("\nRun command %s %s to see a list of valid alleles" % (
+                command, supported_allele_flag) if supported_allele_flag else "")
+            raise UnsupportedAllele(str(e) + additional_message)
 
     @staticmethod
     def _determine_valid_alleles(command, supported_allele_flag):

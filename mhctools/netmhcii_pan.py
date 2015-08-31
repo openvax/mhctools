@@ -44,9 +44,20 @@ class NetMHCIIpan(BaseCommandlinePredictor):
         expecting the following forms:
          - DRB1_0101 (for non-alpha/beta pairs)
          - HLA-DQA10501-DQB10636 (for alpha and beta pairs)
+
+        Other than human class II alleles, the only other alleles that
+        netMHCIIpan accepts are the following mouse alleles:
+         - H-2-IAb
+         - H-2-IAd
         """
         parsed_alleles = parse_classi_or_classii_allele_name(allele_name)
         if len(parsed_alleles) == 1:
+            # Handle mice differently, as netMHCIIpan has a different format
+            # for them.
+            if parsed_alleles[0].species == "H-2":
+                return "%s-%s%s" % (parsed_alleles[0].species,
+                                    parsed_alleles[0].gene,
+                                    parsed_alleles[0].allele_code)
             return "%s_%s%s" % (parsed_alleles[0].gene,
                                 parsed_alleles[0].allele_family,
                                 parsed_alleles[0].allele_code)

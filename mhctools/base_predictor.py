@@ -20,6 +20,10 @@ from typechecks import require_iterable_of
 from .alleles import normalize_allele_name
 
 
+class UnsupportedAllele(ValueError):
+    pass
+
+
 class BasePredictor(object):
     """
     Base class for all MHC binding predictors.
@@ -99,8 +103,7 @@ class BasePredictor(object):
                 if allele not in valid_alleles
             ]
             if len(missing_alleles) > 0:
-                logging.warn(
-                    "Unsupported HLA alleles: %s", missing_alleles)
+                raise UnsupportedAllele("Unsupported HLA alleles: %s" % missing_alleles)
 
         # Don't run the MHC predictor twice for homozygous alleles,
         # only run it for unique alleles
