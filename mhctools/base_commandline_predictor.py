@@ -52,7 +52,7 @@ class BaseCommandlinePredictor(BasePredictor):
         ----------
         program_name : str
             Name of prediction program to run
-            (e.g. "netMHCcons" or "NetMHCIIpan")
+            (e.g. "netMHCcons" or "netMHCIIpan")
 
         alleles : list of str
             MHC alleles
