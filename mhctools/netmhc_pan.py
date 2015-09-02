@@ -29,10 +29,11 @@ class NetMHCpan(BaseCommandlinePredictor):
             self,
             program_name=program_name,
             alleles=alleles,
-            epitope_lengths=epitope_lengths,
             parse_output_fn=parse_netmhcpan_stdout,
-            length_flag="-l",
+            epitope_lengths=epitope_lengths,
+            supported_alleles_flag="-listMHC",
             input_fasta_flag="-f",
+            length_flag="-l",
             allele_flag="-a",
             max_file_records=max_file_records,
             process_limit=process_limit)
