@@ -13,89 +13,35 @@
 # limitations under the License.
 
 from __future__ import print_function, division, absolute_import
-import tempfile
-import logging
-from os import remove
 
 from .base_commandline_predictor import BaseCommandlinePredictor
-from .cleanup_context import CleanupFiles
-from .common import check_sequence_dictionary
-from .epitope_collection import EpitopeCollection
-from .file_formats import create_input_fasta_files, parse_netmhc_stdout
-from .process_helpers import AsyncProcess
+from .file_formats import parse_netmhc_stdout
+
 
 class NetMHC(BaseCommandlinePredictor):
 
     def __init__(
             self,
             alleles,
-            netmhc_command="netMHC",
-            epitope_lengths=[9]):
+            epitope_lengths=[9],
+            program_name="netMHC",
+            max_file_records=None):
         BaseCommandlinePredictor.__init__(
             self,
-            name="NetMHC",
-            command=netmhc_command,
+            program_name=program_name,
             alleles=alleles,
             epitope_lengths=epitope_lengths,
-            supported_allele_flag="-A")
-
-    def predict(self, fasta_dictionary):
-        fasta_dictionary = check_sequence_dictionary(fasta_dictionary)
-        input_filenames, sequence_key_mapping = create_input_fasta_files(
-            fasta_dictionary)
-
-        assert len(input_filenames) == 1, \
-            "Unexpected number of input files: %s" % input_filenames
-
-        # TODO: We are not currently using the file chunking
-        # functionality here. See NetMHCcons.
-        input_filename = input_filenames[0]
-
-        alleles_str = \
-            ",".join(allele.replace("*", "") for allele in self.alleles)
-
-        epitope_collections = []
-        # dictionary from output file paths to commands
-        commands = {}
-        for peptide_length in self.epitope_lengths:
-            output_file = tempfile.NamedTemporaryFile(
-                    "w",
-                    prefix="netMHC_output_peplen%d" % peptide_length,
-                    delete=False)
-
-            command = [
-                self.command,
-                input_filename,
-                "--peplen", str(peptide_length),
-                "--nodirect",  # approximate 10mer predictions using 9mers
-                "--mhc", alleles_str
-            ]
-            commands[output_file] = command
-
-        for output_file, command in commands.items():
-            with CleanupFiles(files=[output_file]):
-                process = AsyncProcess(
-                    args=command,
-                    redirect_stdout_file=output_file)
-                print(" ".join(command))
-                process.wait()
-                # need to flush written output and re-open for read
-                output_file.close()
-                with open(output_file.name, 'r') as f:
-                    file_contents = f.read()
-                    epitope_collection = parse_netmhc_stdout(
-                        file_contents,
-                        sequence_key_mapping=sequence_key_mapping,
-                        fasta_dictionary=fasta_dictionary,
-                        prediction_method_name="netmhc")
-
-                    if len(epitope_collection) == 0:
-                        logging.warn(file_contents)
-                        raise ValueError("No epitopes from netMHC")
-                    epitope_collections.append(epitope_collection)
-        remove(input_filename)
-        # flatten all epitope collections into a single object
-        return EpitopeCollection([
-            binding_prediction
-            for sublist in epitope_collections
-            for binding_prediction in sublist])
+            parse_output_fn=parse_netmhc_stdout,
+            # NetMHC just expects the first arg to be an input FASTA
+            input_fasta_flag="",
+            # NetMHC doesn't have the ability to use a custom
+            # temporary directory
+            tempdir_flag=None,
+            length_flag="--peplen",
+            allele_flag="--mhc",
+            extra_flags=["--nodirect"],
+            supported_alleles_flag="-A",
+            max_file_records=max_file_records,
+            # because we don't have a tempdir flag, can't run more than
+            # one predictor at a time
+            process_limit=1)

@@ -92,7 +92,7 @@ def split_stdout_lines(stdout):
             yield l.split()
 
 def parse_netmhc_stdout(
-        netmhc_output,
+        stdout,
         fasta_dictionary,
         prediction_method_name="netmhc",
         sequence_key_mapping=None):
@@ -118,7 +118,7 @@ def parse_netmhc_stdout(
         fasta_dictionary=fasta_dictionary,
         prediction_method_name=prediction_method_name)
 
-    for fields in split_stdout_lines(netmhc_output):
+    for fields in split_stdout_lines(stdout):
         if len(fields) >= 6:
             pos, peptide, log_affinity, ic50 = fields[:4]
             # annoyingly, the space between "affinity" and "Protein Name" may
@@ -164,11 +164,11 @@ def parse_netmhc_stdout(
     return builder.get_collection()
 
 def parse_netmhcpan_stdout(
-        netmhc_output,
+        stdout,
         fasta_dictionary,
         prediction_method_name="netmhcpan",
         sequence_key_mapping=None,
-        is_netmhcpanii=False):
+        class2_columns=False):
     """
     Parse the output format for NetMHCpan, NetMHCIIpan* and NetMHCcons, which looks like:
 
@@ -200,10 +200,10 @@ def parse_netmhcpan_stdout(
         prediction_method_name=prediction_method_name)
 
     # netMHCIIpan has some extra fields
-    n_required_fields = 9 if is_netmhcpanii else 7
-    for fields in split_stdout_lines(netmhc_output):
+    n_required_fields = 9 if class2_columns else 7
+    for fields in split_stdout_lines(stdout):
         if len(fields) >= n_required_fields:
-            if is_netmhcpanii:
+            if class2_columns:
                 pos, allele, peptide, key, Pos, Core, log_affinity, ic50, rank = (
                     fields[:n_required_fields])
             else:
@@ -235,6 +235,18 @@ def parse_netmhcpan_stdout(
                 rank=rank,
                 log_ic50=log_affinity)
     return builder.get_collection()
+
+def parse_netmhciipan_stdout(
+        stdout,
+        fasta_dictionary,
+        prediction_method_name,
+        sequence_key_mapping=None):
+    return parse_netmhcpan_stdout(
+        stdout=stdout,
+        fasta_dictionary=fasta_dictionary,
+        prediction_method_name=prediction_method_name,
+        sequence_key_mapping=sequence_key_mapping,
+        class2_columns=True)
 
 def parse_xls_file(
         xls_contents,

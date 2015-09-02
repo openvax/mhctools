@@ -13,69 +13,26 @@
 # limitations under the License.
 
 from __future__ import print_function, division, absolute_import
-import tempfile
-import logging
 
 from .base_commandline_predictor import BaseCommandlinePredictor
-from .cleanup_context import CleanupFiles
-from .common import check_sequence_dictionary, seq_to_str
-from .file_formats import create_input_fasta_files, parse_netmhcpan_stdout
-from .process_helpers import AsyncProcess
+from .file_formats import parse_netmhcpan_stdout
 
 class NetMHCpan(BaseCommandlinePredictor):
-
     def __init__(
             self,
             alleles,
-            netmhc_command="netMHCpan",
-            epitope_lengths=[9]):
+            epitope_lengths=[9],
+            program_name="netMHCpan",
+            max_file_records=None,
+            process_limit=0):
         BaseCommandlinePredictor.__init__(
             self,
-            name="NetMHCpan",
-            command=netmhc_command,
+            program_name=program_name,
             alleles=alleles,
-            epitope_lengths=epitope_lengths)
-
-    def predict(self, fasta_dictionary):
-        fasta_dictionary = check_sequence_dictionary(fasta_dictionary)
-        input_filenames, sequence_key_mapping = create_input_fasta_files(
-            fasta_dictionary)
-        # TODO: We are not currently using the file chunking
-        # functionality here. See NetMHCcons.
-        input_filename = input_filenames[0]
-
-        alleles_str = \
-            ",".join(allele.replace("*", "") for allele in self.alleles)
-        output_file = tempfile.NamedTemporaryFile(
-                "w",
-                prefix="netMHCpan_output",
-                delete=False)
-        args = [
-            self.command,
-            "-l", seq_to_str(self.epitope_lengths),
-            "-f", input_filename,
-            "-a", alleles_str
-        ]
-        logging.info(" ".join(args))
-
-        with CleanupFiles(
-                filenames=[input_filename],
-                files=[output_file]):
-            process = AsyncProcess(
-                args=args,
-                redirect_stdout_file=output_file)
-            process.wait()
-            # need to flush written output and re-open for read
-            output_file.close()
-            with open(output_file.name, 'r') as f:
-                file_contents = f.read()
-                epitope_collection = parse_netmhcpan_stdout(
-                    file_contents,
-                    sequence_key_mapping=sequence_key_mapping,
-                    fasta_dictionary=fasta_dictionary,
-                    prediction_method_name="netmhcpan")
-
-        if len(epitope_collection) == 0:
-            logging.warn(file_contents)
-            raise ValueError("No epitopes from netMHCpan")
-        return epitope_collection
+            epitope_lengths=epitope_lengths,
+            parse_output_fn=parse_netmhcpan_stdout,
+            length_flag="-l",
+            input_fasta_flag="-f",
+            allele_flag="-a",
+            max_file_records=max_file_records,
+            process_limit=process_limit)
