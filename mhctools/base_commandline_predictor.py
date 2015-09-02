@@ -88,7 +88,6 @@ class BaseCommandlinePredictor(BasePredictor):
         process_limit : int, optional
             Maximum number of parallel processes to start
         """
-
         require_string(program_name, "Predictor program name")
         self.program_name = program_name
 
