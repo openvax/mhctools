@@ -143,8 +143,13 @@ class BaseCommandlinePredictor(BasePredictor):
                 epitope_lengths,
                 valid_alleles=valid_alleles)
         except UnsupportedAllele as e:
-            additional_message = ("\nRun command %s %s to see a list of valid alleles" % (
-                command, supported_allele_flag) if supported_allele_flag else "")
+            if self.supported_alleles_flag:
+                additional_message = (
+                    "\nRun command %s %s to see a list of valid alleles" % (
+                        self.program_name,
+                        self.supported_alleles_flag))
+            else:
+                additional_message = ""
             raise UnsupportedAllele(str(e) + additional_message)
 
     @staticmethod
