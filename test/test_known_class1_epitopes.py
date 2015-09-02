@@ -13,7 +13,7 @@
 # limitations under the License.
 
 """
-Make sure all binding predictors give a high IC50 and percentile rank.
+Make sure all class I binding predictors give a high IC50 and percentile rank.
 """
 import mhctools
 
@@ -22,27 +22,29 @@ mhc_classes = [
     mhctools.NetMHCpan,
     mhctools.NetMHCcons,
     mhctools.NetMHC,
+    mhctools.IedbNetMHCcons,
+    mhctools.IedbNetMHCpan,
+    mhctools.IedbSMM,
+    mhctools.IedbSMM_PMBEC,
 ]
 
+def expect_binder(mhc_model, peptide):
+    prediction = mhc_model.predict(peptide)[0]
+    assert prediction.value < 500, "Expected %s to have IC50 < 500nM, got %s" % (
+        peptide, prediction)
+
 def test_MAGE_epitope():
-    """
-    Test the A1 MAGE epitope from
-        Identification of a Titin-Derived HLA-A1-Presented Peptide
-        as a Cross-Reactive Target for Engineered MAGE A3-Directed
-        T Cells
-    """
+    # Test the A1 MAGE epitope ESDPIVAQY from
+    #   Identification of a Titin-Derived HLA-A1-Presented Peptide
+    #   as a Cross-Reactive Target for Engineered MAGE A3-Directed
+    #   T Cells
     for mhc_class in mhc_classes:
         mhc_model = mhc_class("HLA-A*01:01", epitope_lengths=9)
-        epitope = mhc_model.predict("ESDPIVAQY")[0]
-        assert epitope.value < 500, "Expected %s to have IC50 < 500nM" % epitope
+        yield (expect_binder, mhc_model, "ESDPIVAQY")
 
 def test_HIV_epitope():
-    """
-    Test the A2 HIV epitope from
-        The HIV-1 HLA-A2-SLYNTVATL Is a Help-Independent CTL Epitope
-    """
+    # Test the A2 HIV epitope SLYNTVATL from
+    #    The HIV-1 HLA-A2-SLYNTVATL Is a Help-Independent CTL Epitope
     for mhc_class in mhc_classes:
         mhc_model = mhc_class("HLA-A*02:01", epitope_lengths=9)
-        epitope = mhc_model.predict("SLYNTVATL")[0]
-        assert epitope.value < 500, \
-            "Expected %s to have IC50 < 500nM" % (epitope,)
+        yield (expect_binder, mhc_model, "SLYNTVATL")
