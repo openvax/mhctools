@@ -12,6 +12,7 @@ addons:
       # from markdown to RST
       - pandoc
 before_install:
+<<<<<<< HEAD
   # Commands below copied from: http://conda.pydata.org/docs/travis.html
   # We do this conditionally because it saves us some downloading if the
   # version is the same.
