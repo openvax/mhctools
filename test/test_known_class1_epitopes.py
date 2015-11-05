@@ -26,6 +26,7 @@ mhc_classes = [
     mhctools.IedbNetMHCpan,
     mhctools.IedbSMM,
     mhctools.IedbSMM_PMBEC,
+    mhctools.MHCFlurry,
 ]
 
 def expect_binder(mhc_model, peptide):

@@ -12,6 +12,7 @@ from .netmhc import NetMHC
 from .netmhc_cons import NetMHCcons
 from .netmhc_pan import NetMHCpan
 from .netmhcii_pan import NetMHCIIpan
+from .mhcflurry import MHCFlurry
 from .random_predictor import RandomBindingPredictor
 
 __all__ = [
@@ -27,5 +28,6 @@ __all__ = [
     "NetMHCcons",
     "NetMHCpan",
     "NetMHCIIpan",
+    "MHCFlurry",
     "RandomBindingPredictor",
 ]
