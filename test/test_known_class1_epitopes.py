@@ -28,6 +28,7 @@ mhc_classes = [
     mhctools.IedbNetMHCpan,
     mhctools.IedbSMM,
     mhctools.IedbSMM_PMBEC,
+    mhctools.MHCFlurry,
 ]
 
 # Tests assume that a netMHC-3.4 binary exists, and that netMHC is 4.0.
