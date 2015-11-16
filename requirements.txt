@@ -4,3 +4,4 @@ varcode>=0.3.17
 six>=1.9.0
 pylint>=1.4.4
 nose>=1.3.6
+git+https://github.com/hammerlab/mhcflurry.git
