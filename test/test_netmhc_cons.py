@@ -19,6 +19,20 @@ def test_netmhc_cons():
     assert len(epitope_collection) == 4, \
         "Expected 4 epitopes from %s" % (epitope_collection,)
 
+def test_netmhc_cons_multiple_alleles():
+    alleles = 'A*02:01,B*35:02'
+    cons_predictor = NetMHCcons(
+        alleles=alleles,
+        epitope_lengths=[9])
+    fasta_dictionary = {
+        "SMAD4-001": "ASIINFKELA",
+        "TP53-001": "ASILLLVFYW"
+    }
+    epitope_collection = cons_predictor.predict(
+        fasta_dictionary=fasta_dictionary)
+    assert len(epitope_collection) == 8, \
+        "Expected 4 epitopes from %s" % (epitope_collection,)
+
 def test_netmhc_cons_chunking():
     alleles = [normalize_allele_name(DEFAULT_ALLELE)]
     fasta_dictionary = {
