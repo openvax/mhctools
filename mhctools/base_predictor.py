@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from __future__ import print_function, division, absolute_import
-import logging
 
 from typechecks import require_iterable_of
 
@@ -52,7 +51,7 @@ class BasePredictor(object):
         # I find myself often constructing a predictor with just one allele
         # so as a convenience, allow user to not wrap that allele as a list
         if isinstance(alleles, str):
-            alleles = [alleles]
+            alleles = alleles.split(',')
         self.alleles = self._check_hla_alleles(alleles, valid_alleles)
 
         if isinstance(epitope_lengths, int):
