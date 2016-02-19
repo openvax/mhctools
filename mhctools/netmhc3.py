@@ -15,9 +15,15 @@
 from __future__ import print_function, division, absolute_import
 
 from .base_commandline_predictor import BaseCommandlinePredictor
+<<<<<<< Updated upstream:mhctools/netmhc.py
 from .file_formats import parse_netmhc_stdout
 
 class NetMHC(BaseCommandlinePredictor):
+=======
+from .file_formats import parse_netmhc3_stdout
+
+class NetMHC3(BaseCommandlinePredictor):
+>>>>>>> Stashed changes:mhctools/netmhc3.py
     def __init__(
             self,
             alleles,
@@ -29,7 +35,7 @@ class NetMHC(BaseCommandlinePredictor):
             program_name=program_name,
             alleles=alleles,
             epitope_lengths=epitope_lengths,
-            parse_output_fn=parse_netmhc_stdout,
+            parse_output_fn=parse_netmhc3_stdout,
             # NetMHC just expects the first arg to be an input FASTA
             input_fasta_flag="",
             # NetMHC doesn't have the ability to use a custom

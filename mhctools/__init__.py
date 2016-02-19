@@ -8,7 +8,8 @@ from .iedb import (
     IedbSMM_PMBEC,
     IedbNetMHCIIpan,
 )
-from .netmhc import NetMHC
+from .netmhc3 import NetMHC3
+from .netmhc4 import NetMHC4
 from .netmhc_cons import NetMHCcons
 from .netmhc_pan import NetMHCpan
 from .netmhcii_pan import NetMHCIIpan
@@ -23,7 +24,8 @@ __all__ = [
     "IedbSMM",
     "IedbSMM_PMBEC",
     "IedbNetMHCIIpan",
-    "NetMHC",
+    "NetMHC3",
+    "NetMHC4",
     "NetMHCcons",
     "NetMHCpan",
     "NetMHCIIpan",
