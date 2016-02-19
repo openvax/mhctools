@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/hammerlab/mhctools.svg?branch=master)](https://travis-ci.org/hammerlab/mhctools) [![Coverage Status](https://coveralls.io/repos/hammerlab/mhctools/badge.svg?branch=master)](https://coveralls.io/r/hammerlab/mhctools?branch=master)
+[![Build Status](https://travis-ci.org/hammerlab/mhctools.svg?branch=master)](https://travis-ci.org/hammerlab/mhctools) [![Coverage Status](https://coveralls.io/repos/hammerlab/mhctools/badge.svg?branch=master)](https://coveralls.io/r/hammerlab/mhctools?branch=master) [![DOI](https://zenodo.org/badge/18834/hammerlab/mhctools.svg)](https://zenodo.org/badge/latestdoi/18834/hammerlab/mhctools)
 
 # mhctools
 Python interface to running command-line and web-based MHC binding predictors.
