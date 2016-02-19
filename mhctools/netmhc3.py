@@ -15,15 +15,9 @@
 from __future__ import print_function, division, absolute_import
 
 from .base_commandline_predictor import BaseCommandlinePredictor
-<<<<<<< Updated upstream:mhctools/netmhc.py
-from .file_formats import parse_netmhc_stdout
-
-class NetMHC(BaseCommandlinePredictor):
-=======
 from .file_formats import parse_netmhc3_stdout
 
 class NetMHC3(BaseCommandlinePredictor):
->>>>>>> Stashed changes:mhctools/netmhc3.py
     def __init__(
             self,
             alleles,
