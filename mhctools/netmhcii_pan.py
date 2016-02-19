@@ -20,7 +20,6 @@ from .file_formats import parse_netmhciipan_stdout
 
 
 class NetMHCIIpan(BaseCommandlinePredictor):
-
     def __init__(
             self,
             alleles,

@@ -102,20 +102,20 @@ class EpitopeCollectionBuilder(object):
         source_sequence = str(self.fasta_dictionary[source_sequence_key])
 
         binding_prediction = BindingPrediction(
-                    source_sequence_key=source_sequence_key,
-                    source_sequence=source_sequence,
-                    offset=offset,
-                    allele=normalize_allele_name(allele),
-                    peptide=peptide,
-                    length=len(peptide),
-                    value=ic50,
-                    percentile_rank=rank,
-                    prediction_method_name=self.prediction_method_name,
-                    measure=self.binding_measure)
+            source_sequence_key=source_sequence_key,
+            source_sequence=source_sequence,
+            offset=offset,
+            allele=normalize_allele_name(allele),
+            peptide=peptide,
+            length=len(peptide),
+            value=ic50,
+            percentile_rank=rank,
+            prediction_method_name=self.prediction_method_name,
+            measure=self.binding_measure)
         self.binding_predictions.append(binding_prediction)
 
     def get_collection(self):
         return EpitopeCollection(self.binding_predictions)
 
     def get_dataframe(self):
-        return self.get_collection.dataframe()
+        return self.get_collection().dataframe()

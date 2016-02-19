@@ -17,9 +17,7 @@ from __future__ import print_function, division, absolute_import
 from .base_commandline_predictor import BaseCommandlinePredictor
 from .file_formats import parse_netmhc_stdout
 
-
 class NetMHC(BaseCommandlinePredictor):
-
     def __init__(
             self,
             alleles,

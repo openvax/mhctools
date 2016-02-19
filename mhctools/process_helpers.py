@@ -18,6 +18,7 @@ import os
 from subprocess import Popen, CalledProcessError
 import time
 
+# pylint: disable=import-error
 from six.moves.queue import Queue
 
 class AsyncProcess(object):
@@ -123,7 +124,7 @@ def run_multiple_commands_redirect_stdout(
                 # Are there any done processes?
                 to_remove = []
                 for possibly_done in processes.queue:
-                    if possibly_done.poll() != None:
+                    if possibly_done.poll() is not None:
                         possibly_done.wait()
                         to_remove.append(possibly_done)
                 # Remove them from the queue and stop checking
@@ -140,6 +141,7 @@ def run_multiple_commands_redirect_stdout(
         processes.get().wait()
 
     elapsed_time = time.time() - start_time
-    logging.info("Ran %d commands in %0.4f seconds",
+    logging.info(
+        "Ran %d commands in %0.4f seconds",
         len(multiple_args_dict),
         elapsed_time)
