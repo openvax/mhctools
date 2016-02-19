@@ -7,25 +7,43 @@ addons:
   apt:
     packages:
       # Needed for NetMHC
-      tcsh
-env:
-  global:
-    # MHC_BUNDLE_PASS
-    - secure: "TIminZrp9m1kMXhemqz8Zx4BjojIoEYZJnNrDrL6T/pKMpP5FQ6sprj8meGfNse4ApRIPmp5lhqxbPOe7Cg7ooetIcORekjRueHwRkYXqgMbgffgZYuEJTAGLKFsBDEXFD1kWT7igmvXFsP1T0bb1TxRPK93Q5G+e1dEAm6Iqwo="
-# Setup anaconda for easily running scipy on Travis; see https://gist.github.com/dan-blanchard/7045057
+      - tcsh
+      # install pandoc for use with pypandoc for converting the README
+      # from markdown to RST
+      - pandoc
 before_install:
-  - wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
-  - chmod +x miniconda.sh
-  - ./miniconda.sh -b
-  - export PATH=/home/travis/miniconda/bin:$PATH
-  - conda update --yes conda
+  # Commands below copied from: http://conda.pydata.org/docs/travis.html
+  # We do this conditionally because it saves us some downloading if the
+  # version is the same.
+  - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
+      wget https://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh;
+    else
+      wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
+    fi
+  - bash miniconda.sh -b -p $HOME/miniconda
+  - export PATH="$HOME/miniconda/bin:$PATH"
+  # reset the shell's lookup table for program name to path mappings
+  - hash -r
+  - conda config --set always_yes yes --set changeps1 no
+  - conda update -q conda
+  # Useful for debugging any issues with conda
+  - conda info -a
+  # install netmhcbundle
   - git clone https://mhcbundle:$MHC_BUNDLE_PASS@github.com/hammerlab/netmhc-bundle.git
   - export NETMHC_BUNDLE_HOME=$PWD/netmhc-bundle
   - mkdir tmp
   - export NETMHC_BUNDLE_TMPDIR=$PWD/tmp
   - export PATH=$PATH:$NETMHC_BUNDLE_HOME/bin
+env:
+  global:
+    # MHC_BUNDLE_PASS
+    - secure: "TIminZrp9m1kMXhemqz8Zx4BjojIoEYZJnNrDrL6T/pKMpP5FQ6sprj8meGfNse4ApRIPmp5lhqxbPOe7Cg7ooetIcORekjRueHwRkYXqgMbgffgZYuEJTAGLKFsBDEXFD1kWT7igmvXFsP1T0bb1TxRPK93Q5G+e1dEAm6Iqwo="
 install:
-  - conda install --yes python=$TRAVIS_PYTHON_VERSION numpy scipy nose pandas matplotlib
+  - >
+      conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
+      numpy scipy nose pandas matplotlib
+  - source activate test-environment
+  - pip install pypandoc
   - pip install -r requirements.txt
   - pip install .
   - pip install coveralls

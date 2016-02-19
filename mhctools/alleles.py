@@ -171,7 +171,7 @@ def parse_allele_name(name, species_prefix=None):
         3) allele family
         4) allele code
 
-    If species_prefix is provided, that is used instead of getting the species prefix from the name. 
+    If species_prefix is provided, that is used instead of getting the species prefix from the name.
     (And in that case, a species prefix in the name will result in an error being raised.)
 
     For example, in all of the following inputs:
@@ -338,7 +338,6 @@ def compact_allele_name(raw_allele):
     HLA-DPA1*01:05-DPB1*100:01 into DPA10105-DPB110001
     """
     parsed_alleles = parse_classi_or_classii_allele_name(raw_allele)
-    species = parsed_alleles[0].species
     normalized_list = []
     for parsed_allele in parsed_alleles:
         if len(parsed_allele.allele_family) > 0:

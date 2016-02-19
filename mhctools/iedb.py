@@ -16,7 +16,9 @@ from __future__ import print_function, division, absolute_import
 import logging
 import io
 
+# pylint: disable=import-error
 from six.moves.urllib.request import urlopen, Request
+# pylint: disable=import-error
 from six.moves.urllib.parse import urlencode
 import pandas as pd
 
