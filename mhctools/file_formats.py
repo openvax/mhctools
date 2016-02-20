@@ -91,13 +91,13 @@ def split_stdout_lines(stdout):
         if len(l) > 0 and not l.startswith("#"):
             yield l.split()
 
-def parse_netmhc_stdout(
+def parse_netmhc3_stdout(
         stdout,
         fasta_dictionary,
-        prediction_method_name="netmhc",
+        prediction_method_name="netmhc3",
         sequence_key_mapping=None):
     """
-    Parse the output format for NetMHC, which looks like:
+    Parse the output format for NetMHC 3.x, which looks like:
 
     ----------------------------------------------------------------------------------------------------
     pos    peptide      logscore affinity(nM) Bind Level    Protein Name     Allele
@@ -109,9 +109,6 @@ def parse_netmhc_stdout(
     2  INKFFFQQQ         0.046        30406                         A2 HLA-A02:01
     3  NKFFFQQQQ         0.050        29197                         A2 HLA-A02:01
     --------------------------------------------------------------------------------------------------
-
-    ...this is similar to the NetMHCpan output, but the columns are in a
-    different order and the percentile rank column is missing.
     """
 
     builder = EpitopeCollectionBuilder(
@@ -161,6 +158,67 @@ def parse_netmhc_stdout(
                 ic50=ic50,
                 log_ic50=log_affinity,
                 rank=0.0)
+    return builder.get_collection()
+
+def parse_netmhc4_stdout(
+        stdout,
+        fasta_dictionary,
+        prediction_method_name="netmhc4",
+        sequence_key_mapping=None):
+    """
+    # Peptide length 9
+    # Rank Threshold for Strong binding peptides   0.500
+    # Rank Threshold for Weak binding peptides   2.000
+    -----------------------------------------------------------------------------------
+      pos          HLA      peptide         Core Offset  I_pos  I_len  D_pos  D_len        iCore        Identity 1-log50k(aff) Affinity(nM)    %Rank  BindLevel
+    -----------------------------------------------------------------------------------
+        0    HLA-A0201    TMDKSELVQ    TMDKSELVQ      0      0      0      0      0    TMDKSELVQ 143B_BOVIN_P293         0.051     28676.59    43.00
+        1    HLA-A0201    MDKSELVQK    MDKSELVQK      0      0      0      0      0    MDKSELVQK 143B_BOVIN_P293         0.030     36155.15    70.00
+        2    HLA-A0201    DKSELVQKA    DKSELVQKA      0      0      0      0      0    DKSELVQKA 143B_BOVIN_P293         0.030     36188.42    70.00
+        3    HLA-A0201    KSELVQKAK    KSELVQKAK      0      0      0      0      0    KSELVQKAK 143B_BOVIN_P293         0.032     35203.22    65.00
+        4    HLA-A0201    SELVQKAKL    SELVQKAKL      0      0      0      0      0    SELVQKAKL 143B_BOVIN_P293         0.031     35670.99    65.00
+        5    HLA-A0201    ELVQKAKLA    ELVQKAKLA      0      0      0      0      0    ELVQKAKLA 143B_BOVIN_P293         0.080     21113.07    29.00
+        6    HLA-A0201    LVQKAKLAE    LVQKAKLAE      0      0      0      0      0    LVQKAKLAE 143B_BOVIN_P293         0.027     37257.56    75.00
+        7    HLA-A0201    VQKAKLAEQ    VQKAKLAEQ      0      0      0      0      0    VQKAKLAEQ 143B_BOVIN_P293         0.040     32404.62    55.00
+      219    HLA-A0201    QLLRDNLTL    QLLRDNLTL      0      0      0      0      0    QLLRDNLTL 143B_BOVIN_P293         0.527       167.10     1.50 <= WB
+    -----------------------------------------------------------------------------------
+    """
+    builder = EpitopeCollectionBuilder(
+        fasta_dictionary=fasta_dictionary,
+        prediction_method_name=prediction_method_name)
+
+    n_fields = 14
+    for fields in split_stdout_lines(stdout):
+        if len(fields) < n_fields:
+            continue
+
+        pos, allele, peptide, core, offset, i_pos, i_len, d_pos, d_len, i_core, key, log_affinity, ic50, rank = fields[:n_fields]
+        try:
+            pos = int(pos)
+            allele = str(allele)
+            peptide = str(peptide)
+            key = str(key)
+            log_affinity = float(log_affinity)
+            ic50 = float(ic50)
+            rank = float(rank)
+        except:
+            # if position or affinity values can't be parsed,
+            # then skip this line
+            continue
+        if sequence_key_mapping:
+            original_key = sequence_key_mapping[key]
+        else:
+            # if sequence_key_mapping isn't provided then let's assume it's the
+            # identity function
+            original_key = key
+        builder.add_binding_prediction(
+            source_sequence_key=original_key,
+            offset=pos,
+            peptide=peptide,
+            allele=allele,
+            ic50=ic50,
+            rank=rank,
+            log_ic50=log_affinity)
     return builder.get_collection()
 
 def parse_netmhcpan_stdout(

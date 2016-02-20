@@ -1,6 +1,6 @@
-from mhctools.file_formats import parse_netmhcpan_stdout, parse_netmhc_stdout
+from mhctools.file_formats import parse_netmhcpan_stdout, parse_netmhc3_stdout, parse_netmhc4_stdout
 
-def test_mhc_stdout():
+def test_netmhc3_stdout():
     """
     Test parsing of NetMHC output of predictions of HLA-A*02:01
     and HLA-A*02:03 for three epitopes:
@@ -47,13 +47,13 @@ Strong binder threshold  50 nM. Weak binder threshold score 500 nM
       "seq5": "SLYNTVATL",
       "seq6": "SLYNTVATF",
     }
-    epitope_collection = parse_netmhc_stdout(
+    epitope_collection = parse_netmhc3_stdout(
       netmhc_output,
       fasta_dictionary=fasta_dictionary,
-      prediction_method_name="netmhcpan")
+      prediction_method_name="netmhc3")
     assert len(epitope_collection) == 2 * len(fasta_dictionary), \
       "Wrong number of binding predictions: %d (expected %d)" % (
-        len(epitope_collection, 2 * len(fasta_dictionary)))
+        len(epitope_collection), 2 * len(fasta_dictionary))
     for i, entry in enumerate(epitope_collection):
         # make sure both allele's tables get parsed
         assert entry.allele in ('HLA-A*02:01', 'HLA-A*02:03')
@@ -62,6 +62,57 @@ Strong binder threshold  50 nM. Weak binder threshold score 500 nM
         if entry.peptide == "SLYNTVATL":
             assert entry.value < 100
 
+def test_netmhc4_stdout():
+    netmhc_output = """
+# NetMHC version 4.0
+
+# Read 132 elements on pairlist /Users/tavi/drive/work/repos/cancer/n-b/netMHC-4.0/Darwin_x86_64/data/allelelist
+# Input is in PEPTIDE format
+# Rank Threshold for Strong binding peptides   0.500
+# Rank Threshold for Weak binding peptides   2.000
+-----------------------------------------------------------------------------------
+  pos          HLA      peptide         Core Offset  I_pos  I_len  D_pos  D_len        iCore        Identity 1-log50k(aff) Affinity(nM)    %Rank  BindLevel
+-----------------------------------------------------------------------------------
+    0    HLA-A0201  AAAAAWYLWEV    AAAWYLWEV      0      0      0      1      2  AAAAAWYLWEV         SEQ_A           0.349      1147.39     4.50
+    0    HLA-A0201    AEFGPWQTV    AEFGPWQTV      0      0      0      0      0    AEFGPWQTV         SEQ_B           0.129     12361.73    18.00
+-----------------------------------------------------------------------------------
+
+Protein PEPLIST. Allele HLA-A0201. Number of high binders 0. Number of weak binders 0. Number of peptides 10
+
+-----------------------------------------------------------------------------------
+# Rank Threshold for Strong binding peptides   0.500
+# Rank Threshold for Weak binding peptides   2.000
+-----------------------------------------------------------------------------------
+  pos          HLA      peptide         Core Offset  I_pos  I_len  D_pos  D_len        iCore        Identity 1-log50k(aff) Affinity(nM)    %Rank  BindLevel
+-----------------------------------------------------------------------------------
+    0    HLA-A0202    AEFGPWQTV    AEFGPWQTV      0      0      0      0      0    AEFGPWQTV         SEQ_C           0.136     11437.51    23.00
+  219    HLA-A0202    QLLRDNLTL    QLLRDNLTL      0      0      0      0      0    QLLRDNLTL         SEQ_D           0.527       167.10     1.50 <= WB
+-----------------------------------------------------------------------------------
+
+Protein PEPLIST. Allele HLA-A0202. Number of high binders 0. Number of weak binders 0. Number of peptides 10
+
+-----------------------------------------------------------------------------------
+"""
+    fasta_dictionary = {
+        "SEQ_A": "AAAAAWYLWEV",
+        "SEQ_B": "AEFGPWQTV",
+        "SEQ_C": "AEFGPWQTV",
+        "SEQ_D": "QLLRDNLTL"
+    }
+    epitope_collection = parse_netmhc4_stdout(
+      netmhc_output,
+      fasta_dictionary=fasta_dictionary,
+      prediction_method_name="netmhc4")
+    assert len(epitope_collection) == len(fasta_dictionary), \
+      "Wrong number of binding predictions: %d (expected %d)" % (
+        len(epitope_collection), len(fasta_dictionary))
+    for i, entry in enumerate(epitope_collection):
+        # make sure both allele's tables get parsed
+        assert entry.allele in ('HLA-A*02:01', 'HLA-A*02:02')
+        # expect the epitope AEFGPWQTV to have high affinity for both
+        # alleles
+        if entry.peptide == "AEFGPWQTV":
+            assert entry.value > 10000
 
 def test_mhcpan_stdout():
     netmhcpan_output = """

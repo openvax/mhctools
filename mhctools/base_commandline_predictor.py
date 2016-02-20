@@ -180,11 +180,9 @@ class BaseCommandlinePredictor(BasePredictor):
                         continue
             return supported_alleles
         except:
-            logging.warning(
-                "Failed to run %s %s",
+            raise SystemError("Failed to run %s %s. Possibly an incorrect executable version?" % (
                 command,
-                supported_allele_flag)
-            raise
+                supported_allele_flag))
 
     def prepare_allele_name(self, allele_name):
         """
