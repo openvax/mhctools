@@ -94,7 +94,7 @@ def split_stdout_lines(stdout):
 def parse_netmhc3_stdout(
         stdout,
         fasta_dictionary,
-        prediction_method_name="netmhc",
+        prediction_method_name="netmhc3",
         sequence_key_mapping=None):
     """
     Parse the output format for NetMHC 3.x, which looks like:
@@ -163,7 +163,7 @@ def parse_netmhc3_stdout(
 def parse_netmhc4_stdout(
         stdout,
         fasta_dictionary,
-        prediction_method_name="netmhc",
+        prediction_method_name="netmhc4",
         sequence_key_mapping=None):
     """
     # Peptide length 9
