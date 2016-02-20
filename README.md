@@ -28,7 +28,7 @@ strongest_predicted_binder = epitope_collection[0]
 ## API
 
 The following models are available in `mhctools`:
-* `NetMHC3`: requires locally installed version of [NetMHC 3.x](http://www.cbs.dtu.dk/services/NetMHC/)
+* `NetMHC3`: requires locally installed version of [NetMHC 3.x](http://www.cbs.dtu.dk/services/NetMHC-3.4/)
 * `NetMHC4`: requires locally installed version of [NetMHC 4.x](http://www.cbs.dtu.dk/services/NetMHC/)
 * `NetMHCpan`: requires locally installed version of [NetMHCpan](http://www.cbs.dtu.dk/services/NetMHCpan/)
 * `NetMHCIIpan`: requires locally installed version of [NetMHCIIpan](http://www.cbs.dtu.dk/services/NetMHCIIpan/)
