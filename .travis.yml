@@ -31,6 +31,7 @@ before_install:
   # install netmhcbundle
   - git clone https://mhcbundle:$MHC_BUNDLE_PASS@github.com/hammerlab/netmhc-bundle.git
   - (cd netmhc-bundle && git checkout pseudofind)
+  - python2 --version
   - cat /home/travis/build/hammerlab/mhctools/netmhc-bundle/netMHCcons-1.1/bin/pseudofind
   - export NETMHC_BUNDLE_HOME=$PWD/netmhc-bundle
   - mkdir tmp
