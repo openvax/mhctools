@@ -30,6 +30,7 @@ before_install:
   - conda info -a
   # install netmhcbundle
   - git clone https://mhcbundle:$MHC_BUNDLE_PASS@github.com/hammerlab/netmhc-bundle.git
+  - git checkout pseudofind
   - export NETMHC_BUNDLE_HOME=$PWD/netmhc-bundle
   - mkdir tmp
   - export NETMHC_BUNDLE_TMPDIR=$PWD/tmp
