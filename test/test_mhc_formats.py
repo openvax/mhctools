@@ -35,7 +35,7 @@ Strong binder threshold  50 nM. Weak binder threshold score 500 nM
 ----------------------------------------------------------------------------------------------------
  pos    peptide      logscore affinity(nM) Bind Level    Protein Name     Allele
 ----------------------------------------------------------------------------------------------------
-   0  CFTWNQMNL         0.113        14800                       seq4 HLA-A02:03
+   0  SB                0.113        14800                       seq4 HLA-A02:03
 --------------------------------------------------------------------------------------------------
    0  SLYNTVATL         0.730           18         SB            seq5 HLA-A02:03
 --------------------------------------------------------------------------------------------------
@@ -109,6 +109,7 @@ Protein PEPLIST. Allele HLA-A0202. Number of high binders 0. Number of weak bind
     for i, entry in enumerate(epitope_collection):
         # make sure both allele's tables get parsed
         assert entry.allele in ('HLA-A*02:01', 'HLA-A*02:02')
+        assert 0 < entry.value < 50000
         # expect the epitope AEFGPWQTV to have high affinity for both
         # alleles
         if entry.peptide == "AEFGPWQTV":
