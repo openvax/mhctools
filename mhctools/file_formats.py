@@ -79,7 +79,6 @@ def create_input_fasta_files(fasta_dictionary, max_file_records=None):
         input_file.close()
     return input_file_names, sequence_key_mapping
 
-
 def split_stdout_lines(stdout):
     """
     Given the standard output from NetMHC/NetMHCpan/NetMHCcons tools,
@@ -90,6 +89,82 @@ def split_stdout_lines(stdout):
         l = l.strip()
         if len(l) > 0 and not l.startswith("#"):
             yield l.split()
+
+def parse_stdout(
+        stdout,
+        fasta_dictionary,
+        prediction_method_name,
+        sequence_key_mapping,
+        key_index,
+        offset_index,
+        peptide_index,
+        allele_index,
+        ic50_index,
+        rank_index,
+        log_ic50_index,
+        ignored_value_indices={}):
+    """
+    Generic function for parsing any NetMHC* output, given expected indices of values of interest.
+
+    ignored_value_indices is a map from values to the positions we'll ignore them at. See 
+    clean_fields.
+    """
+    builder = EpitopeCollectionBuilder(
+        fasta_dictionary=fasta_dictionary,
+        prediction_method_name=prediction_method_name)
+
+    def clean_fields(fields, ignored_value_indices):
+        """
+        Sometimes, NetMHC* has fields that are only populated sometimes, which results in
+        different count/indexing of the fields when that happens.
+
+        We handle this by looking for particular strings at particular indices, and deleting them.
+
+        Warning: this may result in unexpected behavior sometimes. For example, we ignore "SB" and
+        "WB" for NetMHC 3.x output; which also means that any line with a key called SB or WB will
+        be ignored.
+        """
+        cleaned_fields = []
+        for i, field in enumerate(fields):
+            if field in ignored_value_indices:
+                ignored_index = ignored_value_indices[field]
+
+                # Is the value we want to ignore at the index where we'd ignore it?
+                if ignored_index == i:
+                    continue
+            cleaned_fields.append(field)
+        return cleaned_fields
+
+    for fields in split_stdout_lines(stdout):
+        try:
+            fields = clean_fields(fields, ignored_value_indices)
+
+            offset = int(fields[offset_index])
+            peptide = str(fields[peptide_index])
+            allele = str(fields[allele_index])
+            ic50 = float(fields[ic50_index])
+            rank = float(fields[rank_index]) if rank_index else 0.0
+            log_ic50 = float(fields[log_ic50_index])
+
+            key = str(fields[key_index])
+            if sequence_key_mapping:
+                original_key = sequence_key_mapping[key]
+            else:
+                # if sequence_key_mapping isn't provided then let's assume it's the
+                # identity function
+                original_key = key
+
+            builder.add_binding_prediction(
+                source_sequence_key=original_key,
+                offset=offset,
+                peptide=peptide,
+                allele=allele,
+                ic50=ic50,
+                rank=rank,
+                log_ic50=log_ic50)
+        except:
+            continue
+    return builder.get_collection()
 
 def parse_netmhc3_stdout(
         stdout,
@@ -110,55 +185,19 @@ def parse_netmhc3_stdout(
     3  NKFFFQQQQ         0.050        29197                         A2 HLA-A02:01
     --------------------------------------------------------------------------------------------------
     """
-
-    builder = EpitopeCollectionBuilder(
+    return parse_stdout(
+        stdout=stdout,
         fasta_dictionary=fasta_dictionary,
-        prediction_method_name=prediction_method_name)
-
-    for fields in split_stdout_lines(stdout):
-        if len(fields) >= 6:
-            pos, peptide, log_affinity, ic50 = fields[:4]
-            # annoyingly, the space between "affinity" and "Protein Name" may
-            # have "WB" for weak binders and "SB" for strong binders. Couldn't
-            # they at least have left those at the end?
-            #
-            # WARNING: if the sequence key is called "SB" or "WB" then those
-            # lines will be ignored.
-            #
-            # TODO: use NetMHC's XLS output instead? Strangely, it seems
-            # different from the format parsed below.
-            if fields[4] == "WB" or fields[4] == "SB":
-                if len(fields) < 7:
-                    continue
-                key, allele = fields[5:7]
-            else:
-                key, allele = fields[4:6]
-            try:
-                pos = int(pos)
-                allele = str(allele)
-                peptide = str(peptide)
-                key = str(key)
-                log_affinity = float(log_affinity)
-                ic50 = float(ic50)
-            except:
-                # if position or affinity values can't be parsed,
-                # then skip this line
-                continue
-            if sequence_key_mapping:
-                original_key = sequence_key_mapping[key]
-            else:
-                # if sequence_key_mapping isn't provided then let's assume it's the
-                # identity function
-                original_key = key
-            builder.add_binding_prediction(
-                source_sequence_key=original_key,
-                offset=pos,
-                peptide=peptide,
-                allele=allele,
-                ic50=ic50,
-                log_ic50=log_affinity,
-                rank=0.0)
-    return builder.get_collection()
+        prediction_method_name=prediction_method_name,
+        sequence_key_mapping=sequence_key_mapping,
+        key_index=4,
+        offset_index=0,
+        peptide_index=1,
+        allele_index=5,
+        ic50_index=3,
+        rank_index=None,
+        log_ic50_index=2,
+        ignored_value_indices={"WB": 4, "SB": 4})
 
 def parse_netmhc4_stdout(
         stdout,
@@ -183,55 +222,25 @@ def parse_netmhc4_stdout(
       219    HLA-A0201    QLLRDNLTL    QLLRDNLTL      0      0      0      0      0    QLLRDNLTL 143B_BOVIN_P293         0.527       167.10     1.50 <= WB
     -----------------------------------------------------------------------------------
     """
-    builder = EpitopeCollectionBuilder(
+    return parse_stdout(
+        stdout=stdout,
         fasta_dictionary=fasta_dictionary,
-        prediction_method_name=prediction_method_name)
-
-    n_fields = 14
-    for fields in split_stdout_lines(stdout):
-        if len(fields) < n_fields:
-            continue
-
-        pos, allele, peptide, core, offset, i_pos, i_len, d_pos, d_len, i_core, key, log_affinity, ic50, rank = fields[:n_fields]
-        try:
-            pos = int(pos)
-            allele = str(allele)
-            peptide = str(peptide)
-            key = str(key)
-            log_affinity = float(log_affinity)
-            ic50 = float(ic50)
-            rank = float(rank)
-        except:
-            # if position or affinity values can't be parsed,
-            # then skip this line
-            continue
-        if sequence_key_mapping:
-            original_key = sequence_key_mapping[key]
-        else:
-            # if sequence_key_mapping isn't provided then let's assume it's the
-            # identity function
-            original_key = key
-        builder.add_binding_prediction(
-            source_sequence_key=original_key,
-            offset=pos,
-            peptide=peptide,
-            allele=allele,
-            ic50=ic50,
-            rank=rank,
-            log_ic50=log_affinity)
-    return builder.get_collection()
+        prediction_method_name=prediction_method_name,
+        sequence_key_mapping=sequence_key_mapping,
+        key_index=10,
+        offset_index=0,
+        peptide_index=2,
+        allele_index=1,
+        ic50_index=12,
+        rank_index=13,
+        log_ic50_index=11)
 
 def parse_netmhcpan_stdout(
         stdout,
         fasta_dictionary,
         prediction_method_name="netmhcpan",
-        sequence_key_mapping=None,
-        contains_class2_columns=False):
+        sequence_key_mapping=None):
     """
-    Parse the output format for NetMHCpan, NetMHCIIpan* and NetMHCcons, which looks like:
-
-     * netMHCIIpan has two extra fields
-
     # Affinity Threshold for Strong binding peptides  50.000',
     # Affinity Threshold for Weak binding peptides 500.000',
     # Rank Threshold for Strong binding peptides   0.500',
@@ -252,118 +261,95 @@ def parse_netmhcpan_stdout(
      10  HLA-A*02:03    THIIIASSS   id0         0.040     32361.18   50.00
      11  HLA-A*02:03    HIIIASSSL   id0         0.515       189.74    4.00 <= WB
     """
-
-    builder = EpitopeCollectionBuilder(
-        fasta_dictionary=fasta_dictionary,
-        prediction_method_name=prediction_method_name)
-
-    # netMHCIIpan has some extra fields
-    n_required_fields = 9 if contains_class2_columns else 7
-    for fields in split_stdout_lines(stdout):
-        if len(fields) >= n_required_fields:
-            if contains_class2_columns:
-                pos, allele, peptide, key, Pos, Core, log_affinity, ic50, rank = (
-                    fields[:n_required_fields])
-            else:
-                pos, allele, peptide, key, log_affinity, ic50, rank = fields[:n_required_fields]
-            try:
-                pos = int(pos)
-                allele = str(allele)
-                peptide = str(peptide)
-                key = str(key)
-                log_affinity = float(log_affinity)
-                ic50 = float(ic50)
-                rank = float(rank)
-            except:
-                # if position or affinity values can't be parsed,
-                # then skip this line
-                continue
-            if sequence_key_mapping:
-                original_key = sequence_key_mapping[key]
-            else:
-                # if sequence_key_mapping isn't provided then let's assume it's the
-                # identity function
-                original_key = key
-            builder.add_binding_prediction(
-                source_sequence_key=original_key,
-                offset=pos,
-                peptide=peptide,
-                allele=allele,
-                ic50=ic50,
-                rank=rank,
-                log_ic50=log_affinity)
-    return builder.get_collection()
-
-def parse_netmhciipan_stdout(
-        stdout,
-        fasta_dictionary,
-        prediction_method_name,
-        sequence_key_mapping=None):
-    return parse_netmhcpan_stdout(
+    return parse_stdout(
         stdout=stdout,
         fasta_dictionary=fasta_dictionary,
         prediction_method_name=prediction_method_name,
         sequence_key_mapping=sequence_key_mapping,
-        contains_class2_columns=True)
+        key_index=3,
+        offset_index=0,
+        peptide_index=2,
+        allele_index=1,
+        ic50_index=5,
+        rank_index=6,
+        log_ic50_index=4)
 
-def parse_xls_file(
-        xls_contents,
+def parse_netmhccons_stdout(
+        stdout,
         fasta_dictionary,
-        prediction_method_name,
+        prediction_method_name="netmhccons",
         sequence_key_mapping=None):
     """
-    XLS is a wacky output format used by NetMHCpan and NetMHCcons
-    for peptide binding predictions.
-
-    First line of XLS file format has HLA alleles
-    and second line has fields like:
-        ['Pos', 'Peptide', 'ID',
-         '1-log50k', 'nM', 'Rank',
-         '1-log50k', 'nM', 'Rank',
-         '1-log50k', 'nM', 'Rank',
-         ...'Ave', 'NB']
+    # Affinity Threshold for Strong binding peptides  50.000',
+    # Affinity Threshold for Weak binding peptides 500.000',
+    # Rank Threshold for Strong binding peptides   0.500',
+    # Rank Threshold for Weak binding peptides   2.000',
+    ----------------------------------------------------------------------------
+    pos  HLA  peptide  Identity 1-log50k(aff) Affinity(nM)    %Rank  BindLevel
+    ----------------------------------------------------------------------------
+      0  HLA-A*02:03    QQQQQYFPE   id0         0.024     38534.25   50.00
+      1  HLA-A*02:03    QQQQYFPEI   id0         0.278      2461.53   15.00
+      2  HLA-A*02:03    QQQYFPEIT   id0         0.078     21511.53   50.00
+      3  HLA-A*02:03    QQYFPEITH   id0         0.041     32176.84   50.00
+      4  HLA-A*02:03    QYFPEITHI   id0         0.085     19847.09   32.00
+      5  HLA-A*02:03    YFPEITHII   id0         0.231      4123.85   15.00
+      6  HLA-A*02:03    FPEITHIII   id0         0.060     26134.28   50.00
+      7  HLA-A*02:03    PEITHIIIA   id0         0.034     34524.63   50.00
+      8  HLA-A*02:03    EITHIIIAS   id0         0.076     21974.48   50.00
+      9  HLA-A*02:03    ITHIIIASS   id0         0.170      7934.26   32.00
+     10  HLA-A*02:03    THIIIASSS   id0         0.040     32361.18   50.00
+     11  HLA-A*02:03    HIIIASSSL   id0         0.515       189.74    4.00 <= WB
     """
-    lines = [
-        line.split("\t")
-        for line in xls_contents.split("\n")
-        if len(line) > 0
-    ]
-
-    if len(lines) == 0:
-        raise ValueError("Empty XLS file for %s result" % (
-            prediction_method_name,))
-
-    # top line of XLS file has alleles
-    alleles = [x for x in lines[0] if len(x) > 0]
-    # skip alleles and column headers
-    lines = lines[2:]
-
-    builder = EpitopeCollectionBuilder(
+    return parse_stdout(
+        stdout=stdout,
         fasta_dictionary=fasta_dictionary,
-        prediction_method_name=prediction_method_name)
+        prediction_method_name=prediction_method_name,
+        sequence_key_mapping=sequence_key_mapping,
+        key_index=3,
+        offset_index=0,
+        peptide_index=2,
+        allele_index=1,
+        ic50_index=5,
+        rank_index=6,
+        log_ic50_index=4)
 
-    for fields in lines:
-        pos = int(fields[0])
-        epitope = fields[1]
-        key = fields[2]
-        for i, allele in enumerate(alleles):
-            # we start at an offset of 3 to skip the allele-invariant
-            # pos, epitope, identifier columns
-            # each allele has three columns: log IC50, IC50, rank
-            offset = 3 + 3 * i
-            log_ic50 = float(fields[offset])
-            ic50 = float(fields[offset + 1])
-            rank = float(fields[offset + 2])
-            if sequence_key_mapping:
-                original_key = sequence_key_mapping[key]
-            else:
-                original_key = key
-            builder.add_binding_prediction(
-                source_sequence_key=original_key,
-                offset=pos,
-                peptide=epitope,
-                allele=allele,
-                ic50=ic50,
-                rank=rank,
-                log_ic50=log_ic50)
-    return builder.get_collection()
+def parse_netmhciipan_stdout(
+        stdout,
+        fasta_dictionary,
+        prediction_method_name="netmhciipan",
+        sequence_key_mapping=None):
+    """
+    # Threshold for Strong binding peptides (IC50)	50.000 nM
+    # Threshold for Weak binding peptides (IC50)	500.000 nM
+
+    # Threshold for Strong binding peptides (%Rank)	0.5%
+    # Threshold for Weak binding peptides (%Rank)	2%
+
+    # Allele: DRB1_0301
+    --------------------------------------------------------------------------------------------------------------------------------------------
+       Seq          Allele              Peptide    Identity  Pos      Core  Core_Rel 1-log50k(aff)  Affinity(nM)  %Rank Exp_Bind  BindingLevel
+    --------------------------------------------------------------------------------------------------------------------------------------------
+         0         DRB1_0301      AGFKGEQGPKGEPG    Sequence    2    FKGEQGPKG 0.810         0.080      21036.68  50.00   9.999       
+         1         DRB1_0301     GELIGTLNAAKVPAD    Sequence    2    LIGTLNAAK 0.650         0.340       1268.50  32.00   9.999       
+         2         DRB1_0301    PEVIPMFSALSEGATP    Sequence    5    MFSALSEGA 0.385         0.180       7161.16  50.00   9.999       
+         3         DRB1_0301       PKYVKQNTLKLAT    Sequence    2    YVKQNTLKL 0.575         0.442        418.70   6.00   9.999   <=WB
+         4         DRB1_0301     VGSDWRFLRGYHQYA    Sequence    0    VGSDWRFLR 0.575         0.466        322.07  10.00   9.999   <=WB
+         5         DRB1_0301         XFVKQNAAALX    Sequence    2    VKQNAAALX 0.500         0.262       2939.20  15.00   9.999       
+         6         DRB1_0301     AAYSDQATPLLLSPR    Sequence    1    AYSDQATPL 0.395         0.291       2152.21  50.00   9.999       
+         7         DRB1_0301     PVSKMRMATPLLMQA    Sequence    4    MRMATPLLM 0.890         0.770         12.00   0.01   9.999   <=SB
+         8         DRB1_0301        AYMRADAAAGGA    Sequence    2    MRADAAAGG 0.835         0.303       1887.87  15.00   9.999       
+         9         DRB1_0301       PKYVKQNTLKLAT    Sequence    2    YVKQNTLKL 0.575         0.442        418.70   6.00   9.999   <=WB
+        10         DRB1_0301     ENPVVHFFKNIVTPR    Sequence    6    FFKNIVTPR 0.425         0.357       1049.04  32.00   9.999       
+    """
+    return parse_stdout(
+        stdout=stdout,
+        fasta_dictionary=fasta_dictionary,
+        prediction_method_name=prediction_method_name,
+        sequence_key_mapping=sequence_key_mapping,
+        key_index=3,
+        offset_index=0,
+        peptide_index=2,
+        allele_index=1,
+        ic50_index=7,
+        rank_index=8,
+        log_ic50_index=6)
