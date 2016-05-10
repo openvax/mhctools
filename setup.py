@@ -14,6 +14,7 @@
 
 import os
 import logging
+import re
 
 from setuptools import setup
 
