@@ -34,10 +34,19 @@ except:
     logging.warn("Conversion of long_description from MD to RST failed")
     pass
 
+with open('mhctools/__init__.py', 'r') as f:
+    version = re.search(
+        r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
+        f.read(),
+        re.MULTILINE).group(1)
+
+if not version:
+    raise RuntimeError('Cannot find version information')
+
 if __name__ == '__main__':
     setup(
         name='mhctools',
-        version="0.2.2",
+        version=version,
         description="Python interface to running command-line and web-based MHC binding predictors",
         author="Alex Rubinsteyn",
         author_email="alex {dot} rubinsteyn {at} mssm {dot} edu",
