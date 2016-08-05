@@ -1,4 +1,3 @@
-
 # Copyright (c) 2016. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,7 +35,6 @@ add_input_args(arg_parser)
 add_output_args(arg_parser)
 
 def main(args_list=None):
-
     """
     Script to make pMHC binding predictions from amino acid sequences.
 

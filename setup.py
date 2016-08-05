@@ -67,7 +67,8 @@ if __name__ == '__main__':
             'pandas>=0.13.1',
             'varcode>=0.3.17',
             'six>=1.9.0',
-            'sercol'
+            'sercol',
+            'mhcnames',
         ],
         long_description=readme,
         packages=['mhctools', 'mhctools.cli'],
