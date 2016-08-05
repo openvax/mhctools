@@ -34,20 +34,6 @@ def seq_to_str(obj, sep=","):
     else:
         return str(obj)
 
-def convert_str(obj):
-    """
-    Given a string, convert it to an int or float if possible.
-    """
-    if obj is None:
-        return obj
-    try:
-        try:
-            return int(obj)
-        except:
-            return float(obj)
-    except:
-        return str(obj)
-
 def check_sequence_dictionary(fasta_dictionary):
     if isinstance(fasta_dictionary, str):
         # sometimes we want to make predictions for just one sequence

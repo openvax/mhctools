@@ -33,7 +33,7 @@ class EpitopeCollection(Collection):
         Collection.__init__(
             self,
             elements=binding_predictions,
-            path=path,
+            sources=[path] if path else [],
             distinct=distinct,
             sort_key=sort_key)
 

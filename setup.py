@@ -69,5 +69,10 @@ if __name__ == '__main__':
             'six>=1.9.0'
         ],
         long_description=readme,
-        packages=['mhctools'],
+        packages=['mhctools', 'mhctools.cli'],
+        entry_points={
+            'console_scripts': [
+                'mhctools = mhctools.cli.script:main'
+            ]
+        }
     )
