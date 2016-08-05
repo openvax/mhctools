@@ -22,12 +22,18 @@ arg_parser = make_mhc_arg_parser(
     prog="mhctools",
     description=("Predict MHC ligands from protein sequences."))
 
-def add_input_args(parser):
-    input_group = parser.add_argument_group("Inputs")
+def add_input_args(arg_parser):
+    input_group = arg_parser.add_argument_group("Inputs")
     input_group.add_argument("--sequence", nargs="*")
     return input_group
 
+def add_output_args(parser):
+    output_group = arg_parser.add_argument_group("Outputs")
+    output_group.add_argument("--output-csv", default=None)
+    return output_group
+
 add_input_args(arg_parser)
+add_output_args(arg_parser)
 
 def main(args_list=None):
 
@@ -51,5 +57,8 @@ def main(args_list=None):
         for (i, seq)
         in enumerate(args.sequence)
     }
-    results = predictor.predict(input_dictionary)
-    print(results)
+    epitope_collection = predictor.predict(input_dictionary)
+    df = epitope_collection.to_dataframe()
+    print(df)
+    if args.output_csv:
+        df.to_csv(args.output_csv)

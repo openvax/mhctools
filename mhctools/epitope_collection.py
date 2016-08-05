@@ -16,7 +16,7 @@ from __future__ import print_function, division, absolute_import
 from collections import defaultdict
 
 import pandas as pd
-from varcode import Collection
+from sercol import Collection
 
 from .binding_prediction import BindingPrediction
 
