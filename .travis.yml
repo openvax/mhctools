@@ -41,14 +41,15 @@ env:
 install:
   - >
       conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
-      numpy scipy nose pandas matplotlib
+      numpy scipy nose pandas
   - source activate test-environment
   - pip install pypandoc
   - pip install -r requirements.txt
   - pip install .
   - pip install coveralls
 script:
-  - nosetests test --with-coverage --cover-package=mhctools && ./lint.sh
+  - ./lint.sh
+  - nosetests test --with-coverage --cover-package=mhctools
 after_success:
   coveralls
 deploy:
