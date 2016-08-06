@@ -66,8 +66,15 @@ if __name__ == '__main__':
             'numpy>=1.7',
             'pandas>=0.13.1',
             'varcode>=0.3.17',
-            'six>=1.9.0'
+            'six>=1.9.0',
+            'sercol',
+            'mhcnames',
         ],
         long_description=readme,
-        packages=['mhctools'],
+        packages=['mhctools', 'mhctools.cli'],
+        entry_points={
+            'console_scripts': [
+                'mhctools = mhctools.cli.script:main'
+            ]
+        }
     )

@@ -16,7 +16,7 @@ from __future__ import print_function, division, absolute_import
 from collections import defaultdict
 
 import pandas as pd
-from varcode import Collection
+from sercol import Collection
 
 from .binding_prediction import BindingPrediction
 
@@ -33,7 +33,7 @@ class EpitopeCollection(Collection):
         Collection.__init__(
             self,
             elements=binding_predictions,
-            path=path,
+            sources=[path] if path else [],
             distinct=distinct,
             sort_key=sort_key)
 
