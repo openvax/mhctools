@@ -82,4 +82,6 @@ class EpitopeCollection(Collection):
     def dataframe(self):
         return pd.DataFrame(
             self.elements,
-            columns=BindingPrediction._fields)
+            columns=(
+                self.elements[0]._fields if self.elements
+                else BindingPrediction._fields))
