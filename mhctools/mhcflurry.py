@@ -16,7 +16,7 @@ from __future__ import print_function, division, absolute_import
 
 import collections
 
-from mhcflurry import Mhc1BindingPredictor
+from mhcflurry import Class1BindingPredictor
 
 from .epitope_collection_builder import EpitopeCollectionBuilder
 from .common import check_sequence_dictionary
@@ -26,12 +26,15 @@ from .base_predictor import BasePredictor
 class MHCFlurry(BasePredictor):
     def __init__(self, alleles, epitope_lengths=[9], valid_alleles=None):
         BasePredictor.__init__(self, alleles, epitope_lengths, valid_alleles)
+
+        def get_predictor(allele):
+            return Class1BindingPredictor.from_allele_name(allele)
+
         self._predictors = dict(
-            (allele, Mhc1BindingPredictor(allele)) for allele in self.alleles)
+            (allele, get_predictor(allele)) for allele in self.alleles)
 
     def predict(self, fasta_dictionary):
         fasta_dictionary = check_sequence_dictionary(fasta_dictionary)
-        
         # dict of peptide sequence -> list of (fasta key, offset into sequence)
         # where the peptide came from.
         peptides = collections.defaultdict(list)  
@@ -48,7 +51,7 @@ class MHCFlurry(BasePredictor):
             binding_measure=ic50_nM)
 
         for (allele, predictor) in self._predictors.items():
-            predictions_df = predictor.predict_peptides(peptides_list)
+            predictions_df = predictor.predict(peptides_list)
             for (i, record) in predictions_df.iterrows():
                 for (key, offset) in peptides[record.Peptide]:
                     # TODO: determine percentile rank somehow.
