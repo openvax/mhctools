@@ -106,7 +106,7 @@ def parse_stdout(
     """
     Generic function for parsing any NetMHC* output, given expected indices of values of interest.
 
-    ignored_value_indices is a map from values to the positions we'll ignore them at. See 
+    ignored_value_indices is a map from values to the positions we'll ignore them at. See
     clean_fields.
     """
     builder = EpitopeCollectionBuilder(
@@ -329,17 +329,17 @@ def parse_netmhciipan_stdout(
     --------------------------------------------------------------------------------------------------------------------------------------------
        Seq          Allele              Peptide    Identity  Pos      Core  Core_Rel 1-log50k(aff)  Affinity(nM)  %Rank Exp_Bind  BindingLevel
     --------------------------------------------------------------------------------------------------------------------------------------------
-         0         DRB1_0301      AGFKGEQGPKGEPG    Sequence    2    FKGEQGPKG 0.810         0.080      21036.68  50.00   9.999       
-         1         DRB1_0301     GELIGTLNAAKVPAD    Sequence    2    LIGTLNAAK 0.650         0.340       1268.50  32.00   9.999       
-         2         DRB1_0301    PEVIPMFSALSEGATP    Sequence    5    MFSALSEGA 0.385         0.180       7161.16  50.00   9.999       
+         0         DRB1_0301      AGFKGEQGPKGEPG    Sequence    2    FKGEQGPKG 0.810         0.080      21036.68  50.00   9.999
+         1         DRB1_0301     GELIGTLNAAKVPAD    Sequence    2    LIGTLNAAK 0.650         0.340       1268.50  32.00   9.999
+         2         DRB1_0301    PEVIPMFSALSEGATP    Sequence    5    MFSALSEGA 0.385         0.180       7161.16  50.00   9.999
          3         DRB1_0301       PKYVKQNTLKLAT    Sequence    2    YVKQNTLKL 0.575         0.442        418.70   6.00   9.999   <=WB
          4         DRB1_0301     VGSDWRFLRGYHQYA    Sequence    0    VGSDWRFLR 0.575         0.466        322.07  10.00   9.999   <=WB
-         5         DRB1_0301         XFVKQNAAALX    Sequence    2    VKQNAAALX 0.500         0.262       2939.20  15.00   9.999       
-         6         DRB1_0301     AAYSDQATPLLLSPR    Sequence    1    AYSDQATPL 0.395         0.291       2152.21  50.00   9.999       
+         5         DRB1_0301         XFVKQNAAALX    Sequence    2    VKQNAAALX 0.500         0.262       2939.20  15.00   9.999
+         6         DRB1_0301     AAYSDQATPLLLSPR    Sequence    1    AYSDQATPL 0.395         0.291       2152.21  50.00   9.999
          7         DRB1_0301     PVSKMRMATPLLMQA    Sequence    4    MRMATPLLM 0.890         0.770         12.00   0.01   9.999   <=SB
-         8         DRB1_0301        AYMRADAAAGGA    Sequence    2    MRADAAAGG 0.835         0.303       1887.87  15.00   9.999       
+         8         DRB1_0301        AYMRADAAAGGA    Sequence    2    MRADAAAGG 0.835         0.303       1887.87  15.00   9.999
          9         DRB1_0301       PKYVKQNTLKLAT    Sequence    2    YVKQNTLKL 0.575         0.442        418.70   6.00   9.999   <=WB
-        10         DRB1_0301     ENPVVHFFKNIVTPR    Sequence    6    FFKNIVTPR 0.425         0.357       1049.04  32.00   9.999       
+        10         DRB1_0301     ENPVVHFFKNIVTPR    Sequence    6    FFKNIVTPR 0.425         0.357       1049.04  32.00   9.999
     """
     return parse_stdout(
         stdout=stdout,
@@ -350,6 +350,6 @@ def parse_netmhciipan_stdout(
         offset_index=0,
         peptide_index=2,
         allele_index=1,
-        ic50_index=7,
-        rank_index=8,
-        log_ic50_index=6)
+        ic50_index=8,
+        rank_index=9,
+        log_ic50_index=7)
