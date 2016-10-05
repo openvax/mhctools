@@ -13,9 +13,14 @@
 # limitations under the License.
 
 from __future__ import print_function, division, absolute_import
+import logging
 import sys
 
 from .args import make_mhc_arg_parser, mhc_binding_predictor_from_args
+
+
+logger = logging.getLogger(__name__)
+
 
 arg_parser = make_mhc_arg_parser(
     prog="mhctools",
@@ -57,6 +62,6 @@ def main(args_list=None):
     }
     epitope_collection = predictor.predict(input_dictionary)
     df = epitope_collection.to_dataframe()
-    print(df)
+    logger.debug(df)
     if args.output_csv:
         df.to_csv(args.output_csv)
