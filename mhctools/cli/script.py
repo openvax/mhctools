@@ -14,11 +14,13 @@
 
 from __future__ import print_function, division, absolute_import
 import logging
+import logging.config
 import sys
 
 from .args import make_mhc_arg_parser, mhc_binding_predictor_from_args
 
 
+logging.config.fileConfig('mhctools/cli/logging.conf')
 logger = logging.getLogger(__name__)
 
 

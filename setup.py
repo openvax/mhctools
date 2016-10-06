@@ -72,6 +72,7 @@ if __name__ == '__main__':
         ],
         long_description=readme,
         packages=['mhctools', 'mhctools.cli'],
+        package_data={'mhctools.cli': ['logging.conf']},
         entry_points={
             'console_scripts': [
                 'mhctools = mhctools.cli.script:main'
