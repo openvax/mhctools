@@ -20,7 +20,6 @@ import mhctools
 mhc_classes = [
     mhctools.NetMHCcons,
     mhctools.NetMHCpan,
-    mhctools.NetMHCcons,
     mhctools.NetMHC,
     mhctools.NetMHC3,
     mhctools.NetMHC4,
