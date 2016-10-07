@@ -64,6 +64,6 @@ def main(args_list=None):
     }
     epitope_collection = predictor.predict(input_dictionary)
     df = epitope_collection.to_dataframe()
-    logger.info(df)
+    logger.info('\n%s', df)
     if args.output_csv:
         df.to_csv(args.output_csv)
