@@ -21,6 +21,10 @@ import time
 # pylint: disable=import-error
 from six.moves.queue import Queue
 
+
+logger = logging.getLogger(__name__)
+
+
 class AsyncProcess(object):
     """
     A thin wrapper around Popen which starts a process asynchronously,
@@ -51,7 +55,7 @@ class AsyncProcess(object):
 
     def wait(self):
         ret_code = self.process.wait()
-        logging.info(
+        logger.debug(
             "%s finished with return code %s",
             self.cmd,
             ret_code)
@@ -70,7 +74,7 @@ def run_command(args, **kwargs):
     process = AsyncProcess(args, **kwargs)
     process.wait()
     elapsed_time = time.time() - start_time
-    logging.info("%s took %0.4f seconds", cmd, elapsed_time)
+    logger.info("%s took %0.4f seconds", cmd, elapsed_time)
 
 def run_multiple_commands_redirect_stdout(
         multiple_args_dict,
@@ -108,8 +112,11 @@ def run_multiple_commands_redirect_stdout(
 
     def add_to_queue(process):
         if print_commands:
-            print(" ".join(process.args), ">",
-                  process.redirect_stdout_file.name)
+            handler = logging.FileHandler(process.redirect_stdout_file.name)
+            handler.setLevel(logging.DEBUG)
+            logger.addHandler(handler)
+            logger.debug(" ".join(process.args))
+            logger.removeHandler(handler)
         processes.put(process)
 
     for f, args in multiple_args_dict.items():
@@ -141,7 +148,7 @@ def run_multiple_commands_redirect_stdout(
         processes.get().wait()
 
     elapsed_time = time.time() - start_time
-    logging.info(
+    logger.info(
         "Ran %d commands in %0.4f seconds",
         len(multiple_args_dict),
         elapsed_time)

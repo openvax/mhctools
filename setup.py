@@ -65,13 +65,14 @@ if __name__ == '__main__':
         install_requires=[
             'numpy>=1.7',
             'pandas>=0.13.1',
-            'varcode>=0.3.17',
+            'varcode>=0.5.9',
             'six>=1.9.0',
             'sercol>=0.0.2',
             'mhcnames',
         ],
         long_description=readme,
         packages=['mhctools', 'mhctools.cli'],
+        package_data={'mhctools.cli': ['logging.conf']},
         entry_points={
             'console_scripts': [
                 'mhctools = mhctools.cli.script:main'

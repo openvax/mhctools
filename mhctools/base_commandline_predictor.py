@@ -28,6 +28,10 @@ from .epitope_collection import EpitopeCollection
 from .file_formats import create_input_fasta_files
 from .process_helpers import run_multiple_commands_redirect_stdout
 
+
+logger = logging.getLogger(__name__)
+
+
 class BaseCommandlinePredictor(BasePredictor):
     """
     Base class for MHC binding predictors that run a local external
@@ -175,8 +179,7 @@ class BaseCommandlinePredictor(BasePredictor):
                         # our own alleles.
                         supported_alleles.add(normalize_allele_name(line))
                     except AlleleParseError as error:
-                        logging.info("Skipping allele %s: %s" % (
-                            line, error))
+                        logger.info("Skipping allele %s: %s", line, error)
                         continue
             return supported_alleles
         except:
@@ -229,7 +232,7 @@ class BaseCommandlinePredictor(BasePredictor):
                         temp_dirname = tempfile.mkdtemp(
                             prefix="tmp_%s_length_%d" % (
                                 self.program_name, length))
-                        logging.info(
+                        logger.debug(
                             "Created temporary directory %s for allele %s, length %d",
                             temp_dirname,
                             allele,

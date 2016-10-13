@@ -17,6 +17,10 @@ import logging
 import os
 import shutil
 
+
+logger = logging.getLogger(__name__)
+
+
 class CleanupFiles(object):
     """
     Context manager that deletes a set of files at the end of a block or
@@ -45,7 +49,7 @@ class CleanupFiles(object):
 
         for f in files:
             name = f.name if hasattr(f, 'name') else str(f)
-            logging.info("Cleaning up %s", name)
+            logger.debug("Cleaning up %s", name)
             try:
                 f.close()
             except:
@@ -57,14 +61,14 @@ class CleanupFiles(object):
                 pass
 
         for name in self.filenames:
-            logging.info("Cleaning up %s", name)
+            logger.debug("Cleaning up %s", name)
             try:
                 os.remove(name)
             except:
                 pass
 
         for dirname in self.directories:
-            logging.info("Removing directory %s", dirname)
+            logger.debug("Removing directory %s", dirname)
             try:
                 shutil.rmtree(dirname)
             except:

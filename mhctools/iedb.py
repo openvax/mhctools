@@ -42,6 +42,10 @@ Excluded because IEDB results lack unique IC50 & Percentile Rank columns:
 - Consensus
 """
 
+
+logger = logging.getLogger(__name__)
+
+
 VALID_CLASS_I_METHODS = [
     "netmhccons",
     "netmhcpan",
@@ -180,7 +184,7 @@ class IedbBasePredictor(BasePredictor):
             for allele in self.alleles:
                 request = self._get_iedb_request_params(
                     amino_acid_sequence, allele)
-                logging.info(
+                logger.info(
                     "Calling IEDB (%s) with request %s",
                     self.url,
                     request)
