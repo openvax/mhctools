@@ -116,6 +116,7 @@ def run_multiple_commands_redirect_stdout(
             handler.setLevel(logging.DEBUG)
             logger.addHandler(handler)
             logger.debug(" ".join(process.args))
+            logger.removeHandler(handler)
         processes.put(process)
 
     for f, args in multiple_args_dict.items():
