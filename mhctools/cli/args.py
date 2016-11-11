@@ -27,6 +27,7 @@ from .parsing_helpers import parse_int_list
 from .. import (
     NetMHC,
     NetMHCpan,
+    NetMHCpan3,
     NetMHCIIpan,
     NetMHCcons,
     RandomBindingPredictor,
@@ -44,6 +45,7 @@ logger = logging.getLogger(__name__)
 mhc_predictors = {
     "netmhc": NetMHC,
     "netmhcpan": NetMHCpan,
+    "netmhcpan3": NetMHCpan3,
     "netmhciipan": NetMHCIIpan,
     "netmhccons": NetMHCcons,
     "random": RandomBindingPredictor,

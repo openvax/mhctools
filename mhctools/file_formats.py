@@ -274,6 +274,33 @@ def parse_netmhcpan_stdout(
         rank_index=6,
         log_ic50_index=4)
 
+def parse_netmhcpan3_stdout(
+        stdout,
+        fasta_dictionary,
+        prediction_method_name="netmhcpan3",
+        sequence_key_mapping=None):
+    """
+    # Rank Threshold for Strong binding peptides   0.500
+    # Rank Threshold for Weak binding peptides   2.000
+    -----------------------------------------------------------------------------------
+    Pos          HLA         Peptide       Core Of Gp Gl Ip Il        Icore        Identity   Score Aff(nM)   %Rank  BindLevel
+    -----------------------------------------------------------------------------------
+    1  HLA-B*18:01        MFCQLAKT  MFCQLAKT-  0  0  0  8  1     MFCQLAKT     sequence0_0 0.02864 36676.0   45.00
+    2  HLA-B*18:01        FCQLAKTY  F-CQLAKTY  0  0  0  1  1     FCQLAKTY     sequence0_0 0.07993 21056.5   13.00
+    """
+    return parse_stdout(
+        stdout=stdout,
+        fasta_dictionary=fasta_dictionary,
+        prediction_method_name=prediction_method_name,
+        sequence_key_mapping=sequence_key_mapping,
+        key_index=10,
+        offset_index=4,
+        peptide_index=2,
+        allele_index=1,
+        ic50_index=12,
+        rank_index=13,
+        log_ic50_index=11)
+
 def parse_netmhccons_stdout(
         stdout,
         fasta_dictionary,
