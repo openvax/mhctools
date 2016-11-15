@@ -235,7 +235,7 @@ def parse_netmhc4_stdout(
         rank_index=13,
         log_ic50_index=11)
 
-def parse_netmhcpan_stdout(
+def parse_netmhcpan2_stdout(
         stdout,
         fasta_dictionary,
         prediction_method_name="netmhcpan",

@@ -1,4 +1,4 @@
-# Copyright (c) 2014. Mount Sinai School of Medicine
+# Copyright (c) 2016. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,7 +24,8 @@ class NetMHCpan3(BaseCommandlinePredictor):
             epitope_lengths=[9],
             program_name="netMHCpan-3.0",
             max_file_records=None,
-            process_limit=0):
+            process_limit=0,
+            extra_flags=[]):
         BaseCommandlinePredictor.__init__(
             self,
             program_name=program_name,
@@ -35,5 +36,6 @@ class NetMHCpan3(BaseCommandlinePredictor):
             input_fasta_flag="-f",
             length_flag="-l",
             allele_flag="-a",
+            extra_flags=extra_flags,
             max_file_records=max_file_records,
             process_limit=process_limit)

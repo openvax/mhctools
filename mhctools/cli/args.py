@@ -26,7 +26,10 @@ from mhcnames import normalize_allele_name
 from .parsing_helpers import parse_int_list
 from .. import (
     NetMHC,
+    NetMHC3,
+    NetMHC4,
     NetMHCpan,
+    NetMHCpan2,
     NetMHCpan3,
     NetMHCIIpan,
     NetMHCcons,
@@ -44,7 +47,10 @@ logger = logging.getLogger(__name__)
 
 mhc_predictors = {
     "netmhc": NetMHC,
+    "netmhc3": NetMHC3,
+    "netmhc4": NetMHC4,
     "netmhcpan": NetMHCpan,
+    "netmhcpan2": NetMHCpan2,
     "netmhcpan3": NetMHCpan3,
     "netmhciipan": NetMHCIIpan,
     "netmhccons": NetMHCcons,
