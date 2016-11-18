@@ -20,6 +20,7 @@ from varcode import Variant, MutationEffect
 
 from .epitope_collection_builder import EpitopeCollectionBuilder
 
+
 def create_input_fasta_files(fasta_dictionary, max_file_records=None):
     """
     Turn peptide entries from a dataframe into one or more FASTA files.
@@ -102,18 +103,22 @@ def parse_stdout(
         ic50_index,
         rank_index,
         log_ic50_index,
-        ignored_value_indices={}):
+        ignored_value_indices={},
+        transforms={}):
     """
     Generic function for parsing any NetMHC* output, given expected indices of values of interest.
 
     ignored_value_indices is a map from values to the positions we'll ignore them at. See 
     clean_fields.
+
+    transforms is a map from field index to a transform function to be applied to values in that
+    field. See clean_fields.
     """
     builder = EpitopeCollectionBuilder(
         fasta_dictionary=fasta_dictionary,
         prediction_method_name=prediction_method_name)
 
-    def clean_fields(fields, ignored_value_indices):
+    def clean_fields(fields, ignored_value_indices, transforms):
         """
         Sometimes, NetMHC* has fields that are only populated sometimes, which results in
         different count/indexing of the fields when that happens.
@@ -123,6 +128,10 @@ def parse_stdout(
         Warning: this may result in unexpected behavior sometimes. For example, we ignore "SB" and
         "WB" for NetMHC 3.x output; which also means that any line with a key called SB or WB will
         be ignored.
+
+        Also, sometimes NetMHC* will have fields that we want to modify in some consistent way, e.g.
+        NetMHCpan3 has 1-based offsets and all other predictors have 0-based offsets (and we rely
+        on 0-based offsets). We handle this using a map from field index to transform function.
         """
         cleaned_fields = []
         for i, field in enumerate(fields):
@@ -132,12 +141,15 @@ def parse_stdout(
                 # Is the value we want to ignore at the index where we'd ignore it?
                 if ignored_index == i:
                     continue
-            cleaned_fields.append(field)
+
+            # transform this field if the index is in transforms, otherwise leave alone
+            cleaned_field = transforms[i](field) if i in transforms else field
+            cleaned_fields.append(cleaned_field)
         return cleaned_fields
 
     for fields in split_stdout_lines(stdout):
         try:
-            fields = clean_fields(fields, ignored_value_indices)
+            fields = clean_fields(fields, ignored_value_indices, transforms)
 
             offset = int(fields[offset_index])
             peptide = str(fields[peptide_index])
@@ -235,7 +247,7 @@ def parse_netmhc4_stdout(
         rank_index=13,
         log_ic50_index=11)
 
-def parse_netmhcpan2_stdout(
+def parse_netmhcpan28_stdout(
         stdout,
         fasta_dictionary,
         prediction_method_name="netmhcpan",
@@ -288,18 +300,22 @@ def parse_netmhcpan3_stdout(
     1  HLA-B*18:01        MFCQLAKT  MFCQLAKT-  0  0  0  8  1     MFCQLAKT     sequence0_0 0.02864 36676.0   45.00
     2  HLA-B*18:01        FCQLAKTY  F-CQLAKTY  0  0  0  1  1     FCQLAKTY     sequence0_0 0.07993 21056.5   13.00
     """
+    transforms = {
+        0: lambda x: int(x) - 1,
+    }
     return parse_stdout(
         stdout=stdout,
         fasta_dictionary=fasta_dictionary,
         prediction_method_name=prediction_method_name,
         sequence_key_mapping=sequence_key_mapping,
         key_index=10,
-        offset_index=4,
+        offset_index=0,
         peptide_index=2,
         allele_index=1,
         ic50_index=12,
         rank_index=13,
-        log_ic50_index=11)
+        log_ic50_index=11,
+        transforms=transforms)
 
 def parse_netmhccons_stdout(
         stdout,

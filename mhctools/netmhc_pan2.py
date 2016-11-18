@@ -15,9 +15,9 @@
 from __future__ import print_function, division, absolute_import
 
 from .base_commandline_predictor import BaseCommandlinePredictor
-from .file_formats import parse_netmhcpan2_stdout
+from .file_formats import parse_netmhcpan28_stdout
 
-class NetMHCpan2(BaseCommandlinePredictor):
+class NetMHCpan28(BaseCommandlinePredictor):
     def __init__(
             self,
             alleles,
@@ -30,7 +30,7 @@ class NetMHCpan2(BaseCommandlinePredictor):
             self,
             program_name=program_name,
             alleles=alleles,
-            parse_output_fn=parse_netmhcpan2_stdout,
+            parse_output_fn=parse_netmhcpan28_stdout,
             epitope_lengths=epitope_lengths,
             supported_alleles_flag="-listMHC",
             input_fasta_flag="-f",

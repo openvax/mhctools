@@ -22,7 +22,7 @@ class NetMHCpan3(BaseCommandlinePredictor):
             self,
             alleles,
             epitope_lengths=[9],
-            program_name="netMHCpan-3.0",
+            program_name="netMHCpan",
             max_file_records=None,
             process_limit=0,
             extra_flags=[]):

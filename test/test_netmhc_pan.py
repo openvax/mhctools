@@ -1,6 +1,6 @@
 from nose.tools import raises, eq_
 
-from mhctools import NetMHCpan, NetMHCpan2, NetMHCpan3
+from mhctools import NetMHCpan, NetMHCpan28, NetMHCpan3
 from mhctools.alleles import normalize_allele_name
 
 
@@ -19,15 +19,16 @@ def run_class_with_executable(mhcpan_class, mhcpan_executable):
     }
     return predictor.predict(fasta_dictionary=fasta_dictionary)
 
-@raises(SystemError)
-def test_executable_mismatch_2_3():
-    run_class_with_executable(NetMHCpan2, "netMHCpan3")
-
-@raises(SystemError)
-def test_executable_mismatch_3_2():
-    run_class_with_executable(NetMHCpan3, "netMHCpan2")
-
 def test_netmhc_pan():
     epitope_collection = run_class_with_executable(NetMHCpan, "netMHCpan")
     assert len(epitope_collection) == 4, \
             "Expected 4 epitopes from %s" % (epitope_collection,)
+    for epitope in epitope_collection:
+        # recompute the peptide from the offset and starting sequence, and make sure it matches.
+        # this is currently wrong in netMHCpan-3.0 and we want to test our wrapper fix to that
+        offset = epitope.offset
+        length = epitope.length
+        expected_peptide = epitope.source_sequence[offset:offset+length]
+        eq_(expected_peptide, epitope.peptide,
+            "Peptide mismatch: expected %s but got %s in binding prediction '%s'" % (
+                expected_peptide, epitope.peptide, epitope,))

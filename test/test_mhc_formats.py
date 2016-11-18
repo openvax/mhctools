@@ -1,5 +1,5 @@
 from mhctools.file_formats import (
-  parse_netmhcpan2_stdout,
+  parse_netmhcpan28_stdout,
   parse_netmhcpan3_stdout,
   parse_netmhc3_stdout,
   parse_netmhc4_stdout,
@@ -120,8 +120,8 @@ Protein PEPLIST. Allele HLA-A0202. Number of high binders 0. Number of weak bind
         if entry.peptide == "AEFGPWQTV":
             assert entry.value > 10000
 
-def test_mhcpan2_stdout():
-    netmhcpan2_output = """
+def test_mhcpan28_stdout():
+    netmhcpan28_output = """
     # Affinity Threshold for Strong binding peptides  50.000',
     # Affinity Threshold for Weak binding peptides 500.000',
     # Rank Threshold for Strong binding peptides   0.500',
@@ -147,8 +147,8 @@ def test_mhcpan2_stdout():
       "id0": "QQQQQYFPEITHIIASSSL"
     }
 
-    epitope_collection = parse_netmhcpan2_stdout(
-      netmhcpan2_output,
+    epitope_collection = parse_netmhcpan28_stdout(
+      netmhcpan28_output,
       fasta_dictionary=fasta_dictionary,
       prediction_method_name="netmhcpan")
 

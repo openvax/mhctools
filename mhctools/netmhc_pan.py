@@ -16,7 +16,7 @@ from __future__ import print_function, division, absolute_import
 import logging
 from subprocess import check_output
 
-from .netmhc_pan2 import NetMHCpan2
+from .netmhc_pan2 import NetMHCpan28
 from .netmhc_pan3 import NetMHCpan3
 from .process_helpers import run_command
 
@@ -29,26 +29,29 @@ def NetMHCpan(alleles,
            program_name="netMHCpan",
            max_file_records=None):
     """
-    This function wraps NetMHCPan2 and NetMHCPan3 to automatically detect which class
+    This function wraps NetMHCpan28 and NetMHCpan3 to automatically detect which class
     to use, with the help of the miraculous and strange '--version' netmhcpan argument.
     """
-    # convert to str since Python3 returns a `bytes` object
+    # convert to str since Python3 returns a `bytes` object. The '3' here is meaningless,
+    # but it is necessary to call `netmhcpan --version` with some argument, otherwise
+    # it hangs.
     output = check_output([
         program_name, "--version", "3",
     ])
     output_str = output.decode("ascii", "ignore")
     if "NetMHCpan version 2.8" in output_str:
-    	return NetMHCpan2(
+    	return NetMHCpan28(
 	    	alleles=alleles,
 	    	epitope_lengths=epitope_lengths,
 	    	program_name=program_name,
 	    	max_file_records=max_file_records)
 
-    if "NetMHCpan version 3.0" not in output_str:
-    	logger.info("Unknown version of netmhcpan, defaulting to 3.0")
-    
-    return NetMHCpan3(
-    	alleles=alleles,
-    	epitope_lengths=epitope_lengths,
-    	program_name=program_name,
-    	max_file_records=max_file_records)
+    elif "NetMHCpan version 3.0" in output_str:
+        return NetMHCpan3(
+            alleles=alleles,
+            epitope_lengths=epitope_lengths,
+            program_name=program_name,
+            max_file_records=max_file_records)
+
+    else:
+        raise SystemError("This software expects NetMHCpan version 2.8 or 3.0")
