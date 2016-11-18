@@ -50,7 +50,7 @@ mhc_predictors = {
     "netmhc3": NetMHC3,
     "netmhc4": NetMHC4,
     "netmhcpan": NetMHCpan,
-    "netmhcpan2": NetMHCpan28,
+    "netmhcpan28": NetMHCpan28,
     "netmhcpan3": NetMHCpan3,
     "netmhciipan": NetMHCIIpan,
     "netmhccons": NetMHCcons,
