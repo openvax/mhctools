@@ -16,7 +16,7 @@ from __future__ import print_function, division, absolute_import
 import logging
 from subprocess import check_output
 
-from .netmhc_pan2 import NetMHCpan28
+from .netmhc_pan28 import NetMHCpan28
 from .netmhc_pan3 import NetMHCpan3
 from .process_helpers import run_command
 
