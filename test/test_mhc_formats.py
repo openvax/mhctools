@@ -1,4 +1,9 @@
-from mhctools.file_formats import parse_netmhcpan_stdout, parse_netmhc3_stdout, parse_netmhc4_stdout
+from mhctools.file_formats import (
+  parse_netmhcpan28_stdout,
+  parse_netmhcpan3_stdout,
+  parse_netmhc3_stdout,
+  parse_netmhc4_stdout,
+)
 
 def test_netmhc3_stdout():
     """
@@ -115,8 +120,8 @@ Protein PEPLIST. Allele HLA-A0202. Number of high binders 0. Number of weak bind
         if entry.peptide == "AEFGPWQTV":
             assert entry.value > 10000
 
-def test_mhcpan_stdout():
-    netmhcpan_output = """
+def test_mhcpan28_stdout():
+    netmhcpan28_output = """
     # Affinity Threshold for Strong binding peptides  50.000',
     # Affinity Threshold for Weak binding peptides 500.000',
     # Rank Threshold for Strong binding peptides   0.500',
@@ -142,8 +147,8 @@ def test_mhcpan_stdout():
       "id0": "QQQQQYFPEITHIIASSSL"
     }
 
-    epitope_collection = parse_netmhcpan_stdout(
-      netmhcpan_output,
+    epitope_collection = parse_netmhcpan28_stdout(
+      netmhcpan28_output,
       fasta_dictionary=fasta_dictionary,
       prediction_method_name="netmhcpan")
 
@@ -156,3 +161,45 @@ def test_mhcpan_stdout():
             # expect the epitopes to be sorted in increasing IC50
             assert entry.value == 189.74
             assert entry.percentile_rank == 4.00
+
+def test_mhcpan3_stdout():
+    netmhcpan3_output = """
+    # Rank Threshold for Strong binding peptides   0.500
+    # Rank Threshold for Weak binding peptides   2.000
+    -----------------------------------------------------------------------------------
+      Pos          HLA         Peptide       Core Of Gp Gl Ip Il        Icore        Identity   Score Aff(nM)   %Rank  BindLevel
+    -----------------------------------------------------------------------------------
+        1  HLA-B*18:01        QQQQQYFP  QQQQQYFP-  0  0  0  8  1     QQQQQYFP             id0 0.06456 24866.4   17.00
+        2  HLA-B*18:01        QQQQYFPE  QQQQYFPE-  0  0  0  8  1     QQQQYFPE             id0 0.06446 24892.8   17.00
+        3  HLA-B*18:01        QQQYFPEI  QQ-QYFPEI  0  0  0  2  1     QQQYFPEI             id0 0.06108 25819.2   18.00
+        4  HLA-B*18:01        QQYFPEIT  QQYFPEIT-  0  0  0  8  1     QQYFPEIT             id0 0.04229 31642.1   29.00
+        5  HLA-B*18:01        QYFPEITH  -QYFPEITH  0  0  0  0  1     QYFPEITH             id0 0.05316 28130.5   22.00
+        6  HLA-B*18:01        YFPEITHI  Y-FPEITHI  0  0  0  1  1     YFPEITHI             id0 0.02576 37836.9   50.00
+        7  HLA-B*18:01        FPEITHII  FP-EITHII  0  0  0  2  1     FPEITHII             id0 0.06199 25566.2   18.00
+        8  HLA-B*18:01        PEITHIIA  PEITHIIA-  0  0  0  8  1     PEITHIIA             id0 0.06692 24239.3   16.00
+        9  HLA-B*18:01        EITHIIAS  -EITHIIAS  0  0  0  0  1     EITHIIAS             id0 0.09323 18234.7   10.00
+       10  HLA-B*18:01        ITHIIASS  ITHIIASS-  0  0  0  8  1     ITHIIASS             id0 0.01784 41223.5   70.00
+       11  HLA-B*18:01        THIIASSS  THIIASSS-  0  0  0  8  1     THIIASSS             id0 0.03335 34856.1   38.00
+       12  HLA-B*18:01        HIIASSSL  -HIIASSSL  0  0  0  0  1     HIIASSSL             id0 0.03049 35949.6   42.00
+
+    """
+
+    fasta_dictionary = {
+      "id0": "QQQQQYFPEITHIIASSSL"
+    }
+
+    epitope_collection = parse_netmhcpan3_stdout(
+      netmhcpan3_output,
+      fasta_dictionary=fasta_dictionary,
+      prediction_method_name="netmhcpan")
+
+    assert len(epitope_collection) == 12
+    for i, entry in enumerate(epitope_collection):
+        assert entry.allele == 'HLA-B*18:01', \
+            "Expected entry %s to have allele 'HLA-B*18:01'" % (entry,)
+        if i == 0:
+            # expect the epitopes to be sorted in increasing IC50
+            assert entry.value == 18234.7
+            assert entry.percentile_rank == 10.00
+
+
