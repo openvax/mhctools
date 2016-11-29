@@ -18,8 +18,9 @@ import logging.config
 import pkg_resources
 import sys
 
-from .args import make_mhc_arg_parser, mhc_binding_predictor_from_args
+from pyensembl.fasta import parse_fasta_dictionary
 
+from .args import make_mhc_arg_parser, mhc_binding_predictor_from_args
 
 logging.config.fileConfig(pkg_resources.resource_filename(__name__, 'logging.conf'))
 logger = logging.getLogger(__name__)
@@ -31,7 +32,15 @@ arg_parser = make_mhc_arg_parser(
 
 def add_input_args(arg_parser):
     input_group = arg_parser.add_argument_group("Inputs")
-    input_group.add_argument("--sequence", nargs="*")
+    input_group.add_argument(
+        "--sequence",
+        nargs="*",
+        help=(
+            "Protein sequences from which MHC binding predictor will extract "
+            "potentially shorter peptides."))
+    input_group.add_argument(
+        "--input-fasta-file",
+        help="Path to FASTA file which contains protein sequences")
     return input_group
 
 def add_output_args(parser):
@@ -58,11 +67,22 @@ def main(args_list=None):
         args_list = sys.argv[1:]
     args = arg_parser.parse_args(args_list)
     predictor = mhc_binding_predictor_from_args(args)
-    input_dictionary = {
-        ("sequence%d" % i): seq
-        for (i, seq)
-        in enumerate(args.sequence)
-    }
+    if args.sequence:
+        input_dictionary = {
+            ("input-sequence-%d" % i): seq
+            for (i, seq)
+            in enumerate(args.sequence)
+        }
+    else:
+        input_dictionary = {}
+
+    if args.input_fasta_file:
+        input_dictionary.update(parse_fasta_dictionary(args.input_fasta_file))
+
+    if len(input_dictionary) == 0:
+        raise ValueError(
+            ("No input sequences provided, "
+             "use either --sequence or --input-fasta-file"))
     epitope_collection = predictor.predict(input_dictionary)
     df = epitope_collection.to_dataframe()
     logger.info('\n%s', df)
