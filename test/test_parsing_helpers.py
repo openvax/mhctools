@@ -1,5 +1,5 @@
 from nose.tools import eq_
-from mhctools.cli.parsing_helpers import parse_int_list, parse_fasta_string
+from mhctools.cli.parsing_helpers import parse_int_list
 
 def test_parse_int_list():
     # int by itself
