@@ -18,7 +18,7 @@ from .netmhc_pan3 import NetMHCpan3
 from .netmhcii_pan import NetMHCIIpan
 from .random_predictor import RandomBindingPredictor
 
-__version__ = "0.3.1"
+__version__ = "0.4.0"
 
 __all__ = [
     "normalize_allele_name",
