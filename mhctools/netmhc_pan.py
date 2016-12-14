@@ -47,8 +47,8 @@ def NetMHCpan(alleles,
 	    	epitope_lengths=epitope_lengths,
 	    	program_name=program_name,
 	    	max_file_records=max_file_records,
-		process_limit=process_limit,
-		extra_flags=extra_flags)
+                process_limit=process_limit,
+                extra_flags=extra_flags)
 
     elif "NetMHCpan version 3.0" in output_str:
         return NetMHCpan3(
@@ -56,8 +56,8 @@ def NetMHCpan(alleles,
             epitope_lengths=epitope_lengths,
             program_name=program_name,
             max_file_records=max_file_records,
-	    process_limit=process_limit,
-	    extra_flags=extra_flags)
+            process_limit=process_limit,
+            extra_flags=extra_flags)
 
     else:
         raise SystemError("This software expects NetMHCpan version 2.8 or 3.0")
