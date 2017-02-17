@@ -1,5 +1,5 @@
 from mhctools import NetMHCcons
-from mhctools.alleles import normalize_allele_name
+from mhcnames import normalize_allele_name
 
 
 DEFAULT_ALLELE = 'HLA-A*02:01'
