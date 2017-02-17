@@ -1,7 +1,7 @@
 from nose.tools import raises, eq_
 
 from mhctools import NetMHC, NetMHC3, NetMHC4
-from mhctools.alleles import normalize_allele_name
+from mhcnames import normalize_allele_name
 
 
 def run_class_with_executable(mhc_class, mhc_executable):
@@ -16,6 +16,7 @@ def run_class_with_executable(mhc_class, mhc_executable):
     }
     epitope_collection = predictor.predict(
         fasta_dictionary=fasta_dictionary)
+    return epitope_collection
 
 @raises(SystemError)
 def test_executable_mismatch_3_4():

@@ -1,4 +1,4 @@
-# Copyright (c) 2014. Mount Sinai School of Medicine
+# Copyright (c) 2014-2017. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,8 +15,7 @@
 from __future__ import print_function, division, absolute_import
 
 from typechecks import require_iterable_of
-
-from .alleles import normalize_allele_name
+from mhcnames import normalize_allele_name
 
 
 class UnsupportedAllele(ValueError):

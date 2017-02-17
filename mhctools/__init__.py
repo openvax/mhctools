@@ -1,4 +1,3 @@
-from .alleles import normalize_allele_name
 from .binding_prediction import BindingPrediction
 from .epitope_collection import EpitopeCollection
 from .iedb import (
@@ -19,10 +18,9 @@ from .netmhc_pan3 import NetMHCpan3
 from .netmhcii_pan import NetMHCIIpan
 from .random_predictor import RandomBindingPredictor
 
-__version__ = "0.4.1"
+__version__ = "0.5.0"
 
 __all__ = [
-    "normalize_allele_name",
     "BindingPrediction",
     "EpitopeCollection",
     "IedbNetMHCcons",

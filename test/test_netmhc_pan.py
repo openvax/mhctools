@@ -1,7 +1,7 @@
-from nose.tools import raises, eq_
+from nose.tools import eq_
 
-from mhctools import NetMHCpan, NetMHCpan28, NetMHCpan3
-from mhctools.alleles import normalize_allele_name
+from mhctools import NetMHCpan
+from mhcnames import normalize_allele_name
 
 
 DEFAULT_ALLELE = 'HLA-A*02:01'
@@ -28,7 +28,7 @@ def test_netmhc_pan():
         # this is currently wrong in netMHCpan-3.0 and we want to test our wrapper fix to that
         offset = epitope.offset
         length = epitope.length
-        expected_peptide = epitope.source_sequence[offset:offset+length]
+        expected_peptide = epitope.source_sequence[offset:offset + length]
         eq_(expected_peptide, epitope.peptide,
             "Peptide mismatch: expected %s but got %s in binding prediction '%s'" % (
                 expected_peptide, epitope.peptide, epitope,))
