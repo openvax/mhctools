@@ -396,6 +396,6 @@ def parse_netmhciipan_stdout(
         offset_index=0,
         peptide_index=2,
         allele_index=1,
-        ic50_index=7,
-        rank_index=8,
-        log_ic50_index=6)
+        ic50_index=8,
+        rank_index=9,
+        log_ic50_index=7)

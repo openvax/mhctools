@@ -27,6 +27,8 @@ def test_netmhcii_pan_DRB():
     assert len(epitope_collection) == 52, \
         "Expected 52 epitopes from %s" % (epitope_collection,)
 
+    assert epitope_collection[0].value == 15.54
+
 def test_netmhcii_pan_alpha_beta():
     alleles = [normalize_allele_name("HLA-DPA1*01:05-DPB1*100:01")]
     ii_pan_predictor = NetMHCIIpan(
