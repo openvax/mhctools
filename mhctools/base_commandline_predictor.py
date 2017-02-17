@@ -18,7 +18,8 @@ from subprocess import check_output
 import tempfile
 
 from typechecks import require_string, require_integer
-from mhcnames import normalize_allele_name, AlleleParseError
+from mhcnames import normalize_allele_name
+from mhcnames.parsing_helpers import AlleleParseError
 
 from .common import check_sequence_dictionary
 from .base_predictor import BasePredictor, UnsupportedAllele
