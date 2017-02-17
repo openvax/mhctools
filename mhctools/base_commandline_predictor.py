@@ -1,4 +1,4 @@
-# Copyright (c) 2014. Mount Sinai School of Medicine
+# Copyright (c) 2014-2017. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,9 +18,9 @@ from subprocess import check_output
 import tempfile
 
 from typechecks import require_string, require_integer
+from mhcnames import normalize_allele_name, AlleleParseError
 
 from .common import check_sequence_dictionary
-from .alleles import normalize_allele_name, AlleleParseError
 from .base_predictor import BasePredictor, UnsupportedAllele
 from .process_helpers import run_command
 from .cleanup_context import CleanupFiles

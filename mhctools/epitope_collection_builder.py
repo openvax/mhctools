@@ -1,4 +1,4 @@
-# Copyright (c) 2014. Mount Sinai School of Medicine
+# Copyright (c) 2014-2017. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,8 +15,8 @@
 from __future__ import print_function, division, absolute_import
 
 import numpy as np
+from mhcnames import normalize_allele_name
 
-from .alleles import normalize_allele_name
 from .binding_measure import ic50_nM
 from .binding_prediction import BindingPrediction
 from .epitope_collection import EpitopeCollection

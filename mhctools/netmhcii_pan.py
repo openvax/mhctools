@@ -1,4 +1,4 @@
-# Copyright (c) 2014. Mount Sinai School of Medicine
+# Copyright (c) 2014-2017. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,7 +14,8 @@
 
 from __future__ import print_function, division, absolute_import
 
-from .alleles import parse_classi_or_classii_allele_name
+from mhcnames import parse_classi_or_classii_allele_name
+
 from .base_commandline_predictor import BaseCommandlinePredictor
 from .file_formats import parse_netmhciipan_stdout
 
