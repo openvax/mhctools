@@ -27,7 +27,7 @@ from .unsupported_allele import UnsupportedAllele
 from .process_helpers import run_command
 from .cleanup_context import CleanupFiles
 from .binding_prediction_collection import BindingPredictionCollection
-from .file_formats import create_input_fasta_files
+from .input_file_formats import create_input_fasta_files
 from .process_helpers import run_multiple_commands_redirect_stdout
 
 
@@ -278,7 +278,7 @@ class BaseCommandlinePredictor(BasePredictor):
                         length=length,
                         temp_dirname=temp_dirname)
 
-        epitope_collections = []
+        binding_predictions = []
 
         # Cleanup either when finished or if an exception gets raised by
         # deleting the input and output files
@@ -298,25 +298,14 @@ class BaseCommandlinePredictor(BasePredictor):
                 # but I was getting empty files otherwise
                 output_file.close()
                 with open(output_file.name, 'r') as f:
-                    epitope_collection = self.parse_output_fn(
-                        stdout=f.read(),
-                        fasta_dictionary=sequence_dict,
-                        sequence_key_mapping=sequence_key_mapping,
-                        prediction_method_name=self.program_name)
-                    epitope_collections.append(epitope_collection)
+                    binding_predictions.extend(
+                        self.parse_output_fn(
+                            stdout=f.read(),
+                            sequence_key_mapping=sequence_key_mapping,
+                            prediction_method_name=self.program_name))
 
-        if len(epitope_collections) != len(commands):
-            raise ValueError(
-                ("Expected an epitope collection for each "
-                 "command (%d), but instead there are %d") % (
-                    len(commands),
-                    len(epitope_collections)))
-
-        if len(epitope_collections) == 0:
+        if len(binding_predictions) == 0:
             logger.warn("No epitopes from %s" % self.program_name)
 
         # flatten all epitope collections into a single object
-        return BindingPredictionCollection([
-            binding_prediction
-            for sublist in epitope_collections
-            for binding_prediction in sublist])
+        return BindingPredictionCollection(binding_predictions)

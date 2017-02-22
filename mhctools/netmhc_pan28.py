@@ -15,7 +15,7 @@
 from __future__ import print_function, division, absolute_import
 
 from .base_commandline_predictor import BaseCommandlinePredictor
-from .file_formats import parse_netmhcpan28_stdout
+from .output_file_formats import parse_netmhcpan28_stdout
 
 class NetMHCpan28(BaseCommandlinePredictor):
     def __init__(

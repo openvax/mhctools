@@ -1,5 +1,5 @@
 from .binding_prediction import BindingPrediction
-from .epitope_collection import EpitopeCollection
+from .binding_prediction_collection import BindingPredictionCollection
 from .iedb import (
     IedbNetMHCcons,
     IedbNetMHCpan,
@@ -22,7 +22,7 @@ __version__ = "0.5.0"
 
 __all__ = [
     "BindingPrediction",
-    "EpitopeCollection",
+    "BindingPredictionCollection",
     "IedbNetMHCcons",
     "IedbNetMHCpan",
     "IedbSMM",

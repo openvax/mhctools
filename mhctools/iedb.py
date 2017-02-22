@@ -23,7 +23,6 @@ from six.moves.urllib.parse import urlencode
 import pandas as pd
 
 from .base_predictor import BasePredictor
-from .epitope_collection_builder import EpitopeCollectionBuilder
 from .common import seq_to_str, check_sequence_dictionary
 """
 A note about prediction methods, copied from the IEDB website:
@@ -131,13 +130,13 @@ class IedbBasePredictor(BasePredictor):
     def __init__(
             self,
             alleles,
-            epitope_lengths,
+            default_peptide_lengths,
             prediction_method,
             url):
         BasePredictor.__init__(
             self,
             alleles=alleles,
-            epitope_lengths=epitope_lengths)
+            default_peptide_lengths=default_peptide_lengths)
         self.prediction_method = prediction_method
 
         if not isinstance(url, str):
@@ -146,20 +145,20 @@ class IedbBasePredictor(BasePredictor):
         self.url = url
 
     def __str__(self):
-        return "%s(alleles=%s, epitope_lengths=%s, method=\"%s\")" % (
+        return "%s(alleles=%s, default_peptide_lengths=%s, method=\"%s\")" % (
             self.__class__.__name__,
             self.alleles,
-            self.epitope_lengths,
+            self.default_peptide_lengths,
             self.prediction_method)
 
     def _get_iedb_request_params(self, sequence, allele):
 
         params = {
             "method": seq_to_str(self.prediction_method),
-            "length": seq_to_str(self.epitope_lengths),
+            "length": seq_to_str(self.default_peptide_lengths),
             "sequence_text": sequence,
             # have to repeat allele for each length
-            "allele": ",".join([allele] * len(self.epitope_lengths)),
+            "allele": ",".join([allele] * len(self.default_peptide_lengths)),
         }
         return params
 
@@ -206,11 +205,11 @@ class IedbNetMHCcons(IedbBasePredictor):
     def __init__(
             self,
             alleles,
-            epitope_lengths=[8, 9, 10, 11]):
+            default_peptide_lengths=[8, 9, 10, 11]):
         IedbBasePredictor.__init__(
             self,
             alleles=alleles,
-            epitope_lengths=epitope_lengths,
+            default_peptide_lengths=default_peptide_lengths,
             prediction_method="netmhccons",
             url=IEDB_MHC_CLASS_I_URL)
 
@@ -218,11 +217,11 @@ class IedbNetMHCpan(IedbBasePredictor):
     def __init__(
             self,
             alleles,
-            epitope_lengths=[8, 9, 10, 11]):
+            default_peptide_lengths=[8, 9, 10, 11]):
         IedbBasePredictor.__init__(
             self,
             alleles=alleles,
-            epitope_lengths=epitope_lengths,
+            default_peptide_lengths=default_peptide_lengths,
             prediction_method="netmhcpan",
             url=IEDB_MHC_CLASS_I_URL)
 
@@ -230,11 +229,11 @@ class IedbSMM(IedbBasePredictor):
     def __init__(
             self,
             alleles,
-            epitope_lengths=[8, 9, 10, 11]):
+            default_peptide_lengths=[8, 9, 10, 11]):
         IedbBasePredictor.__init__(
             self,
             alleles=alleles,
-            epitope_lengths=epitope_lengths,
+            default_peptide_lengths=default_peptide_lengths,
             prediction_method="smm",
             url=IEDB_MHC_CLASS_I_URL)
 
@@ -242,11 +241,11 @@ class IedbSMM_PMBEC(IedbBasePredictor):
     def __init__(
             self,
             alleles,
-            epitope_lengths=[8, 9, 10, 11]):
+            default_peptide_lengths=[8, 9, 10, 11]):
         IedbBasePredictor.__init__(
             self,
             alleles=alleles,
-            epitope_lengths=epitope_lengths,
+            default_peptide_lengths=default_peptide_lengths,
             prediction_method="smmpmbec",
             url=IEDB_MHC_CLASS_I_URL)
 
@@ -256,12 +255,12 @@ class IedbNetMHCIIpan(IedbBasePredictor):
     def __init__(
             self,
             alleles,
-            epitope_lengths=[15, 16, 17, 18, 19, 20],
+            default_peptide_lengths=[15, 16, 17, 18, 19, 20],
             url=IEDB_MHC_CLASS_II_URL):
         IedbBasePredictor.__init__(
             self,
             alleles=alleles,
             # only epitope lengths of 15 currently supported by IEDB's web API
-            epitope_lengths=epitope_lengths,
+            default_peptide_lengths=default_peptide_lengths,
             prediction_method="NetMHCIIpan",
             url=IEDB_MHC_CLASS_II_URL)

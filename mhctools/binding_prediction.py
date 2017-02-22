@@ -56,7 +56,7 @@ class BindingPrediction(object):
             affinity,
             percentile_rank,
             log_affinity=None,
-            prediction_method_name=None):
+            prediction_method_name=""):
         """
         Parameters
         ----------
@@ -113,18 +113,21 @@ class BindingPrediction(object):
         self.prediction_method_name = prediction_method_name,
 
     def __str__(self):
-        return (
+        format_string = (
             "BindingPrediction("
             "source_sequence_name='%s', "
             "peptide='%s', "
-            "allele='%s', ",
+            "allele='%s', "
             "affinity=%0.4f, "
-            "percentile_rank=%0.4f)") % (
+            "percentile_rank=%0.4f, "
+            "prediction_method_name='%s')")
+        return format_string % (
                 self.source_sequence_name,
                 self.peptide,
                 self.allele,
                 self.affinity,
-                self.percentile_rank)
+                self.percentile_rank,
+                self.prediction_method_name)
 
     def __repr__(self):
         return str(self)

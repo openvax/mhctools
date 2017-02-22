@@ -17,14 +17,14 @@ from __future__ import print_function, division, absolute_import
 from mhcnames import parse_classi_or_classii_allele_name
 
 from .base_commandline_predictor import BaseCommandlinePredictor
-from .file_formats import parse_netmhciipan_stdout
+from .output_file_formats import parse_netmhciipan_stdout
 
 
 class NetMHCIIpan(BaseCommandlinePredictor):
     def __init__(
             self,
             alleles,
-            epitope_lengths=[15, 16, 17, 18, 19, 20],
+            default_peptide_lengths=[15, 16, 17, 18, 19, 20],
             program_name="netMHCIIpan",
             max_file_records=None,
             process_limit=0):
@@ -32,7 +32,7 @@ class NetMHCIIpan(BaseCommandlinePredictor):
             self,
             program_name=program_name,
             alleles=alleles,
-            epitope_lengths=epitope_lengths,
+            default_peptide_lengths=default_peptide_lengths,
             parse_output_fn=parse_netmhciipan_stdout,
             supported_alleles_flag="-list",
             input_fasta_flag="-f",

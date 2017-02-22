@@ -21,9 +21,7 @@ import time
 # pylint: disable=import-error
 from six.moves.queue import Queue
 
-
 logger = logging.getLogger(__name__)
-
 
 class AsyncProcess(object):
     """

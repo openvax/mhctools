@@ -21,14 +21,12 @@ class NetMHC3(BaseCommandlinePredictor):
     def __init__(
             self,
             alleles,
-            epitope_lengths=[9],
             program_name="netMHC",
             max_file_records=None):
         BaseCommandlinePredictor.__init__(
             self,
             program_name=program_name,
             alleles=alleles,
-            epitope_lengths=epitope_lengths,
             parse_output_fn=parse_netmhc3_stdout,
             # NetMHC just expects the first arg to be an input FASTA
             input_fasta_flag="",
