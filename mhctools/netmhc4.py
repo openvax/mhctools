@@ -21,7 +21,6 @@ class NetMHC4(BaseCommandlinePredictor):
     def __init__(
             self,
             alleles,
-            epitope_lengths=[9],
             program_name="netMHC",
             max_file_records=None,
             process_limit=0):
@@ -29,7 +28,6 @@ class NetMHC4(BaseCommandlinePredictor):
             self,
             program_name=program_name,
             alleles=alleles,
-            epitope_lengths=epitope_lengths,
             parse_output_fn=parse_netmhc4_stdout,
             input_fasta_flag="-f",
             tempdir_flag="-tdir",

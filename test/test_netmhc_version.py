@@ -8,7 +8,7 @@ def run_class_with_executable(mhc_class, mhc_executable):
     alleles = [normalize_allele_name("HLA-A*02:01")]
     predictor = mhc_class(
         alleles=alleles,
-        epitope_lengths=[9],
+        peptide_lengths=[9],
         program_name=mhc_executable)
     fasta_dictionary = {
         "SMAD4-001": "ASIINFKELA",
@@ -41,5 +41,5 @@ def test_wrapper_function():
 def test_wrapper_failure():
     alleles = [normalize_allele_name("HLA-A*02:01")]
     NetMHC(alleles=alleles,
-           epitope_lengths=[9],
+           peptide_lengths=[9],
            program_name="netMHC-none")

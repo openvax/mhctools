@@ -25,7 +25,6 @@ logger = logging.getLogger(__name__)
 
 def NetMHCpan(
         alleles,
-        epitope_lengths=[9],
         program_name="netMHCpan",
         max_file_records=None,
         process_limit=0,
@@ -44,7 +43,6 @@ def NetMHCpan(
     if "NetMHCpan version 2.8" in output_str:
         return NetMHCpan28(
             alleles=alleles,
-            epitope_lengths=epitope_lengths,
             program_name=program_name,
             max_file_records=max_file_records,
             process_limit=process_limit,
@@ -53,7 +51,6 @@ def NetMHCpan(
     elif "NetMHCpan version 3.0" in output_str:
         return NetMHCpan3(
             alleles=alleles,
-            epitope_lengths=epitope_lengths,
             program_name=program_name,
             max_file_records=max_file_records,
             process_limit=process_limit,

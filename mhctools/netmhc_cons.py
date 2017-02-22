@@ -21,7 +21,6 @@ class NetMHCcons(BaseCommandlinePredictor):
     def __init__(
             self,
             alleles,
-            epitope_lengths=[9],
             program_name="netMHCcons",
             max_file_records=None,
             process_limit=0):
@@ -29,7 +28,6 @@ class NetMHCcons(BaseCommandlinePredictor):
             self,
             program_name=program_name,
             alleles=alleles,
-            epitope_lengths=epitope_lengths,
             parse_output_fn=parse_netmhccons_stdout,
             # netMHCcons does not have a supported allele flag
             supported_alleles_flag=None,

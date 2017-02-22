@@ -8,7 +8,7 @@ def test_netmhc_cons():
     alleles = [normalize_allele_name(DEFAULT_ALLELE)]
     cons_predictor = NetMHCcons(
         alleles=alleles,
-        epitope_lengths=[9])
+        peptide_lengths=[9])
     fasta_dictionary = {
         "SMAD4-001": "ASIINFKELA",
         "TP53-001": "ASILLLVFYW"
@@ -23,7 +23,7 @@ def test_netmhc_cons_multiple_alleles():
     alleles = 'A*02:01,B*35:02'
     cons_predictor = NetMHCcons(
         alleles=alleles,
-        epitope_lengths=[9])
+        peptide_lengths=[9])
     fasta_dictionary = {
         "SMAD4-001": "ASIINFKELA",
         "TP53-001": "ASILLLVFYW"
@@ -48,7 +48,7 @@ def test_netmhc_cons_chunking():
         for process_limit in [1, 2, 10]:
             cons_predictor = NetMHCcons(
                 alleles=alleles,
-                epitope_lengths=[9],
+                peptide_lengths=[9],
                 max_file_records=max_file_records,
                 process_limit=process_limit
             )

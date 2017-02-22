@@ -6,14 +6,14 @@ from mhcnames import normalize_allele_name
 def test_netmhcii_pan_DRB():
     alleles = [normalize_allele_name("HLA-DRB1*01:01")]
     ii_pan_predictor = NetMHCIIpan(
-        alleles=alleles,
-        epitope_lengths=[15, 16])
+        alleles=alleles)
     fasta_dictionary = {
         "SMAD4-001": "PAPAPSWPLSSSVPSQKTYQGSYGFRLGFLHSGT",
         "TP53-001": "SQAMDDLMLSPDDIEQWFTED"
     }
-    epitope_collection = ii_pan_predictor.predict(
-        fasta_dictionary=fasta_dictionary)
+    epitope_collection = ii_pan_predictor.predict_subsequences(
+        sequence_dict=fasta_dictionary,
+        peptide_lengths=[15, 16])
 
     unique_lengths = {x.length for x in epitope_collection}
     eq_(unique_lengths, {15, 16})
@@ -30,15 +30,15 @@ def test_netmhcii_pan_DRB():
 def test_netmhcii_pan_alpha_beta():
     alleles = [normalize_allele_name("HLA-DPA1*01:05-DPB1*100:01")]
     ii_pan_predictor = NetMHCIIpan(
-        alleles=alleles,
-        epitope_lengths=[15, 16])
+        alleles=alleles)
     fasta_dictionary = {
         "SMAD4-001": "PAPAPSWPLSSSVPSQKTYQGSYGFRLGFLHSGT",
         "TP53-001": "SQAMDDLMLSPDDIEQWFTED"
     }
 
-    epitope_collection = ii_pan_predictor.predict(
-        fasta_dictionary=fasta_dictionary)
+    epitope_collection = ii_pan_predictor.predict_subsequences(
+        sequence_dict=fasta_dictionary,
+        peptide_lengths=[15, 16])
     unique_lengths = {x.length for x in epitope_collection}
     eq_(unique_lengths, {15, 16})
 
@@ -58,13 +58,13 @@ def test_netmhcii_pan_multiple_alleles():
         normalize_allele_name("HLA-DRB1*01:01")
     ]
     ii_pan_predictor = NetMHCIIpan(
-        alleles=alleles,
-        epitope_lengths=[15, 16])
+        alleles=alleles)
     fasta_dictionary = {
         "TP53-001": "SQAMDDLMLSPDDIEQWFTED"
     }
-    epitope_collection = ii_pan_predictor.predict(
-        fasta_dictionary=fasta_dictionary)
+    epitope_collection = ii_pan_predictor.predict_subsequences(
+        sequence_dict=fasta_dictionary,
+        peptide_lengths=[15, 16])
 
     unique_lengths = {x.length for x in epitope_collection}
     eq_(unique_lengths, {15, 16})
@@ -84,14 +84,14 @@ def test_netmhcii_pan_multiple_alleles():
 def test_netmhcii_pan_mouse():
     alleles = [normalize_allele_name("H2-IAb")]
     ii_pan_predictor = NetMHCIIpan(
-        alleles=alleles,
-        epitope_lengths=[15, 16])
+        alleles=alleles)
     fasta_dictionary = {
         "SMAD4-001": "PAPAPSWPLSSSVPSQKTYQGSYGFRLGFLHSGT",
         "TP53-001": "SQAMDDLMLSPDDIEQWFTED"
     }
     epitope_collection = ii_pan_predictor.predict(
-        fasta_dictionary=fasta_dictionary)
+        sequence_dict=fasta_dictionary,
+        peptide_lengths=[15, 16])
 
     unique_lengths = {x.length for x in epitope_collection}
     eq_(unique_lengths, {15, 16})

@@ -13,22 +13,22 @@
 # limitations under the License.
 
 from __future__ import print_function, division, absolute_import
-from collections import namedtuple
 
-"""
-Given the following single sequence FASTA file:
-    >seq0
-    MEEPQSDPSV
-the result of a binding predictor for HLA-A*02:01 will be
-a collection of the following BindingPrediction objects:
+import numpy as np
+
+class BindingPrediction(object):
+    """
+    Given the following single sequence FASTA file:
+        >seq0
+        MEEPQSDPSV
+    the result of a binding predictor for HLA-A*02:01 will be
+    a collection of the following BindingPrediction objects:
     [
         BindingPrediction(
             source_sequence_key="seq0",
-            source_sequence="MEEPQSDPSV",
             offset=0,
             allele="HLA-A*02:01",
             peptide="MEEPQSDPS",
-            length=9,
             value=0.9,
             percentile_rank=1.3,
             measure=ic50_nM,
@@ -37,40 +37,120 @@ a collection of the following BindingPrediction objects:
         ),
         BindingPrediction(
             source_sequence_key="seq0",
-            source_sequence="MEEPQSDPSV",
             offset=1,
             allele="HLA-A*02:01",
             peptide="EEPQSDPSV",
-            length=9,
             value=20.9,
             percentile_rank=39.9,
             measure=ic50_nM,
             prediction_method_name="NetMHC",
         ),
     ]
-"""
+    """
+    def __init__(
+            self,
+            source_sequence_name,
+            offset,
+            peptide,
+            allele,
+            affinity,
+            percentile_rank,
+            log_affinity=None,
+            prediction_method_name=None):
+        """
+        Parameters
+        ----------
+        source_sequence_name : str
+            Name of sequence from which peptide was extracted
 
-BindingPrediction = namedtuple("BindingPrediction",
-    [
-        # "key" of source sequence is often the ID from a FASTA file
-        "source_sequence_key",
-        # longer amino acid sequence from which peptide originated
-        "source_sequence",
-        # base-0 start position of this peptide in larger sequence
-        "offset",
-        # HLA allele, e.g. "HLA-A*02:01"
-        "allele",
-        # peptide sequence, e.g. "SIINFKELL"
-        "peptide",
-        # length of peptide
-        "length",
-        # predicted binding value
-        "value",
-        # what is the predicted value measured (a BindingMeasure object)
-        "measure",
-        # percentile rank of predicted value, if available (lower is better)
-        "percentile_rank",
-        # name of predictor e.g. "NetMHC"
-        "prediction_method_name",
+        offset : int
+            Base0 starting position in source sequence that all epitopes were
+            extracted from
 
-    ])
+        peptide : str
+            Short amino acid sequence
+
+        allele : str
+            HLA allele, e.g. HLA-A*02:01
+
+        affinity : float
+            Predicted binding affinity
+
+        percentile_rank : float
+            Percentile rank of the binding affinity for that allele
+
+        log_affinity : float, optional
+            NetMHC sometimes gives invalid IC50 values but we can still
+            reconstruct the value from its (1.0 - log_50000(IC50)) score.
+
+        prediction_method_name : str, optional
+            Name of predictor used to generate this prediction.
+        """
+        # if we have a bad IC50 score we might still get a salvageable
+        # log of the score. Strangely, this is necessary sometimes!
+        if invalid_binding_score(affinity) and np.isfinite(log_affinity):
+            affinity = 50000 ** (-log_affinity + 1)
+
+        # if IC50 is still NaN or otherwise invalid, abort
+        if invalid_binding_score(affinity):
+            raise ValueError(
+                "Invalid IC50 value %0.4f for %s w/ allele %s" % (
+                    affinity,
+                    peptide,
+                    allele))
+
+        if invalid_binding_score(percentile_rank) or percentile_rank > 100:
+            raise ValueError(
+                "Invalid percentile rank %s for %s w/ allele %s" % (
+                    percentile_rank, peptide, allele))
+
+        self.source_sequence_name = source_sequence_name
+        self.offset = offset
+        self.allele = allele
+        self.peptide = peptide
+        self.affinity = affinity
+        self.percentile_rank = percentile_rank
+        self.prediction_method_name = prediction_method_name,
+
+    def __str__(self):
+        return (
+            "BindingPrediction("
+            "source_sequence_name='%s', "
+            "peptide='%s', "
+            "allele='%s', ",
+            "affinity=%0.4f, "
+            "percentile_rank=%0.4f)") % (
+                self.source_sequence_name,
+                self.peptide,
+                self.allele,
+                self.affinity,
+                self.percentile_rank)
+
+    def __repr__(self):
+        return str(self)
+
+    @property
+    def value(self):
+        """Alias for affinity preserved for backwards compatibility"""
+        return self.affinity
+
+    def to_tuple(self):
+        return (
+            self.source_sequence_name,
+            self.offset,
+            self.peptide,
+            self.allele,
+            self.affinity,
+            self.percentile_rank,
+            self.prediction_method_name)
+
+    def __eq__(self, other):
+        return (
+            other.__class__ is BindingPrediction and
+            self.to_tuple() == other.to_tuple())
+
+    def __hash__(self):
+        return hash(self.to_tuple())
+
+def invalid_binding_score(x):
+    return x < 0 or np.isnan(x) or np.isinf(x)

@@ -11,13 +11,14 @@ def run_class_with_executable(mhcpan_class, mhcpan_executable):
     alleles = [normalize_allele_name("HLA-A*02:01")]
     predictor = mhcpan_class(
         alleles=alleles,
-        epitope_lengths=[9],
         program_name=mhcpan_executable)
     fasta_dictionary = {
         "SMAD4-001": "ASIINFKELA",
         "TP53-001": "ASILLLVFYW"
     }
-    return predictor.predict(fasta_dictionary=fasta_dictionary)
+    return predictor.predict_subsequences(
+        sequence_dict=fasta_dictionary,
+        peptide_lengths=[9])
 
 def test_netmhc_pan():
     epitope_collection = run_class_with_executable(NetMHCpan, "netMHCpan")

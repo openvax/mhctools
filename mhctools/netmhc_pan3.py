@@ -21,7 +21,6 @@ class NetMHCpan3(BaseCommandlinePredictor):
     def __init__(
             self,
             alleles,
-            epitope_lengths=[9],
             program_name="netMHCpan",
             max_file_records=None,
             process_limit=0,
@@ -31,7 +30,6 @@ class NetMHCpan3(BaseCommandlinePredictor):
             program_name=program_name,
             alleles=alleles,
             parse_output_fn=parse_netmhcpan3_stdout,
-            epitope_lengths=epitope_lengths,
             supported_alleles_flag="-listMHC",
             input_fasta_flag="-f",
             length_flag="-l",

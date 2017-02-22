@@ -50,7 +50,7 @@ if __name__ == '__main__':
         version=version,
         description="Python interface to running command-line and web-based MHC binding predictors",
         author="Alex Rubinsteyn",
-        author_email="alex {dot} rubinsteyn {at} mssm {dot} edu",
+        author_email="alex.rubinsteyn@mssm.edu",
         url="https://github.com/hammerlab/mhctools",
         license="http://www.apache.org/licenses/LICENSE-2.0.html",
         classifiers=[

@@ -17,10 +17,7 @@ from __future__ import print_function, division, absolute_import
 from typechecks import require_iterable_of
 from mhcnames import normalize_allele_name
 
-
-class UnsupportedAllele(ValueError):
-    pass
-
+from .unsupported_allele import UnsupportedAllele
 
 class BasePredictor(object):
     """
@@ -29,8 +26,8 @@ class BasePredictor(object):
     def __init__(
             self,
             alleles,
-            epitope_lengths,
-            valid_alleles=None):
+            valid_alleles=None,
+            default_peptide_lengths=None):
         """
         Parameters
         ----------
@@ -39,13 +36,13 @@ class BasePredictor(object):
             making predictions for. Example:
                 ["HLA-A*02:01", "HLA-B*07:02"]
 
-        epitope_lengths : list or int
-            List of epitope lengths to make predictions for, or
-            a single integer length.
-
         valid_alleles : list, optional
             If given, constrain HLA alleles to be contained within
             this set.
+
+        default_peptide_lengths : list of int, optional
+            When making predictions across subsequences of protein sequences,
+            what peptide lengths to predict for.
         """
         # I find myself often constructing a predictor with just one allele
         # so as a convenience, allow user to not wrap that allele as a list
@@ -53,30 +50,65 @@ class BasePredictor(object):
             alleles = alleles.split(',')
         self.alleles = self._check_hla_alleles(alleles, valid_alleles)
 
-        if isinstance(epitope_lengths, int):
-            epitope_lengths = [epitope_lengths]
-
-        if not isinstance(epitope_lengths, list):
-            raise TypeError(
-                'Expected epitope_lengths : list, got %s : %s' % (
-                    epitope_lengths,
-                    type(epitope_lengths)))
-        for length in epitope_lengths:
-            if not isinstance(length, int):
-                raise TypeError(
-                    ('Element of epitope_lengths must be int, got '
-                     '%s : %s') % (length, type(length)))
-
-        self.epitope_lengths = epitope_lengths
+        require_iterable_of(default_peptide_lengths, int)
+        self.default_peptide_lengths = default_peptide_lengths
 
     def __repr__(self):
         return str(self)
 
     def __str__(self):
-        return "%s(alleles=%s, epitope_lengths=%s)" % (
+        return "%s(alleles=%s, default_peptide_lengths=%s)" % (
             self.__class__.__name__,
             self.alleles,
-            self.epitope_lengths)
+            self.default_peptide_lengths)
+
+    def predict_peptides(self, peptides):
+        """
+        Given a list of peptide sequences, returns a BindingPredictionCollection
+        """
+        raise NotImplementedError("%s must implement predict_peptides" % (
+            self.__class__.__name__))
+
+    def _check_peptide_lengths(self, peptide_lengths=None):
+        """
+        If peptide lengths not specified, then try using the default
+        lengths associated with this predictor object. If those aren't
+        a valid non-empty sequence of integers, then raise an exception.
+        Otherwise return the peptide lengths.
+        """
+        if not peptide_lengths:
+            peptide_lengths = self.default_peptide_lengths
+
+        if not peptide_lengths:
+            raise ValueError(
+                ("Must either provide 'peptide_lengths' argument "
+                "or set 'default_peptide_lengths"))
+        require_iterable_of(peptide_lengths, int)
+        return peptide_lengths
+
+    def predict_subsequences(
+            self,
+            sequence_dict,
+            peptide_lengths=None):
+        """
+        Given a dictionary mapping sequence names to amino acid strings,
+        and an optional list of peptide lengths, returns a
+        BindingPredictionCollection.
+        """
+        peptide_lengths = self._check_peptide_lengths(peptide_lengths)
+        peptides = []
+        source_sequence_names = []
+        offsets = []
+        for name, sequence in sequence_dict.items():
+            for peptide_length in peptide_lengths:
+                for i in range(len(sequence) - peptide_length + 1):
+                    peptides.append(sequence[i:i + peptide_length])
+                    offsets.append(i)
+                    source_sequence_names.append(name)
+        binding_predictions = self.predict_peptides(peptides)
+        return binding_predictions.update_fields(
+            offset=offsets,
+            source_sequence_name=source_sequence_names)
 
     @staticmethod
     def _check_hla_alleles(

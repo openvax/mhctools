@@ -33,13 +33,12 @@ mhc_classes = [
 program_name_overrides = {mhctools.NetMHC3: "netMHC-3.4"}
 
 def expect_binder(mhc_model, peptide):
-    prediction = mhc_model.predict(peptide)[0]
+    prediction = mhc_model.predict_peptides([peptide])[0]
     assert prediction.value < 500, "Expected %s to have IC50 < 500nM, got %s" % (
         peptide, prediction)
 
-def make_mhc_model(mhc_class, alleles, epitope_lengths):
-    kwargs = {"alleles": alleles,
-              "epitope_lengths": epitope_lengths}
+def make_mhc_model(mhc_class, alleles):
+    kwargs = {"alleles": alleles}
     if mhc_class in program_name_overrides:
         kwargs.update({"program_name": program_name_overrides[mhc_class]})
     return mhc_class(**kwargs)

@@ -13,8 +13,8 @@ fasta_dict = {
     "seq1": "AAAPPPLLLTTT",
 }
 def test_random_mhc_binding_predictions():
-    epitopes = predictor.predict(fasta_dict)
-    df = epitopes.dataframe()
+    predictions = predictor.predict_subsequences(fasta_dict)
+    df = predictions.to_dataframe()
     # make sure we have predictions for all the alleles
     eq_(set(df.allele), set(alleles))
     # make sure all entries from the fasta dict are present

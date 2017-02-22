@@ -17,15 +17,16 @@ import logging
 from subprocess import check_output
 import tempfile
 
-from typechecks import require_string, require_integer
+from typechecks import require_string, require_integer, require_iterable_of
 from mhcnames import normalize_allele_name
 from mhcnames.parsing_helpers import AlleleParseError
 
 from .common import check_sequence_dictionary
-from .base_predictor import BasePredictor, UnsupportedAllele
+from .base_predictor import BasePredictor
+from .unsupported_allele import UnsupportedAllele
 from .process_helpers import run_command
 from .cleanup_context import CleanupFiles
-from .epitope_collection import EpitopeCollection
+from .binding_prediction_collection import BindingPredictionCollection
 from .file_formats import create_input_fasta_files
 from .process_helpers import run_multiple_commands_redirect_stdout
 
@@ -42,7 +43,6 @@ class BaseCommandlinePredictor(BasePredictor):
             self,
             program_name,
             alleles,
-            epitope_lengths,
             parse_output_fn,
             supported_alleles_flag,
             input_fasta_flag,
@@ -51,7 +51,8 @@ class BaseCommandlinePredictor(BasePredictor):
             tempdir_flag=None,
             extra_flags=[],
             max_file_records=None,
-            process_limit=0):
+            process_limit=0,
+            default_peptide_lengths=[9]):
         """
         Parameters
         ----------
@@ -61,8 +62,6 @@ class BaseCommandlinePredictor(BasePredictor):
 
         alleles : list of str
             MHC alleles
-
-        epitope_lengths : list of int
 
         supported_alleles_flag : str
             Flag to pass to the predictor to get a list of supported alleles
@@ -92,6 +91,10 @@ class BaseCommandlinePredictor(BasePredictor):
 
         process_limit : int, optional
             Maximum number of parallel processes to start
+
+        default_peptide_lengths : list of int, optional
+            When making predictions across subsequences of protein sequences,
+            what peptide lengths to predict for.
         """
         require_string(program_name, "Predictor program name")
         self.program_name = program_name
@@ -113,6 +116,7 @@ class BaseCommandlinePredictor(BasePredictor):
             require_string(tempdir_flag, "Temporary directory flag")
         self.tempdir_flag = tempdir_flag
 
+        require_iterable_of(extra_flags, str)
         self.extra_flags = extra_flags
 
         if max_file_records is not None:
@@ -125,6 +129,9 @@ class BaseCommandlinePredictor(BasePredictor):
         self.process_limit = process_limit
 
         self.parse_output_fn = parse_output_fn
+
+        if isinstance(default_peptide_lengths, int):
+            default_peptide_lengths = [default_peptide_lengths]
 
         if self.supported_alleles_flag:
             valid_alleles = self._determine_supported_alleles(
@@ -143,9 +150,9 @@ class BaseCommandlinePredictor(BasePredictor):
         try:
             BasePredictor.__init__(
                 self,
-                alleles,
-                epitope_lengths,
-                valid_alleles=valid_alleles)
+                alleles=alleles,
+                valid_alleles=valid_alleles,
+                default_peptide_lengths=default_peptide_lengths)
         except UnsupportedAllele as e:
             if self.supported_alleles_flag:
                 additional_message = (
@@ -209,15 +216,35 @@ class BaseCommandlinePredictor(BasePredictor):
         args.extend(self.extra_flags)
         return args
 
-    def predict(self, fasta_dictionary):
+    def predict_subsequences(
+            self,
+            sequence_dict,
+            peptide_lengths=None):
         """
-        Run multiple predictors simultaneously, split across:
+        Predict MHC ligands from collection of protein sequences.
+
+        Runs multiple predictors simultaneously, split across:
             1) multiple input files, each containing self.max_file_records
             2) every allele + peptide length combination
+
+        Parameters
+        ----------
+        sequence_dict : dict
+            Dictionary whose keys are expected to be unique identifiers for
+            each protein sequence and whose values are amino acid sequences.
+
+        peptide_lengths : list of int
+            List of peptide lengths for which to make predictions. If omitted
+            then use the default_peptide_lengths property of the predictor.
+
+        Returns BindingPredictionCollection
         """
-        fasta_dictionary = check_sequence_dictionary(fasta_dictionary)
+        peptide_lengths = self._check_peptide_lengths(peptide_lengths)
+
+        sequence_dict = check_sequence_dictionary(sequence_dict)
+
         input_filenames, sequence_key_mapping = create_input_fasta_files(
-            fasta_dictionary,
+            sequence_dict,
             max_file_records=self.max_file_records)
         output_files = {}
         commands = {}
@@ -228,7 +255,7 @@ class BaseCommandlinePredictor(BasePredictor):
         ]
         for i, input_filename in enumerate(input_filenames):
             for j, allele in enumerate(alleles):
-                for length in self.epitope_lengths:
+                for length in peptide_lengths:
                     if self.tempdir_flag:
                         temp_dirname = tempfile.mkdtemp(
                             prefix="tmp_%s_length_%d" % (
@@ -273,7 +300,7 @@ class BaseCommandlinePredictor(BasePredictor):
                 with open(output_file.name, 'r') as f:
                     epitope_collection = self.parse_output_fn(
                         stdout=f.read(),
-                        fasta_dictionary=fasta_dictionary,
+                        fasta_dictionary=sequence_dict,
                         sequence_key_mapping=sequence_key_mapping,
                         prediction_method_name=self.program_name)
                     epitope_collections.append(epitope_collection)
@@ -286,10 +313,10 @@ class BaseCommandlinePredictor(BasePredictor):
                     len(epitope_collections)))
 
         if len(epitope_collections) == 0:
-            raise ValueError("No epitopes from %s" % self.program_name)
+            logger.warn("No epitopes from %s" % self.program_name)
 
         # flatten all epitope collections into a single object
-        return EpitopeCollection([
+        return BindingPredictionCollection([
             binding_prediction
             for sublist in epitope_collections
             for binding_prediction in sublist])
