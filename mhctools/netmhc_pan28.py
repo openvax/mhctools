@@ -15,14 +15,13 @@
 from __future__ import print_function, division, absolute_import
 
 from .base_commandline_predictor import BaseCommandlinePredictor
-from .output_file_formats import parse_netmhcpan28_stdout
+from .parsing import parse_netmhcpan28_stdout
 
 class NetMHCpan28(BaseCommandlinePredictor):
     def __init__(
             self,
             alleles,
             program_name="netMHCpan",
-            max_file_records=None,
             process_limit=0,
             extra_flags=[]):
         BaseCommandlinePredictor.__init__(
@@ -35,5 +34,4 @@ class NetMHCpan28(BaseCommandlinePredictor):
             length_flag="-l",
             allele_flag="-a",
             extra_flags=extra_flags,
-            max_file_records=max_file_records,
             process_limit=process_limit)

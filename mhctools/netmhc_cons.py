@@ -15,14 +15,13 @@
 from __future__ import print_function, division, absolute_import
 
 from .base_commandline_predictor import BaseCommandlinePredictor
-from .file_formats import parse_netmhccons_stdout
+from .parsing import parse_netmhccons_stdout
 
 class NetMHCcons(BaseCommandlinePredictor):
     def __init__(
             self,
             alleles,
             program_name="netMHCcons",
-            max_file_records=None,
             process_limit=0):
         BaseCommandlinePredictor.__init__(
             self,
@@ -35,5 +34,4 @@ class NetMHCcons(BaseCommandlinePredictor):
             input_fasta_flag="-f",
             allele_flag="-a",
             tempdir_flag="-tdir",
-            max_file_records=max_file_records,
             process_limit=process_limit)

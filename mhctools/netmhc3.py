@@ -15,14 +15,13 @@
 from __future__ import print_function, division, absolute_import
 
 from .base_commandline_predictor import BaseCommandlinePredictor
-from .file_formats import parse_netmhc3_stdout
+from .parsing import parse_netmhc3_stdout
 
 class NetMHC3(BaseCommandlinePredictor):
     def __init__(
             self,
             alleles,
-            program_name="netMHC",
-            max_file_records=None):
+            program_name="netMHC"):
         BaseCommandlinePredictor.__init__(
             self,
             program_name=program_name,
@@ -37,7 +36,6 @@ class NetMHC3(BaseCommandlinePredictor):
             allele_flag="--mhc",
             extra_flags=["--nodirect"],
             supported_alleles_flag="-A",
-            max_file_records=max_file_records,
             # because we don't have a tempdir flag, can't run more than
             # one predictor at a time
             process_limit=1)

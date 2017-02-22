@@ -17,7 +17,6 @@ import random
 
 from .base_predictor import BasePredictor
 from .binding_prediction import BindingPrediction
-from .binding_prediction_collection import BindingPredictionCollection
 
 class RandomBindingPredictor(BasePredictor):
     def __init__(
@@ -25,6 +24,7 @@ class RandomBindingPredictor(BasePredictor):
             alleles=['HLA-A*02:01'],
             default_peptide_lengths=[9]):
         BasePredictor.__init__(
+            self,
             alleles=alleles,
             default_peptide_lengths=default_peptide_lengths)
 
@@ -38,6 +38,6 @@ class RandomBindingPredictor(BasePredictor):
                         offset=0,
                         allele=allele,
                         peptide=p,
-                        ic50=random.random() * 10000.0,
-                        rank=random.randint(0, 99)))
-        return BindingPredictionCollection(binding_predictions)
+                        affinity=random.random() * 10000.0,
+                        percentile_rank=random.randint(0, 99)))
+        return binding_predictions

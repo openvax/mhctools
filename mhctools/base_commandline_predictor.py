@@ -26,7 +26,6 @@ from .base_predictor import BasePredictor
 from .unsupported_allele import UnsupportedAllele
 from .process_helpers import run_command
 from .cleanup_context import CleanupFiles
-from .binding_prediction_collection import BindingPredictionCollection
 from .input_file_formats import create_input_fasta_files
 from .process_helpers import run_multiple_commands_redirect_stdout
 
@@ -50,7 +49,8 @@ class BaseCommandlinePredictor(BasePredictor):
             allele_flag,
             tempdir_flag=None,
             extra_flags=[],
-            max_file_records=None,
+            max_sequences_per_fasta_file=10**4,
+            max_peptides_per_file=10**5,
             process_limit=0,
             default_peptide_lengths=[9]):
         """
@@ -86,8 +86,11 @@ class BaseCommandlinePredictor(BasePredictor):
         extra_flags : list of str
             Extra flags to pass to the predictor
 
-        max_file_records : int, optional
+        max_sequences_per_fasta_file : int, optional
             Maximum number of sequences per input FASTA file
+
+        max_peptides_per_file : int, optional
+            Maximum number of lines per file when predicting peptides directly.
 
         process_limit : int, optional
             Maximum number of parallel processes to start
@@ -119,11 +122,15 @@ class BaseCommandlinePredictor(BasePredictor):
         require_iterable_of(extra_flags, str)
         self.extra_flags = extra_flags
 
-        if max_file_records is not None:
-            require_integer(
-                    max_file_records,
-                    "Maximum number of sequences per input files")
-        self.max_file_records = max_file_records
+        require_integer(
+            max_sequences_per_fasta_file,
+            "Maximum number of protein sequences per FASTA file")
+        self.max_sequences_per_fasta_file = max_sequences_per_fasta_file
+
+        require_integer(
+            max_peptides_per_file,
+            "Maximum number of lines in a peptides input file")
+        self.max_peptides_per_file = max_peptides_per_file
 
         require_integer(process_limit, "Maximum number of processes")
         self.process_limit = process_limit
@@ -201,7 +208,11 @@ class BaseCommandlinePredictor(BasePredictor):
         """
         return allele_name.replace("*", "")
 
-    def _build_command(self, input_filename, allele, length, temp_dirname=None):
+    def _build_command(
+            self,
+            input_filename,
+            allele,
+            length, temp_dirname=None):
         args = [self.program_name]
         if self.input_fasta_flag:
             args.extend([self.input_fasta_flag, input_filename])
@@ -224,7 +235,8 @@ class BaseCommandlinePredictor(BasePredictor):
         Predict MHC ligands from collection of protein sequences.
 
         Runs multiple predictors simultaneously, split across:
-            1) multiple input files, each containing self.max_file_records
+            1) multiple input files, each containing
+                self.max_sequences_per_fasta_file
             2) every allele + peptide length combination
 
         Parameters
@@ -237,15 +249,14 @@ class BaseCommandlinePredictor(BasePredictor):
             List of peptide lengths for which to make predictions. If omitted
             then use the default_peptide_lengths property of the predictor.
 
-        Returns BindingPredictionCollection
+        Returns list of BindingPrediction objects
         """
         peptide_lengths = self._check_peptide_lengths(peptide_lengths)
-
         sequence_dict = check_sequence_dictionary(sequence_dict)
 
         input_filenames, sequence_key_mapping = create_input_fasta_files(
             sequence_dict,
-            max_file_records=self.max_file_records)
+            max_sequences_per_file=self.max_sequences_per_fasta_file)
         output_files = {}
         commands = {}
         dirs = []
@@ -256,6 +267,7 @@ class BaseCommandlinePredictor(BasePredictor):
         for i, input_filename in enumerate(input_filenames):
             for j, allele in enumerate(alleles):
                 for length in peptide_lengths:
+                    print("!!!", allele, length)
                     if self.tempdir_flag:
                         temp_dirname = tempfile.mkdtemp(
                             prefix="tmp_%s_length_%d" % (
@@ -308,4 +320,4 @@ class BaseCommandlinePredictor(BasePredictor):
             logger.warn("No epitopes from %s" % self.program_name)
 
         # flatten all epitope collections into a single object
-        return BindingPredictionCollection(binding_predictions)
+        return binding_predictions

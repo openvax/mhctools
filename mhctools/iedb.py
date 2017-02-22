@@ -24,6 +24,8 @@ import pandas as pd
 
 from .base_predictor import BasePredictor
 from .common import seq_to_str, check_sequence_dictionary
+from .binding_prediction import BindingPrediction
+
 """
 A note about prediction methods, copied from the IEDB website:
 
@@ -136,7 +138,8 @@ class IedbBasePredictor(BasePredictor):
         BasePredictor.__init__(
             self,
             alleles=alleles,
-            default_peptide_lengths=default_peptide_lengths)
+            default_peptide_lengths=default_peptide_lengths,
+            prediction_method_name="iedb-")
         self.prediction_method = prediction_method
 
         if not isinstance(url, str):
@@ -162,7 +165,7 @@ class IedbBasePredictor(BasePredictor):
         }
         return params
 
-    def predict(self, fasta_dictionary):
+    def predict_subsequences(self, sequence_dict, peptide_lengths=None):
         """Given a dictionary mapping unique keys to amino acid sequences,
         run MHC binding predictions on all candidate epitopes extracted from
         sequences and return a EpitopeCollection.
@@ -173,13 +176,14 @@ class IedbBasePredictor(BasePredictor):
             Mapping of protein identifiers to protein amino acid sequences.
             If string then converted to dictionary.
         """
-        fasta_dictionary = check_sequence_dictionary(fasta_dictionary)
+        sequence_dict = check_sequence_dictionary(sequence_dict)
+        peptide_lengths = self._check_peptide_lengths(peptide_lengths)
+
         # take each mutated sequence in the dataframe
         # and general MHC binding scores for all k-mer substrings
-        builder = EpitopeCollectionBuilder(
-            fasta_dictionary=fasta_dictionary,
-            prediction_method_name=self.prediction_method)
-        for key, amino_acid_sequence in fasta_dictionary.items():
+        binding_predictions = []
+
+        for key, amino_acid_sequence in sequence_dict.items():
             for allele in self.alleles:
                 request = self._get_iedb_request_params(
                     amino_acid_sequence, allele)
@@ -189,15 +193,16 @@ class IedbBasePredictor(BasePredictor):
                     request)
                 response_df = _query_iedb(request, self.url)
                 for _, row in response_df.iterrows():
-                    builder.add_binding_prediction(
-                        source_sequence_key=key,
-                        # IEDB's start is 1-based, need to subtract 1
-                        offset=row['start'] - 1,
-                        allele=row['allele'],
-                        peptide=row['peptide'],
-                        ic50=row['ic50'],
-                        rank=row['rank'])
-        return builder.get_collection()
+                    binding_predictions.append(
+                        BindingPrediction(
+                            source_sequence_name=key,
+                            offset=row['start'] - 1,
+                            allele=row['allele'],
+                            peptide=row['peptide'],
+                            affinity=row['ic50'],
+                            percentile_rank=row['rank'],
+                            prediction_method_name=self.prediction_method_name))
+        return binding_predictions
 
 IEDB_MHC_CLASS_I_URL = "http://tools-api.iedb.org/tools_api/mhci/"
 

@@ -16,7 +16,10 @@ from __future__ import print_function, division, absolute_import
 import tempfile
 from math import ceil
 
-def _create_input_files(n_sequences, max_sequences_per_file=None):
+def _create_input_files(
+        n_sequences,
+        max_sequences_per_file=None,
+        suffix=".txt"):
     """
     Create input files that we're going to fill with n_sequences entries.
     If max_sequences_per_file is specified and is less than n_sequences then
@@ -30,7 +33,8 @@ def _create_input_files(n_sequences, max_sequences_per_file=None):
     return [
         tempfile.NamedTemporaryFile(
             "w",
-            prefix="input_file_%d" % i + 1,
+            prefix="input_file_%d" % (i + 1),
+            suffix=suffix,
             delete=False)
         for i in range(n_files)
     ]
@@ -57,7 +61,8 @@ def create_input_fasta_files(fasta_dictionary, max_sequences_per_file=None):
     n_fasta_records = len(fasta_dictionary)
     input_files = _create_input_files(
         n_sequences=n_fasta_records,
-        max_sequences_per_file=max_sequences_per_file)
+        max_sequences_per_file=max_sequences_per_file,
+        suffix=".fasta")
 
     sequence_key_mapping = {}
     file_counter = 0
@@ -105,9 +110,9 @@ def create_input_peptides_files(peptides, max_peptides_per_file=None):
         max_peptides_per_file = n_peptides
     input_files = _create_input_files(
         n_sequences=n_peptides,
-        max_sequences_per_file=max_peptides_per_file)
+        max_sequences_per_file=max_peptides_per_file,
+        suffix=".txt")
     for i, p in enumerate(peptides):
         f = input_files[i // max_peptides_per_file]
         f.write("%s\n" % p)
     return _close_and_return_file_names(input_files)
-

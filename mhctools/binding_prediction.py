@@ -15,6 +15,7 @@
 from __future__ import print_function, division, absolute_import
 
 import numpy as np
+import pandas as pd
 
 class BindingPrediction(object):
     """
@@ -133,9 +134,24 @@ class BindingPrediction(object):
         return str(self)
 
     @property
+    def length(self):
+        """Length of peptide, preserved for backwards compatibility"""
+        return len(self.peptide)
+
+    @property
     def value(self):
         """Alias for affinity preserved for backwards compatibility"""
         return self.affinity
+
+    fields = (
+        "source_sequence_name",
+        "offset",
+        "peptide",
+        "allele",
+        "affinity",
+        "percentile_rank",
+        "prediction_method_name"
+    )
 
     def to_tuple(self):
         return (
@@ -147,6 +163,9 @@ class BindingPrediction(object):
             self.percentile_rank,
             self.prediction_method_name)
 
+    def to_dict(self):
+        return {k: v for (k, v) in zip(self.fields, self.to_tuple())}
+
     def __eq__(self, other):
         return (
             other.__class__ is BindingPrediction and
@@ -157,3 +176,24 @@ class BindingPrediction(object):
 
 def invalid_binding_score(x):
     return x < 0 or np.isnan(x) or np.isinf(x)
+
+def binding_predictions_to_dataframe(
+        binding_predictions,
+        columns=BindingPrediction.fields + ("length",)):
+    """
+    Converts collection of BindingPrediction objects to DataFrame
+    """
+    return pd.DataFrame.from_records(
+        [tuple([getattr(x, name) for name in columns]) for x in binding_predictions],
+        columns=columns)
+
+def update_binding_prediction_fields(binding_predictions, **kwargs):
+    """
+    Changes fields corresponding to names of keyword arguments in
+    each BindingPrediction.
+    """
+    field_dicts = [x.to_dict() for x in binding_predictions]
+    for field_name, values in kwargs.items():
+        for i, value in enumerate(values):
+            field_dicts[i][field_name] = value
+    return [BindingPrediction(**d) for d in field_dicts]

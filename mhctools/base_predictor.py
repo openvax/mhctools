@@ -13,11 +13,18 @@
 # limitations under the License.
 
 from __future__ import print_function, division, absolute_import
+import logging
 
 from typechecks import require_iterable_of
 from mhcnames import normalize_allele_name
 
 from .unsupported_allele import UnsupportedAllele
+from .binding_prediction import (
+    update_binding_prediction_fields,
+    binding_predictions_to_dataframe
+)
+
+logger = logging.getLogger(__name__)
 
 class BasePredictor(object):
     """
@@ -69,6 +76,10 @@ class BasePredictor(object):
         raise NotImplementedError("%s must implement predict_peptides" % (
             self.__class__.__name__))
 
+    def predict_peptides_dataframe(self, peptides):
+        return binding_predictions_to_dataframe(
+            self.predict_peptides(peptides))
+
     def _check_peptide_lengths(self, peptide_lengths=None):
         """
         If peptide lengths not specified, then try using the default
@@ -96,6 +107,7 @@ class BasePredictor(object):
         BindingPredictionCollection.
         """
         peptide_lengths = self._check_peptide_lengths(peptide_lengths)
+        print(peptide_lengths)
         peptides = []
         source_sequence_names = []
         offsets = []
@@ -106,9 +118,23 @@ class BasePredictor(object):
                     offsets.append(i)
                     source_sequence_names.append(name)
         binding_predictions = self.predict_peptides(peptides)
-        return binding_predictions.update_fields(
+        return update_binding_prediction_fields(
+            binding_predictions,
             offset=offsets,
             source_sequence_name=source_sequence_names)
+
+    def predict(self, sequence_dict, peptide_lengths=None):
+        logger.warn("Deprecated method 'predict', use 'predict_subsequences")
+        return self.predict_subsequences(sequence_dict, peptide_lengths=None)
+
+    def predict_subsequences_dataframe(
+            self,
+            sequence_dict,
+            peptide_lengths=None):
+        return binding_predictions_to_dataframe(
+            self.predict_subsequences(
+                sequence_dict=sequence_dict,
+                peptide_lengths=peptide_lengths))
 
     @staticmethod
     def _check_hla_alleles(

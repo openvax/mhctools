@@ -26,7 +26,6 @@ logger = logging.getLogger(__name__)
 def NetMHCpan(
         alleles,
         program_name="netMHCpan",
-        max_file_records=None,
         process_limit=0,
         extra_flags=[]):
     """
@@ -44,7 +43,6 @@ def NetMHCpan(
         return NetMHCpan28(
             alleles=alleles,
             program_name=program_name,
-            max_file_records=max_file_records,
             process_limit=process_limit,
             extra_flags=extra_flags)
 
@@ -52,7 +50,6 @@ def NetMHCpan(
         return NetMHCpan3(
             alleles=alleles,
             program_name=program_name,
-            max_file_records=max_file_records,
             process_limit=process_limit,
             extra_flags=extra_flags)
 

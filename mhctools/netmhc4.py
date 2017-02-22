@@ -15,14 +15,13 @@
 from __future__ import print_function, division, absolute_import
 
 from .base_commandline_predictor import BaseCommandlinePredictor
-from .file_formats import parse_netmhc4_stdout
+from .parsing import parse_netmhc4_stdout
 
 class NetMHC4(BaseCommandlinePredictor):
     def __init__(
             self,
             alleles,
             program_name="netMHC",
-            max_file_records=None,
             process_limit=0):
         BaseCommandlinePredictor.__init__(
             self,
@@ -34,7 +33,6 @@ class NetMHC4(BaseCommandlinePredictor):
             length_flag="-l",
             allele_flag="-a",
             supported_alleles_flag="-listMHC",
-            max_file_records=max_file_records,
             process_limit=process_limit)
 
     def prepare_allele_name(self, allele_name):

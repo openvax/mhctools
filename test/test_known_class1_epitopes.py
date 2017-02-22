@@ -49,12 +49,12 @@ def test_MAGE_epitope():
     #   as a Cross-Reactive Target for Engineered MAGE A3-Directed
     #   T Cells
     for mhc_class in mhc_classes:
-        mhc_model = make_mhc_model(mhc_class, "HLA-A*01:01", 9)
+        mhc_model = make_mhc_model(mhc_class, "HLA-A*01:01")
         yield (expect_binder, mhc_model, "ESDPIVAQY")
 
 def test_HIV_epitope():
     # Test the A2 HIV epitope SLYNTVATL from
     #    The HIV-1 HLA-A2-SLYNTVATL Is a Help-Independent CTL Epitope
     for mhc_class in mhc_classes:
-        mhc_model = make_mhc_model(mhc_class, "HLA-A*02:01", 9)
+        mhc_model = make_mhc_model(mhc_class, "HLA-A*02:01")
         yield (expect_binder, mhc_model, "SLYNTVATL")

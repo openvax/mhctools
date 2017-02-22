@@ -82,7 +82,7 @@ def add_mhc_args(arg_parser):
         required=True)
 
     mhc_options_arg_group.add_argument(
-        "--mhc-epitope-lengths",
+        "--mhc-peptide-lengths",
         default=[8, 9, 10, 11],
         type=parse_int_list,
         help="Lengths of epitopes to consider for MHC binding prediction")
@@ -128,14 +128,14 @@ def mhc_binding_predictor_from_args(args):
         raise ValueError(
             "Invalid MHC prediction method: %s" % (args.mhc_predictor,))
     alleles = mhc_alleles_from_args(args)
-    epitope_lengths = args.mhc_epitope_lengths
+    peptide_lengths = args.mhc_peptide_lengths
     logger.info(
         ("Building MHC binding prediction %s"
          " for alleles %s"
-         " and epitope lengths %s"),
+         " and epitope lengths %s") % (
             mhc_class.__class__.__name__,
             alleles,
-            epitope_lengths)
+            peptide_lengths))
     return mhc_class(
         alleles=alleles,
-        epitope_lengths=epitope_lengths)
+        default_peptide_lengths=peptide_lengths)

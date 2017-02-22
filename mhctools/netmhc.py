@@ -17,7 +17,7 @@ from .netmhc3 import NetMHC3
 from .netmhc4 import NetMHC4
 
 def NetMHC(alleles,
-           epitope_lengths=[9],
+           default_peptide_lengths=[9],
            program_name="netMHC",
            max_file_records=None):
     """
@@ -33,7 +33,7 @@ def NetMHC(alleles,
         try:
             successes.append(netmhc_class(
                 alleles=alleles,
-                epitope_lengths=epitope_lengths,
+                default_peptide_lengths=default_peptide_lengths,
                 program_name=program_name,
                 max_file_records=max_file_records))
         except SystemError:
