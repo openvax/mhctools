@@ -107,7 +107,6 @@ class BasePredictor(object):
         BindingPredictionCollection.
         """
         peptide_lengths = self._check_peptide_lengths(peptide_lengths)
-        print(peptide_lengths)
         peptides = []
         source_sequence_names = []
         offsets = []

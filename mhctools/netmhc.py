@@ -13,31 +13,35 @@
 # limitations under the License.
 
 from __future__ import print_function, division, absolute_import
+
+from subprocess import check_output
+
 from .netmhc3 import NetMHC3
 from .netmhc4 import NetMHC4
 
 def NetMHC(alleles,
            default_peptide_lengths=[9],
-           program_name="netMHC",
-           max_file_records=None):
+           program_name="netMHC"):
     """
     This function wraps NetMHC3 and NetMHC4 to automatically detect which class
-    to use. This is currently based on the results of supported_alleles_flag,
-    and assumes that the flag for 3.x causes an error in 4.x and vice versa.
-
-    TODO: Make this more robust.
+    to use. Currently based on running the '-h' command and looking for
+    discriminating substrings between the versions.
     """
-    netmhc_classes = [NetMHC3, NetMHC4]
+    # run NetMHC's help command and parse discriminating substrings out of
+    # the resulting str output
+    help_output = check_output([program_name, "-h"])
+    help_output_str = help_output.decode("ascii", "ignore")
+
+    substring_to_netmhc_class = {
+        "-listMHC": NetMHC4,
+        "--Alleles": NetMHC3,
+    }
+
     successes = []
-    for netmhc_class in netmhc_classes:
-        try:
-            successes.append(netmhc_class(
-                alleles=alleles,
-                default_peptide_lengths=default_peptide_lengths,
-                program_name=program_name,
-                max_file_records=max_file_records))
-        except SystemError:
-            pass
+
+    for substring, netmhc_class in substring_to_netmhc_class.items():
+        if substring in help_output_str:
+            successes.append(netmhc_class)
 
     if len(successes) > 1:
         raise SystemError("Command %s is valid for multiple NetMHC versions. "
@@ -46,4 +50,8 @@ def NetMHC(alleles,
         raise SystemError("Command %s is not a valid way of calling any NetMHC software."
                           % program_name)
 
-    return successes[0]
+    netmhc_class = successes[0]
+    return netmhc_class(
+        alleles=alleles,
+        default_peptide_lengths=default_peptide_lengths,
+        program_name=program_name)

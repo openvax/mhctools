@@ -9,12 +9,13 @@ def run_class_with_executable(mhc_class, mhc_executable):
     predictor = mhc_class(
         alleles=alleles,
         program_name=mhc_executable)
-    fasta_dictionary = {
+    sequence_dict = {
         "SMAD4-001": "ASIINFKELA",
         "TP53-001": "ASILLLVFYW"
     }
     return predictor.predict_subsequences(
-        sequence_dict=fasta_dictionary, peptide_lengths=[9])
+        sequence_dict=sequence_dict,
+        peptide_lengths=[9])
 
 @raises(SystemError)
 def test_executable_mismatch_3_4():
