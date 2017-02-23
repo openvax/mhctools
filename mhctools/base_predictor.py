@@ -20,7 +20,6 @@ from mhcnames import normalize_allele_name
 
 from .unsupported_allele import UnsupportedAllele
 from .binding_prediction import (
-    update_binding_prediction_fields,
     binding_predictions_to_dataframe
 )
 
@@ -57,6 +56,8 @@ class BasePredictor(object):
             alleles = alleles.split(',')
         self.alleles = self._check_hla_alleles(alleles, valid_alleles)
 
+        if isinstance(default_peptide_lengths, int):
+            default_peptide_lengths = [default_peptide_lengths]
         require_iterable_of(default_peptide_lengths, int)
         self.default_peptide_lengths = default_peptide_lengths
 
@@ -69,16 +70,27 @@ class BasePredictor(object):
             self.alleles,
             self.default_peptide_lengths)
 
-    def predict_peptides(self, peptides):
+    def predict_peptides(
+            self,
+            peptides,
+            source_sequence_names=None,
+            offsets=None):
         """
         Given a list of peptide sequences, returns a BindingPredictionCollection
         """
         raise NotImplementedError("%s must implement predict_peptides" % (
             self.__class__.__name__))
 
-    def predict_peptides_dataframe(self, peptides):
+    def predict_peptides_dataframe(
+            self,
+            peptides,
+            source_sequence_names=None,
+            offsets=None):
         return binding_predictions_to_dataframe(
-            self.predict_peptides(peptides))
+            self.predict_peptides(
+                peptides=peptides,
+                source_sequence_names=source_sequence_names,
+                offsets=offsets))
 
     def _check_peptide_lengths(self, peptide_lengths=None):
         """
@@ -94,6 +106,8 @@ class BasePredictor(object):
             raise ValueError(
                 ("Must either provide 'peptide_lengths' argument "
                 "or set 'default_peptide_lengths"))
+        if isinstance(peptide_lengths, int):
+            peptide_lengths = [peptide_lengths]
         require_iterable_of(peptide_lengths, int)
         return peptide_lengths
 
@@ -116,11 +130,15 @@ class BasePredictor(object):
                     peptides.append(sequence[i:i + peptide_length])
                     offsets.append(i)
                     source_sequence_names.append(name)
-        binding_predictions = self.predict_peptides(peptides)
-        return update_binding_prediction_fields(
-            binding_predictions,
-            offset=offsets,
-            source_sequence_name=source_sequence_names)
+        binding_predictions = self.predict_peptides(
+            peptides,
+            source_sequence_names=source_sequence_names,
+            offsets=offsets)
+        n_expected = len(peptides) * len(self.alleles)
+        if len(binding_predictions) != n_expected:
+            raise ValueError("Expected %d peptide predictions but got %d" % (
+                n_expected, len(binding_predictions)))
+        return binding_predictions
 
     def predict(self, sequence_dict, peptide_lengths=None):
         logger.warn("Deprecated method 'predict', use 'predict_subsequences")
@@ -145,10 +163,13 @@ class BasePredictor(object):
         the MHC binding predictor.
         """
         require_iterable_of(alleles, str, "HLA alleles")
-        alleles = [
+
+        # Don't run the MHC predictor twice for homozygous alleles,
+        # only run it for unique alleles
+        alleles = {
             normalize_allele_name(allele.strip().upper())
             for allele in alleles
-        ]
+        }
         if valid_alleles:
             # For some reason netMHCpan drops the '*' in names, so
             # 'HLA-A*03:01' becomes 'HLA-A03:01'
@@ -158,9 +179,7 @@ class BasePredictor(object):
                 if allele not in valid_alleles
             ]
             if len(missing_alleles) > 0:
-                raise UnsupportedAllele("Unsupported HLA alleles: %s" % missing_alleles)
+                raise UnsupportedAllele(
+                    "Unsupported HLA alleles: %s" % missing_alleles)
 
-        # Don't run the MHC predictor twice for homozygous alleles,
-        # only run it for unique alleles
-        alleles = list(set(alleles))
-        return alleles
+        return list(alleles)

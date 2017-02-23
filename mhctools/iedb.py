@@ -138,8 +138,7 @@ class IedbBasePredictor(BasePredictor):
         BasePredictor.__init__(
             self,
             alleles=alleles,
-            default_peptide_lengths=default_peptide_lengths,
-            prediction_method_name="iedb-")
+            default_peptide_lengths=default_peptide_lengths)
         self.prediction_method = prediction_method
 
         if not isinstance(url, str):
@@ -164,6 +163,24 @@ class IedbBasePredictor(BasePredictor):
             "allele": ",".join([allele] * len(self.default_peptide_lengths)),
         }
         return params
+
+    def predict_peptides(self, peptides, source_sequence_names=None, offsets=None):
+        if source_sequence_names is None:
+            source_sequence_names = [None] * len(peptides)
+        if offsets is None:
+            offsets = [0] * len(peptides)
+        assert len(peptides) == len(source_sequence_names) == len(offsets)
+
+        binding_predictions = []
+        for peptide, name, offset in zip(peptides, source_sequence_names, offsets):
+            peptide_binding_predictions = self.predict_subsequences(
+                {"seq": peptide}, peptide_lengths=len(peptide))
+            for binding_prediction in peptide_binding_predictions:
+                binding_predictions.append(
+                    binding_prediction.clone_with_updates(
+                        source_sequence_name=name,
+                        offset=offset))
+        return binding_predictions
 
     def predict_subsequences(self, sequence_dict, peptide_lengths=None):
         """Given a dictionary mapping unique keys to amino acid sequences,
@@ -201,7 +218,7 @@ class IedbBasePredictor(BasePredictor):
                             peptide=row['peptide'],
                             affinity=row['ic50'],
                             percentile_rank=row['rank'],
-                            prediction_method_name=self.prediction_method_name))
+                            prediction_method_name="iedb-" + self.prediction_method))
         return binding_predictions
 
 IEDB_MHC_CLASS_I_URL = "http://tools-api.iedb.org/tools_api/mhci/"

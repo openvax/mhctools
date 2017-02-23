@@ -38,7 +38,7 @@ def test_wrapper_function():
         program_name="netMHC-3.4")
     eq_(type(wrapped_3), NetMHC3)
 
-@raises(SystemError)
+@raises(SystemError, OSError)
 def test_wrapper_failure():
     alleles = [normalize_allele_name("HLA-A*02:01")]
     NetMHC(alleles=alleles,

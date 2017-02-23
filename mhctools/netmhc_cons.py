@@ -22,7 +22,8 @@ class NetMHCcons(BaseCommandlinePredictor):
             self,
             alleles,
             program_name="netMHCcons",
-            process_limit=0):
+            process_limit=0,
+            default_peptide_lengths=[9]):
         BaseCommandlinePredictor.__init__(
             self,
             program_name=program_name,
@@ -34,4 +35,5 @@ class NetMHCcons(BaseCommandlinePredictor):
             input_fasta_flag="-f",
             allele_flag="-a",
             tempdir_flag="-tdir",
-            process_limit=process_limit)
+            process_limit=process_limit,
+            default_peptide_lengths=default_peptide_lengths)

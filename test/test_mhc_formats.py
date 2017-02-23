@@ -1,4 +1,4 @@
-from mhctools.file_formats import (
+from mhctools.parsing import (
   parse_netmhcpan28_stdout,
   parse_netmhcpan3_stdout,
   parse_netmhc3_stdout,

@@ -111,7 +111,7 @@ class BindingPrediction(object):
         self.peptide = peptide
         self.affinity = affinity
         self.percentile_rank = percentile_rank
-        self.prediction_method_name = prediction_method_name,
+        self.prediction_method_name = prediction_method_name
 
     def __str__(self):
         format_string = (
@@ -129,6 +129,12 @@ class BindingPrediction(object):
                 self.affinity,
                 self.percentile_rank,
                 self.prediction_method_name)
+
+    def clone_with_updates(self, **kwargs):
+        """Returns new BindingPrediction with updated fields"""
+        fields_dict = self.to_dict()
+        fields_dict.update(kwargs)
+        return BindingPrediction(**fields_dict)
 
     def __repr__(self):
         return str(self)
@@ -186,14 +192,3 @@ def binding_predictions_to_dataframe(
     return pd.DataFrame.from_records(
         [tuple([getattr(x, name) for name in columns]) for x in binding_predictions],
         columns=columns)
-
-def update_binding_prediction_fields(binding_predictions, **kwargs):
-    """
-    Changes fields corresponding to names of keyword arguments in
-    each BindingPrediction.
-    """
-    field_dicts = [x.to_dict() for x in binding_predictions]
-    for field_name, values in kwargs.items():
-        for i, value in enumerate(values):
-            field_dicts[i][field_name] = value
-    return [BindingPrediction(**d) for d in field_dicts]

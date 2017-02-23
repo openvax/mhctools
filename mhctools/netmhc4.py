@@ -22,7 +22,8 @@ class NetMHC4(BaseCommandlinePredictor):
             self,
             alleles,
             program_name="netMHC",
-            process_limit=0):
+            process_limit=0,
+            default_peptide_lengths=[9]):
         BaseCommandlinePredictor.__init__(
             self,
             program_name=program_name,
@@ -33,7 +34,8 @@ class NetMHC4(BaseCommandlinePredictor):
             length_flag="-l",
             allele_flag="-a",
             supported_alleles_flag="-listMHC",
-            process_limit=process_limit)
+            process_limit=process_limit,
+            default_peptide_lengths=default_peptide_lengths)
 
     def prepare_allele_name(self, allele_name):
         allele_name = super(NetMHC4, self).prepare_allele_name(allele_name)

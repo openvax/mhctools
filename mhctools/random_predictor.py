@@ -28,16 +28,25 @@ class RandomBindingPredictor(BasePredictor):
             alleles=alleles,
             default_peptide_lengths=default_peptide_lengths)
 
-    def predict_peptides(self, peptides):
+    def predict_peptides(
+            self,
+            peptides,
+            source_sequence_names=None,
+            offsets=None):
+        if source_sequence_names is None:
+            source_sequence_names = [None] * len(peptides)
+        if offsets is None:
+            offsets = [0] * len(peptides)
         binding_predictions = []
         for allele in self.alleles:
-            for p in peptides:
+            for p, s, o in zip(peptides, source_sequence_names, offsets):
                 binding_predictions.append(
                     BindingPrediction(
-                        source_sequence_name=None,
-                        offset=0,
+                        source_sequence_name=s,
+                        offset=o,
                         allele=allele,
                         peptide=p,
                         affinity=random.random() * 10000.0,
-                        percentile_rank=random.randint(0, 99)))
+                        percentile_rank=random.randint(0, 99),
+                        prediction_method_name="random"))
         return binding_predictions

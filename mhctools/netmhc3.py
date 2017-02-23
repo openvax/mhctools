@@ -21,7 +21,8 @@ class NetMHC3(BaseCommandlinePredictor):
     def __init__(
             self,
             alleles,
-            program_name="netMHC"):
+            program_name="netMHC",
+            default_peptide_lengths=[9]):
         BaseCommandlinePredictor.__init__(
             self,
             program_name=program_name,
@@ -38,4 +39,5 @@ class NetMHC3(BaseCommandlinePredictor):
             supported_alleles_flag="-A",
             # because we don't have a tempdir flag, can't run more than
             # one predictor at a time
-            process_limit=1)
+            process_limit=1,
+            default_peptide_lengths=default_peptide_lengths)
