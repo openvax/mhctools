@@ -52,7 +52,6 @@ def split_stdout_lines(stdout):
         # beginning of headers in NetMHC
         if any(l.startswith(word) for word in NETMHC_TOKENS):
             continue
-
         yield l.split()
 
 
@@ -118,7 +117,6 @@ def parse_stdout(
 
     binding_predictions = []
     for fields in split_stdout_lines(stdout):
-        print(fields)
         fields = clean_fields(fields, ignored_value_indices, transforms)
 
         offset = int(fields[offset_index])

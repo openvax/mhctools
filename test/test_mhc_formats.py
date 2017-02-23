@@ -47,10 +47,13 @@ Strong binder threshold  50 nM. Weak binder threshold score 500 nM
 --------------------------------------------------------------------------------------------------
     """
     n_sequences = 3
+    n_alleles = 2
+    n_expected = n_alleles * n_sequences
+
     binding_predictions = parse_netmhc3_stdout(netmhc_output)
-    assert len(binding_predictions) == 2 * n_sequences, \
+    assert len(binding_predictions) == n_expected, \
       "Wrong number of binding predictions: %d (expected %d)" % (
-        len(binding_predictions), 2 * n_sequences)
+        len(binding_predictions), n_expected)
     for entry in binding_predictions:
         # make sure both allele's tables get parsed
         assert entry.allele in ('HLA-A*02:01', 'HLA-A*02:03'), entry
@@ -91,10 +94,12 @@ Protein PEPLIST. Allele HLA-A0202. Number of high binders 0. Number of weak bind
 -----------------------------------------------------------------------------------
 """
     n_sequences = 2
+    n_alleles = 2
+    n_expected = n_sequences * n_alleles
     binding_predictions = parse_netmhc4_stdout(netmhc_output)
-    assert len(binding_predictions) == n_sequences, \
+    assert len(binding_predictions) == n_expected, \
       "Wrong number of binding predictions: %d (expected %d)" % (
-        len(binding_predictions), n_sequences)
+        len(binding_predictions), n_expected)
     for entry in binding_predictions:
         # make sure both allele's tables get parsed
         assert entry.allele in ('HLA-A*02:01', 'HLA-A*02:02'), entry
