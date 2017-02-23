@@ -47,6 +47,7 @@ class BaseCommandlinePredictor(BasePredictor):
             input_fasta_flag,
             length_flag,
             allele_flag,
+            peptide_mode_flags=["-p"],
             tempdir_flag=None,
             extra_flags=[],
             max_sequences_per_fasta_file=10**4,
@@ -79,6 +80,10 @@ class BaseCommandlinePredictor(BasePredictor):
 
         allele_flag : str
             How to specify the allele we want predictions for (e.g. "-a")
+
+        peptide_mode_flags : list of str
+            How to switch from the default FASTA subsequences input mode to
+            where peptides are explicitly given one per line of a text file.
 
         tempdir_flag : str, optional
             How to specify the predictor's temporary directory (e.g. "-tdir")

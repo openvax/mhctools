@@ -154,7 +154,6 @@ class IedbBasePredictor(BasePredictor):
             self.prediction_method)
 
     def _get_iedb_request_params(self, sequence, allele):
-
         params = {
             "method": seq_to_str(self.prediction_method),
             "length": seq_to_str(self.default_peptide_lengths),
@@ -164,12 +163,16 @@ class IedbBasePredictor(BasePredictor):
         }
         return params
 
-    def predict_peptides(self, peptides, source_sequence_names=None, offsets=None):
+    def _prepare_peptides_inputs():
         if source_sequence_names is None:
             source_sequence_names = [None] * len(peptides)
         if offsets is None:
             offsets = [0] * len(peptides)
         assert len(peptides) == len(source_sequence_names) == len(offsets)
+
+    def predict_peptides(self, peptides, source_sequence_names=None, offsets=None):
+        peptides, source_sequence_names, offsets = \
+            self._prepare_peptides_inputs(peptides, source_sequence_names, offsets)
 
         binding_predictions = []
         for peptide, name, offset in zip(peptides, source_sequence_names, offsets):
