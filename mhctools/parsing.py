@@ -18,7 +18,16 @@ from mhcnames import normalize_allele_name
 
 from .binding_prediction import BindingPrediction
 
-NETMHC_HEADER_WORDS = ["pos", "Pos", "Seq", "Number", "Protein", "Allele"]
+NETMHC_TOKENS = {
+    "pos",
+    "Pos",
+    "Seq",
+    "Number",
+    "Protein",
+    "Allele",
+    "NetMHC",
+    "Strong",
+}
 
 def split_stdout_lines(stdout):
     """
@@ -41,7 +50,7 @@ def split_stdout_lines(stdout):
         if not l or l.startswith("#"):
             continue
         # beginning of headers in NetMHC
-        if any(l.startswith(word) for word in NETMHC_HEADER_WORDS):
+        if any(l.startswith(word) for word in NETMHC_TOKENS):
             continue
 
         yield l.split()
