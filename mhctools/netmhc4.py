@@ -29,7 +29,7 @@ class NetMHC4(BaseCommandlinePredictor):
             program_name=program_name,
             alleles=alleles,
             parse_output_fn=parse_netmhc4_stdout,
-            input_fasta_flag="-f",
+            input_file_flag="-f",
             tempdir_flag="-tdir",
             length_flag="-l",
             allele_flag="-a",

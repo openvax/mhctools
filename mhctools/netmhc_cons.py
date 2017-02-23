@@ -32,8 +32,9 @@ class NetMHCcons(BaseCommandlinePredictor):
             # netMHCcons does not have a supported allele flag
             supported_alleles_flag=None,
             length_flag="-length",
-            input_fasta_flag="-f",
+            input_file_flag="-f",
             allele_flag="-a",
+            peptide_mode_flags=["-inptype", "1"],
             tempdir_flag="-tdir",
             process_limit=process_limit,
             default_peptide_lengths=default_peptide_lengths)

@@ -30,7 +30,7 @@ class NetMHCpan28(BaseCommandlinePredictor):
             alleles=alleles,
             parse_output_fn=parse_netmhcpan28_stdout,
             supported_alleles_flag="-listMHC",
-            input_fasta_flag="-f",
+            input_file_flag="-f",
             length_flag="-l",
             allele_flag="-a",
             extra_flags=extra_flags,

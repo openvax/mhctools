@@ -54,11 +54,10 @@ def test_netmhc_cons_process_limits():
             sequence_dict=sequence_dict)
         assert len(binding_predictions) == 14, \
             "Expected 14 epitopes from %s" % (binding_predictions,)
-        source_keys = []
-        for epitope in binding_predictions:
-            source_keys.append(epitope.source_sequence_key)
+
+        source_names = [bp.source_sequence_name for bp in binding_predictions]
         for fasta_key in sequence_dict.keys():
-            fasta_count = source_keys.count(fasta_key)
+            fasta_count = source_names.count(fasta_key)
             assert fasta_count == 2, \
                 ("Expected each fasta key to appear twice, once for "
                  "each length, but saw %s %d time(s)" % (

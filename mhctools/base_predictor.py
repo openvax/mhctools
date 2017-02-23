@@ -70,6 +70,18 @@ class BasePredictor(object):
             self.alleles,
             self.default_peptide_lengths)
 
+    def _prepare_peptide_inputs(
+            self,
+            peptides,
+            source_sequence_names=None,
+            offsets=None):
+        if source_sequence_names is None:
+            source_sequence_names = [None] * len(peptides)
+        if offsets is None:
+            offsets = [0] * len(peptides)
+        assert len(peptides) == len(source_sequence_names) == len(offsets)
+        return peptides, source_sequence_names, offsets
+
     def predict_peptides(
             self,
             peptides,

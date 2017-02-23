@@ -34,7 +34,7 @@ class NetMHCIIpan(BaseCommandlinePredictor):
             default_peptide_lengths=default_peptide_lengths,
             parse_output_fn=parse_netmhciipan_stdout,
             supported_alleles_flag="-list",
-            input_fasta_flag="-f",
+            input_file_flag="-f",
             allele_flag="-a",
             length_flag="-length",
             tempdir_flag="-tdir",

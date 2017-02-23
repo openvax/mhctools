@@ -18,7 +18,7 @@ from mhcnames import normalize_allele_name
 
 from .binding_prediction import BindingPrediction
 
-NETMHC_HEADER_WORDS = ["pos", "Pos", "Seq", "Number"]
+NETMHC_HEADER_WORDS = ["pos", "Pos", "Seq", "Number", "Protein", "Allele"]
 
 def split_stdout_lines(stdout):
     """
@@ -26,13 +26,19 @@ def split_stdout_lines(stdout):
     drop all {comments, lines of hyphens, empty lines} and split the
     remaining lines by whitespace.
     """
+    # all the NetMHC formats use lines full of dashes before any actual
+    # binding results
+    seen_dash = False
     for l in stdout.split("\n"):
         l = l.strip()
-        # ignore empty lines
-        if not l:
+        # wait for a line like '----------' before trying to parse entries
+        if l.startswith("-"):
+            seen_dash = True
             continue
-        # ignore comment lines or '----------'
-        if l.startswith("#") or l.startswith("-"):
+        if not seen_dash:
+            continue
+        # ignore empty lines and comments
+        if not l or l.startswith("#"):
             continue
         # beginning of headers in NetMHC
         if any(l.startswith(word) for word in NETMHC_HEADER_WORDS):
@@ -103,6 +109,7 @@ def parse_stdout(
 
     binding_predictions = []
     for fields in split_stdout_lines(stdout):
+        print(fields)
         fields = clean_fields(fields, ignored_value_indices, transforms)
 
         offset = int(fields[offset_index])

@@ -29,7 +29,7 @@ class NetMHC3(BaseCommandlinePredictor):
             alleles=alleles,
             parse_output_fn=parse_netmhc3_stdout,
             # NetMHC just expects the first arg to be an input FASTA
-            input_fasta_flag="",
+            input_file_flag="",
             # NetMHC doesn't have the ability to use a custom
             # temporary directory
             tempdir_flag=None,

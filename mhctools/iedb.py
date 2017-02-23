@@ -163,16 +163,9 @@ class IedbBasePredictor(BasePredictor):
         }
         return params
 
-    def _prepare_peptides_inputs():
-        if source_sequence_names is None:
-            source_sequence_names = [None] * len(peptides)
-        if offsets is None:
-            offsets = [0] * len(peptides)
-        assert len(peptides) == len(source_sequence_names) == len(offsets)
-
     def predict_peptides(self, peptides, source_sequence_names=None, offsets=None):
         peptides, source_sequence_names, offsets = \
-            self._prepare_peptides_inputs(peptides, source_sequence_names, offsets)
+            self._prepare_peptide_inputs(peptides, source_sequence_names, offsets)
 
         binding_predictions = []
         for peptide, name, offset in zip(peptides, source_sequence_names, offsets):
