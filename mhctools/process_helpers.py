@@ -43,7 +43,6 @@ class AsyncProcess(object):
         self.process = None
 
     def start(self):
-        print(self.args)
         with open(os.devnull, 'w') as devnull:
             stdout = (
                 self.redirect_stdout_file if self.redirect_stdout_file

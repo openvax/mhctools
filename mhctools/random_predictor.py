@@ -29,7 +29,6 @@ class RandomBindingPredictor(BasePredictor):
             default_peptide_lengths=default_peptide_lengths)
 
     def predict_peptides(self, peptides):
-        print("!!!", peptides)
         return [
             BindingPrediction(
                 allele=allele,
