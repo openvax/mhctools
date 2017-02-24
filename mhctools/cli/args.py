@@ -83,9 +83,13 @@ def add_mhc_args(arg_parser):
 
     mhc_options_arg_group.add_argument(
         "--mhc-peptide-lengths",
-        default=[8, 9, 10, 11],
         type=parse_int_list,
         help="Lengths of epitopes to consider for MHC binding prediction")
+
+    mhc_options_arg_group.add_argument(
+        "--mhc-epitope-lengths",
+        type=parse_int_list,
+        help="Deprecated name for --mhc-peptide-lengths")
 
     mhc_options_arg_group.add_argument(
         "--mhc-alleles-file",
@@ -129,6 +133,8 @@ def mhc_binding_predictor_from_args(args):
             "Invalid MHC prediction method: %s" % (args.mhc_predictor,))
     alleles = mhc_alleles_from_args(args)
     peptide_lengths = args.mhc_peptide_lengths
+    if not peptide_lengths:
+        peptide_lengths = args.mhc_epitope_lengths
     logger.info(
         ("Building MHC binding prediction %s"
          " for alleles %s"
@@ -136,6 +142,8 @@ def mhc_binding_predictor_from_args(args):
             mhc_class.__class__.__name__,
             alleles,
             peptide_lengths))
-    return mhc_class(
-        alleles=alleles,
-        default_peptide_lengths=peptide_lengths)
+    kwargs = dict(alleles=alleles)
+    if peptide_lengths is not None:
+        kwargs["default_peptide_lengths"] = peptide_lengths
+
+    return mhc_class(**kwargs)
