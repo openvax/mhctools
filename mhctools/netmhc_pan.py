@@ -27,6 +27,7 @@ def NetMHCpan(
         alleles,
         program_name="netMHCpan",
         process_limit=-1,
+        default_peptide_lengths=[9],
         extra_flags=[]):
     """
     This function wraps NetMHCpan28 and NetMHCpan3 to automatically detect which class
@@ -40,6 +41,7 @@ def NetMHCpan(
     if "NetMHCpan version 2.8" in output_str:
         return NetMHCpan28(
             alleles=alleles,
+            default_peptide_lengths=default_peptide_lengths,
             program_name=program_name,
             process_limit=process_limit,
             extra_flags=extra_flags)
@@ -47,6 +49,7 @@ def NetMHCpan(
     elif "NetMHCpan version 3.0" in output_str:
         return NetMHCpan3(
             alleles=alleles,
+            default_peptide_lengths=default_peptide_lengths,
             program_name=program_name,
             process_limit=process_limit,
             extra_flags=extra_flags)
