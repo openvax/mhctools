@@ -28,11 +28,9 @@ from .base_predictor import BasePredictor
 from .unsupported_allele import UnsupportedAllele
 from .process_helpers import run_command
 from .cleanup_context import CleanupFiles
-from .input_file_formats import (
-    create_input_peptides_files
-)
+from .input_file_formats import create_input_peptides_files
 from .process_helpers import run_multiple_commands_redirect_stdout
-
+from .binding_prediction_collection import BindingPredictionCollection
 
 logger = logging.getLogger(__name__)
 
@@ -269,7 +267,7 @@ class BaseCommandlinePredictor(BasePredictor):
 
         if len(binding_predictions) == 0:
             logger.warn("No epitopes from %s" % self.program_name)
-        return binding_predictions
+        return BindingPredictionCollection(binding_predictions)
 
     def predict_peptides(self, peptides):
         require_iterable_of(peptides, string_types)

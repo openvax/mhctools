@@ -15,7 +15,6 @@
 from __future__ import print_function, division, absolute_import
 
 import numpy as np
-import pandas as pd
 
 class BindingPrediction(object):
     """
@@ -186,13 +185,3 @@ class BindingPrediction(object):
 
 def invalid_binding_score(x):
     return x < 0 or np.isnan(x) or np.isinf(x)
-
-def binding_predictions_to_dataframe(
-        binding_predictions,
-        columns=BindingPrediction.fields + ("length",)):
-    """
-    Converts collection of BindingPrediction objects to DataFrame
-    """
-    return pd.DataFrame.from_records(
-        [tuple([getattr(x, name) for name in columns]) for x in binding_predictions],
-        columns=columns)

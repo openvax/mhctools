@@ -87,8 +87,8 @@ def run_command(args, **kwargs):
 def run_multiple_commands_redirect_stdout(
         multiple_args_dict,
         print_commands=True,
-        process_limit=0,
-        polling_freq=1,
+        process_limit=-1,
+        polling_freq=0.5,
         **kwargs):
     """
     Run multiple shell commands in parallel, write each of their

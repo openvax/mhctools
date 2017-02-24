@@ -17,6 +17,7 @@ import random
 
 from .base_predictor import BasePredictor
 from .binding_prediction import BindingPrediction
+from .binding_prediction_collection import BindingPredictionCollection
 
 class RandomBindingPredictor(BasePredictor):
     def __init__(
@@ -29,7 +30,7 @@ class RandomBindingPredictor(BasePredictor):
             default_peptide_lengths=default_peptide_lengths)
 
     def predict_peptides(self, peptides):
-        return [
+        return BindingPredictionCollection([
             BindingPrediction(
                 allele=allele,
                 peptide=p,
@@ -38,4 +39,4 @@ class RandomBindingPredictor(BasePredictor):
                 prediction_method_name="random")
             for p in peptides
             for allele in self.alleles
-        ]
+        ])

@@ -21,9 +21,7 @@ from typechecks import require_iterable_of
 from mhcnames import normalize_allele_name
 
 from .unsupported_allele import UnsupportedAllele
-from .binding_prediction import (
-    binding_predictions_to_dataframe
-)
+from .binding_prediction_collection import BindingPredictionCollection
 
 logger = logging.getLogger(__name__)
 
@@ -80,8 +78,7 @@ class BasePredictor(object):
             self.__class__.__name__))
 
     def predict_peptides_dataframe(self, peptides):
-        return binding_predictions_to_dataframe(
-            self.predict_peptides(peptides))
+        return self.predict_peptides(peptides).to_dataframe()
 
     def _check_peptide_lengths(self, peptide_lengths=None):
         """
@@ -143,7 +140,7 @@ class BasePredictor(object):
                     source_sequence_name=name,
                     offset=offset))
         assert len(results) >= len(binding_predictions)
-        return results
+        return BindingPredictionCollection(results)
 
     def predict(self, sequence_dict, peptide_lengths=None):
         logger.warn("Deprecated method 'predict', use 'predict_subsequences")
@@ -153,10 +150,9 @@ class BasePredictor(object):
             self,
             sequence_dict,
             peptide_lengths=None):
-        return binding_predictions_to_dataframe(
-            self.predict_subsequences(
+        return self.predict_subsequences(
                 sequence_dict=sequence_dict,
-                peptide_lengths=peptide_lengths))
+                peptide_lengths=peptide_lengths).to_dataframe()
 
     @staticmethod
     def _check_hla_alleles(

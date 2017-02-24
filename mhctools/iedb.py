@@ -26,6 +26,7 @@ import pandas as pd
 from .base_predictor import BasePredictor
 from .common import seq_to_str, check_sequence_dictionary
 from .binding_prediction import BindingPrediction
+from .binding_prediction_collection import BindingPredictionCollection
 
 """
 A note about prediction methods, copied from the IEDB website:
@@ -171,7 +172,7 @@ class IedbBasePredictor(BasePredictor):
                 self.predict_subsequences(
                     {"seq%d" % (i + 1): peptide},
                     peptide_lengths=len(peptide)))
-        return binding_predictions
+        return BindingPredictionCollection(binding_predictions)
 
     def predict_subsequences(self, sequence_dict, peptide_lengths=None):
         """Given a dictionary mapping unique keys to amino acid sequences,
@@ -210,7 +211,7 @@ class IedbBasePredictor(BasePredictor):
                             affinity=row['ic50'],
                             percentile_rank=row['rank'],
                             prediction_method_name="iedb-" + self.prediction_method))
-        return binding_predictions
+        return BindingPredictionCollection(binding_predictions)
 
 IEDB_MHC_CLASS_I_URL = "http://tools-cluster-interface.iedb.org/tools_api/mhci/"
 
