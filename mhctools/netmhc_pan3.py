@@ -21,6 +21,7 @@ class NetMHCpan3(BaseCommandlinePredictor):
     def __init__(
             self,
             alleles,
+            default_peptide_lengths=[9],
             program_name="netMHCpan",
             process_limit=-1,
             extra_flags=[]):
@@ -28,6 +29,7 @@ class NetMHCpan3(BaseCommandlinePredictor):
             self,
             program_name=program_name,
             alleles=alleles,
+            default_peptide_lengths=default_peptide_lengths,
             parse_output_fn=parse_netmhcpan3_stdout,
             supported_alleles_flag="-listMHC",
             input_file_flag="-f",
