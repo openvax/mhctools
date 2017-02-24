@@ -15,6 +15,7 @@
 from __future__ import print_function, division, absolute_import
 import logging
 from subprocess import check_output
+import os
 
 from .netmhc_pan28 import NetMHCpan28
 from .netmhc_pan3 import NetMHCpan3
@@ -33,10 +34,11 @@ def NetMHCpan(
     This function wraps NetMHCpan28 and NetMHCpan3 to automatically detect which class
     to use, with the help of the miraculous and strange '--version' netmhcpan argument.
     """
-    # convert to str since Python3 returns a `bytes` object. The '3' here is meaningless,
-    # but it is necessary to call `netmhcpan --version` with some argument, otherwise
-    # it hangs.
-    output = check_output([program_name, "--version", "3"])
+    # convert to str since Python3 returns a `bytes` object. The 'WUZZLE' here
+    # is meaningless, but it is necessary to call `netmhcpan --version` with some
+    # argument, otherwise it hangs.
+    with open(os.devnull, 'w') as devnull:
+        output = check_output([program_name, "--version", "WUZZLE"], stderr=devnull)
     output_str = output.decode("ascii", "ignore")
     if "NetMHCpan version 2.8" in output_str:
         return NetMHCpan28(

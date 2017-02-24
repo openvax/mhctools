@@ -15,6 +15,7 @@
 from __future__ import print_function, division, absolute_import
 
 from subprocess import check_output
+import os
 
 from .netmhc3 import NetMHC3
 from .netmhc4 import NetMHC4
@@ -29,7 +30,8 @@ def NetMHC(alleles,
     """
     # run NetMHC's help command and parse discriminating substrings out of
     # the resulting str output
-    help_output = check_output([program_name, "-h"])
+    with open(os.devnull, 'w') as devnull:
+        help_output = check_output([program_name, "-h"], stderr=devnull)
     help_output_str = help_output.decode("ascii", "ignore")
 
     substring_to_netmhc_class = {

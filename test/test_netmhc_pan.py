@@ -1,7 +1,6 @@
 from nose.tools import eq_
 
 from mhctools import NetMHCpan
-from mhcnames import normalize_allele_name
 
 
 DEFAULT_ALLELE = 'HLA-A*02:01'
@@ -11,17 +10,11 @@ protein_sequence_dict = {
     "TP53-001": "ASILLLVFYW"
 }
 
-def run_class_with_executable(mhcpan_class, mhcpan_executable):
-    alleles = [normalize_allele_name("HLA-A*02:01")]
-    predictor = mhcpan_class(
-        alleles=alleles,
-        program_name=mhcpan_executable)
-    return predictor.predict_subsequences(
-        sequence_dict=protein_sequence_dict,
-        peptide_lengths=[9])
-
 def test_netmhc_pan():
-    binding_predictions = run_class_with_executable(NetMHCpan, "netMHCpan")
+    predictor = NetMHCpan(alleles=[DEFAULT_ALLELE])
+    binding_predictions = predictor.predict_subsequences(
+        protein_sequence_dict,
+        peptide_lengths=[9])
     assert len(binding_predictions) == 4, \
             "Expected 4 binding predictions from %s" % (binding_predictions,)
     for x in binding_predictions:
