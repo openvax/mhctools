@@ -38,7 +38,9 @@ def NetMHCpan(
     # is meaningless, but it is necessary to call `netmhcpan --version` with some
     # argument, otherwise it hangs.
     with open(os.devnull, 'w') as devnull:
-        output = check_output([program_name, "--version", "WUZZLE"], stderr=devnull)
+        output = check_output([
+            program_name, "--version", "_MHCTOOLS_VERSION_SNIFFING"],
+            stderr=devnull)
     output_str = output.decode("ascii", "ignore")
     if "NetMHCpan version 2.8" in output_str:
         return NetMHCpan28(
