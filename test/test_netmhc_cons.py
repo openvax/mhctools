@@ -53,7 +53,9 @@ def test_netmhc_cons_process_limits():
         binding_predictions = cons_predictor.predict_subsequences(
             sequence_dict=sequence_dict)
         assert len(binding_predictions) == 14, \
-            "Expected 14 epitopes from %s" % (binding_predictions,)
+            "Expected 14 binding predictions from but got %d: %s" % (
+                len(binding_predictions),
+                binding_predictions)
 
         source_names = [bp.source_sequence_name for bp in binding_predictions]
         for fasta_key in sequence_dict.keys():

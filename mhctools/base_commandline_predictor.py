@@ -22,13 +22,12 @@ from typechecks import require_string, require_integer, require_iterable_of
 from mhcnames import normalize_allele_name
 from mhcnames.parsing_helpers import AlleleParseError
 
-from .common import check_sequence_dictionary
+
 from .base_predictor import BasePredictor
 from .unsupported_allele import UnsupportedAllele
 from .process_helpers import run_command
 from .cleanup_context import CleanupFiles
 from .input_file_formats import (
-    create_input_fasta_files,
     create_input_peptides_files
 )
 from .process_helpers import run_multiple_commands_redirect_stdout
@@ -54,9 +53,8 @@ class BaseCommandlinePredictor(BasePredictor):
             peptide_mode_flags=["-p"],
             tempdir_flag=None,
             extra_flags=[],
-            max_sequences_per_fasta_file=10**4,
-            max_peptides_per_file=10**5,
-            process_limit=0,
+            max_peptides_per_file=2 * 10**3,
+            process_limit=-1,
             default_peptide_lengths=[9]):
         """
         Parameters
@@ -103,6 +101,7 @@ class BaseCommandlinePredictor(BasePredictor):
 
         process_limit : int, optional
             Maximum number of parallel processes to start
+            (0 for no limit, -1 for use all available processors)
 
         default_peptide_lengths : list of int, optional
             When making predictions across subsequences of protein sequences,
@@ -133,11 +132,6 @@ class BaseCommandlinePredictor(BasePredictor):
 
         require_iterable_of(extra_flags, str)
         self.extra_flags = extra_flags
-
-        require_integer(
-            max_sequences_per_fasta_file,
-            "Maximum number of protein sequences per FASTA file")
-        self.max_sequences_per_fasta_file = max_sequences_per_fasta_file
 
         require_integer(
             max_peptides_per_file,
@@ -279,24 +273,23 @@ class BaseCommandlinePredictor(BasePredictor):
             logger.warn("No epitopes from %s" % self.program_name)
         return binding_predictions
 
-    def predict_peptides(
-            self,
-            peptides,
-            source_sequence_names=None,
-            offsets=None):
-        peptides, source_sequence_names, offsets = \
-            self._prepare_peptide_inputs(
-                peptides, source_sequence_names, offsets)
+    def predict_peptides(self, peptides):
+        require_iterable_of(peptides, str)
         input_filenames = create_input_peptides_files(
             peptides,
             max_peptides_per_file=self.max_peptides_per_file)
+        logger.debug("Created %d input files" % len(input_filenames))
         commands = {}
         dirs = []
+
         for i, input_filename in enumerate(input_filenames):
             for j, allele in enumerate(self.alleles):
                 if self.tempdir_flag:
                     temp_dirname = tempfile.mkdtemp(
-                        prefix="tmp_%s" % self.program_name)
+                        prefix="tmp_%d_%d_%s" % (
+                            i,
+                            j,
+                            self.program_name))
                     logger.debug(
                         "Created temporary directory %s for allele %s",
                         temp_dirname,
@@ -306,7 +299,8 @@ class BaseCommandlinePredictor(BasePredictor):
                     temp_dirname = None
                 output_file = tempfile.NamedTemporaryFile(
                     "w",
-                    prefix="%s_output_%d_%d" % (self.program_name, i, j),
+                    prefix="%s_output_length_%d_%d" % (
+                        self.program_name, i, j),
                     delete=False)
                 commands[output_file] = self._build_command(
                     input_filename=input_filename,
@@ -317,65 +311,3 @@ class BaseCommandlinePredictor(BasePredictor):
             commands=commands,
             input_filenames=input_filenames,
             temp_dir_list=dirs)
-
-    def predict_subsequences(
-            self,
-            sequence_dict,
-            peptide_lengths=None):
-        """
-        Predict MHC ligands from collection of protein sequences.
-
-        Runs multiple predictors simultaneously, split across:
-            1) multiple input files, each containing
-                self.max_sequences_per_fasta_file
-            2) every allele + peptide length combination
-
-        Parameters
-        ----------
-        sequence_dict : dict
-            Dictionary whose keys are expected to be unique identifiers for
-            each protein sequence and whose values are amino acid sequences.
-
-        peptide_lengths : list of int
-            List of peptide lengths for which to make predictions. If omitted
-            then use the default_peptide_lengths property of the predictor.
-
-        Returns list of BindingPrediction objects
-        """
-        peptide_lengths = self._check_peptide_lengths(peptide_lengths)
-        sequence_dict = check_sequence_dictionary(sequence_dict)
-
-        input_filenames, sequence_key_mapping = create_input_fasta_files(
-            sequence_dict,
-            max_sequences_per_file=self.max_sequences_per_fasta_file)
-        commands = {}
-        dirs = []
-        for i, input_filename in enumerate(input_filenames):
-            for j, allele in enumerate(self.alleles):
-                for length in peptide_lengths:
-                    if self.tempdir_flag:
-                        temp_dirname = tempfile.mkdtemp(
-                            prefix="tmp_%s_length_%d" % (
-                                self.program_name, length))
-                        logger.debug(
-                            "Created temporary directory %s for allele %s, length %d",
-                            temp_dirname,
-                            allele,
-                            length)
-                        dirs.append(temp_dirname)
-                    else:
-                        temp_dirname = None
-                    output_file = tempfile.NamedTemporaryFile(
-                        "w",
-                        prefix="%s_output_%d_%d" % (self.program_name, i, j),
-                        delete=False)
-                    commands[output_file] = self._build_command(
-                        input_filename=input_filename,
-                        allele=allele,
-                        length=length,
-                        temp_dirname=temp_dirname)
-        return self._run_commands_and_collect_predictions(
-            commands=commands,
-            input_filenames=input_filenames,
-            temp_dir_list=dirs,
-            sequence_key_mapping=sequence_key_mapping)

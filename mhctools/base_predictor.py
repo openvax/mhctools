@@ -14,6 +14,7 @@
 
 from __future__ import print_function, division, absolute_import
 import logging
+from collections import defaultdict
 
 from typechecks import require_iterable_of
 from mhcnames import normalize_allele_name
@@ -70,39 +71,16 @@ class BasePredictor(object):
             self.alleles,
             self.default_peptide_lengths)
 
-    def _prepare_peptide_inputs(
-            self,
-            peptides,
-            source_sequence_names=None,
-            offsets=None):
-        if source_sequence_names is None:
-            source_sequence_names = [None] * len(peptides)
-        if offsets is None:
-            offsets = [0] * len(peptides)
-        assert len(peptides) == len(source_sequence_names) == len(offsets)
-        return peptides, source_sequence_names, offsets
-
-    def predict_peptides(
-            self,
-            peptides,
-            source_sequence_names=None,
-            offsets=None):
+    def predict_peptides(self, peptides):
         """
         Given a list of peptide sequences, returns a BindingPredictionCollection
         """
         raise NotImplementedError("%s must implement predict_peptides" % (
             self.__class__.__name__))
 
-    def predict_peptides_dataframe(
-            self,
-            peptides,
-            source_sequence_names=None,
-            offsets=None):
+    def predict_peptides_dataframe(self, peptides):
         return binding_predictions_to_dataframe(
-            self.predict_peptides(
-                peptides=peptides,
-                source_sequence_names=source_sequence_names,
-                offsets=offsets))
+            self.predict_peptides(peptides))
 
     def _check_peptide_lengths(self, peptide_lengths=None):
         """
@@ -132,25 +110,39 @@ class BasePredictor(object):
         and an optional list of peptide lengths, returns a
         BindingPredictionCollection.
         """
+        if isinstance(sequence_dict, str):
+            sequence_dict = {"seq": sequence_dict}
+
         peptide_lengths = self._check_peptide_lengths(peptide_lengths)
-        peptides = []
-        source_sequence_names = []
-        offsets = []
+
+        # convert long protein sequences to set of peptides and
+        # associated sequence name / offsets that each peptide may have come
+        # from
+        peptide_set = set([])
+        peptide_to_name_offset_pairs = defaultdict(list)
+
         for name, sequence in sequence_dict.items():
             for peptide_length in peptide_lengths:
                 for i in range(len(sequence) - peptide_length + 1):
-                    peptides.append(sequence[i:i + peptide_length])
-                    offsets.append(i)
-                    source_sequence_names.append(name)
-        binding_predictions = self.predict_peptides(
-            peptides,
-            source_sequence_names=source_sequence_names,
-            offsets=offsets)
-        n_expected = len(peptides) * len(self.alleles)
+                    peptide = sequence[i:i + peptide_length]
+                    peptide_set.add(peptide)
+                    peptide_to_name_offset_pairs[peptide].append((name, i))
+        binding_predictions = self.predict_peptides(sorted(peptide_set))
+        n_expected = len(peptide_set) * len(self.alleles)
         if len(binding_predictions) != n_expected:
             raise ValueError("Expected %d peptide predictions but got %d" % (
                 n_expected, len(binding_predictions)))
-        return binding_predictions
+
+        # create BindingPrediction objects with sequence name and offset
+        results = []
+        for binding_prediction in binding_predictions:
+            for name, offset in peptide_to_name_offset_pairs[
+                    binding_prediction.peptide]:
+                results.append(binding_prediction.clone_with_updates(
+                    source_sequence_name=name,
+                    offset=offset))
+        assert len(results) >= len(binding_predictions)
+        return results
 
     def predict(self, sequence_dict, peptide_lengths=None):
         logger.warn("Deprecated method 'predict', use 'predict_subsequences")

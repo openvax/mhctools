@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 def NetMHCpan(
         alleles,
         program_name="netMHCpan",
-        process_limit=0,
+        process_limit=-1,
         extra_flags=[]):
     """
     This function wraps NetMHCpan28 and NetMHCpan3 to automatically detect which class
@@ -35,9 +35,7 @@ def NetMHCpan(
     # convert to str since Python3 returns a `bytes` object. The '3' here is meaningless,
     # but it is necessary to call `netmhcpan --version` with some argument, otherwise
     # it hangs.
-    output = check_output([
-        program_name, "--version", "3",
-    ])
+    output = check_output([program_name, "--version", "3"])
     output_str = output.decode("ascii", "ignore")
     if "NetMHCpan version 2.8" in output_str:
         return NetMHCpan28(

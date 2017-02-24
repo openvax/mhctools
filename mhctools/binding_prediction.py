@@ -50,12 +50,12 @@ class BindingPrediction(object):
     """
     def __init__(
             self,
-            source_sequence_name,
-            offset,
             peptide,
             allele,
             affinity,
             percentile_rank,
+            source_sequence_name=None,
+            offset=0,
             log_affinity=None,
             prediction_method_name=""):
         """
@@ -116,18 +116,22 @@ class BindingPrediction(object):
     def __str__(self):
         format_string = (
             "BindingPrediction("
-            "source_sequence_name='%s', "
             "peptide='%s', "
             "allele='%s', "
             "affinity=%0.4f, "
             "percentile_rank=%0.4f, "
+            "source_sequence_name=%s, "
+            "offset=%d, "
             "prediction_method_name='%s')")
         return format_string % (
-                self.source_sequence_name,
                 self.peptide,
                 self.allele,
                 self.affinity,
                 self.percentile_rank,
+                ('%s' % self.source_sequence_name
+                    if self.source_sequence_name
+                    else None),
+                self.offset,
                 self.prediction_method_name)
 
     def clone_with_updates(self, **kwargs):

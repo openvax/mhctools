@@ -22,7 +22,7 @@ class NetMHCpan3(BaseCommandlinePredictor):
             self,
             alleles,
             program_name="netMHCpan",
-            process_limit=0,
+            process_limit=-1,
             extra_flags=[]):
         BaseCommandlinePredictor.__init__(
             self,

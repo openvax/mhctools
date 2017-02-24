@@ -163,19 +163,13 @@ class IedbBasePredictor(BasePredictor):
         }
         return params
 
-    def predict_peptides(self, peptides, source_sequence_names=None, offsets=None):
-        peptides, source_sequence_names, offsets = \
-            self._prepare_peptide_inputs(peptides, source_sequence_names, offsets)
-
+    def predict_peptides(self, peptides):
         binding_predictions = []
-        for peptide, name, offset in zip(peptides, source_sequence_names, offsets):
-            peptide_binding_predictions = self.predict_subsequences(
-                {"seq": peptide}, peptide_lengths=len(peptide))
-            for binding_prediction in peptide_binding_predictions:
-                binding_predictions.append(
-                    binding_prediction.clone_with_updates(
-                        source_sequence_name=name,
-                        offset=offset))
+        for i, peptide in enumerate(peptides):
+            binding_predictions.extend(
+                self.predict_subsequences(
+                    {"seq%d" % (i + 1): peptide},
+                    peptide_lengths=len(peptide)))
         return binding_predictions
 
     def predict_subsequences(self, sequence_dict, peptide_lengths=None):
