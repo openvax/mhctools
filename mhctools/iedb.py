@@ -20,6 +20,7 @@ import io
 from six.moves.urllib.request import urlopen, Request
 # pylint: disable=import-error
 from six.moves.urllib.parse import urlencode
+from six import string_types
 import pandas as pd
 
 from .base_predictor import BasePredictor
@@ -141,7 +142,7 @@ class IedbBasePredictor(BasePredictor):
             default_peptide_lengths=default_peptide_lengths)
         self.prediction_method = prediction_method
 
-        if not isinstance(url, str):
+        if not isinstance(url, string_types):
             raise TypeError("Expected URL to be string, not %s : %s" % (
                 url, type(url)))
         self.url = url

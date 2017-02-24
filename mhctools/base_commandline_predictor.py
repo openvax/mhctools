@@ -18,6 +18,7 @@ import logging
 from subprocess import check_output
 import tempfile
 
+from six import string_types
 from typechecks import require_string, require_integer, require_iterable_of
 from mhcnames import normalize_allele_name
 from mhcnames.parsing_helpers import AlleleParseError
@@ -93,9 +94,6 @@ class BaseCommandlinePredictor(BasePredictor):
         extra_flags : list of str
             Extra flags to pass to the predictor
 
-        max_sequences_per_fasta_file : int, optional
-            Maximum number of sequences per input FASTA file
-
         max_peptides_per_file : int, optional
             Maximum number of lines per file when predicting peptides directly.
 
@@ -123,14 +121,14 @@ class BaseCommandlinePredictor(BasePredictor):
         require_string(allele_flag, "Allele flag")
         self.allele_flag = allele_flag
 
-        require_iterable_of(peptide_mode_flags, str)
+        require_iterable_of(peptide_mode_flags, string_types)
         self.peptide_mode_flags = peptide_mode_flags
 
         if tempdir_flag is not None:
             require_string(tempdir_flag, "Temporary directory flag")
         self.tempdir_flag = tempdir_flag
 
-        require_iterable_of(extra_flags, str)
+        require_iterable_of(extra_flags, string_types)
         self.extra_flags = extra_flags
 
         require_integer(
@@ -274,7 +272,7 @@ class BaseCommandlinePredictor(BasePredictor):
         return binding_predictions
 
     def predict_peptides(self, peptides):
-        require_iterable_of(peptides, str)
+        require_iterable_of(peptides, string_types)
         input_filenames = create_input_peptides_files(
             peptides,
             max_peptides_per_file=self.max_peptides_per_file)

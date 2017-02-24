@@ -16,6 +16,7 @@ from __future__ import print_function, division, absolute_import
 import logging
 from collections import defaultdict
 
+from six import string_types
 from typechecks import require_iterable_of
 from mhcnames import normalize_allele_name
 
@@ -53,7 +54,7 @@ class BasePredictor(object):
         """
         # I find myself often constructing a predictor with just one allele
         # so as a convenience, allow user to not wrap that allele as a list
-        if isinstance(alleles, str):
+        if isinstance(alleles, string_types):
             alleles = alleles.split(',')
         self.alleles = self._check_hla_alleles(alleles, valid_alleles)
 
@@ -110,7 +111,7 @@ class BasePredictor(object):
         and an optional list of peptide lengths, returns a
         BindingPredictionCollection.
         """
-        if isinstance(sequence_dict, str):
+        if isinstance(sequence_dict, string_types):
             sequence_dict = {"seq": sequence_dict}
 
         peptide_lengths = self._check_peptide_lengths(peptide_lengths)
@@ -166,7 +167,7 @@ class BasePredictor(object):
         HLA alleles, return a set of alleles that we will pass into
         the MHC binding predictor.
         """
-        require_iterable_of(alleles, str, "HLA alleles")
+        require_iterable_of(alleles, string_types, "HLA alleles")
 
         # Don't run the MHC predictor twice for homozygous alleles,
         # only run it for unique alleles

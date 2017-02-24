@@ -14,16 +14,12 @@
 
 from __future__ import print_function, division, absolute_import
 
-import tempfile
 import logging
 
 from mhcnames import parse_classi_or_classii_allele_name
-from typechecks import require_integer
 
-from .common import check_sequence_dictionary
 from .base_commandline_predictor import BaseCommandlinePredictor
 from .parsing import parse_netmhciipan_stdout
-from .input_file_formats import create_input_fasta_files
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +29,6 @@ class NetMHCIIpan(BaseCommandlinePredictor):
             alleles,
             default_peptide_lengths=[15, 16, 17, 18, 19, 20],
             program_name="netMHCIIpan",
-            max_sequences_per_fasta_file=1000,
             process_limit=-1):
         BaseCommandlinePredictor.__init__(
             self,
@@ -48,10 +43,6 @@ class NetMHCIIpan(BaseCommandlinePredictor):
             length_flag="-length",
             tempdir_flag="-tdir",
             process_limit=process_limit)
-        require_integer(
-            max_sequences_per_fasta_file,
-            "Maximum number of protein sequences per FASTA file")
-        self.max_sequences_per_fasta_file = max_sequences_per_fasta_file
 
     def prepare_allele_name(self, allele_name):
         """
@@ -90,65 +81,3 @@ class NetMHCIIpan(BaseCommandlinePredictor):
                 beta.gene,
                 beta.allele_family,
                 beta.allele_code)
-
-    def predict_subsequences_using_fasta_mode(
-            self,
-            sequence_dict,
-            peptide_lengths=None):
-        """
-        Predict MHC ligands from collection of protein sequences.
-
-        Runs multiple predictors simultaneously, split across:
-            1) multiple input files, each containing
-                self.max_sequences_per_fasta_file
-            2) every allele + peptide length combination
-
-        Parameters
-        ----------
-        sequence_dict : dict
-            Dictionary whose keys are expected to be unique identifiers for
-            each protein sequence and whose values are amino acid sequences.
-
-        peptide_lengths : list of int
-            List of peptide lengths for which to make predictions. If omitted
-            then use the default_peptide_lengths property of the predictor.
-
-        Returns list of BindingPrediction objects
-        """
-        peptide_lengths = self._check_peptide_lengths(peptide_lengths)
-        sequence_dict = check_sequence_dictionary(sequence_dict)
-
-        input_filenames, sequence_key_mapping = create_input_fasta_files(
-            sequence_dict,
-            max_sequences_per_file=self.max_sequences_per_fasta_file)
-        commands = {}
-        dirs = []
-        for i, input_filename in enumerate(input_filenames):
-            for j, allele in enumerate(self.alleles):
-                for length in peptide_lengths:
-                    if self.tempdir_flag:
-                        temp_dirname = tempfile.mkdtemp(
-                            prefix="tmp_%s_length_%d" % (
-                                self.program_name, length))
-                        logger.debug(
-                            "Created temporary directory %s for allele %s, length %d",
-                            temp_dirname,
-                            allele,
-                            length)
-                        dirs.append(temp_dirname)
-                    else:
-                        temp_dirname = None
-                    output_file = tempfile.NamedTemporaryFile(
-                        "w",
-                        prefix="%s_output_%d_%d" % (self.program_name, i, j),
-                        delete=False)
-                    commands[output_file] = self._build_command(
-                        input_filename=input_filename,
-                        allele=allele,
-                        length=length,
-                        temp_dirname=temp_dirname)
-        return self._run_commands_and_collect_predictions(
-            commands=commands,
-            input_filenames=input_filenames,
-            temp_dir_list=dirs,
-            sequence_key_mapping=sequence_key_mapping)
