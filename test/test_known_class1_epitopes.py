@@ -38,7 +38,7 @@ def expect_binder(mhc_model, peptide):
         peptide, prediction)
 
 def make_mhc_model(mhc_class, alleles):
-    kwargs = {"alleles": alleles}
+    kwargs = {"alleles": alleles, "default_peptide_lengths": [9]}
     if mhc_class in program_name_overrides:
         kwargs.update({"program_name": program_name_overrides[mhc_class]})
     return mhc_class(**kwargs)
