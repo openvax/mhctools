@@ -153,8 +153,8 @@ class BindingPrediction(object):
     def __hash__(self):
         return hash(self.to_tuple())
 
-    def __cmp__(self, other):
-        return cmp(self.value, other.value)
+    def __lt__(self, other):
+        return self.value < other.value
 
 def invalid_binding_score(x):
     return x < 0 or np.isnan(x) or np.isinf(x)
