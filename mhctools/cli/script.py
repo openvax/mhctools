@@ -21,7 +21,6 @@ import sys
 from pyensembl.fasta import parse_fasta_dictionary
 
 from .args import make_mhc_arg_parser, mhc_binding_predictor_from_args
-from ..binding_prediction import binding_predictions_to_dataframe
 
 logging.config.fileConfig(pkg_resources.resource_filename(__name__, 'logging.conf'))
 logger = logging.getLogger(__name__)
