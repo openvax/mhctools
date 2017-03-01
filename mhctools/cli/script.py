@@ -85,7 +85,7 @@ def main(args_list=None):
             ("No input sequences provided, "
              "use --sequence, --input-fasta-file, or input-peptides-file"))
 
-    df = binding_predictions_to_dataframe(binding_predictions)
+    df = binding_predictions.to_dataframe()
     logger.info('\n%s', df)
     if args.output_csv:
         df.to_csv(args.output_csv)
