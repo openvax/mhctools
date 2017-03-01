@@ -17,36 +17,6 @@ from __future__ import print_function, division, absolute_import
 import numpy as np
 
 class BindingPrediction(object):
-    """
-    Given the following single sequence FASTA file:
-        >seq0
-        MEEPQSDPSV
-    the result of a binding predictor for HLA-A*02:01 will be
-    a collection of the following BindingPrediction objects:
-    [
-        BindingPrediction(
-            source_sequence_key="seq0",
-            offset=0,
-            allele="HLA-A*02:01",
-            peptide="MEEPQSDPS",
-            value=0.9,
-            percentile_rank=1.3,
-            measure=ic50_nM,
-            prediction_method_name="NetMHC",
-
-        ),
-        BindingPrediction(
-            source_sequence_key="seq0",
-            offset=1,
-            allele="HLA-A*02:01",
-            peptide="EEPQSDPSV",
-            value=20.9,
-            percentile_rank=39.9,
-            measure=ic50_nM,
-            prediction_method_name="NetMHC",
-        ),
-    ]
-    """
     def __init__(
             self,
             peptide,
@@ -60,13 +30,6 @@ class BindingPrediction(object):
         """
         Parameters
         ----------
-        source_sequence_name : str
-            Name of sequence from which peptide was extracted
-
-        offset : int
-            Base0 starting position in source sequence that all epitopes were
-            extracted from
-
         peptide : str
             Short amino acid sequence
 
@@ -78,6 +41,13 @@ class BindingPrediction(object):
 
         percentile_rank : float
             Percentile rank of the binding affinity for that allele
+
+        source_sequence_name : str
+            Name of sequence from which peptide was extracted
+
+        offset : int
+            Base0 starting position in source sequence that all epitopes were
+            extracted from
 
         log_affinity : float, optional
             NetMHC sometimes gives invalid IC50 values but we can still
