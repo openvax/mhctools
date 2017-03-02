@@ -77,7 +77,7 @@ class BaseCommandlinePredictor(BasePredictor):
             How to specify the input FASTA file of source sequences (e.g. "-f")
 
         length_flag : str
-            How to specify the desired predicted epitope length (e.g. "-length")
+            How to specify the desired predicted peptide length (e.g. "-length")
 
         allele_flag : str
             How to specify the allele we want predictions for (e.g. "-a")
@@ -266,7 +266,7 @@ class BaseCommandlinePredictor(BasePredictor):
                             prediction_method_name=self.program_name))
 
         if len(binding_predictions) == 0:
-            logger.warn("No epitopes from %s" % self.program_name)
+            logger.warn("No binding predictions from %s" % self.program_name)
         return BindingPredictionCollection(binding_predictions)
 
     def predict_peptides(self, peptides):
