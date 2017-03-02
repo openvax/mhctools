@@ -13,72 +13,21 @@
 # limitations under the License.
 
 from __future__ import print_function, division, absolute_import
-import tempfile
-from math import ceil
 
-from varcode import Variant, MutationEffect
+from mhcnames import normalize_allele_name
 
-from .epitope_collection_builder import EpitopeCollectionBuilder
+from .binding_prediction import BindingPrediction
 
-
-def create_input_fasta_files(fasta_dictionary, max_file_records=None):
-    """
-    Turn peptide entries from a dataframe into one or more FASTA files.
-    If mutation_window_size is an integer >0 then only use subsequence
-    around mutated residues.
-
-    Return the name of closed files which have to be manually deleted,
-    and a dictionary from FASTA IDs to peptide records.
-
-    If max_file_records is not provided, one file is created.
-    If max_file_records is provided, each file will only hold (at most)
-    max_file_records records.
-    """
-    n_fasta_records = len(fasta_dictionary)
-    input_files = []
-    # A file for every max_file_records records
-    i_range = [0] if not max_file_records else range(
-        int(ceil(n_fasta_records / max_file_records)))
-    input_files = [tempfile.NamedTemporaryFile(
-        "w", prefix="peptide", delete=False) for i in i_range]
-
-    sequence_key_mapping = {}
-    file_counter = 0
-    for i, (original_key, seq) in enumerate(fasta_dictionary.items()):
-        unique_id = str(i)
-        # make a nicer string representation for Variants and Effects
-        # if those are the keys we're given
-        if isinstance(original_key, (Variant, MutationEffect)):
-            unsanitized_string = original_key.short_description
-        else:
-            unsanitized_string = str(original_key)
-        sanitized = "".join([
-            c if c.isalnum() else "_"
-            for c in unsanitized_string
-        ])
-        # this looks crazy but NetMHCpan seems to require key lengths
-        # of 15 or shorter, but since I still want the generated FASTA
-        # file to be vaguely readable I'm combining a truncation of the
-        # original key with a unique indentifier
-        key = sanitized[: 14 - len(unique_id)] + "_" + unique_id
-        sequence_key_mapping[key] = original_key
-        input_files[file_counter].write(">%s\n%s" % (key, seq))
-        # Don't add a newline after the last record
-        if i + 1 < n_fasta_records:
-            # If we are splitting files, don't add a newline as the
-            # last line
-            if max_file_records:
-                if (i + 1) % max_file_records != 0:
-                    input_files[file_counter].write("\n")
-                else:
-                    file_counter += 1
-            else:
-                input_files[file_counter].write("\n")
-    input_file_names = []
-    for input_file in input_files:
-        input_file_names.append(input_file.name)
-        input_file.close()
-    return input_file_names, sequence_key_mapping
+NETMHC_TOKENS = {
+    "pos",
+    "Pos",
+    "Seq",
+    "Number",
+    "Protein",
+    "Allele",
+    "NetMHC",
+    "Strong",
+}
 
 def split_stdout_lines(stdout):
     """
@@ -86,14 +35,59 @@ def split_stdout_lines(stdout):
     drop all {comments, lines of hyphens, empty lines} and split the
     remaining lines by whitespace.
     """
+    # all the NetMHC formats use lines full of dashes before any actual
+    # binding results
+    seen_dash = False
     for l in stdout.split("\n"):
         l = l.strip()
-        if len(l) > 0 and not l.startswith("#"):
-            yield l.split()
+        # wait for a line like '----------' before trying to parse entries
+        if l.startswith("-"):
+            seen_dash = True
+            continue
+        if not seen_dash:
+            continue
+        # ignore empty lines and comments
+        if not l or l.startswith("#"):
+            continue
+        # beginning of headers in NetMHC
+        if any(l.startswith(word) for word in NETMHC_TOKENS):
+            continue
+        yield l.split()
+
+
+def clean_fields(fields, ignored_value_indices, transforms):
+    """
+    Sometimes, NetMHC* has fields that are only populated sometimes, which results
+    in different count/indexing of the fields when that happens.
+
+    We handle this by looking for particular strings at particular indices, and
+    deleting them.
+
+    Warning: this may result in unexpected behavior sometimes. For example, we
+    ignore "SB" and "WB" for NetMHC 3.x output; which also means that any line
+    with a key called SB or WB will be ignored.
+
+    Also, sometimes NetMHC* will have fields that we want to modify in some
+    consistent way, e.g. NetMHCpan3 has 1-based offsets and all other predictors
+    have 0-based offsets (and we rely on 0-based offsets). We handle this using
+    a map from field index to transform function.
+    """
+    cleaned_fields = []
+    for i, field in enumerate(fields):
+        if field in ignored_value_indices:
+            ignored_index = ignored_value_indices[field]
+
+            # Is the value we want to ignore at the index where we'd ignore it?
+            if ignored_index == i:
+                continue
+
+        # transform this field if the index is in transforms, otherwise leave alone
+        cleaned_field = transforms[i](field) if i in transforms else field
+        cleaned_fields.append(cleaned_field)
+    return cleaned_fields
 
 def parse_stdout(
         stdout,
-        fasta_dictionary,
         prediction_method_name,
         sequence_key_mapping,
         key_index,
@@ -106,81 +100,53 @@ def parse_stdout(
         ignored_value_indices={},
         transforms={}):
     """
-    Generic function for parsing any NetMHC* output, given expected indices of values of interest.
+    Generic function for parsing any NetMHC* output, given expected indices
+    of values of interest.
 
-    ignored_value_indices is a map from values to the positions we'll ignore them at. See
-    clean_fields.
+    Parameters
+    ----------
+    ignored_value_indices : dict
+        Map from values to the positions we'll ignore them at. See clean_fields.
 
-    transforms is a map from field index to a transform function to be applied to values in that
-    field. See clean_fields.
+    transforms  : dict
+        Map from field index to a transform function to be applied to values in
+        that field. See clean_fields.
+
+    Returns BindingPredictionCollection
     """
-    builder = EpitopeCollectionBuilder(
-        fasta_dictionary=fasta_dictionary,
-        prediction_method_name=prediction_method_name)
 
-    def clean_fields(fields, ignored_value_indices, transforms):
-        """
-        Sometimes, NetMHC* has fields that are only populated sometimes, which results in
-        different count/indexing of the fields when that happens.
-
-        We handle this by looking for particular strings at particular indices, and deleting them.
-
-        Warning: this may result in unexpected behavior sometimes. For example, we ignore "SB" and
-        "WB" for NetMHC 3.x output; which also means that any line with a key called SB or WB will
-        be ignored.
-
-        Also, sometimes NetMHC* will have fields that we want to modify in some consistent way, e.g.
-        NetMHCpan3 has 1-based offsets and all other predictors have 0-based offsets (and we rely
-        on 0-based offsets). We handle this using a map from field index to transform function.
-        """
-        cleaned_fields = []
-        for i, field in enumerate(fields):
-            if field in ignored_value_indices:
-                ignored_index = ignored_value_indices[field]
-
-                # Is the value we want to ignore at the index where we'd ignore it?
-                if ignored_index == i:
-                    continue
-
-            # transform this field if the index is in transforms, otherwise leave alone
-            cleaned_field = transforms[i](field) if i in transforms else field
-            cleaned_fields.append(cleaned_field)
-        return cleaned_fields
-
+    binding_predictions = []
     for fields in split_stdout_lines(stdout):
-        try:
-            fields = clean_fields(fields, ignored_value_indices, transforms)
+        fields = clean_fields(fields, ignored_value_indices, transforms)
 
-            offset = int(fields[offset_index])
-            peptide = str(fields[peptide_index])
-            allele = str(fields[allele_index])
-            ic50 = float(fields[ic50_index])
-            rank = float(fields[rank_index]) if rank_index else 0.0
-            log_ic50 = float(fields[log_ic50_index])
+        offset = int(fields[offset_index])
+        peptide = str(fields[peptide_index])
+        allele = str(fields[allele_index])
+        ic50 = float(fields[ic50_index])
+        rank = float(fields[rank_index]) if rank_index else 0.0
+        log_ic50 = float(fields[log_ic50_index])
 
-            key = str(fields[key_index])
-            if sequence_key_mapping:
-                original_key = sequence_key_mapping[key]
-            else:
-                # if sequence_key_mapping isn't provided then let's assume it's the
-                # identity function
-                original_key = key
+        key = str(fields[key_index])
+        if sequence_key_mapping:
+            original_key = sequence_key_mapping[key]
+        else:
+            # if sequence_key_mapping isn't provided then let's assume it's the
+            # identity function
+            original_key = key
 
-            builder.add_binding_prediction(
-                source_sequence_key=original_key,
-                offset=offset,
-                peptide=peptide,
-                allele=allele,
-                ic50=ic50,
-                rank=rank,
-                log_ic50=log_ic50)
-        except:
-            continue
-    return builder.get_collection()
+        binding_predictions.append(BindingPrediction(
+            source_sequence_name=original_key,
+            offset=offset,
+            peptide=peptide,
+            allele=normalize_allele_name(allele),
+            affinity=ic50,
+            percentile_rank=rank,
+            log_affinity=log_ic50,
+            prediction_method_name=prediction_method_name))
+    return binding_predictions
 
 def parse_netmhc3_stdout(
         stdout,
-        fasta_dictionary,
         prediction_method_name="netmhc3",
         sequence_key_mapping=None):
     """
@@ -199,7 +165,6 @@ def parse_netmhc3_stdout(
     """
     return parse_stdout(
         stdout=stdout,
-        fasta_dictionary=fasta_dictionary,
         prediction_method_name=prediction_method_name,
         sequence_key_mapping=sequence_key_mapping,
         key_index=4,
@@ -213,7 +178,6 @@ def parse_netmhc3_stdout(
 
 def parse_netmhc4_stdout(
         stdout,
-        fasta_dictionary,
         prediction_method_name="netmhc4",
         sequence_key_mapping=None):
     """
@@ -236,7 +200,6 @@ def parse_netmhc4_stdout(
     """
     return parse_stdout(
         stdout=stdout,
-        fasta_dictionary=fasta_dictionary,
         prediction_method_name=prediction_method_name,
         sequence_key_mapping=sequence_key_mapping,
         key_index=10,
@@ -249,7 +212,6 @@ def parse_netmhc4_stdout(
 
 def parse_netmhcpan28_stdout(
         stdout,
-        fasta_dictionary,
         prediction_method_name="netmhcpan",
         sequence_key_mapping=None):
     """
@@ -275,7 +237,6 @@ def parse_netmhcpan28_stdout(
     """
     return parse_stdout(
         stdout=stdout,
-        fasta_dictionary=fasta_dictionary,
         prediction_method_name=prediction_method_name,
         sequence_key_mapping=sequence_key_mapping,
         key_index=3,
@@ -288,7 +249,6 @@ def parse_netmhcpan28_stdout(
 
 def parse_netmhcpan3_stdout(
         stdout,
-        fasta_dictionary,
         prediction_method_name="netmhcpan",
         sequence_key_mapping=None):
     """
@@ -308,7 +268,6 @@ def parse_netmhcpan3_stdout(
     }
     return parse_stdout(
         stdout=stdout,
-        fasta_dictionary=fasta_dictionary,
         prediction_method_name=prediction_method_name,
         sequence_key_mapping=sequence_key_mapping,
         key_index=10,
@@ -322,7 +281,6 @@ def parse_netmhcpan3_stdout(
 
 def parse_netmhccons_stdout(
         stdout,
-        fasta_dictionary,
         prediction_method_name="netmhccons",
         sequence_key_mapping=None):
     """
@@ -348,7 +306,6 @@ def parse_netmhccons_stdout(
     """
     return parse_stdout(
         stdout=stdout,
-        fasta_dictionary=fasta_dictionary,
         prediction_method_name=prediction_method_name,
         sequence_key_mapping=sequence_key_mapping,
         key_index=3,
@@ -361,7 +318,6 @@ def parse_netmhccons_stdout(
 
 def parse_netmhciipan_stdout(
         stdout,
-        fasta_dictionary,
         prediction_method_name="netmhciipan",
         sequence_key_mapping=None):
     """
@@ -389,7 +345,6 @@ def parse_netmhciipan_stdout(
     """
     return parse_stdout(
         stdout=stdout,
-        fasta_dictionary=fasta_dictionary,
         prediction_method_name=prediction_method_name,
         sequence_key_mapping=sequence_key_mapping,
         key_index=3,

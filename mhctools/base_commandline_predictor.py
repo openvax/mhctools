@@ -13,22 +13,24 @@
 # limitations under the License.
 
 from __future__ import print_function, division, absolute_import
+from collections import defaultdict
 import logging
 from subprocess import check_output
 import tempfile
 
-from typechecks import require_string, require_integer
+from six import string_types
+from typechecks import require_string, require_integer, require_iterable_of
 from mhcnames import normalize_allele_name
 from mhcnames.parsing_helpers import AlleleParseError
 
-from .common import check_sequence_dictionary
-from .base_predictor import BasePredictor, UnsupportedAllele
+
+from .base_predictor import BasePredictor
+from .unsupported_allele import UnsupportedAllele
 from .process_helpers import run_command
 from .cleanup_context import CleanupFiles
-from .epitope_collection import EpitopeCollection
-from .file_formats import create_input_fasta_files
+from .input_file_formats import create_input_peptides_files
 from .process_helpers import run_multiple_commands_redirect_stdout
-
+from .binding_prediction_collection import BindingPredictionCollection
 
 logger = logging.getLogger(__name__)
 
@@ -42,16 +44,17 @@ class BaseCommandlinePredictor(BasePredictor):
             self,
             program_name,
             alleles,
-            epitope_lengths,
             parse_output_fn,
             supported_alleles_flag,
-            input_fasta_flag,
+            input_file_flag,
             length_flag,
             allele_flag,
+            peptide_mode_flags=["-p"],
             tempdir_flag=None,
             extra_flags=[],
-            max_file_records=None,
-            process_limit=0):
+            max_peptides_per_file=2 * 10**3,
+            process_limit=-1,
+            default_peptide_lengths=[9]):
         """
         Parameters
         ----------
@@ -62,8 +65,6 @@ class BaseCommandlinePredictor(BasePredictor):
         alleles : list of str
             MHC alleles
 
-        epitope_lengths : list of int
-
         supported_alleles_flag : str
             Flag to pass to the predictor to get a list of supported alleles
             (e.g. "-A", "-list", "-listMHC")
@@ -72,7 +73,7 @@ class BaseCommandlinePredictor(BasePredictor):
             Takes the stdout string from the predictor and returns a collection
             of BindingPrediction objects
 
-        input_fasta_flag : str
+        input_file_flag : str
             How to specify the input FASTA file of source sequences (e.g. "-f")
 
         length_flag : str
@@ -81,17 +82,26 @@ class BaseCommandlinePredictor(BasePredictor):
         allele_flag : str
             How to specify the allele we want predictions for (e.g. "-a")
 
+        peptide_mode_flags : list of str
+            How to switch from the default FASTA subsequences input mode to
+            where peptides are explicitly given one per line of a text file.
+
         tempdir_flag : str, optional
             How to specify the predictor's temporary directory (e.g. "-tdir")
 
         extra_flags : list of str
             Extra flags to pass to the predictor
 
-        max_file_records : int, optional
-            Maximum number of sequences per input FASTA file
+        max_peptides_per_file : int, optional
+            Maximum number of lines per file when predicting peptides directly.
 
         process_limit : int, optional
             Maximum number of parallel processes to start
+            (0 for no limit, -1 for use all available processors)
+
+        default_peptide_lengths : list of int, optional
+            When making predictions across subsequences of protein sequences,
+            what peptide lengths to predict for.
         """
         require_string(program_name, "Predictor program name")
         self.program_name = program_name
@@ -100,31 +110,37 @@ class BaseCommandlinePredictor(BasePredictor):
             require_string(supported_alleles_flag, "Supported alleles flag")
         self.supported_alleles_flag = supported_alleles_flag
 
-        require_string(input_fasta_flag, "Input FASTA file flag")
-        self.input_fasta_flag = input_fasta_flag
+        require_string(input_file_flag, "Input file flag")
+        self.input_file_flag = input_file_flag
+
+        require_string(length_flag, "Peptide length flag")
+        self.length_flag = length_flag
 
         require_string(allele_flag, "Allele flag")
         self.allele_flag = allele_flag
 
-        require_string(length_flag, "Peptide length flag")
-        self.length_flag = length_flag
+        require_iterable_of(peptide_mode_flags, string_types)
+        self.peptide_mode_flags = peptide_mode_flags
 
         if tempdir_flag is not None:
             require_string(tempdir_flag, "Temporary directory flag")
         self.tempdir_flag = tempdir_flag
 
+        require_iterable_of(extra_flags, string_types)
         self.extra_flags = extra_flags
 
-        if max_file_records is not None:
-            require_integer(
-                    max_file_records,
-                    "Maximum number of sequences per input files")
-        self.max_file_records = max_file_records
+        require_integer(
+            max_peptides_per_file,
+            "Maximum number of lines in a peptides input file")
+        self.max_peptides_per_file = max_peptides_per_file
 
         require_integer(process_limit, "Maximum number of processes")
         self.process_limit = process_limit
 
         self.parse_output_fn = parse_output_fn
+
+        if isinstance(default_peptide_lengths, int):
+            default_peptide_lengths = [default_peptide_lengths]
 
         if self.supported_alleles_flag:
             valid_alleles = self._determine_supported_alleles(
@@ -143,9 +159,9 @@ class BaseCommandlinePredictor(BasePredictor):
         try:
             BasePredictor.__init__(
                 self,
-                alleles,
-                epitope_lengths,
-                valid_alleles=valid_alleles)
+                alleles=alleles,
+                valid_alleles=valid_alleles,
+                default_peptide_lengths=default_peptide_lengths)
         except UnsupportedAllele as e:
             if self.supported_alleles_flag:
                 additional_message = (
@@ -194,74 +210,46 @@ class BaseCommandlinePredictor(BasePredictor):
         """
         return allele_name.replace("*", "")
 
-    def _build_command(self, input_filename, allele, length, temp_dirname=None):
+    def _build_command(
+            self,
+            input_filename,
+            allele,
+            length=None,
+            temp_dirname=None,
+            peptide_mode=False):
         args = [self.program_name]
-        if self.input_fasta_flag:
-            args.extend([self.input_fasta_flag, input_filename])
-        else:
-            args.append(input_filename)
-        args.extend([
-            self.allele_flag, allele,
-            self.length_flag, str(length),
-        ])
+        if peptide_mode:
+            args.extend(self.peptide_mode_flags)
+        args.extend([self.allele_flag, self.prepare_allele_name(allele)])
+        if length:
+            args.extend([self.length_flag, str(length)])
         if self.tempdir_flag and temp_dirname:
             args.extend([self.tempdir_flag, temp_dirname])
         args.extend(self.extra_flags)
+        if self.input_file_flag:
+            args.extend([self.input_file_flag, input_filename])
+        else:
+            args.append(input_filename)
         return args
 
-    def predict(self, fasta_dictionary):
-        """
-        Run multiple predictors simultaneously, split across:
-            1) multiple input files, each containing self.max_file_records
-            2) every allele + peptide length combination
-        """
-        fasta_dictionary = check_sequence_dictionary(fasta_dictionary)
-        input_filenames, sequence_key_mapping = create_input_fasta_files(
-            fasta_dictionary,
-            max_file_records=self.max_file_records)
-        output_files = {}
-        commands = {}
-        dirs = []
-        alleles = [
-            self.prepare_allele_name(allele)
-            for allele in self.alleles
-        ]
-        for i, input_filename in enumerate(input_filenames):
-            for j, allele in enumerate(alleles):
-                for length in self.epitope_lengths:
-                    if self.tempdir_flag:
-                        temp_dirname = tempfile.mkdtemp(
-                            prefix="tmp_%s_length_%d" % (
-                                self.program_name, length))
-                        logger.debug(
-                            "Created temporary directory %s for allele %s, length %d",
-                            temp_dirname,
-                            allele,
-                            length)
-                        dirs.append(temp_dirname)
-                    else:
-                        temp_dirname = None
-                    output_file = tempfile.NamedTemporaryFile(
-                        "w",
-                        prefix="%s_output_%d_%d" % (self.program_name, i, j),
-                        delete=False)
-                    commands[output_file] = self._build_command(
-                        input_filename=input_filename,
-                        allele=allele,
-                        length=length,
-                        temp_dirname=temp_dirname)
-
-        epitope_collections = []
+    def _run_commands_and_collect_predictions(
+            self,
+            commands,
+            input_filenames,
+            temp_dir_list,
+            sequence_key_mapping=None):
+        if sequence_key_mapping is None:
+            sequence_key_mapping = defaultdict(lambda: "seq")
+        binding_predictions = []
 
         # Cleanup either when finished or if an exception gets raised by
         # deleting the input and output files
-        filenames_to_delete = input_filenames
-        for f in output_files.keys():
-            filenames_to_delete.append(f.name)
+        filenames_to_delete = list(input_filenames) + [
+            f.name for f in commands.keys()]
 
         with CleanupFiles(
                 filenames=filenames_to_delete,
-                directories=dirs):
+                directories=temp_dir_list):
             run_multiple_commands_redirect_stdout(
                 commands,
                 print_commands=True,
@@ -271,25 +259,51 @@ class BaseCommandlinePredictor(BasePredictor):
                 # but I was getting empty files otherwise
                 output_file.close()
                 with open(output_file.name, 'r') as f:
-                    epitope_collection = self.parse_output_fn(
-                        stdout=f.read(),
-                        fasta_dictionary=fasta_dictionary,
-                        sequence_key_mapping=sequence_key_mapping,
-                        prediction_method_name=self.program_name)
-                    epitope_collections.append(epitope_collection)
+                    binding_predictions.extend(
+                        self.parse_output_fn(
+                            stdout=f.read(),
+                            sequence_key_mapping=sequence_key_mapping,
+                            prediction_method_name=self.program_name))
 
-        if len(epitope_collections) != len(commands):
-            raise ValueError(
-                ("Expected an epitope collection for each "
-                 "command (%d), but instead there are %d") % (
-                    len(commands),
-                    len(epitope_collections)))
+        if len(binding_predictions) == 0:
+            logger.warn("No epitopes from %s" % self.program_name)
+        return BindingPredictionCollection(binding_predictions)
 
-        if len(epitope_collections) == 0:
-            raise ValueError("No epitopes from %s" % self.program_name)
+    def predict_peptides(self, peptides):
+        require_iterable_of(peptides, string_types)
+        input_filenames = create_input_peptides_files(
+            peptides,
+            max_peptides_per_file=self.max_peptides_per_file)
+        logger.debug("Created %d input files" % len(input_filenames))
+        commands = {}
+        dirs = []
 
-        # flatten all epitope collections into a single object
-        return EpitopeCollection([
-            binding_prediction
-            for sublist in epitope_collections
-            for binding_prediction in sublist])
+        for i, input_filename in enumerate(input_filenames):
+            for j, allele in enumerate(self.alleles):
+                if self.tempdir_flag:
+                    temp_dirname = tempfile.mkdtemp(
+                        prefix="tmp_%d_%d_%s" % (
+                            i,
+                            j,
+                            self.program_name))
+                    logger.debug(
+                        "Created temporary directory %s for allele %s",
+                        temp_dirname,
+                        allele)
+                    dirs.append(temp_dirname)
+                else:
+                    temp_dirname = None
+                output_file = tempfile.NamedTemporaryFile(
+                    "w",
+                    prefix="%s_output_length_%d_%d" % (
+                        self.program_name, i, j),
+                    delete=False)
+                commands[output_file] = self._build_command(
+                    input_filename=input_filename,
+                    allele=allele,
+                    peptide_mode=True,
+                    temp_dirname=temp_dirname)
+        return self._run_commands_and_collect_predictions(
+            commands=commands,
+            input_filenames=input_filenames,
+            temp_dir_list=dirs)

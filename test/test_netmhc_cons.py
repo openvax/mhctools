@@ -8,34 +8,34 @@ def test_netmhc_cons():
     alleles = [normalize_allele_name(DEFAULT_ALLELE)]
     cons_predictor = NetMHCcons(
         alleles=alleles,
-        epitope_lengths=[9])
-    fasta_dictionary = {
+        default_peptide_lengths=[9])
+    sequence_dict = {
         "SMAD4-001": "ASIINFKELA",
         "TP53-001": "ASILLLVFYW"
     }
-    epitope_collection = cons_predictor.predict(
-        fasta_dictionary=fasta_dictionary)
+    binding_predictions = cons_predictor.predict(
+        sequence_dict=sequence_dict)
 
-    assert len(epitope_collection) == 4, \
-        "Expected 4 epitopes from %s" % (epitope_collection,)
+    assert len(binding_predictions) == 4, \
+        "Expected 4 epitopes from %s" % (binding_predictions,)
 
 def test_netmhc_cons_multiple_alleles():
     alleles = 'A*02:01,B*35:02'
     cons_predictor = NetMHCcons(
         alleles=alleles,
-        epitope_lengths=[9])
-    fasta_dictionary = {
+        default_peptide_lengths=[9])
+    sequence_dict = {
         "SMAD4-001": "ASIINFKELA",
         "TP53-001": "ASILLLVFYW"
     }
-    epitope_collection = cons_predictor.predict(
-        fasta_dictionary=fasta_dictionary)
-    assert len(epitope_collection) == 8, \
-        "Expected 4 epitopes from %s" % (epitope_collection,)
+    binding_predictions = cons_predictor.predict(
+        sequence_dict=sequence_dict)
+    assert len(binding_predictions) == 8, \
+        "Expected 4 binding predictions from %s" % (binding_predictions,)
 
-def test_netmhc_cons_chunking():
+def test_netmhc_cons_process_limits():
     alleles = [normalize_allele_name(DEFAULT_ALLELE)]
-    fasta_dictionary = {
+    sequence_dict = {
         "SMAD4-001": "ASIINFKELA",
         "TP53-001": "ASILLLVFYW",
         "SMAD4-002": "ASIINFKELS",
@@ -44,28 +44,27 @@ def test_netmhc_cons_chunking():
         "TP53-004": "ASILLLVFYG",
         "TP53-005": "ASILLLVFYG"
     }
-    for max_file_records in [1, 5, 20]:
-        for process_limit in [1, 2, 10]:
-            cons_predictor = NetMHCcons(
-                alleles=alleles,
-                epitope_lengths=[9],
-                max_file_records=max_file_records,
-                process_limit=process_limit
-            )
-            epitope_collection = cons_predictor.predict(
-                fasta_dictionary=fasta_dictionary)
-            assert len(epitope_collection) == 14, \
-                "Expected 14 epitopes from %s" % (epitope_collection,)
-            source_keys = []
-            for epitope in epitope_collection:
-                source_keys.append(epitope.source_sequence_key)
-            for fasta_key in fasta_dictionary.keys():
-                fasta_count = source_keys.count(fasta_key)
-                assert fasta_count == 2, \
-                    ("Expected each fasta key to appear twice, once for "
-                     "each length, but saw %s %d time(s)" % (
-                         fasta_key, fasta_count))
+    for process_limit in [1, 2, 10]:
+        cons_predictor = NetMHCcons(
+            alleles=alleles,
+            default_peptide_lengths=[9],
+            process_limit=process_limit
+        )
+        binding_predictions = cons_predictor.predict_subsequences(
+            sequence_dict=sequence_dict)
+        assert len(binding_predictions) == 14, \
+            "Expected 14 binding predictions from but got %d: %s" % (
+                len(binding_predictions),
+                binding_predictions)
+
+        source_names = [bp.source_sequence_name for bp in binding_predictions]
+        for fasta_key in sequence_dict.keys():
+            fasta_count = source_names.count(fasta_key)
+            assert fasta_count == 2, \
+                ("Expected each fasta key to appear twice, once for "
+                 "each length, but saw %s %d time(s)" % (
+                     fasta_key, fasta_count))
 
 if __name__ == "__main__":
     test_netmhc_cons()
-    test_netmhc_cons_chunking()
+    test_netmhc_cons_process_limits()

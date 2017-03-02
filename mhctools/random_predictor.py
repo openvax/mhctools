@@ -15,35 +15,28 @@
 from __future__ import print_function, division, absolute_import
 import random
 
-from .epitope_collection_builder import EpitopeCollectionBuilder
-from .common import check_sequence_dictionary
-from .binding_measure import ic50_nM
+from .base_predictor import BasePredictor
+from .binding_prediction import BindingPrediction
+from .binding_prediction_collection import BindingPredictionCollection
 
-class RandomBindingPredictor(object):
+class RandomBindingPredictor(BasePredictor):
     def __init__(
             self,
             alleles=['HLA-A*02:01'],
-            epitope_lengths=[9]):
-        self.alleles = alleles
-        self.epitope_lengths = epitope_lengths
+            default_peptide_lengths=[9]):
+        BasePredictor.__init__(
+            self,
+            alleles=alleles,
+            default_peptide_lengths=default_peptide_lengths)
 
-    def predict(self, fasta_dictionary):
-        fasta_dictionary = check_sequence_dictionary(fasta_dictionary)
-        builder = EpitopeCollectionBuilder(
-            fasta_dictionary=fasta_dictionary,
-            prediction_method_name="random",
-            binding_measure=ic50_nM)
-        # if wer'e not running the MHC prediction then we have to manually
-        # extract 9mer substrings
-        for key, sequence in fasta_dictionary.items():
-            for epitope_length in self.epitope_lengths:
-                for i in range(len(sequence) - epitope_length + 1):
-                    for allele in self.alleles:
-                        builder.add_binding_prediction(
-                            source_sequence_key=key,
-                            offset=i,
-                            allele=allele,
-                            peptide=sequence[i:i + epitope_length],
-                            ic50=random.random() * 10000.0,
-                            rank=random.randint(0, 99))
-        return builder.get_collection()
+    def predict_peptides(self, peptides):
+        return BindingPredictionCollection([
+            BindingPrediction(
+                allele=allele,
+                peptide=p,
+                affinity=random.random() * 10000.0,
+                percentile_rank=random.randint(0, 99),
+                prediction_method_name="random")
+            for p in peptides
+            for allele in self.alleles
+        ])

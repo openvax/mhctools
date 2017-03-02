@@ -33,13 +33,12 @@ mhc_classes = [
 program_name_overrides = {mhctools.NetMHC3: "netMHC-3.4"}
 
 def expect_binder(mhc_model, peptide):
-    prediction = mhc_model.predict(peptide)[0]
+    prediction = mhc_model.predict_peptides([peptide])[0]
     assert prediction.value < 500, "Expected %s to have IC50 < 500nM, got %s" % (
         peptide, prediction)
 
-def make_mhc_model(mhc_class, alleles, epitope_lengths):
-    kwargs = {"alleles": alleles,
-              "epitope_lengths": epitope_lengths}
+def make_mhc_model(mhc_class, alleles):
+    kwargs = {"alleles": alleles, "default_peptide_lengths": [9]}
     if mhc_class in program_name_overrides:
         kwargs.update({"program_name": program_name_overrides[mhc_class]})
     return mhc_class(**kwargs)
@@ -50,12 +49,12 @@ def test_MAGE_epitope():
     #   as a Cross-Reactive Target for Engineered MAGE A3-Directed
     #   T Cells
     for mhc_class in mhc_classes:
-        mhc_model = make_mhc_model(mhc_class, "HLA-A*01:01", 9)
+        mhc_model = make_mhc_model(mhc_class, "HLA-A*01:01")
         yield (expect_binder, mhc_model, "ESDPIVAQY")
 
 def test_HIV_epitope():
     # Test the A2 HIV epitope SLYNTVATL from
     #    The HIV-1 HLA-A2-SLYNTVATL Is a Help-Independent CTL Epitope
     for mhc_class in mhc_classes:
-        mhc_model = make_mhc_model(mhc_class, "HLA-A*02:01", 9)
+        mhc_model = make_mhc_model(mhc_class, "HLA-A*02:01")
         yield (expect_binder, mhc_model, "SLYNTVATL")

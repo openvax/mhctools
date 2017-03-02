@@ -15,6 +15,7 @@
 from __future__ import print_function, division, absolute_import
 import logging
 from subprocess import check_output
+import os
 
 from .netmhc_pan28 import NetMHCpan28
 from .netmhc_pan3 import NetMHCpan3
@@ -25,37 +26,35 @@ logger = logging.getLogger(__name__)
 
 def NetMHCpan(
         alleles,
-        epitope_lengths=[9],
         program_name="netMHCpan",
-        max_file_records=None,
-        process_limit=0,
+        process_limit=-1,
+        default_peptide_lengths=[9],
         extra_flags=[]):
     """
     This function wraps NetMHCpan28 and NetMHCpan3 to automatically detect which class
     to use, with the help of the miraculous and strange '--version' netmhcpan argument.
     """
-    # convert to str since Python3 returns a `bytes` object. The '3' here is meaningless,
-    # but it is necessary to call `netmhcpan --version` with some argument, otherwise
-    # it hangs.
-    output = check_output([
-        program_name, "--version", "3",
-    ])
+    # convert to str since Python3 returns a `bytes` object.
+    # The '_MHCTOOLS_VERSION_SNIFFING' here is meaningless, but it is necessary
+    # to call `netmhcpan --version` with some argument, otherwise it hangs.
+    with open(os.devnull, 'w') as devnull:
+        output = check_output([
+            program_name, "--version", "_MHCTOOLS_VERSION_SNIFFING"],
+            stderr=devnull)
     output_str = output.decode("ascii", "ignore")
     if "NetMHCpan version 2.8" in output_str:
         return NetMHCpan28(
             alleles=alleles,
-            epitope_lengths=epitope_lengths,
+            default_peptide_lengths=default_peptide_lengths,
             program_name=program_name,
-            max_file_records=max_file_records,
             process_limit=process_limit,
             extra_flags=extra_flags)
 
     elif "NetMHCpan version 3.0" in output_str:
         return NetMHCpan3(
             alleles=alleles,
-            epitope_lengths=epitope_lengths,
+            default_peptide_lengths=default_peptide_lengths,
             program_name=program_name,
-            max_file_records=max_file_records,
             process_limit=process_limit,
             extra_flags=extra_flags)
 

@@ -36,8 +36,10 @@ def add_input_args(arg_parser):
         "--sequence",
         nargs="*",
         help=(
-            "Protein sequences from which MHC binding predictor will extract "
-            "potentially shorter peptides."))
+            "Peptide sequences (MHC binding predictor will not extract sub-sequences)"))
+    input_group.add_argument(
+        "--input-peptides-file",
+        help="Path to file with one peptide per line")
     input_group.add_argument(
         "--input-fasta-file",
         help="Path to FASTA file which contains protein sequences")
@@ -67,24 +69,22 @@ def main(args_list=None):
         args_list = sys.argv[1:]
     args = arg_parser.parse_args(args_list)
     predictor = mhc_binding_predictor_from_args(args)
-    if args.sequence:
-        input_dictionary = {
-            ("input-sequence-%d" % i): seq
-            for (i, seq)
-            in enumerate(args.sequence)
-        }
-    else:
-        input_dictionary = {}
 
     if args.input_fasta_file:
-        input_dictionary.update(parse_fasta_dictionary(args.input_fasta_file))
-
-    if len(input_dictionary) == 0:
+        input_dictionary = parse_fasta_dictionary(args.input_fasta_file)
+        binding_predictions = predictor.predict_subsequences(input_dictionary)
+    elif args.sequence:
+        binding_predictions = predictor.predict_peptides(args.sequence)
+    elif args.input_peptides_file:
+        with open(args.input_peptides_file) as f:
+            peptides = [line.strip() for line in f]
+            binding_predictions = predictor.predict_peptides(peptides)
+    else:
         raise ValueError(
             ("No input sequences provided, "
-             "use either --sequence or --input-fasta-file"))
-    epitope_collection = predictor.predict(input_dictionary)
-    df = epitope_collection.to_dataframe()
+             "use --sequence, --input-fasta-file, or input-peptides-file"))
+
+    df = binding_predictions.to_dataframe()
     logger.info('\n%s', df)
     if args.output_csv:
         df.to_csv(args.output_csv)

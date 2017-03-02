@@ -1,5 +1,5 @@
 from .binding_prediction import BindingPrediction
-from .epitope_collection import EpitopeCollection
+from .binding_prediction_collection import BindingPredictionCollection
 from .iedb import (
     IedbNetMHCcons,
     IedbNetMHCpan,
@@ -18,11 +18,11 @@ from .netmhc_pan3 import NetMHCpan3
 from .netmhcii_pan import NetMHCIIpan
 from .random_predictor import RandomBindingPredictor
 
-__version__ = "0.5.0"
+__version__ = "1.0.0"
 
 __all__ = [
     "BindingPrediction",
-    "EpitopeCollection",
+    "BindingPredictionCollection",
     "IedbNetMHCcons",
     "IedbNetMHCpan",
     "IedbSMM",

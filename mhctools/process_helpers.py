@@ -17,13 +17,12 @@ import logging
 import os
 from subprocess import Popen, CalledProcessError
 import time
+from multiprocessing import cpu_count
 
 # pylint: disable=import-error
 from six.moves.queue import Queue
 
-
 logger = logging.getLogger(__name__)
-
 
 class AsyncProcess(object):
     """
@@ -39,21 +38,30 @@ class AsyncProcess(object):
         assert len(args) > 0
         self.cmd = args[0]
         self.args = args
+        self.suppress_stderr = suppress_stderr
         self.redirect_stdout_file = redirect_stdout_file
+        self.process = None
 
+    def start(self):
         with open(os.devnull, 'w') as devnull:
-            stdout = redirect_stdout_file if redirect_stdout_file else devnull
-            stderr = devnull if suppress_stderr else None
-            self.process = Popen(args, stdout=stdout, stderr=stderr)
+            stdout = (
+                self.redirect_stdout_file if self.redirect_stdout_file
+                else devnull)
+            stderr = devnull if self.suppress_stderr else None
+            self.process = Popen(self.args, stdout=stdout, stderr=stderr)
 
     def poll(self):
         """
         Peeks at whether the process is done or not, without
         waiting for it. Leaves exception handling and such to wait().
         """
+        if self.process is None:
+            self.start()
         return self.process.poll()
 
     def wait(self):
+        if self.process is None:
+            self.start()
         ret_code = self.process.wait()
         logger.debug(
             "%s finished with return code %s",
@@ -69,18 +77,18 @@ def run_command(args, **kwargs):
     execute it and show timing info.
     """
     assert len(args) > 0
-    cmd = args[0]
+    print(args)
     start_time = time.time()
     process = AsyncProcess(args, **kwargs)
     process.wait()
     elapsed_time = time.time() - start_time
-    logger.info("%s took %0.4f seconds", cmd, elapsed_time)
+    logger.info("%s took %0.4f seconds", args[0], elapsed_time)
 
 def run_multiple_commands_redirect_stdout(
         multiple_args_dict,
         print_commands=True,
-        process_limit=0,
-        polling_freq=1,
+        process_limit=-1,
+        polling_freq=0.5,
         **kwargs):
     """
     Run multiple shell commands in parallel, write each of their
@@ -98,7 +106,7 @@ def run_multiple_commands_redirect_stdout(
 
     process_limit : int
         Limit the number of concurrent processes to this number. 0
-        if there is no limit
+        if there is no limit, -1 to use max number of processors
 
     polling_freq : int
         Number of seconds between checking for done processes, if
@@ -107,10 +115,15 @@ def run_multiple_commands_redirect_stdout(
     assert len(multiple_args_dict) > 0
     assert all(len(args) > 0 for args in multiple_args_dict.values())
     assert all(hasattr(f, 'name') for f in multiple_args_dict.keys())
+    if process_limit < 0:
+        logger.debug("Using %d processes" % cpu_count())
+        process_limit = cpu_count()
+
     start_time = time.time()
     processes = Queue(maxsize=process_limit)
 
     def add_to_queue(process):
+        process.start()
         if print_commands:
             handler = logging.FileHandler(process.redirect_stdout_file.name)
             handler.setLevel(logging.DEBUG)
@@ -121,9 +134,9 @@ def run_multiple_commands_redirect_stdout(
 
     for f, args in multiple_args_dict.items():
         p = AsyncProcess(
-            args,
-            redirect_stdout_file=f,
-            **kwargs)
+                args,
+                redirect_stdout_file=f,
+                **kwargs)
         if not processes.full():
             add_to_queue(p)
         else:

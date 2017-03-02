@@ -1,4 +1,4 @@
-from mhctools.file_formats import (
+from mhctools.parsing import (
   parse_netmhcpan28_stdout,
   parse_netmhcpan3_stdout,
   parse_netmhc3_stdout,
@@ -13,7 +13,6 @@ def test_netmhc3_stdout():
       - SLYNTVATL
       - SLYNTVATF
     """
-
     netmhc_output = """
 NetMHC version 3.4. 9mer predictions using Artificial Neural Networks - Direct. Allele HLA-A02:01.
 Strong binder threshold  50 nM. Weak binder threshold score 500 nM
@@ -40,32 +39,28 @@ Strong binder threshold  50 nM. Weak binder threshold score 500 nM
 ----------------------------------------------------------------------------------------------------
  pos    peptide      logscore affinity(nM) Bind Level    Protein Name     Allele
 ----------------------------------------------------------------------------------------------------
-   0  SB                0.113        14800                       seq4 HLA-A02:03
+   0  CFTWNQMNL         0.113        14800                       seq4 HLA-A02:03
 --------------------------------------------------------------------------------------------------
    0  SLYNTVATL         0.730           18         SB            seq5 HLA-A02:03
 --------------------------------------------------------------------------------------------------
    0  SLYNTVATF         0.493          239         WB            seq6 HLA-A02:03
 --------------------------------------------------------------------------------------------------
     """
-    fasta_dictionary = {
-      "seq4": "CFTWNQMNL",
-      "seq5": "SLYNTVATL",
-      "seq6": "SLYNTVATF",
-    }
-    epitope_collection = parse_netmhc3_stdout(
-      netmhc_output,
-      fasta_dictionary=fasta_dictionary,
-      prediction_method_name="netmhc3")
-    assert len(epitope_collection) == 2 * len(fasta_dictionary), \
+    n_sequences = 3
+    n_alleles = 2
+    n_expected = n_alleles * n_sequences
+
+    binding_predictions = parse_netmhc3_stdout(netmhc_output)
+    assert len(binding_predictions) == n_expected, \
       "Wrong number of binding predictions: %d (expected %d)" % (
-        len(epitope_collection), 2 * len(fasta_dictionary))
-    for i, entry in enumerate(epitope_collection):
+        len(binding_predictions), n_expected)
+    for entry in binding_predictions:
         # make sure both allele's tables get parsed
-        assert entry.allele in ('HLA-A*02:01', 'HLA-A*02:03')
+        assert entry.allele in ('HLA-A*02:01', 'HLA-A*02:03'), entry
         # expect the HIV epitope SLYNTVATL to be a predicted binder for both
         # alleles
         if entry.peptide == "SLYNTVATL":
-            assert entry.value < 100
+            assert entry.value < 100, entry
 
 def test_netmhc4_stdout():
     netmhc_output = """
@@ -98,27 +93,21 @@ Protein PEPLIST. Allele HLA-A0202. Number of high binders 0. Number of weak bind
 
 -----------------------------------------------------------------------------------
 """
-    fasta_dictionary = {
-        "SEQ_A": "AAAAAWYLWEV",
-        "SEQ_B": "AEFGPWQTV",
-        "SEQ_C": "AEFGPWQTV",
-        "SEQ_D": "QLLRDNLTL"
-    }
-    epitope_collection = parse_netmhc4_stdout(
-      netmhc_output,
-      fasta_dictionary=fasta_dictionary,
-      prediction_method_name="netmhc4")
-    assert len(epitope_collection) == len(fasta_dictionary), \
+    n_sequences = 2
+    n_alleles = 2
+    n_expected = n_sequences * n_alleles
+    binding_predictions = parse_netmhc4_stdout(netmhc_output)
+    assert len(binding_predictions) == n_expected, \
       "Wrong number of binding predictions: %d (expected %d)" % (
-        len(epitope_collection), len(fasta_dictionary))
-    for i, entry in enumerate(epitope_collection):
+        len(binding_predictions), n_expected)
+    for entry in binding_predictions:
         # make sure both allele's tables get parsed
-        assert entry.allele in ('HLA-A*02:01', 'HLA-A*02:02')
-        assert 0 < entry.value < 50000
+        assert entry.allele in ('HLA-A*02:01', 'HLA-A*02:02'), entry
+        assert 0 < entry.value < 50000, entry
         # expect the epitope AEFGPWQTV to have high affinity for both
         # alleles
         if entry.peptide == "AEFGPWQTV":
-            assert entry.value > 10000
+            assert entry.value > 10000, entry
 
 def test_mhcpan28_stdout():
     netmhcpan28_output = """
@@ -142,25 +131,17 @@ def test_mhcpan28_stdout():
      10  HLA-A*02:03    THIIIASSS   id0         0.040     32361.18   50.00
      11  HLA-A*02:03    HIIIASSSL   id0         0.515       189.74    4.00 <= WB
     """
+    binding_predictions = parse_netmhcpan28_stdout(netmhcpan28_output)
+    assert len(binding_predictions) == 12, \
+      "Expected 12 binding predictions but got %d" % (len(binding_predictions),)
 
-    fasta_dictionary = {
-      "id0": "QQQQQYFPEITHIIASSSL"
-    }
-
-    epitope_collection = parse_netmhcpan28_stdout(
-      netmhcpan28_output,
-      fasta_dictionary=fasta_dictionary,
-      prediction_method_name="netmhcpan")
-
-    assert len(epitope_collection) == 12
-
-    for i, entry in enumerate(epitope_collection):
+    for entry in binding_predictions:
         assert entry.allele == 'HLA-A*02:03', \
             "Expected entry %s to have allele 'HLA-A*02:03'" % (entry,)
-        if i == 0:
+        if entry.peptide == "HIIIASSSL":
             # expect the epitopes to be sorted in increasing IC50
-            assert entry.value == 189.74
-            assert entry.percentile_rank == 4.00
+            assert entry.value == 189.74, entry
+            assert entry.percentile_rank == 4.00, entry
 
 def test_mhcpan3_stdout():
     netmhcpan3_output = """
@@ -181,25 +162,14 @@ def test_mhcpan3_stdout():
        10  HLA-B*18:01        ITHIIASS  ITHIIASS-  0  0  0  8  1     ITHIIASS             id0 0.01784 41223.5   70.00
        11  HLA-B*18:01        THIIASSS  THIIASSS-  0  0  0  8  1     THIIASSS             id0 0.03335 34856.1   38.00
        12  HLA-B*18:01        HIIASSSL  -HIIASSSL  0  0  0  0  1     HIIASSSL             id0 0.03049 35949.6   42.00
-
     """
+    binding_predictions = parse_netmhcpan3_stdout(netmhcpan3_output)
 
-    fasta_dictionary = {
-      "id0": "QQQQQYFPEITHIIASSSL"
-    }
-
-    epitope_collection = parse_netmhcpan3_stdout(
-      netmhcpan3_output,
-      fasta_dictionary=fasta_dictionary,
-      prediction_method_name="netmhcpan")
-
-    assert len(epitope_collection) == 12
-    for i, entry in enumerate(epitope_collection):
+    assert len(binding_predictions) == 12
+    for entry in binding_predictions:
         assert entry.allele == 'HLA-B*18:01', \
             "Expected entry %s to have allele 'HLA-B*18:01'" % (entry,)
-        if i == 0:
+        if entry.peptide == "EITHIIAS":
             # expect the epitopes to be sorted in increasing IC50
-            assert entry.value == 18234.7
-            assert entry.percentile_rank == 10.00
-
-
+            assert entry.value == 18234.7, entry
+            assert entry.percentile_rank == 10.00, entry
