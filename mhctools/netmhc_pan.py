@@ -34,9 +34,9 @@ def NetMHCpan(
     This function wraps NetMHCpan28 and NetMHCpan3 to automatically detect which class
     to use, with the help of the miraculous and strange '--version' netmhcpan argument.
     """
-    # convert to str since Python3 returns a `bytes` object. The 'WUZZLE' here
-    # is meaningless, but it is necessary to call `netmhcpan --version` with some
-    # argument, otherwise it hangs.
+    # convert to str since Python3 returns a `bytes` object.
+    # The '_MHCTOOLS_VERSION_SNIFFING' here is meaningless, but it is necessary
+    # to call `netmhcpan --version` with some argument, otherwise it hangs.
     with open(os.devnull, 'w') as devnull:
         output = check_output([
             program_name, "--version", "_MHCTOOLS_VERSION_SNIFFING"],

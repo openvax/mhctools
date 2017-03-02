@@ -44,7 +44,6 @@ from .. import (
 
 logger = logging.getLogger(__name__)
 
-
 mhc_predictors = {
     "netmhc": NetMHC,
     "netmhc3": NetMHC3,
