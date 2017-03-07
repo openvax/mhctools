@@ -18,7 +18,7 @@ from .netmhc_pan3 import NetMHCpan3
 from .netmhcii_pan import NetMHCIIpan
 from .random_predictor import RandomBindingPredictor
 
-__version__ = "1.0.1"
+__version__ = "1.0.2"
 
 __all__ = [
     "BindingPrediction",
