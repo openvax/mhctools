@@ -52,7 +52,7 @@ class BaseCommandlinePredictor(BasePredictor):
             peptide_mode_flags=["-p"],
             tempdir_flag=None,
             extra_flags=[],
-            max_peptides_per_file=2 * 10**3,
+            max_peptides_per_file=10 ** 4,
             process_limit=-1,
             default_peptide_lengths=[9]):
         """
