@@ -54,7 +54,8 @@ class BaseCommandlinePredictor(BasePredictor):
             extra_flags=[],
             max_peptides_per_file=10 ** 4,
             process_limit=-1,
-            default_peptide_lengths=[9]):
+            default_peptide_lengths=[9],
+            group_peptides_by_length=False):
         """
         Parameters
         ----------
@@ -102,6 +103,9 @@ class BaseCommandlinePredictor(BasePredictor):
         default_peptide_lengths : list of int, optional
             When making predictions across subsequences of protein sequences,
             what peptide lengths to predict for.
+
+        group_peptides_by_length : bool
+            Run commandline predictor on groups of peptides of equal length
         """
         require_string(program_name, "Predictor program name")
         self.program_name = program_name
@@ -141,6 +145,8 @@ class BaseCommandlinePredictor(BasePredictor):
 
         if isinstance(default_peptide_lengths, int):
             default_peptide_lengths = [default_peptide_lengths]
+
+        self.group_peptides_by_length = group_peptides_by_length
 
         if self.supported_alleles_flag:
             valid_alleles = self._determine_supported_alleles(
@@ -273,7 +279,8 @@ class BaseCommandlinePredictor(BasePredictor):
         require_iterable_of(peptides, string_types)
         input_filenames = create_input_peptides_files(
             peptides,
-            max_peptides_per_file=self.max_peptides_per_file)
+            max_peptides_per_file=self.max_peptides_per_file,
+            group_by_length=self.group_peptides_by_length)
         logger.debug("Created %d input files" % len(input_filenames))
         commands = {}
         dirs = []
@@ -303,7 +310,11 @@ class BaseCommandlinePredictor(BasePredictor):
                     allele=allele,
                     peptide_mode=True,
                     temp_dirname=temp_dirname)
-        return self._run_commands_and_collect_predictions(
+        results = self._run_commands_and_collect_predictions(
             commands=commands,
             input_filenames=input_filenames,
             temp_dir_list=dirs)
+        self._check_result_count(
+            results,
+            n_expected=len(peptides) * len(self.alleles))
+        return results

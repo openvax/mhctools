@@ -77,7 +77,6 @@ def run_command(args, **kwargs):
     execute it and show timing info.
     """
     assert len(args) > 0
-    print(args)
     start_time = time.time()
     process = AsyncProcess(args, **kwargs)
     process.wait()

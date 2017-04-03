@@ -15,33 +15,47 @@
 from __future__ import print_function, division, absolute_import
 import tempfile
 
-def make_writable_tempfile(prefix_number, suffix):
+def make_writable_tempfile(prefix_number, prefix_name, suffix):
+    prefix = "input_file_%d_%s" % (prefix_number, prefix_name)
     return tempfile.NamedTemporaryFile(
         "w",
-        prefix="input_file_%d" % prefix_number,
+        prefix=prefix,
         suffix=suffix,
         delete=False)
 
-def create_input_peptides_files(peptides, max_peptides_per_file=None):
+def create_input_peptides_files(
+        peptides,
+        max_peptides_per_file=None,
+        group_by_length=False):
     """
     Creates one or more files containing one peptide per line,
     returns names of files.
     """
-    n_peptides = len(peptides)
-    if not max_peptides_per_file:
-        max_peptides_per_file = n_peptides
+    if group_by_length:
+        peptide_lengths = {len(p) for p in peptides}
+        peptide_groups = {l: [] for l in peptide_lengths}
+        for p in peptides:
+            peptide_groups[len(p)].append(p)
+    else:
+        peptide_groups = {"": peptides}
+
     file_names = []
-    input_file = None
-    for i, p in enumerate(peptides):
-        if i % max_peptides_per_file == 0:
-            if input_file is not None:
-                file_names.append(input_file.name)
-                input_file.close()
-            input_file = make_writable_tempfile(
-                prefix_number=i // max_peptides_per_file,
-                suffix=".txt")
-        input_file.write("%s\n" % p)
-    if input_file is not None:
-        file_names.append(input_file.name)
-        input_file.close()
+    for key, group in peptide_groups.items():
+        n_peptides = len(group)
+        if not max_peptides_per_file:
+            max_peptides_per_file = n_peptides
+        input_file = None
+        for i, p in enumerate(group):
+            if i % max_peptides_per_file == 0:
+                if input_file is not None:
+                    file_names.append(input_file.name)
+                    input_file.close()
+                input_file = make_writable_tempfile(
+                    prefix_number=i // max_peptides_per_file,
+                    prefix_name=key,
+                    suffix=".txt")
+            input_file.write("%s\n" % p)
+        if input_file is not None:
+            file_names.append(input_file.name)
+            input_file.close()
     return file_names
