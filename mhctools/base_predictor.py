@@ -99,6 +99,11 @@ class BasePredictor(object):
         require_iterable_of(peptide_lengths, int)
         return peptide_lengths
 
+    def _check_result_count(self, binding_predictions, n_expected):
+        if len(binding_predictions) != n_expected:
+            raise ValueError("Expected %d peptide predictions but got %d" % (
+                n_expected, len(binding_predictions)))
+
     def predict_subsequences(
             self,
             sequence_dict,
@@ -127,9 +132,7 @@ class BasePredictor(object):
                     peptide_to_name_offset_pairs[peptide].append((name, i))
         binding_predictions = self.predict_peptides(sorted(peptide_set))
         n_expected = len(peptide_set) * len(self.alleles)
-        if len(binding_predictions) != n_expected:
-            raise ValueError("Expected %d peptide predictions but got %d" % (
-                n_expected, len(binding_predictions)))
+        self._check_result_count(binding_predictions, n_expected=n_expected)
 
         # create BindingPrediction objects with sequence name and offset
         results = []

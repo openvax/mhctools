@@ -13,9 +13,16 @@ def test_netmhc_cons():
         "SMAD4-001": "ASIINFKELA",
         "TP53-001": "ASILLLVFYW"
     }
-    binding_predictions = cons_predictor.predict(
+    binding_predictions = cons_predictor.predict_subsequences(
         sequence_dict=sequence_dict)
 
+    assert len(binding_predictions) == 4, \
+        "Expected 4 epitopes from %s" % (binding_predictions,)
+
+def test_netmhc_cons_multiple_lengths():
+    cons_predictor = NetMHCcons(alleles=["A6801"])
+    binding_predictions = cons_predictor.predict_peptides(
+        ["A" * 8, "A" * 9, "A" * 10, "A" * 11])
     assert len(binding_predictions) == 4, \
         "Expected 4 epitopes from %s" % (binding_predictions,)
 
@@ -28,7 +35,7 @@ def test_netmhc_cons_multiple_alleles():
         "SMAD4-001": "ASIINFKELA",
         "TP53-001": "ASILLLVFYW"
     }
-    binding_predictions = cons_predictor.predict(
+    binding_predictions = cons_predictor.predict_subsequences(
         sequence_dict=sequence_dict)
     assert len(binding_predictions) == 8, \
         "Expected 4 binding predictions from %s" % (binding_predictions,)

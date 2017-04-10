@@ -37,4 +37,5 @@ class NetMHCcons(BaseCommandlinePredictor):
             peptide_mode_flags=["-inptype", "1"],
             tempdir_flag="-tdir",
             process_limit=process_limit,
-            default_peptide_lengths=default_peptide_lengths)
+            default_peptide_lengths=default_peptide_lengths,
+            group_peptides_by_length=True)

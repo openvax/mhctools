@@ -172,6 +172,7 @@ class IedbBasePredictor(BasePredictor):
                 self.predict_subsequences(
                     {"seq%d" % (i + 1): peptide},
                     peptide_lengths=len(peptide)))
+        self._check_result_count(binding_predictions, n_expected=len(peptides))
         return BindingPredictionCollection(binding_predictions)
 
     def predict_subsequences(self, sequence_dict, peptide_lengths=None):
@@ -211,6 +212,10 @@ class IedbBasePredictor(BasePredictor):
                             affinity=row['ic50'],
                             percentile_rank=row['rank'],
                             prediction_method_name="iedb-" + self.prediction_method))
+        n_expected = len(self.alleles) * len(sequence_dict) * len(peptide_lengths)
+        self._check_result_count(
+            binding_predictions,
+            n_expected=n_expected)
         return BindingPredictionCollection(binding_predictions)
 
 IEDB_MHC_CLASS_I_URL = "http://tools-cluster-interface.iedb.org/tools_api/mhci/"
