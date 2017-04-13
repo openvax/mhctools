@@ -58,7 +58,7 @@ class BindingPrediction(object):
         """
         # if we have a bad IC50 score we might still get a salvageable
         # log of the score. Strangely, this is necessary sometimes!
-        if invalid_binding_score(affinity) and np.isfinite(log_affinity):
+        if invalid_binding_score(affinity) and log_affinity is not None:
             affinity = 50000 ** (-log_affinity + 1)
 
         # if IC50 is still NaN or otherwise invalid, abort
