@@ -99,10 +99,21 @@ class BasePredictor(object):
         require_iterable_of(peptide_lengths, int)
         return peptide_lengths
 
-    def _check_result_count(self, binding_predictions, n_expected):
-        if len(binding_predictions) != n_expected:
-            raise ValueError("Expected %d peptide predictions but got %d" % (
-                n_expected, len(binding_predictions)))
+    def _check_results(self, binding_predictions, peptides, alleles):
+        expected = {(a, p) for a in alleles for p in peptides}
+        observed = {(bp.allele, bp.peptide) for bp in binding_predictions}
+        if len(expected.intersection(observed)) < len(expected):
+            missing = expected.difference(observed)
+            example_allele, example_peptide = list(missing)[0]
+            raise ValueError(
+                "Missing %d binding predictions, example peptide='%s' allele='%s'" % (
+                    len(missing), example_peptide, example_allele))
+        elif len(observed.intersection(expected)) < len(observed):
+            extra = observed.difference(expected)
+            example_allele, example_peptide = list(extra)[0]
+            raise ValueError(
+                "Unexpected %d binding predictions, example peptide='%s' allele='%s'" % (
+                    len(extra), example_peptide, example_allele))
 
     def predict_subsequences(
             self,
@@ -131,8 +142,9 @@ class BasePredictor(object):
                     peptide_set.add(peptide)
                     peptide_to_name_offset_pairs[peptide].append((name, i))
         binding_predictions = self.predict_peptides(sorted(peptide_set))
-        n_expected = len(peptide_set) * len(self.alleles)
-        self._check_result_count(binding_predictions, n_expected=n_expected)
+
+        self._check_results(
+            binding_predictions, peptides=peptide_set, alleles=self.alleles)
 
         # create BindingPrediction objects with sequence name and offset
         results = []
@@ -142,7 +154,6 @@ class BasePredictor(object):
                 results.append(binding_prediction.clone_with_updates(
                     source_sequence_name=name,
                     offset=offset))
-        assert len(results) >= len(binding_predictions)
         return BindingPredictionCollection(results)
 
     def predict(self, sequence_dict, peptide_lengths=None):
