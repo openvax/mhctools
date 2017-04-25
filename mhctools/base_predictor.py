@@ -33,7 +33,11 @@ class BasePredictor(object):
             self,
             alleles,
             valid_alleles=None,
-            default_peptide_lengths=None):
+            default_peptide_lengths=None,
+            min_peptide_length=1,
+            max_peptide_length=None,
+            allow_X_in_peptides=False,
+            allow_lowercase_in_peptides=False):
         """
         Parameters
         ----------
@@ -49,6 +53,18 @@ class BasePredictor(object):
         default_peptide_lengths : list of int, optional
             When making predictions across subsequences of protein sequences,
             what peptide lengths to predict for.
+
+        min_peptide_length : int
+            Shortest peptide this predictor can handle
+
+        max_peptide_length : int
+            Longest peptide this predictor can handle
+
+        allow_X_in_peptides : bool
+            Allow unknown amino acids in peptide sequences
+
+        allow_lowercase_in_peptides : bool
+            Allow lowercase letters in peptide sequences
         """
         # I find myself often constructing a predictor with just one allele
         # so as a convenience, allow user to not wrap that allele as a list
@@ -60,6 +76,10 @@ class BasePredictor(object):
             default_peptide_lengths = [default_peptide_lengths]
         require_iterable_of(default_peptide_lengths, int)
         self.default_peptide_lengths = default_peptide_lengths
+        self.min_peptide_length = min_peptide_length
+        self.max_peptide_length = max_peptide_length
+        self.allow_X_in_peptides = allow_X_in_peptides
+        self.allow_lowercase_in_peptides = allow_lowercase_in_peptides
 
     def __repr__(self):
         return str(self)
@@ -97,12 +117,62 @@ class BasePredictor(object):
         if isinstance(peptide_lengths, int):
             peptide_lengths = [peptide_lengths]
         require_iterable_of(peptide_lengths, int)
+        for peptide_length in peptide_lengths:
+            if (self.min_peptide_length is not None and
+                    peptide_length < self.min_peptide_length):
+                raise ValueError(
+                    "Invalid peptide length %d, shorter than min %d" % (
+                        peptide_length,
+                        self.min_peptide_length))
+            elif (self.max_peptide_length is not None and
+                    peptide_length > self.max_peptide_length):
+                raise ValueError(
+                    "Invalid peptide length %d, longer than max %d" % (
+                        peptide_length,
+                        self.max_peptide_length))
         return peptide_lengths
 
-    def _check_result_count(self, binding_predictions, n_expected):
-        if len(binding_predictions) != n_expected:
-            raise ValueError("Expected %d peptide predictions but got %d" % (
-                n_expected, len(binding_predictions)))
+    def _check_results(self, binding_predictions, peptides, alleles):
+        expected = {(a, p) for a in alleles for p in peptides}
+        observed = {(bp.allele, bp.peptide) for bp in binding_predictions}
+        if len(expected.intersection(observed)) < len(expected):
+            missing = expected.difference(observed)
+            example_allele, example_peptide = list(missing)[0]
+            raise ValueError(
+                "Missing %d binding predictions, example peptide='%s' allele='%s'" % (
+                    len(missing), example_peptide, example_allele))
+        elif len(observed.intersection(expected)) < len(observed):
+            extra = observed.difference(expected)
+            example_allele, example_peptide = list(extra)[0]
+            raise ValueError(
+                "Unexpected %d binding predictions, example peptide='%s' allele='%s'" % (
+                    len(extra), example_peptide, example_allele))
+
+    def _check_peptide_inputs(self, peptides):
+        """
+        Check peptide sequences to make sure they are valid for this predictor.
+        """
+        check_X = not self.allow_X_in_peptides
+        check_lower = not self.allow_lowercase_in_peptides
+        check_min_length = self.min_peptide_length is not None
+        min_length = self.min_peptide_length
+        check_max_length = self.max_peptide_length is not None
+        max_length = self.max_peptide_length
+        for p in peptides:
+            if not p.isalpha():
+                raise ValueError("Invalid characters in peptide '%s'" % p)
+            elif check_X and "X" in p:
+                raise ValueError("Invalid character 'X' in peptide '%s'" % p)
+            elif check_lower and not p.isupper():
+                raise ValueError("Invalid lowercase letters in peptide '%s'" % p)
+            elif check_min_length and len(p) < min_length:
+                raise ValueError(
+                    "Peptide '%s' too short (%d chars), must be at least %d" % (
+                        p, len(p), min_length))
+            elif check_max_length and len(p) > max_length:
+                raise ValueError(
+                    "Peptide '%s' too long (%d chars), must be at least %d" % (
+                        p, len(p), max_length))
 
     def predict_subsequences(
             self,
@@ -130,9 +200,10 @@ class BasePredictor(object):
                     peptide = sequence[i:i + peptide_length]
                     peptide_set.add(peptide)
                     peptide_to_name_offset_pairs[peptide].append((name, i))
-        binding_predictions = self.predict_peptides(sorted(peptide_set))
-        n_expected = len(peptide_set) * len(self.alleles)
-        self._check_result_count(binding_predictions, n_expected=n_expected)
+        peptide_list = sorted(peptide_set)
+        self._check_peptide_inputs(peptide_list)
+
+        binding_predictions = self.predict_peptides(peptide_list)
 
         # create BindingPrediction objects with sequence name and offset
         results = []
@@ -142,7 +213,10 @@ class BasePredictor(object):
                 results.append(binding_prediction.clone_with_updates(
                     source_sequence_name=name,
                     offset=offset))
-        assert len(results) >= len(binding_predictions)
+        self._check_results(
+            results,
+            peptides=peptide_set,
+            alleles=self.alleles)
         return BindingPredictionCollection(results)
 
     def predict(self, sequence_dict, peptide_lengths=None):

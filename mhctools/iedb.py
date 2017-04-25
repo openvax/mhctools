@@ -166,13 +166,17 @@ class IedbBasePredictor(BasePredictor):
         return params
 
     def predict_peptides(self, peptides):
+        self._check_peptide_inputs(peptides)
         binding_predictions = []
         for i, peptide in enumerate(peptides):
             binding_predictions.extend(
                 self.predict_subsequences(
                     {"seq%d" % (i + 1): peptide},
                     peptide_lengths=len(peptide)))
-        self._check_result_count(binding_predictions, n_expected=len(peptides))
+        self._check_results(
+            binding_predictions,
+            peptides=peptides,
+            alleles=self.alleles)
         return BindingPredictionCollection(binding_predictions)
 
     def predict_subsequences(self, sequence_dict, peptide_lengths=None):
@@ -192,8 +196,13 @@ class IedbBasePredictor(BasePredictor):
         # take each mutated sequence in the dataframe
         # and general MHC binding scores for all k-mer substrings
         binding_predictions = []
+        expected_peptides = set([])
 
         for key, amino_acid_sequence in sequence_dict.items():
+            for l in peptide_lengths:
+                for i in range(len(amino_acid_sequence) - l + 1):
+                    expected_peptides.add(amino_acid_sequence[i:i + l])
+            self._check_peptide_inputs(expected_peptides)
             for allele in self.alleles:
                 request = self._get_iedb_request_params(
                     amino_acid_sequence, allele)
@@ -212,10 +221,10 @@ class IedbBasePredictor(BasePredictor):
                             affinity=row['ic50'],
                             percentile_rank=row['rank'],
                             prediction_method_name="iedb-" + self.prediction_method))
-        n_expected = len(self.alleles) * len(sequence_dict) * len(peptide_lengths)
-        self._check_result_count(
+        self._check_results(
             binding_predictions,
-            n_expected=n_expected)
+            alleles=self.alleles,
+            peptides=expected_peptides)
         return BindingPredictionCollection(binding_predictions)
 
 IEDB_MHC_CLASS_I_URL = "http://tools-cluster-interface.iedb.org/tools_api/mhci/"

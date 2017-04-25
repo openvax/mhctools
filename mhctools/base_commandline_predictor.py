@@ -314,7 +314,8 @@ class BaseCommandlinePredictor(BasePredictor):
             commands=commands,
             input_filenames=input_filenames,
             temp_dir_list=dirs)
-        self._check_result_count(
+        self._check_results(
             results,
-            n_expected=len(peptides) * len(self.alleles))
+            peptides=peptides,
+            alleles=self.alleles)
         return results
