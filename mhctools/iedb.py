@@ -166,6 +166,7 @@ class IedbBasePredictor(BasePredictor):
         return params
 
     def predict_peptides(self, peptides):
+        self._check_peptide_inputs(peptides)
         binding_predictions = []
         for i, peptide in enumerate(peptides):
             binding_predictions.extend(
@@ -201,6 +202,7 @@ class IedbBasePredictor(BasePredictor):
             for l in peptide_lengths:
                 for i in range(len(amino_acid_sequence) - l + 1):
                     expected_peptides.add(amino_acid_sequence[i:i + l])
+            self._check_peptide_inputs(expected_peptides)
             for allele in self.alleles:
                 request = self._get_iedb_request_params(
                     amino_acid_sequence, allele)
