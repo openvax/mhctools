@@ -61,23 +61,12 @@ def add_output_args(parser):
 add_input_args(arg_parser)
 add_output_args(arg_parser)
 
-def main(args_list=None):
-    """
-    Script to make pMHC binding predictions from amino acid sequences.
-
-    Usage example:
-        mhctools
-            --sequence SFFPIQQQQQAAALLLI \
-            --sequence SILQQQAQAQQAQAASSSC \
-            --extract-subsequences \
-            --mhc-predictor netmhc \
-            --mhc-alleles HLA-A0201 H2-Db \
-            --mhc-predictor netmhc \
-            --output-csv epitope.csv
-    """
+def parse_args(args_list=None):
     if args_list is None:
         args_list = sys.argv[1:]
-    args = arg_parser.parse_args(args_list)
+    return arg_parser.parse_args(args_list)
+
+def run_predictor(args):
     predictor = mhc_binding_predictor_from_args(args)
 
     if args.input_fasta_file:
@@ -92,14 +81,31 @@ def main(args_list=None):
         with open(args.input_peptides_file) as f:
             peptides = [line.strip() for line in f if line]
         if args.extract_subsequences:
-            binding_predictions = predictor.predict_peptides(peptides)
-        else:
             binding_predictions = predictor.predict_subsequences(peptides)
+        else:
+            binding_predictions = predictor.predict_peptides(peptides)
     else:
         raise ValueError(
             ("No input sequences provided, "
              "use --sequence, --input-fasta-file, or input-peptides-file"))
+    return binding_predictions
 
+def main(args_list=None):
+    """
+    Script to make pMHC binding predictions from amino acid sequences.
+
+    Usage example:
+        mhctools
+            --sequence SFFPIQQQQQAAALLLI \
+            --sequence SILQQQAQAQQAQAASSSC \
+            --extract-subsequences \
+            --mhc-predictor netmhc \
+            --mhc-alleles HLA-A0201 H2-Db \
+            --mhc-predictor netmhc \
+            --output-csv epitope.csv
+    """
+    args = parse_args(args_list)
+    binding_predictions = run_predictor(args)
     df = binding_predictions.to_dataframe()
     logger.info('\n%s', df)
     if args.output_csv:
