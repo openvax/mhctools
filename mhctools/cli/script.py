@@ -42,8 +42,9 @@ def add_input_args(arg_parser):
         default=False,
         action="store_true",
         help=(
-            "Extract subsequences from --sequence arguments, "
-            "lengths specified by --mhc-peptide-lengths argument."))
+            "Extract subsequences from peptides supplied by --sequence or "
+            "--input-peptides-files, lengths specified by "
+            "--mhc-peptide-lengths argument."))
     input_group.add_argument(
         "--input-peptides-file",
         help="Path to file with one peptide per line")
@@ -89,8 +90,11 @@ def main(args_list=None):
             binding_predictions = predictor.predict_peptides(args.sequence)
     elif args.input_peptides_file:
         with open(args.input_peptides_file) as f:
-            peptides = [line.strip() for line in f]
+            peptides = [line.strip() for line in f if line]
+        if args.extract_subsequences:
             binding_predictions = predictor.predict_peptides(peptides)
+        else:
+            binding_predictions = predictor.predict_subsequences(peptides)
     else:
         raise ValueError(
             ("No input sequences provided, "
