@@ -40,4 +40,5 @@ class NetMHC3(BaseCommandlinePredictor):
             # because we don't have a tempdir flag, can't run more than
             # one predictor at a time
             process_limit=1,
-            default_peptide_lengths=default_peptide_lengths)
+            default_peptide_lengths=default_peptide_lengths,
+            group_peptides_by_length=True)

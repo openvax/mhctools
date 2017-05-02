@@ -8,7 +8,7 @@ def run_class_with_executable(mhc_class, mhc_executable):
     alleles = [normalize_allele_name("HLA-A*02:01")]
     predictor = mhc_class(
         alleles=alleles,
-        program_name=mhc_executable)
+        program_name=mhc_executable)    
     sequence_dict = {
         "SMAD4-001": "ASIINFKELA",
         "TP53-001": "ASILLLVFYW"
@@ -44,3 +44,16 @@ def test_wrapper_failure():
     NetMHC(alleles=alleles,
            default_peptide_lengths=[9],
            program_name="netMHC-none")
+
+def test_multiple_lengths_netmhc3():
+    alleles = [normalize_allele_name("H-2-Kb")]
+    predictor = NetMHC3(alleles=alleles,
+           default_peptide_lengths=[9],
+           program_name="netMHC-3.4")
+    protein_sequence_dict = {
+        'seq': 'AETDEIKILLEE',
+    }
+    binding_predictions = predictor.predict_subsequences(
+        protein_sequence_dict,
+        peptide_lengths=[10, 11])
+    eq_(5, len(binding_predictions))
