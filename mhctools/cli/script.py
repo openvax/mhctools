@@ -43,7 +43,7 @@ def add_input_args(arg_parser):
         action="store_true",
         help=(
             "Extract subsequences from peptides supplied by --sequence or "
-            "--input-peptides-files, lengths specified by "
+            "--input-peptides-file, lengths specified by "
             "--mhc-peptide-lengths argument."))
     input_group.add_argument(
         "--input-peptides-file",

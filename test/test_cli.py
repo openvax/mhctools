@@ -27,7 +27,7 @@ def test_peptides_with_subsequences():
     eq_(binding_predictions[0].peptide, peptide[:9])
     eq_(binding_predictions[1].peptide, peptide[1:10])
 
-def test_peptidess_file_without_subsequences():
+def test_peptides_file_without_subsequences():
     peptide = "SIINFEKLQY"
     with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
         f.write("%s\n" % peptide)
@@ -42,7 +42,7 @@ def test_peptidess_file_without_subsequences():
     eq_(binding_predictions[0].peptide, peptide)
     remove(f.name)
 
-def test_peptidess_file_with_subsequences():
+def test_peptides_file_with_subsequences():
     peptide = "SIINFEKLQY"
     with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
         f.write("%s\n" % peptide)
