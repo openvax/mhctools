@@ -36,7 +36,15 @@ def add_input_args(arg_parser):
         "--sequence",
         nargs="*",
         help=(
-            "Peptide sequences (MHC binding predictor will not extract sub-sequences)"))
+            "Peptide sequences"))
+    input_group.add_argument(
+        "--extract-subsequences",
+        default=False,
+        action="store_true",
+        help=(
+            "Extract subsequences from peptides supplied by --sequence or "
+            "--input-peptides-file, lengths specified by "
+            "--mhc-peptide-lengths argument."))
     input_group.add_argument(
         "--input-peptides-file",
         help="Path to file with one peptide per line")
@@ -53,6 +61,35 @@ def add_output_args(parser):
 add_input_args(arg_parser)
 add_output_args(arg_parser)
 
+def parse_args(args_list=None):
+    if args_list is None:
+        args_list = sys.argv[1:]
+    return arg_parser.parse_args(args_list)
+
+def run_predictor(args):
+    predictor = mhc_binding_predictor_from_args(args)
+
+    if args.input_fasta_file:
+        input_dictionary = parse_fasta_dictionary(args.input_fasta_file)
+        binding_predictions = predictor.predict_subsequences(input_dictionary)
+    elif args.sequence:
+        if args.extract_subsequences:
+            binding_predictions = predictor.predict_subsequences(args.sequence)
+        else:
+            binding_predictions = predictor.predict_peptides(args.sequence)
+    elif args.input_peptides_file:
+        with open(args.input_peptides_file) as f:
+            peptides = [line.strip() for line in f if line]
+        if args.extract_subsequences:
+            binding_predictions = predictor.predict_subsequences(peptides)
+        else:
+            binding_predictions = predictor.predict_peptides(peptides)
+    else:
+        raise ValueError(
+            ("No input sequences provided, "
+             "use --sequence, --input-fasta-file, or input-peptides-file"))
+    return binding_predictions
+
 def main(args_list=None):
     """
     Script to make pMHC binding predictions from amino acid sequences.
@@ -61,29 +98,14 @@ def main(args_list=None):
         mhctools
             --sequence SFFPIQQQQQAAALLLI \
             --sequence SILQQQAQAQQAQAASSSC \
+            --extract-subsequences \
             --mhc-predictor netmhc \
             --mhc-alleles HLA-A0201 H2-Db \
+            --mhc-predictor netmhc \
             --output-csv epitope.csv
     """
-    if args_list is None:
-        args_list = sys.argv[1:]
-    args = arg_parser.parse_args(args_list)
-    predictor = mhc_binding_predictor_from_args(args)
-
-    if args.input_fasta_file:
-        input_dictionary = parse_fasta_dictionary(args.input_fasta_file)
-        binding_predictions = predictor.predict_subsequences(input_dictionary)
-    elif args.sequence:
-        binding_predictions = predictor.predict_peptides(args.sequence)
-    elif args.input_peptides_file:
-        with open(args.input_peptides_file) as f:
-            peptides = [line.strip() for line in f]
-            binding_predictions = predictor.predict_peptides(peptides)
-    else:
-        raise ValueError(
-            ("No input sequences provided, "
-             "use --sequence, --input-fasta-file, or input-peptides-file"))
-
+    args = parse_args(args_list)
+    binding_predictions = run_predictor(args)
     df = binding_predictions.to_dataframe()
     logger.info('\n%s', df)
     if args.output_csv:

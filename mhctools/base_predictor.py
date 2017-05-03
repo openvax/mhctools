@@ -185,6 +185,8 @@ class BasePredictor(object):
         """
         if isinstance(sequence_dict, string_types):
             sequence_dict = {"seq": sequence_dict}
+        elif isinstance(sequence_dict, (list, tuple)):
+            sequence_dict = {seq: seq for seq in sequence_dict}
 
         peptide_lengths = self._check_peptide_lengths(peptide_lengths)
 
