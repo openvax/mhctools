@@ -24,8 +24,8 @@ df = binding_predictions.to_dataframe()
 # epitope collection is sorted by percentile rank
 # of binding predictions
 for binding_prediction in binding_predictions:
-  if binding_prediction.affinity < 100:
-    print("Strong binder: %s" % (binding_prediction,))
+    if binding_prediction.affinity < 100:
+        print("Strong binder: %s" % (binding_prediction,))
 ```
 ## API
 
