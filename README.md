@@ -16,14 +16,16 @@ protein_sequences = {
   "1L3Y": "ECDTINCERYNGQVCGGPGRGLCFCGKCRCHPGFEGSACQA"
 }
 
-epitope_collection = predictor.predict(protein_sequences)
+binding_predictions = predictor.predict_subsequences(protein_sequences, peptide_lengths=[9])
 
 # flatten binding predictions into a Pandas DataFrame
-df = epitope_collection.dataframe()
+df = binding_predictions.to_dataframe()
 
 # epitope collection is sorted by percentile rank
 # of binding predictions
-strongest_predicted_binder = epitope_collection[0]
+for binding_prediction in binding_predictions:
+  if binding_prediction.affinity < 100:
+    print("Strong binder: %s" % (binding_prediction,))
 ```
 ## API
 
