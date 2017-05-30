@@ -4,7 +4,7 @@ from numpy import round, testing
 from mhcflurry import Class1AffinityPredictor
 from mhctools import MHCFlurry
 
-DEFAULT_ALLELE = 'HLA-A*02:01'
+DEFAULT_ALLELE = "HLA-A*02:01"
 
 protein_sequence_dict = {
     "SMAD4-001": "ASIINFKELA",
