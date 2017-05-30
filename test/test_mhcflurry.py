@@ -2,7 +2,7 @@ from nose.tools import eq_
 from numpy import round, testing
 
 from mhcflurry import Class1AffinityPredictor
-from mhctools import MHCFlurry
+from mhctools import MHCflurry
 
 DEFAULT_ALLELE = "HLA-A*02:01"
 
@@ -12,7 +12,7 @@ protein_sequence_dict = {
 }
 
 def test_mhcflurry():
-    predictor = MHCFlurry(alleles=[DEFAULT_ALLELE])
+    predictor = MHCflurry(alleles=[DEFAULT_ALLELE])
     binding_predictions = predictor.predict_subsequences(
         protein_sequence_dict,
         peptide_lengths=[9])

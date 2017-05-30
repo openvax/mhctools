@@ -39,7 +39,7 @@ from .. import (
     IedbSMM,
     IedbSMM_PMBEC,
     IedbNetMHCIIpan,
-    MHCFlurry,
+    MHCflurry,
 )
 
 
@@ -68,7 +68,7 @@ mhc_predictors = {
     # TODO implement SMM predictors in mhctools
     # "smm": None,
     # "smm-pmbec": None,
-    "mhcflurry": MHCFlurry,
+    "mhcflurry": MHCflurry,
 }
 
 def add_mhc_args(arg_parser):

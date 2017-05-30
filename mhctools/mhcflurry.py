@@ -21,14 +21,15 @@ from .binding_prediction_collection import BindingPredictionCollection
 
 from mhcflurry import Class1AffinityPredictor
 from mhcflurry.encodable_sequences import EncodableSequences
+from numpy import nan
 
 logger = logging.getLogger(__name__)
 
 
-class MHCFlurry(BasePredictor):
+class MHCflurry(BasePredictor):
     """
-    Wrapper around MHCFlurry. Assumes you've installed it and downloaded datasets and trained  MHCFlurry: see
-    https://github.com/hammerlab/mhcflurry for instructions.
+    Wrapper around MHCflurry. See https://github.com/hammerlab/mhcflurry for installation
+    instructions.
     """
 
     def __init__(
@@ -38,7 +39,7 @@ class MHCFlurry(BasePredictor):
             models_dir=None):
         """
         Standard mhctools constructor, with additional ability to pass in a directory containing
-        saved MHCFlurry models.
+        saved MHCflurry models.
         """
         BasePredictor.__init__(
             self,
