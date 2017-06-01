@@ -28,8 +28,9 @@ logger = logging.getLogger(__name__)
 
 class MHCflurry(BasePredictor):
     """
-    Wrapper around MHCflurry. See https://github.com/hammerlab/mhcflurry for installation
-    instructions.
+    Wrapper around MHCflurry. Users will need to download MHCflurry models
+    first.
+    See https://github.com/hammerlab/mhcflurry
     """
 
     def __init__(
@@ -38,27 +39,33 @@ class MHCflurry(BasePredictor):
             default_peptide_lengths=[9],
             models_dir=None):
         """
-        Standard mhctools constructor, with additional ability to pass in a directory containing
-        saved MHCflurry models.
+        Parameters
+        -----------
+        models_dir : string
+            MHCflurry models to load
+
         """
         BasePredictor.__init__(
             self,
             alleles=alleles,
             default_peptide_lengths=default_peptide_lengths)
-        self.models_dir = models_dir
+        self.predictor = Class1AffinityPredictor.load(
+            models_dir=models_dir)
 
     def predict_peptides(self, peptides):
         binding_predictions = []
-        predictor = Class1AffinityPredictor.load(models_dir=self.models_dir)
         encodable_sequences = EncodableSequences.create(peptides)
         for allele in self.alleles:
-            predictions = predictor.predict(encodable_sequences, allele=allele)
+            predictions = self.predictor.predict(
+                encodable_sequences, allele=allele)
             for (i, peptide) in enumerate(peptides):
                 binding_prediction = BindingPrediction(
                     allele=allele,
                     peptide=peptide,
                     affinity=predictions[i],
-                    percentile_rank=0.0,  # TODO: grab percentile rank when it's available
+
+                    # TODO: include percentile rank when MHCflurry supports it
+                    percentile_rank=None,
                     prediction_method_name="mhcflurry"
                 )
                 binding_predictions.append(binding_prediction)
