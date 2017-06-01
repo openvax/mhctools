@@ -34,6 +34,8 @@ before_install:
   - mkdir tmp
   - export NETMHC_BUNDLE_TMPDIR=$PWD/tmp
   - export PATH=$PATH:$NETMHC_BUNDLE_HOME/bin
+  # needed for MHCflurry predictor test
+  - export KERAS_BACKEND=theano
 env:
   global:
     # MHC_BUNDLE_PASS
@@ -41,12 +43,15 @@ env:
 install:
   - >
       conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
-      numpy scipy nose pandas
+      numpy scipy nose pandas mkl-service theano
   - source activate test-environment
   - pip install pypandoc
   - pip install -r requirements.txt
   - pip install .
   - pip install coveralls
+before_script:
+  # needed for MHCflurry predictor test
+  - mhcflurry-downloads fetch
 script:
   - ./lint.sh
   - nosetests test --with-coverage --cover-package=mhctools

@@ -7,6 +7,7 @@ from .iedb import (
     IedbSMM_PMBEC,
     IedbNetMHCIIpan,
 )
+from .mhcflurry import MHCflurry
 from .netchop import NetChop
 from .netmhc import NetMHC
 from .netmhc3 import NetMHC3
@@ -18,7 +19,7 @@ from .netmhc_pan3 import NetMHCpan3
 from .netmhcii_pan import NetMHCIIpan
 from .random_predictor import RandomBindingPredictor
 
-__version__ = "1.3.0"
+__version__ = "1.4.0"
 
 __all__ = [
     "BindingPrediction",
@@ -28,6 +29,7 @@ __all__ = [
     "IedbSMM",
     "IedbSMM_PMBEC",
     "IedbNetMHCIIpan",
+    "MHCflurry",
     "NetChop",
     "NetMHC",
     "NetMHC3",
