@@ -47,6 +47,8 @@ install:
   - pip install -r requirements.txt
   - pip install .
   - pip install coveralls
+before_script:
+  - mhcflurry-downloads fetch
 script:
   - ./lint.sh
   - nosetests test --with-coverage --cover-package=mhctools
