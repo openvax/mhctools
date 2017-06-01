@@ -164,4 +164,6 @@ def invalid_affinity(x):
 
 def invalid_percentile_rank(x):
     # for now, we accept a null percentile rank - not all predictors generate a value
-    return (x is not None and x < 0) or x > 100
+    if x is None:
+        return False
+    return x < 0 or x > 100
