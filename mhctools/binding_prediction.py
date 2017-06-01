@@ -58,19 +58,19 @@ class BindingPrediction(object):
         """
         # if we have a bad IC50 score we might still get a salvageable
         # log of the score. Strangely, this is necessary sometimes!
-        if invalid_binding_score(affinity) and np.isfinite(log_affinity):
+        if invalid_affinity(affinity) and np.isfinite(log_affinity):
             # pylint: disable=invalid-unary-operand-type
             affinity = 50000 ** (-log_affinity + 1)
 
         # if IC50 is still NaN or otherwise invalid, abort
-        if invalid_binding_score(affinity):
+        if invalid_affinity(affinity):
             raise ValueError(
                 "Invalid IC50 value %0.4f for %s w/ allele %s" % (
                     affinity,
                     peptide,
                     allele))
 
-        if invalid_binding_score(percentile_rank) or percentile_rank > 100:
+        if invalid_percentile_rank(percentile_rank):
             raise ValueError(
                 "Invalid percentile rank %s for %s w/ allele %s" % (
                     percentile_rank, peptide, allele))
@@ -89,7 +89,7 @@ class BindingPrediction(object):
             "peptide='%s', "
             "allele='%s', "
             "affinity=%0.4f, "
-            "percentile_rank=%0.4f, "
+            "percentile_rank=%s, "
             "source_sequence_name=%s, "
             "offset=%d, "
             "prediction_method_name='%s')")
@@ -97,7 +97,9 @@ class BindingPrediction(object):
                 self.peptide,
                 self.allele,
                 self.affinity,
-                self.percentile_rank,
+                ('%0.4f' % self.percentile_rank
+                    if self.percentile_rank
+                    else None),
                 ('%s' % self.source_sequence_name
                     if self.source_sequence_name
                     else None),
@@ -157,5 +159,9 @@ class BindingPrediction(object):
     def __lt__(self, other):
         return self.value < other.value
 
-def invalid_binding_score(x):
+def invalid_affinity(x):
     return x < 0 or np.isnan(x) or np.isinf(x)
+
+def invalid_percentile_rank(x):
+    # for now, we accept a null percentile rank - not all predictors generate a value
+    return (x is not None and x < 0) or x > 100

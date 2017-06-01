@@ -18,6 +18,7 @@ def test_mhcflurry():
         peptide_lengths=[9])
     eq_(4, len(binding_predictions),
         "Expected 4 binding predictions from %s" % (binding_predictions,))
+    # eq_(4, len(binding_predictions))
 
     prediction_scores = {
         (x.peptide, x.allele): x.affinity for x in binding_predictions

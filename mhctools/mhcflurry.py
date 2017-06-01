@@ -63,10 +63,11 @@ class MHCflurry(BasePredictor):
                     allele=allele,
                     peptide=peptide,
                     affinity=predictions[i],
-
+                    
                     # TODO: include percentile rank when MHCflurry supports it
                     percentile_rank=None,
                     prediction_method_name="mhcflurry"
                 )
+                logger.info(binding_prediction)
                 binding_predictions.append(binding_prediction)
         return BindingPredictionCollection(binding_predictions)
