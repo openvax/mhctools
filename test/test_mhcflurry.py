@@ -18,7 +18,6 @@ def test_mhcflurry():
         peptide_lengths=[9])
     eq_(4, len(binding_predictions),
         "Expected 4 binding predictions from %s" % (binding_predictions,))
-    # eq_(4, len(binding_predictions))
 
     prediction_scores = {
         (x.peptide, x.allele): x.affinity for x in binding_predictions
@@ -29,4 +28,5 @@ def test_mhcflurry():
     for (peptide, allele), affinity in prediction_scores.items():
         prediction = predictor.predict([peptide], allele=allele)
         assert len(prediction) == 1
-        testing.assert_almost_equal(round(prediction[0], 2), round(affinity, 2))
+        # testing.assert_almost_equal(round(prediction[0], 2), round(affinity, 2))
+        testing.assert_almost_equal(prediction[0], affinity)
