@@ -50,7 +50,7 @@ class MHCflurry(BasePredictor):
             alleles=alleles,
             default_peptide_lengths=default_peptide_lengths)
         if predictor is None:
-            predictor = Class1AffinityPredictor()
+            predictor = Class1AffinityPredictor.load()
         self.predictor = predictor
 
     def predict_peptides(self, peptides):
