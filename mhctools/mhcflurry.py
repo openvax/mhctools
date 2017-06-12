@@ -37,20 +37,21 @@ class MHCflurry(BasePredictor):
             self,
             alleles,
             default_peptide_lengths=[9],
-            models_dir=None):
+            predictor=None):
         """
         Parameters
         -----------
-        models_dir : string
-            MHCflurry models to load
+        predictor : mhcflurry.Class1AffinityPredictor (optional)
+            MHCflurry predictor to use
 
         """
         BasePredictor.__init__(
             self,
             alleles=alleles,
             default_peptide_lengths=default_peptide_lengths)
-        self.predictor = Class1AffinityPredictor.load(
-            models_dir=models_dir)
+        if predictor is None:
+            predictor = Class1AffinityPredictor.load()
+        self.predictor = predictor
 
     def predict_peptides(self, peptides):
         binding_predictions = []
