@@ -49,7 +49,7 @@ class MHCflurry(BasePredictor):
             self,
             alleles=alleles,
             default_peptide_lengths=default_peptide_lengths,
-            min_peptide_length=7,
+            min_peptide_length=8,
             max_peptide_length=15)
         if predictor is None:
             predictor = Class1AffinityPredictor.load()
