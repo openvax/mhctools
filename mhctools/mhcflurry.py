@@ -48,7 +48,9 @@ class MHCflurry(BasePredictor):
         BasePredictor.__init__(
             self,
             alleles=alleles,
-            default_peptide_lengths=default_peptide_lengths)
+            default_peptide_lengths=default_peptide_lengths,
+            min_peptide_length=7,
+            max_peptide_length=15)
         if predictor is None:
             predictor = Class1AffinityPredictor.load()
         self.predictor = predictor
@@ -64,7 +66,7 @@ class MHCflurry(BasePredictor):
                     allele=allele,
                     peptide=peptide,
                     affinity=predictions[i],
-                    
+
                     # TODO: include percentile rank when MHCflurry supports it
                     percentile_rank=None,
                     prediction_method_name="mhcflurry"

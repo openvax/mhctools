@@ -55,7 +55,9 @@ class BaseCommandlinePredictor(BasePredictor):
             max_peptides_per_file=10 ** 4,
             process_limit=-1,
             default_peptide_lengths=[9],
-            group_peptides_by_length=False):
+            group_peptides_by_length=False,
+            min_peptide_length=8,
+            max_peptide_length=None,):
         """
         Parameters
         ----------
@@ -106,6 +108,12 @@ class BaseCommandlinePredictor(BasePredictor):
 
         group_peptides_by_length : bool
             Run commandline predictor on groups of peptides of equal length
+
+        min_peptide_length : int
+            Shortest peptide this predictor can handle
+
+        max_peptide_length : int
+            Longest peptide this predictor can handle
         """
         require_string(program_name, "Predictor program name")
         self.program_name = program_name
@@ -167,7 +175,9 @@ class BaseCommandlinePredictor(BasePredictor):
                 self,
                 alleles=alleles,
                 valid_alleles=valid_alleles,
-                default_peptide_lengths=default_peptide_lengths)
+                default_peptide_lengths=default_peptide_lengths,
+                min_peptide_length=min_peptide_length,
+                max_peptide_length=max_peptide_length)
         except UnsupportedAllele as e:
             if self.supported_alleles_flag:
                 additional_message = (
