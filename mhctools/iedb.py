@@ -136,11 +136,13 @@ class IedbBasePredictor(BasePredictor):
             alleles,
             default_peptide_lengths,
             prediction_method,
-            url):
+            url,
+            min_peptide_length=8):
         BasePredictor.__init__(
             self,
             alleles=alleles,
-            default_peptide_lengths=default_peptide_lengths)
+            default_peptide_lengths=default_peptide_lengths,
+            min_peptide_length=min_peptide_length)
         self.prediction_method = prediction_method
 
         if not isinstance(url, string_types):
@@ -291,4 +293,5 @@ class IedbNetMHCIIpan(IedbBasePredictor):
             # only epitope lengths of 15 currently supported by IEDB's web API
             default_peptide_lengths=default_peptide_lengths,
             prediction_method="NetMHCIIpan",
-            url=IEDB_MHC_CLASS_II_URL)
+            url=IEDB_MHC_CLASS_II_URL,
+            min_peptide_length=9)

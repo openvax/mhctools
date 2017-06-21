@@ -42,7 +42,8 @@ class NetMHCIIpan(BaseCommandlinePredictor):
             peptide_mode_flags=["-inptype", "1"],
             length_flag="-length",
             tempdir_flag="-tdir",
-            process_limit=process_limit)
+            process_limit=process_limit,
+            min_peptide_length=9)
 
     def prepare_allele_name(self, allele_name):
         """

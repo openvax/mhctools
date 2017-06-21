@@ -34,7 +34,7 @@ class BasePredictor(object):
             alleles,
             valid_alleles=None,
             default_peptide_lengths=None,
-            min_peptide_length=1,
+            min_peptide_length=8,
             max_peptide_length=None,
             allow_X_in_peptides=False,
             allow_lowercase_in_peptides=False):
@@ -203,6 +203,7 @@ class BasePredictor(object):
                     peptide_set.add(peptide)
                     peptide_to_name_offset_pairs[peptide].append((name, i))
         peptide_list = sorted(peptide_set)
+
         self._check_peptide_inputs(peptide_list)
 
         binding_predictions = self.predict_peptides(peptide_list)
