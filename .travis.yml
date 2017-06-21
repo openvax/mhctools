@@ -54,7 +54,7 @@ before_script:
   - mhcflurry-downloads fetch
 script:
   - ./lint.sh
-  - nosetests test --with-coverage --cover-package=mhctools
+  - nosetests -sv test --with-coverage --cover-package=mhctools
 after_success:
   coveralls
 deploy:
