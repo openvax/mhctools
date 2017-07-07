@@ -56,10 +56,12 @@ before_script:
   - mhcflurry-downloads fetch
 script:
   - ./lint.sh
+  - nosetests -sv test --with-coverage --cover-package=mhctools
   # run vaxrank unit tests as a general integration test to make sure the stack isn't broken
   - pip install -r $PWD/vaxrank/requirements.txt
+  - pyensembl install --release 87 --species human
+  - pyensembl install --release 87 --species mouse
   - travis_wait nosetests test -a '!skip' $PWD/vaxrank
-  - nosetests -sv test --with-coverage --cover-package=mhctools
 after_success:
   coveralls
 deploy:
