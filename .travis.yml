@@ -36,6 +36,8 @@ before_install:
   - export PATH=$PATH:$NETMHC_BUNDLE_HOME/bin
   # needed for MHCflurry predictor test
   - export KERAS_BACKEND=theano
+  # install vaxrank for unit tests
+  - git clone https://github.com/hammerlab/vaxrank.git
 env:
   global:
     # MHC_BUNDLE_PASS
@@ -54,6 +56,9 @@ before_script:
   - mhcflurry-downloads fetch
 script:
   - ./lint.sh
+  # run vaxrank unit tests as a general integration test to make sure the stack isn't broken
+  - pip install -r $PWD/vaxrank/requirements.txt
+  - travis_wait nosetests test -a '!skip' $PWD/vaxrank
   - nosetests -sv test --with-coverage --cover-package=mhctools
 after_success:
   coveralls
