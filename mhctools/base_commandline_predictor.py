@@ -214,6 +214,8 @@ class BaseCommandlinePredictor(BasePredictor):
                     except AlleleParseError as error:
                         logger.info("Skipping allele %s: %s", line, error)
                         continue
+            if len(supported_alleles) == 0:
+                raise ValueError("Unable to determine supported alleles")
             return supported_alleles
         except Exception as e:
             logging.exception(e)
