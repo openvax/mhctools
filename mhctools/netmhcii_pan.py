@@ -45,6 +45,19 @@ class NetMHCIIpan(BaseCommandlinePredictor):
             process_limit=process_limit,
             min_peptide_length=9)
 
+    def _prepare_drb_allele_name(self, parsed_beta_allele):
+        """
+        Assume that we're dealing with a human DRB allele
+        which NetMHCIIpan treats differently because there is
+        little population diversity in the DR-alpha gene
+        """
+        if "DRB" not in parsed_beta_allele.gene:
+            raise ValueError("Unexpected allele %s" % parsed_beta_allele)
+        return "%s_%s%s" % (
+            parsed_beta_allele.gene,
+            parsed_beta_allele.allele_family,
+            parsed_beta_allele.allele_code)
+
     def prepare_allele_name(self, allele_name):
         """
         netMHCIIpan has some unique requirements for allele formats,
@@ -65,16 +78,12 @@ class NetMHCIIpan(BaseCommandlinePredictor):
                     allele.species,
                     allele.gene,
                     allele.allele_code)
-            else:
-                # assume that we're dealing with a human DRB allele
-                # which NetMHCIIpan treats differently because there is
-                # supposedly no population diversity in the DR-alpha gene
-                return "%s_%s%s" % (
-                    allele.gene,
-                    allele.allele_family,
-                    allele.allele_code)
+            return self._prepare_drb_allele_name(allele)
+
         else:
             alpha, beta = parsed_alleles
+            if "DRA" in alpha:
+                return self._prepare_drb_allele_name(beta)
             return "HLA-%s%s%s-%s%s%s" % (
                 alpha.gene,
                 alpha.allele_family,

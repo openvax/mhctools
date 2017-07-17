@@ -21,7 +21,7 @@ import tempfile
 from six import string_types
 from typechecks import require_string, require_integer, require_iterable_of
 from mhcnames import normalize_allele_name
-from mhcnames.parsing_helpers import AlleleParseError
+from mhcnames import AlleleParseError
 
 
 from .base_predictor import BasePredictor
@@ -215,7 +215,8 @@ class BaseCommandlinePredictor(BasePredictor):
                         logger.info("Skipping allele %s: %s", line, error)
                         continue
             return supported_alleles
-        except:
+        except Exception as e:
+            logging.exception(e)
             raise SystemError("Failed to run %s %s. Possibly an incorrect executable version?" % (
                 command,
                 supported_allele_flag))
