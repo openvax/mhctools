@@ -20,9 +20,7 @@ import tempfile
 
 from six import string_types
 from typechecks import require_string, require_integer, require_iterable_of
-from mhcnames import normalize_allele_name
-from mhcnames import AlleleParseError
-
+from mhcnames import normalize_allele_name, AlleleParseError
 
 from .base_predictor import BasePredictor
 from .unsupported_allele import UnsupportedAllele
@@ -33,7 +31,6 @@ from .process_helpers import run_multiple_commands_redirect_stdout
 from .binding_prediction_collection import BindingPredictionCollection
 
 logger = logging.getLogger(__name__)
-
 
 class BaseCommandlinePredictor(BasePredictor):
     """
@@ -218,7 +215,7 @@ class BaseCommandlinePredictor(BasePredictor):
                 raise ValueError("Unable to determine supported alleles")
             return supported_alleles
         except Exception as e:
-            logging.exception(e)
+            logger.exception(e)
             raise SystemError("Failed to run %s %s. Possibly an incorrect executable version?" % (
                 command,
                 supported_allele_flag))
