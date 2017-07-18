@@ -61,6 +61,8 @@ script:
   - pip install -r $PWD/vaxrank/requirements.txt
   - pyensembl install --release 87 --species human
   - pyensembl install --release 87 --species mouse
+  # this matches the vaxrank repo tests command: certain tests shouldn't run on travis
+  # travis_wait lets us avoid failures if no output is seen for 10 minutes, which happens sometimes
   - travis_wait nosetests test -a '!skip' $PWD/vaxrank
 after_success:
   coveralls
