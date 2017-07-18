@@ -343,6 +343,13 @@ def parse_netmhciipan_stdout(
          9         DRB1_0301       PKYVKQNTLKLAT    Sequence    2    YVKQNTLKL 0.575         0.442        418.70   6.00   9.999   <=WB
         10         DRB1_0301     ENPVVHFFKNIVTPR    Sequence    6    FFKNIVTPR 0.425         0.357       1049.04  32.00   9.999
     """
+    if "ERROR" in stdout:
+        # if NetMHCIIpan failed with an error then let's pull out the error
+        # message line and raise an exception with it
+        error_index = stdout.index("ERROR")
+        stdout_after_error = stdout[error_index:]
+        error_line = stdout_after_error.split("\n")[0]
+        raise ValueError("NetMHCIIpan failed - %s" % error_line)
     return parse_stdout(
         stdout=stdout,
         prediction_method_name=prediction_method_name,
@@ -351,6 +358,6 @@ def parse_netmhciipan_stdout(
         offset_index=0,
         peptide_index=2,
         allele_index=1,
-        ic50_index=7,
-        rank_index=8,
-        log_ic50_index=6)
+        ic50_index=8,
+        rank_index=9,
+        log_ic50_index=7)

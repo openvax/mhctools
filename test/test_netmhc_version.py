@@ -8,7 +8,7 @@ def run_class_with_executable(mhc_class, mhc_executable):
     alleles = [normalize_allele_name("HLA-A*02:01")]
     predictor = mhc_class(
         alleles=alleles,
-        program_name=mhc_executable)    
+        program_name=mhc_executable)
     sequence_dict = {
         "SMAD4-001": "ASIINFKELA",
         "TP53-001": "ASILLLVFYW"
