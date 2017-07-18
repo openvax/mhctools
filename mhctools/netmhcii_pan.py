@@ -82,7 +82,7 @@ class NetMHCIIpan(BaseCommandlinePredictor):
 
         else:
             alpha, beta = parsed_alleles
-            if "DRA" in alpha:
+            if "DRA" in alpha.gene:
                 return self._prepare_drb_allele_name(beta)
             return "HLA-%s%s%s-%s%s%s" % (
                 alpha.gene,
