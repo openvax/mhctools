@@ -68,8 +68,9 @@ after_success:
   coveralls
 deploy:
   provider: pypi
+  distributions: sdist
   user: hammerlab
   password: # See http://docs.travis-ci.com/user/encryption-keys/
-    secure: "KTo/ea1UJ4fSjXrK7YxHZSBlpEtx6zONzwRgIX8Ec3DRQmlhskIky8YD6nrmH4yjm7pNJOx0DNF2x9kF1qAXLjlLNWBp1V6dk+nSEmyW0MfX08Kw2dEn9N1+P0O9EcVUqnMXO7I8JSG8GDkBYhngwMDUCsm1YDHWU9f7tx/se2k="
+    secure: "hptQUnWnbqfMeiDPWX5Jw34qBHfuDuKofjyeF6m+eofg5XRWr4HsKZraghk7lMLQWcmkpX9FPwMYXHfQA+FO+81ColrPll3BCx7DlG71qGOoNEsbVN8C/OM6z+/+QWXlebxHGu9f06uFJC8glo8gKUSKrtNjJ5GsI+buDyE2a74="
   on:
     branch: master
