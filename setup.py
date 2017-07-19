@@ -70,7 +70,7 @@ if __name__ == '__main__':
             'six>=1.9.0',
             'sercol>=0.0.2',
             'mhcflurry',
-            'mhcnames>=0.2.0',
+            'mhcnames>=0.3.1',
         ],
         long_description=readme,
         packages=['mhctools', 'mhctools.cli'],
