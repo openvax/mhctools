@@ -72,6 +72,6 @@ deploy:
   distributions: sdist
   user: hammerlab
   password: # See http://docs.travis-ci.com/user/encryption-keys/
-    secure: "hptQUnWnbqfMeiDPWX5Jw34qBHfuDuKofjyeF6m+eofg5XRWr4HsKZraghk7lMLQWcmkpX9FPwMYXHfQA+FO+81ColrPll3BCx7DlG71qGOoNEsbVN8C/OM6z+/+QWXlebxHGu9f06uFJC8glo8gKUSKrtNjJ5GsI+buDyE2a74="
+    secure: "RVgUCI+O0p7AHkm8/ax31tJCfEFIw3acXx/hyqtoaKDY0xs8sdRHtGYQqS0dDmfzy2EjbrP+5khdajqxjDZI5cwxPXSuKXe37ZG4DLmgbfvb5zwOfW2x6spXwJKsxWPGoAEAp508Iu+e9URrF4DLx3LGNWsfcp3L9rd4uZXLfo8="
   on:
     branch: master
