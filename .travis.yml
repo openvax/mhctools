@@ -51,19 +51,20 @@ install:
   - pip install -r requirements.txt
   - pip install .
   - pip install coveralls
+  # we want to include vaxrank unit tests as a general integration test to make sure the stack
+  # isn't broken in an obvious way, so installing vaxrank and its dependent data
+  - pip install --upgrade -r $PWD/vaxrank/requirements.txt
+  - pyensembl install --release 87 --species human
+  - pyensembl install --release 87 --species mouse
 before_script:
   # needed for MHCflurry predictor test
   - mhcflurry-downloads fetch
 script:
   - ./lint.sh
-  # we want to include vaxrank unit tests as a general integration test to make sure the stack
-  # isn't broken in an obvious way
-  - pip install --upgrade -r $PWD/vaxrank/requirements.txt
-  - pyensembl install --release 87 --species human
-  - pyensembl install --release 87 --species mouse
+  - nosetests -sv test --with-coverage --cover-package=mhctools
   # this matches the vaxrank repo tests command: certain tests shouldn't run on travis
   # travis_wait lets us avoid failures if no output is seen for 10 minutes, which happens sometimes
-  - travis_wait nosetests -sv test --with-coverage --cover-package=mhctools -a '!skip'
+  - travis_wait nosetests test -a '!skip' $PWD/vaxrank
 after_success:
   coveralls
 deploy:
