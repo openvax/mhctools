@@ -22,6 +22,7 @@ from six.moves.urllib.request import urlopen, Request
 from six.moves.urllib.parse import urlencode
 from six import string_types
 import pandas as pd
+from mhcnames.normalization import normalize_allele_name
 
 from .base_predictor import BasePredictor
 from .common import seq_to_str, check_sequence_dictionary
@@ -200,12 +201,16 @@ class IedbBasePredictor(BasePredictor):
         binding_predictions = []
         expected_peptides = set([])
 
+        normalized_alleles = []
         for key, amino_acid_sequence in sequence_dict.items():
             for l in peptide_lengths:
                 for i in range(len(amino_acid_sequence) - l + 1):
                     expected_peptides.add(amino_acid_sequence[i:i + l])
             self._check_peptide_inputs(expected_peptides)
             for allele in self.alleles:
+                # IEDB MHCII predictor expects DRA1 to be omitted.
+                allele = normalize_allele_name(allele, omit_dra1=True)
+                normalized_alleles.append(allele)
                 request = self._get_iedb_request_params(
                     amino_acid_sequence, allele)
                 logger.info(
@@ -225,7 +230,7 @@ class IedbBasePredictor(BasePredictor):
                             prediction_method_name="iedb-" + self.prediction_method))
         self._check_results(
             binding_predictions,
-            alleles=self.alleles,
+            alleles=normalized_alleles,
             peptides=expected_peptides)
         return BindingPredictionCollection(binding_predictions)
 
