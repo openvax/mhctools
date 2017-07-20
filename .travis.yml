@@ -56,9 +56,9 @@ before_script:
   - mhcflurry-downloads fetch
 script:
   - ./lint.sh
-  # - nosetests -sv test --with-coverage --cover-package=mhctools
-  # run vaxrank unit tests as a general integration test to make sure the stack isn't broken
-  - pip install -r $PWD/vaxrank/requirements.txt
+  # we want to include vaxrank unit tests as a general integration test to make sure the stack
+  # isn't broken in an obvious way
+  - pip install --upgrade -r $PWD/vaxrank/requirements.txt
   - pyensembl install --release 87 --species human
   - pyensembl install --release 87 --species mouse
   # this matches the vaxrank repo tests command: certain tests shouldn't run on travis
