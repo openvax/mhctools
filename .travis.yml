@@ -36,6 +36,9 @@ before_install:
   - export PATH=$PATH:$NETMHC_BUNDLE_HOME/bin
   # needed for MHCflurry predictor test
   - export KERAS_BACKEND=theano
+  # we want to include vaxrank unit tests as a general integration test to make sure the stack
+  # isn't broken in an obvious way
+  - git clone https://github.com/hammerlab/vaxrank.git
 env:
   global:
     # MHC_BUNDLE_PASS
@@ -49,18 +52,26 @@ install:
   - pip install -r requirements.txt
   - pip install .
   - pip install coveralls
+  # install vaxrank and its dependent data
+  - pip install --upgrade -r $PWD/vaxrank/requirements.txt
+  - pyensembl install --release 87 --species human
+  - pyensembl install --release 87 --species mouse
 before_script:
   # needed for MHCflurry predictor test
   - mhcflurry-downloads fetch
 script:
   - ./lint.sh
-  - nosetests -sv test --with-coverage --cover-package=mhctools
+  # -a '!skip' lets us skip certain tests on travis (relevant for vaxrank)
+  # this command runs both mhctools and vaxrank tests. Sometimes they don't print output for a long
+  # time; travis_wait extends the time allowed with no output.
+  - travis_wait nosetests -sv test --with-coverage --cover-package=mhctools -a '!skip' $PWD/vaxrank
 after_success:
   coveralls
 deploy:
   provider: pypi
+  distributions: sdist
   user: hammerlab
   password: # See http://docs.travis-ci.com/user/encryption-keys/
-    secure: "KTo/ea1UJ4fSjXrK7YxHZSBlpEtx6zONzwRgIX8Ec3DRQmlhskIky8YD6nrmH4yjm7pNJOx0DNF2x9kF1qAXLjlLNWBp1V6dk+nSEmyW0MfX08Kw2dEn9N1+P0O9EcVUqnMXO7I8JSG8GDkBYhngwMDUCsm1YDHWU9f7tx/se2k="
+    secure: "RVgUCI+O0p7AHkm8/ax31tJCfEFIw3acXx/hyqtoaKDY0xs8sdRHtGYQqS0dDmfzy2EjbrP+5khdajqxjDZI5cwxPXSuKXe37ZG4DLmgbfvb5zwOfW2x6spXwJKsxWPGoAEAp508Iu+e9URrF4DLx3LGNWsfcp3L9rd4uZXLfo8="
   on:
     branch: master
