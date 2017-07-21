@@ -287,6 +287,8 @@ class BaseCommandlinePredictor(BasePredictor):
 
     def predict_peptides(self, peptides):
         require_iterable_of(peptides, string_types)
+        self._check_peptide_inputs(peptides)
+
         input_filenames = create_input_peptides_files(
             peptides,
             max_peptides_per_file=self.max_peptides_per_file,
