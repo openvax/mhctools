@@ -1,5 +1,4 @@
 from nose.tools import eq_
-from numpy import round, testing
 
 from mhcflurry import Class1AffinityPredictor
 from mhctools import MHCflurry
@@ -28,5 +27,5 @@ def test_mhcflurry():
     for (peptide, allele), affinity in prediction_scores.items():
         prediction = predictor.predict([peptide], allele=allele)
         assert len(prediction) == 1
-        # we've seen results differ a bit after the first 2 decimal points, not an error condition
-        testing.assert_almost_equal(round(prediction[0], 2), round(affinity, 2))
+        # we've seen results differ a bit so doing an approximate check, not an error condition
+        eq_(round(prediction[0]), round(affinity))
