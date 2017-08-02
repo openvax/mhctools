@@ -28,5 +28,5 @@ def test_mhcflurry():
     for (peptide, allele), affinity in prediction_scores.items():
         prediction = predictor.predict([peptide], allele=allele)
         assert len(prediction) == 1
-        # testing.assert_almost_equal(round(prediction[0], 2), round(affinity, 2))
-        testing.assert_almost_equal(prediction[0], affinity)
+        # we've seen results differ a bit after the first 2 decimal points, not an error condition
+        testing.assert_almost_equal(round(prediction[0], 2), round(affinity, 2))

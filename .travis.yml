@@ -1,22 +1,21 @@
+dist: trusty
 sudo: false  # Use container-based infrastructure
 language: python
 python:
   - "2.7"
-  - "3.4"
+  - "3.5"
 addons:
   apt:
     packages:
       # Needed for NetMHC
       - tcsh
-      # install pandoc for use with pypandoc for converting the README
-      # from markdown to RST
-      - pandoc
 cache:
-  pip: true
-  # cache directory used for Ensembl downloads of GTF and FASTA files
+  # cache pip files, also directory used for Ensembl downloads of GTF and FASTA files
   # along with the indexed db of intervals and ID mappings and pickles
   # of sequence dictionaries
-  directories: /home/travis/.cache/pyensembl/
+  directories:
+    - /home/travis/.cache/pyensembl/
+    - /home/travis/.cache/pip
 before_install:
   # Commands below copied from: http://conda.pydata.org/docs/travis.html
   # We do this conditionally because it saves us some downloading if the
@@ -52,19 +51,19 @@ env:
 install:
   - >
       conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
-      numpy scipy nose pandas mkl-service theano
+      numpy scipy nose pandas mkl-service theano pandoc
   - source activate test-environment
   - pip install pypandoc
   - pip install -r requirements.txt
   - pip install .
   - pip install coveralls
-  # install vaxrank and its dependent data
   - pip install --upgrade -r $PWD/vaxrank/requirements.txt
-  - pyensembl install --release 87 --species human
-  - pyensembl install --release 87 --species mouse
 before_script:
   # needed for MHCflurry predictor test
   - mhcflurry-downloads fetch
+  # needed for vaxrank
+  - pyensembl install --release 87 --species human
+  - pyensembl install --release 87 --species mouse
 script:
   - ./lint.sh
   # -a '!skip' lets us skip certain tests on travis (relevant for vaxrank)
