@@ -1,4 +1,5 @@
 from nose.tools import eq_
+from numpy import testing
 
 from mhcflurry import Class1AffinityPredictor
 from mhctools import MHCflurry
@@ -28,4 +29,4 @@ def test_mhcflurry():
         prediction = predictor.predict([peptide], allele=allele)
         assert len(prediction) == 1
         # we've seen results differ a bit so doing an approximate check, not an error condition
-        eq_(round(prediction[0]), round(affinity))
+        testing.assert_almost_equal(prediction[0], affinity, decimal=0)
