@@ -31,7 +31,7 @@ NETMHC_TOKENS = {
 
 def check_stdout_error(stdout, program_name):
     if "ERROR" in stdout.upper():
-        # if NetMHCIIpan failed with an error then let's pull out the error
+        # if NetMHC* failed with an error then let's pull out the error
         # message line and raise an exception with it
         error_index = stdout.upper().index("ERROR")
         stdout_after_error = stdout[error_index:]
