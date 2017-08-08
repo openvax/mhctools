@@ -30,6 +30,7 @@ class NetMHCpan28(BaseCommandlinePredictor):
             program_name=program_name,
             alleles=alleles,
             default_peptide_lengths=default_peptide_lengths,
+            group_peptides_by_length=True,
             parse_output_fn=parse_netmhcpan28_stdout,
             supported_alleles_flag="-listMHC",
             input_file_flag="-f",
