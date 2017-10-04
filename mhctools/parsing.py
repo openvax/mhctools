@@ -29,6 +29,15 @@ NETMHC_TOKENS = {
     "Strong",
 }
 
+def check_stdout_error(stdout, program_name):
+    if "ERROR" in stdout.upper():
+        # if NetMHC* failed with an error then let's pull out the error
+        # message line and raise an exception with it
+        error_index = stdout.upper().index("ERROR")
+        stdout_after_error = stdout[error_index:]
+        error_line = stdout_after_error.split("\n")[0]
+        raise ValueError("%s failed - %s" % (program_name, error_line))
+
 def split_stdout_lines(stdout):
     """
     Given the standard output from NetMHC/NetMHCpan/NetMHCcons tools,
@@ -237,6 +246,7 @@ def parse_netmhcpan28_stdout(
      10  HLA-A*02:03    THIIIASSS   id0         0.040     32361.18   50.00
      11  HLA-A*02:03    HIIIASSSL   id0         0.515       189.74    4.00 <= WB
     """
+    check_stdout_error(stdout, "NetMHCpan-2.8")
     return parse_stdout(
         stdout=stdout,
         prediction_method_name=prediction_method_name,
@@ -345,13 +355,7 @@ def parse_netmhciipan_stdout(
          9         DRB1_0301       PKYVKQNTLKLAT    Sequence    2    YVKQNTLKL 0.575         0.442        418.70   6.00   9.999   <=WB
         10         DRB1_0301     ENPVVHFFKNIVTPR    Sequence    6    FFKNIVTPR 0.425         0.357       1049.04  32.00   9.999
     """
-    if "ERROR" in stdout:
-        # if NetMHCIIpan failed with an error then let's pull out the error
-        # message line and raise an exception with it
-        error_index = stdout.index("ERROR")
-        stdout_after_error = stdout[error_index:]
-        error_line = stdout_after_error.split("\n")[0]
-        raise ValueError("NetMHCIIpan failed - %s" % error_line)
+    check_stdout_error(stdout, "NetMHCIIpan")
     return parse_stdout(
         stdout=stdout,
         prediction_method_name=prediction_method_name,

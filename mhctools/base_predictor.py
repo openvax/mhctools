@@ -205,8 +205,6 @@ class BasePredictor(object):
                     peptide_to_name_offset_pairs[peptide].append((name, i))
         peptide_list = sorted(peptide_set)
 
-        self._check_peptide_inputs(peptide_list)
-
         binding_predictions = self.predict_peptides(peptide_list)
 
         # create BindingPrediction objects with sequence name and offset
