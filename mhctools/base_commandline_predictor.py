@@ -262,7 +262,6 @@ class BaseCommandlinePredictor(BasePredictor):
         # deleting the input and output files
         filenames_to_delete = list(input_filenames) + [
             f.name for f in commands.keys()]
-
         with CleanupFiles(
                 filenames=filenames_to_delete,
                 directories=temp_dir_list):
@@ -275,9 +274,10 @@ class BaseCommandlinePredictor(BasePredictor):
                 # but I was getting empty files otherwise
                 output_file.close()
                 with open(output_file.name, 'r') as f:
+                    file_contents = f.read()
                     binding_predictions.extend(
                         self.parse_output_fn(
-                            stdout=f.read(),
+                            stdout=file_contents,
                             sequence_key_mapping=sequence_key_mapping,
                             prediction_method_name=self.program_name))
 
@@ -286,9 +286,7 @@ class BaseCommandlinePredictor(BasePredictor):
         return BindingPredictionCollection(binding_predictions)
 
     def predict_peptides(self, peptides):
-        require_iterable_of(peptides, string_types)
         self._check_peptide_inputs(peptides)
-
         input_filenames = create_input_peptides_files(
             peptides,
             max_peptides_per_file=self.max_peptides_per_file,

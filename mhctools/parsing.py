@@ -50,7 +50,9 @@ def split_stdout_lines(stdout):
     for l in stdout.split("\n"):
         l = l.strip()
         # wait for a line like '----------' before trying to parse entries
-        if l.startswith("-"):
+        # have to include multiple dashes here since NetMHC 4.0 sometimes
+        # gives negative positions in its "peptide" input mode
+        if l.startswith("---"):
             seen_dash = True
             continue
         if not seen_dash:
