@@ -152,6 +152,7 @@ class BasePredictor(object):
         """
         Check peptide sequences to make sure they are valid for this predictor.
         """
+        require_iterable_of(peptides, string_types)
         check_X = not self.allow_X_in_peptides
         check_lower = not self.allow_lowercase_in_peptides
         check_min_length = self.min_peptide_length is not None
