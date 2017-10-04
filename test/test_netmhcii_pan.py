@@ -19,7 +19,7 @@ def test_netmhcii_pan_DRB():
     eq_(unique_lengths, {15, 16})
 
     unique_alleles = {x.allele for x in binding_predictions}
-    eq_(unique_alleles, {"HLA-DRB1*01:01"})
+    eq_(unique_alleles, {"HLA-DRA1*01:01-DRB1*01:01"})
 
     # length of "PAPAPSWPLSSSVPSQKTYQGSYGFRLGFLHSGT" is 34
     # length of "SQAMDDLMLSPDDIEQWFTED" is 21
@@ -55,7 +55,7 @@ def test_netmhcii_pan_multiple_alleles():
     alleles = [
         normalize_allele_name("HLA-DPA1*01:05-DPB1*100:01"),
         normalize_allele_name("HLA-DQA1*05:11-DQB1*03:02"),
-        normalize_allele_name("HLA-DRB1*01:01")
+        normalize_allele_name("HLA-DRA1*01:01-DRB1*01:01")
     ]
     ii_pan_predictor = NetMHCIIpan(
         alleles=alleles)
@@ -73,7 +73,7 @@ def test_netmhcii_pan_multiple_alleles():
     eq_(unique_alleles, {
         "HLA-DPA1*01:05-DPB1*100:01",
         "HLA-DQA1*05:11-DQB1*03:02",
-        "HLA-DRB1*01:01"
+        "HLA-DRA1*01:01-DRB1*01:01"
     })
 
     # length of "SQAMDDLMLSPDDIEQWFTED" is 21
