@@ -58,3 +58,4 @@ def test_peptides_file_with_subsequences():
     eq_(binding_predictions[0].peptide, peptide[:9])
     eq_(binding_predictions[1].peptide, peptide[1:10])
     remove(f.name)
+
