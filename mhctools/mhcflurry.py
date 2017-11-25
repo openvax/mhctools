@@ -15,6 +15,8 @@
 from __future__ import print_function, division, absolute_import
 import logging
 
+from numpy import nan
+
 from .base_predictor import BasePredictor
 from .binding_prediction import BindingPrediction
 from .binding_prediction_collection import BindingPredictionCollection
@@ -89,3 +91,4 @@ class MHCflurry(BasePredictor):
                 )
                 binding_predictions.append(binding_prediction)
         return BindingPredictionCollection(binding_predictions)
+
