@@ -19,10 +19,6 @@ from .base_predictor import BasePredictor
 from .binding_prediction import BindingPrediction
 from .binding_prediction_collection import BindingPredictionCollection
 
-from mhcflurry import Class1AffinityPredictor
-from mhcflurry.encodable_sequences import EncodableSequences
-from numpy import nan
-
 logger = logging.getLogger(__name__)
 
 
@@ -45,6 +41,10 @@ class MHCflurry(BasePredictor):
             MHCflurry predictor to use
 
         """
+        # moving import here since the mhcflurry package imports
+        # Keras and its backend (either Theano or TF) which end up
+        # slowing down responsive for any CLI application using MHCtools
+        from mhcflurry import Class1AffinityPredictor
         BasePredictor.__init__(
             self,
             alleles=alleles,
@@ -56,6 +56,14 @@ class MHCflurry(BasePredictor):
         self.predictor = predictor
 
     def predict_peptides(self, peptides):
+        """
+        Predict MHC affinity for peptides.
+        """
+
+        # importing locally to avoid slowing down CLI applications which
+        # don't use MHCflurry
+        from mhcflurry.encodable_sequences import EncodableSequences
+
         binding_predictions = []
         encodable_sequences = EncodableSequences.create(peptides)
         for allele in self.alleles:
