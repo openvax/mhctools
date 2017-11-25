@@ -37,12 +37,16 @@ class MHCflurry(BasePredictor):
             self,
             alleles,
             default_peptide_lengths=[9],
-            predictor=None):
+            predictor=None,
+            models_path=None):
         """
         Parameters
         -----------
         predictor : mhcflurry.Class1AffinityPredictor (optional)
             MHCflurry predictor to use
+
+        models_path : string
+            Models dir to use if predictor argument is None
 
         """
         BasePredictor.__init__(
@@ -51,26 +55,29 @@ class MHCflurry(BasePredictor):
             default_peptide_lengths=default_peptide_lengths,
             min_peptide_length=8,
             max_peptide_length=15)
-        if predictor is None:
-            predictor = Class1AffinityPredictor.load()
-        self.predictor = predictor
+        if predictor:
+            self.predictor = predictor
+        elif models_path:
+            logging.info("Loading MHCflurry models from %s" % models_path)
+            self.predictor = Class1AffinityPredictor.load(models_path)
+        else:
+            self.predictor = Class1AffinityPredictor.load()
 
     def predict_peptides(self, peptides):
         binding_predictions = []
         encodable_sequences = EncodableSequences.create(peptides)
         for allele in self.alleles:
-            predictions = self.predictor.predict(
+            predictions_df = self.predictor.predict_to_dataframe(
                 encodable_sequences, allele=allele)
-            for (i, peptide) in enumerate(peptides):
+            for (_, row) in predictions_df.iterrows():
                 binding_prediction = BindingPrediction(
                     allele=allele,
-                    peptide=peptide,
-                    affinity=predictions[i],
-
-                    # TODO: include percentile rank when MHCflurry supports it
-                    percentile_rank=None,
+                    peptide=row.peptide,
+                    affinity=row.prediction,
+                    percentile_rank=(
+                        row.prediction_percentile
+                        if 'prediction_percentile' in row else nan),
                     prediction_method_name="mhcflurry"
                 )
-                logger.info(binding_prediction)
                 binding_predictions.append(binding_prediction)
         return BindingPredictionCollection(binding_predictions)

@@ -109,4 +109,5 @@ def main(args_list=None):
     df = binding_predictions.to_dataframe()
     logger.info('\n%s', df)
     if args.output_csv:
-        df.to_csv(args.output_csv)
+        df.to_csv(args.output_csv, index=False)
+        print("Wrote: %s" % args.output_csv)

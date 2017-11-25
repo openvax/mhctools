@@ -83,6 +83,11 @@ def add_mhc_args(arg_parser):
         required=True)
 
     mhc_options_arg_group.add_argument(
+        "--mhc-predictor-models-path",
+        help="Path to models to use with predictor. Currently supported only "
+        "by mhcflurry predictor.")
+
+    mhc_options_arg_group.add_argument(
         "--mhc-peptide-lengths",
         type=parse_int_list,
         help="Lengths of epitopes to consider for MHC binding prediction")
@@ -146,5 +151,6 @@ def mhc_binding_predictor_from_args(args):
     kwargs = dict(alleles=alleles)
     if peptide_lengths is not None:
         kwargs["default_peptide_lengths"] = peptide_lengths
-
+    if args.mhc_predictor_models_path:
+        kwargs["models_path"] = args.mhc_predictor_models_path
     return mhc_class(**kwargs)
