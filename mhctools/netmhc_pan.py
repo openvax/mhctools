@@ -19,6 +19,7 @@ import os
 
 from .netmhc_pan28 import NetMHCpan28
 from .netmhc_pan3 import NetMHCpan3
+from .netmhc_pan4 import NetMHCpan4
 
 
 logger = logging.getLogger(__name__)
@@ -42,21 +43,22 @@ def NetMHCpan(
             program_name, "--version", "_MHCTOOLS_VERSION_SNIFFING"],
             stderr=devnull)
     output_str = output.decode("ascii", "ignore")
+    common_kwargs = {
+        "alleles": alleles,
+        "default_peptide_lengths": default_peptide_lengths,
+        "program_name": program_name,
+        "process_limit": process_limit,
+        "extra_flags": extra_flags,
+    }
     if "NetMHCpan version 2.8" in output_str:
-        return NetMHCpan28(
-            alleles=alleles,
-            default_peptide_lengths=default_peptide_lengths,
-            program_name=program_name,
-            process_limit=process_limit,
-            extra_flags=extra_flags)
+        return NetMHCpan28(**common_kwargs)
 
     elif "NetMHCpan version 3.0" in output_str:
-        return NetMHCpan3(
-            alleles=alleles,
-            default_peptide_lengths=default_peptide_lengths,
-            program_name=program_name,
-            process_limit=process_limit,
-            extra_flags=extra_flags)
+        return NetMHCpan3(**common_kwargs)
+
+    elif "NetMHCpan version 4.0" in output_str:
+        return NetMHCpan4(**common_kwargs)
 
     else:
-        raise SystemError("This software expects NetMHCpan version 2.8 or 3.0")
+        raise RuntimeError(
+            "This software expects NetMHCpan version 2.8, 3.0, or 4.0")

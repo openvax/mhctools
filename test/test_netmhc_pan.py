@@ -10,8 +10,33 @@ protein_sequence_dict = {
     "TP53-001": "ASILLLVFYW"
 }
 
+# Tests will also be run using the following program names if they are installed.
+# In any case, a program called "netMHCpan" MUST be installed and working for
+# this test suite to succeeed.
+OPTIONAL_NETMHCPAN_PROGRAM_NAMES = [
+    "netMHCpan-2.8",
+    "netMHCpan-3.0",
+    "netMHCpan-4.0",
+]
+
+
 def test_netmhc_pan():
-    predictor = NetMHCpan(alleles=[DEFAULT_ALLELE])
+    yield check_netmhc_pan, "netMHCpan", True  # required
+
+    for program_name in OPTIONAL_NETMHCPAN_PROGRAM_NAMES:
+        yield check_netmhc_pan, program_name, False  # optional
+
+
+def check_netmhc_pan(program_name, fail_if_no_such_program=True):
+    try:
+        predictor = NetMHCpan(
+            alleles=[DEFAULT_ALLELE], program_name=program_name)
+    except FileNotFoundError:
+        if fail_if_no_such_program:
+            raise
+        print("Skipping because no such program: %s" % program_name)
+        return
+
     binding_predictions = predictor.predict_subsequences(
         protein_sequence_dict,
         peptide_lengths=[9])
