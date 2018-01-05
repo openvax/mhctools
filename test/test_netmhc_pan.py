@@ -10,8 +10,23 @@ protein_sequence_dict = {
     "TP53-001": "ASILLLVFYW"
 }
 
+# This test assumes you have versions of netMHCpan installed in your PATH
+# with the following names:
+NETMHCPAN_BINARIES = [
+    "netMHCpan",
+    "netMHCpan-2.8",
+    "netMHCpan-3.0",
+    "netMHCpan-4.0",
+]
+
+
 def test_netmhc_pan():
-    predictor = NetMHCpan(alleles=[DEFAULT_ALLELE])
+    for program_name in NETMHCPAN_BINARIES:
+        yield check_netmhc_pan, program_name
+
+
+def check_netmhc_pan(program_name):
+    predictor = NetMHCpan(alleles=[DEFAULT_ALLELE], program_name=program_name)
     binding_predictions = predictor.predict_subsequences(
         protein_sequence_dict,
         peptide_lengths=[9])

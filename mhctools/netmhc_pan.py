@@ -19,6 +19,7 @@ import os
 
 from .netmhc_pan28 import NetMHCpan28
 from .netmhc_pan3 import NetMHCpan3
+from .netmhc_pan4 import NetMHCpan4
 
 
 logger = logging.getLogger(__name__)
@@ -52,6 +53,14 @@ def NetMHCpan(
 
     elif "NetMHCpan version 3.0" in output_str:
         return NetMHCpan3(
+            alleles=alleles,
+            default_peptide_lengths=default_peptide_lengths,
+            program_name=program_name,
+            process_limit=process_limit,
+            extra_flags=extra_flags)
+
+    elif "NetMHCpan version 4.0" in output_str:
+        return NetMHCpan4(
             alleles=alleles,
             default_peptide_lengths=default_peptide_lengths,
             program_name=program_name,
