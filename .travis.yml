@@ -75,8 +75,8 @@ after_success:
 deploy:
   provider: pypi
   distributions: sdist
-  user: hammerlab
+  user: openvax
   password: # See http://docs.travis-ci.com/user/encryption-keys/
-    secure: "RVgUCI+O0p7AHkm8/ax31tJCfEFIw3acXx/hyqtoaKDY0xs8sdRHtGYQqS0dDmfzy2EjbrP+5khdajqxjDZI5cwxPXSuKXe37ZG4DLmgbfvb5zwOfW2x6spXwJKsxWPGoAEAp508Iu+e9URrF4DLx3LGNWsfcp3L9rd4uZXLfo8="
+    secure: "S4KWAhJpKYx5F/cBc6cf9GCZ8Hd+WtMA6V6PP25PglLnVaXrxB5QxuAIWGAvr/jGuTHjfCSCNDwTptW3natLjJR9IfJdJPp3gNvM0RDjWY4FsziFz/nG/bZo9qnh4ZCDhK/Po1izxXM0u9z6gUc0U2iKK1ZSdfawyW4nZbAXQUU="
   on:
     branch: master
