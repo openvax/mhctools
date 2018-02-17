@@ -3,7 +3,19 @@
 # mhctools
 Python interface to running command-line and web-based MHC binding predictors.
 
-## Example
+## Commandline examples
+
+### Prediction for user-supplied peptide sequences
+```sh
+mhctools --sequence SIINFEKL SIINFEKLQ --mhc-predictor netmhc --mhc-alleles A0201
+```
+
+### Automatically extract peptides as subsequences of specified length
+```sh
+mhctools --sequence AAAQQQSIINFEKL --extract-subsequences --mhc-peptide-lengths 8-10 --mhc-predictor mhcflurry --mhc-alleles A0201
+```
+
+## Python usage
 
 ```python
 from mhctools import NetMHCpan
@@ -27,6 +39,7 @@ for binding_prediction in binding_predictions:
     if binding_prediction.affinity < 100:
         print("Strong binder: %s" % (binding_prediction,))
 ```
+
 ## API
 
 The following MHC binding predictors are available in `mhctools`:
