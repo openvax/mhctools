@@ -34,7 +34,7 @@ before_install:
   # Useful for debugging any issues with conda
   - conda info -a
   # install netmhcbundle
-  - git clone https://mhcbundle:$MHC_BUNDLE_PASS@github.com/hammerlab/netmhc-bundle.git
+  - git clone https://mhcbundle:$MHC_BUNDLE_PASS@github.com/openvax/netmhc-bundle.git
   - export NETMHC_BUNDLE_HOME=$PWD/netmhc-bundle
   - mkdir tmp
   - export NETMHC_BUNDLE_TMPDIR=$PWD/tmp
@@ -43,7 +43,7 @@ before_install:
   - export KERAS_BACKEND=theano
   # we want to include vaxrank unit tests as a general integration test to make sure the stack
   # isn't broken in an obvious way
-  - git clone https://github.com/hammerlab/vaxrank.git
+  - git clone https://github.com/openvax/vaxrank.git
 env:
   global:
     # MHC_BUNDLE_PASS

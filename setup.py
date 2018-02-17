@@ -51,7 +51,7 @@ if __name__ == '__main__':
         description="Python interface to running command-line and web-based MHC binding predictors",
         author="Alex Rubinsteyn",
         author_email="alex.rubinsteyn@mssm.edu",
-        url="https://github.com/hammerlab/mhctools",
+        url="https://github.com/openvax/mhctools",
         license="http://www.apache.org/licenses/LICENSE-2.0.html",
         classifiers=[
             'Development Status :: 3 - Alpha',

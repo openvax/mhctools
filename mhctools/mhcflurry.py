@@ -20,7 +20,7 @@ from numpy import nan
 from .base_predictor import BasePredictor
 from .binding_prediction import BindingPrediction
 from .binding_prediction_collection import BindingPredictionCollection
-from .unsupported_alleles import UnsupportedAllele
+from .unsupported_allele import UnsupportedAllele
 
 logger = logging.getLogger(__name__)
 
