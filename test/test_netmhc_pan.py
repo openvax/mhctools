@@ -2,6 +2,12 @@ from nose.tools import eq_
 
 from mhctools import NetMHCpan
 
+# Defining FileNotFoundError for Python 2.x
+try:
+    FileNotFoundError
+except NameError:
+    FileNotFoundError = IOError
+
 
 DEFAULT_ALLELE = 'HLA-A*02:01'
 
@@ -41,7 +47,7 @@ def check_netmhc_pan(program_name, fail_if_no_such_program=True):
         protein_sequence_dict,
         peptide_lengths=[9])
     assert len(binding_predictions) == 4, \
-            "Expected 4 binding predictions from %s" % (binding_predictions,)
+        "Expected 4 binding predictions from %s" % (binding_predictions,)
     for x in binding_predictions:
         # recompute the peptide from the offset and starting sequence, and make sure it matches.
         # this is currently wrong in netMHCpan-3.0 and we want to test our wrapper fix to that

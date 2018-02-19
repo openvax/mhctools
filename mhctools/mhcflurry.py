@@ -20,6 +20,7 @@ from numpy import nan
 from .base_predictor import BasePredictor
 from .binding_prediction import BindingPrediction
 from .binding_prediction_collection import BindingPredictionCollection
+from .unsupported_allele import UnsupportedAllele
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +66,12 @@ class MHCflurry(BasePredictor):
         else:
             self.predictor = Class1AffinityPredictor.load()
 
+        # relying on BasePredictor and MHCflurry to both normalize
+        # allele names the same way using mhcnames
+        for allele in self.alleles:
+            if allele not in self.predictor.supported_alleles:
+                raise UnsupportedAllele(allele)
+
     def predict_peptides(self, peptides):
         """
         Predict MHC affinity for peptides.
@@ -91,4 +98,3 @@ class MHCflurry(BasePredictor):
                 )
                 binding_predictions.append(binding_prediction)
         return BindingPredictionCollection(binding_predictions)
-

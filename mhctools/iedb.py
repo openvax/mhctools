@@ -70,7 +70,7 @@ def _parse_iedb_response(response):
     and parse them into a DataFrame
 
     Expect response to look like:
-    allele  seq_num start   end length  peptide ic50   percentile   rank
+    allele  seq_num start   end length  peptide ic50   percentile_rank
     HLA-A*01:01 1   2   10  9   LYNTVATLY   2145.70 3.7
     HLA-A*01:01 1   5   13  9   TVATLYCVH   2216.49 3.9
     HLA-A*01:01 1   7   15  9   ATLYCVHQR   2635.42 5.1
@@ -97,7 +97,6 @@ def _parse_iedb_response(response):
         "allele",
         "peptide",
         "ic50",
-        "percentile_rank",
         "start",
         "end",
     ]
@@ -107,8 +106,11 @@ def _parse_iedb_response(response):
                 "Response from IEDB is missing '%s' column: %s" % (
                     column,
                     df.ix[0],))
-
-    df = df.rename(columns={"percentile_rank": "rank"})
+    # since IEDB has allowed multiple column names for percentile rank,
+    # we're defensively normalizing all of them to just 'rank'
+    df = df.rename(columns={
+        "percentile_rank": "rank",
+        "percentile rank": "rank"})
     return df
 
 def _query_iedb(request_values, url):
