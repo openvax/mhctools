@@ -1,4 +1,4 @@
-dist: precise
+dist: trusty
 sudo: false  # Use container-based infrastructure
 language: python
 python:
