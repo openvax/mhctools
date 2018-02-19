@@ -97,7 +97,7 @@ def _parse_iedb_response(response):
         "allele",
         "peptide",
         "ic50",
-        "rank",
+        "percentile_rank",
         "start",
         "end",
     ]
@@ -108,11 +108,7 @@ def _parse_iedb_response(response):
                     column,
                     df.ix[0],))
 
-    # if both "percentile" and "rank" are present: remove rank, rename percentile to rank
-    if "percentile" in df.columns:
-        del df["rank"]
-        df = df.rename(columns={"percentile": "rank"})
-
+    df = df.rename(columns={"percentile_rank": "rank"})
     return df
 
 def _query_iedb(request_values, url):
