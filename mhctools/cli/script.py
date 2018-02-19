@@ -75,6 +75,9 @@ def run_predictor(args):
             raise ValueError(
                 "No sequences could be parsed from fasta file: %s" % (
                     args.input_fasta_file))
+        # Capitalize sequences
+        input_dictionary = dict(
+            (key, value.upper()) for (key, value) in input_dictionary.items())
         binding_predictions = predictor.predict_subsequences(input_dictionary)
     elif args.sequence:
         if args.extract_subsequences:
