@@ -1,4 +1,7 @@
-[![Build Status](https://travis-ci.org/openvax/mhctools.svg?branch=master)](https://travis-ci.org/openvax/mhctools) [![Coverage Status](https://coveralls.io/repos/openvax/mhctools/badge.svg?branch=master)](https://coveralls.io/r/openvax/mhctools?branch=master) [![DOI](https://zenodo.org/badge/18834/openvax/mhctools.svg)](https://zenodo.org/badge/latestdoi/18834/openvax/mhctools)
+[![Build Status](https://travis-ci.org/openvax/mhctools.svg?branch=master)](https://travis-ci.org/openvax/mhctools) [![Coverage Status](https://coveralls.io/repos/openvax/mhctools/badge.svg?branch=master)](https://coveralls.io/r/openvax/mhctools?branch=master)
+<!-- 
+[![DOI](https://zenodo.org/badge/18834/openvax/mhctools.svg)](https://zenodo.org/badge/latestdoi/18834/openvax/mhctools)
+-->
 
 # mhctools
 Python interface to running command-line and web-based MHC binding predictors.
