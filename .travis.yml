@@ -40,7 +40,7 @@ before_install:
   - export NETMHC_BUNDLE_TMPDIR=$PWD/tmp
   - export PATH=$PATH:$NETMHC_BUNDLE_HOME/bin
   # needed for MHCflurry predictor test
-  - export KERAS_BACKEND=theano
+  - export KERAS_BACKEND=tensorflow
   # we want to include vaxrank unit tests as a general integration test to make sure the stack
   # isn't broken in an obvious way
   - git clone https://github.com/openvax/vaxrank.git
@@ -51,7 +51,7 @@ env:
 install:
   - >
       conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
-      numpy nose mkl-service theano pandoc
+      numpy nose mkl-service pandoc
   - source activate test-environment
   - pip install pypandoc
   - pip install -r requirements.txt
