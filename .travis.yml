@@ -43,7 +43,7 @@ before_install:
   - export KERAS_BACKEND=tensorflow
   # we want to include vaxrank unit tests as a general integration test to make sure the stack
   # isn't broken in an obvious way
-  - git clone https://github.com/openvax/vaxrank.git
+  # - git clone https://github.com/openvax/vaxrank.git
 env:
   global:
     # MHC_BUNDLE_PASS
@@ -57,13 +57,13 @@ install:
   - pip install -r requirements.txt
   - pip install .
   - pip install coveralls
-  - pip install --upgrade -r $PWD/vaxrank/requirements.txt
+  # - pip install --upgrade -r $PWD/vaxrank/requirements.txt
 before_script:
   # needed for MHCflurry predictor test
   - mhcflurry-downloads fetch
   # needed for vaxrank
-  - pyensembl install --release 87 --species human
-  - pyensembl install --release 87 --species mouse
+  # - pyensembl install --release 87 --species human
+  # - pyensembl install --release 87 --species mouse
 script:
   - ./lint.sh
   # -a '!skip' lets us skip certain tests on travis (relevant for vaxrank)
@@ -72,7 +72,7 @@ script:
   # allowed with no output.
   # TODO: figure out what in the Vaxrank tests (or after) is forcing us to use
   # travis_wait
-  - travis_wait nosetests -sv test --with-coverage --cover-package=mhctools -a '!skip' $PWD/vaxrank
+  - travis_wait nosetests -sv test --with-coverage --cover-package=mhctools #  -a '!skip' $PWD/vaxrank
 after_success:
   coveralls
 deploy:
