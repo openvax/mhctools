@@ -47,7 +47,7 @@ before_install:
 env:
   global:
     # MHC_BUNDLE_PASS
-    - secure: "TIminZrp9m1kMXhemqz8Zx4BjojIoEYZJnNrDrL6T/pKMpP5FQ6sprj8meGfNse4ApRIPmp5lhqxbPOe7Cg7ooetIcORekjRueHwRkYXqgMbgffgZYuEJTAGLKFsBDEXFD1kWT7igmvXFsP1T0bb1TxRPK93Q5G+e1dEAm6Iqwo="
+    - secure: "HVKAOpCRrP6qdH+XeFKHb7EqDP+Jqa9SrXCE/41Vumho9qzmONiYf3MyM21bDCkRHh/euYmkWPjfXzSPZPPpP492sfD/d7nv3aSXZfGyQzkAoAmIR0qyhWWjREpPQYISjAHx5pq1tOJktR86krbtPWHCkpb+HFYjwBAjJWPtYs8="
 install:
   - >
       conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
@@ -80,7 +80,7 @@ deploy:
   distributions: sdist
   user: openvax
   password: # See http://docs.travis-ci.com/user/encryption-keys/
-    secure: "dHqveFTJEJFyNuSxJQox7/3oHuszrA0yI+geJwO9XhdUZ0Nx8lWkeofprIUE0bv9Z0GMc3XbiXmZqpVTaqgz+fqWflI75NJ7hbNi0ZGZ2LGkBHB7TjeocZQ3HCfa4TrDnsyJg+2IwfmVYI/NuUg8x6suh1eqNR21R/y5nTpySVw="
+    secure: "Bqb6dw4oNXg4k+wS53BLHUYxzqxdcia7NvXusXFtVT/1CIYnQg5RDnNC8QAigJ9weq6XJgG1Y6V4iV+eJ1Ejj9c7XJJn1Y3BL8D22z6tlYFEifSb0VIZwrdjRTfnShsLytBYTrvINXoGfOQCKJQNRhvGMdjmsmZjVAV/0yQrb7U="
   on:
     branch: master
   condition: $TRAVIS_PYTHON_VERSION = "2.7"
