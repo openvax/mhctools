@@ -83,3 +83,4 @@ deploy:
     secure: "S4KWAhJpKYx5F/cBc6cf9GCZ8Hd+WtMA6V6PP25PglLnVaXrxB5QxuAIWGAvr/jGuTHjfCSCNDwTptW3natLjJR9IfJdJPp3gNvM0RDjWY4FsziFz/nG/bZo9qnh4ZCDhK/Po1izxXM0u9z6gUc0U2iKK1ZSdfawyW4nZbAXQUU="
   on:
     branch: master
+  condition: $TRAVIS_PYTHON_VERSION = "2.7"
