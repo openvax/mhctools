@@ -80,7 +80,7 @@ deploy:
   distributions: sdist
   user: openvax
   password: # See http://docs.travis-ci.com/user/encryption-keys/
-    secure: "Bqb6dw4oNXg4k+wS53BLHUYxzqxdcia7NvXusXFtVT/1CIYnQg5RDnNC8QAigJ9weq6XJgG1Y6V4iV+eJ1Ejj9c7XJJn1Y3BL8D22z6tlYFEifSb0VIZwrdjRTfnShsLytBYTrvINXoGfOQCKJQNRhvGMdjmsmZjVAV/0yQrb7U="
+    secure: "S5hx/6cv1fNKvb5iyXfzGOxOiQYy6CSnqvlKirSEjyDgfFcLlIU7sUBTFiiDIDIUaCtFN0klvmTZ9c7Yxk0c0n3zlXSwLrdqkma25cab8xEY0CHkelAf56WcZfy22AZVPOG+ndCSSsOY31XEZL9smD63gmr7zKIOPEy9fXAJLAw="
   on:
     branch: master
-  condition: $TRAVIS_PYTHON_VERSION = "2.7"
+    condition: $TRAVIS_PYTHON_VERSION = "2.7"
