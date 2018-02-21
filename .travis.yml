@@ -9,7 +9,6 @@ addons:
     packages:
       # Needed for NetMHC
       - tcsh
-      - pandoc
 cache:
   # cache pip files, also directory used for Ensembl downloads of GTF and FASTA files
   # along with the indexed db of intervals and ID mappings and pickles
@@ -52,7 +51,7 @@ env:
 install:
   - >
       conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
-      numpy nose mkl-service
+      numpy pandas nose mkl-service pandoc
   - source activate test-environment
   - pip install pypandoc
   - pip install -r requirements.txt
@@ -73,7 +72,7 @@ script:
   # allowed with no output.
   # TODO: figure out what in the Vaxrank tests (or after) is forcing us to use
   # travis_wait
-  - travis_wait nosetests -sv test --with-coverage --cover-package=mhctools #  -a '!skip' $PWD/vaxrank
+  - nosetests -sv test --with-coverage --cover-package=mhctools #  -a '!skip' $PWD/vaxrank
 after_success:
   coveralls
 deploy:

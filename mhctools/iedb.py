@@ -20,7 +20,9 @@ import io
 from six.moves.urllib.request import urlopen, Request
 # pylint: disable=import-error
 from six.moves.urllib.parse import urlencode
+
 from six import string_types
+
 import pandas as pd
 from mhcnames.normalization import normalize_allele_name
 
