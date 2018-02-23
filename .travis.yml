@@ -1,9 +1,8 @@
-dist: trusty
 sudo: false  # Use container-based infrastructure
-language: python
+language: minimal
 python:
   - "2.7"
-  - "3.5"
+  - "3.6"
 addons:
   apt:
     packages:
@@ -14,8 +13,8 @@ cache:
   # along with the indexed db of intervals and ID mappings and pickles
   # of sequence dictionaries
   directories:
-    - /home/travis/.cache/pyensembl/
-    - /home/travis/.cache/pip
+    - $HOME/.cache/pyensembl/
+    - $HOME/.cache/pip
 before_install:
   # Commands below copied from: http://conda.pydata.org/docs/travis.html
   # We do this conditionally because it saves us some downloading if the
