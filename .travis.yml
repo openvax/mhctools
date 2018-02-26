@@ -12,13 +12,13 @@ cache:
   # cache pip files, also directory used for Ensembl downloads of GTF and FASTA files
   # along with the indexed db of intervals and ID mappings and pickles
   # of sequence dictionaries
+  pip: true
   directories:
     - $HOME/.cache/pyensembl/
-    - $HOME/.cache/pip
     - $HOME/miniconda
 before_install:
   - |
-    if [ -f  $HOME/miniconda/bin ];
+    if [ -d  $HOME/miniconda/bin ];
       then
       echo "miniconda already installed"
     else
@@ -29,8 +29,8 @@ before_install:
         wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
       fi
       bash miniconda.sh -b -p $HOME/miniconda
-      export PATH="$HOME/miniconda/bin:$PATH"
     fi
+  - export PATH="$HOME/miniconda/bin:$PATH"
   # reset the shell's lookup table for program name to path mappings
   - hash -r
   - conda config --set always_yes yes --set changeps1 no
