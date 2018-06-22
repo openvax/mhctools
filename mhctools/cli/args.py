@@ -43,6 +43,12 @@ from .. import (
     MHCflurry,
 )
 
+# Defining FileNotFoundError for Python 2.x
+try:
+    FileNotFoundError
+except NameError:
+    FileNotFoundError = IOError
+
 
 logger = logging.getLogger(__name__)
 
