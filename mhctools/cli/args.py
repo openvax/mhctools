@@ -31,6 +31,7 @@ from .. import (
     NetMHCpan,
     NetMHCpan28,
     NetMHCpan3,
+    NetMHCpan4,
     NetMHCIIpan,
     NetMHCcons,
     RandomBindingPredictor,
@@ -52,6 +53,7 @@ mhc_predictors = {
     "netmhcpan": NetMHCpan,
     "netmhcpan28": NetMHCpan28,
     "netmhcpan3": NetMHCpan3,
+    "netmhcpan4": NetMHCpan4,
     "netmhciipan": NetMHCIIpan,
     "netmhccons": NetMHCcons,
     "random": RandomBindingPredictor,
@@ -69,6 +71,15 @@ mhc_predictors = {
     # "smm": None,
     # "smm-pmbec": None,
     "mhcflurry": MHCflurry,
+}
+
+# The versioned program names will be tried first, and if they don't exist in the path, we'll
+# fall back to the standard install program names.
+versioned_mhc_predictor_program_names = {
+    "netmhcpan28": ["netMHCpan-2.8", "netMHCpan"],
+    "netmhcpan3": ["netMHCpan-3.0", "netMHCpan"],
+    "netmhcpan4": ["netMHCpan-4.0", "netMHCpan"],
+    "netmhc3": ["netMHC-3.4", "netMHC"],
 }
 
 def add_mhc_args(arg_parser):
@@ -91,11 +102,6 @@ def add_mhc_args(arg_parser):
         "--mhc-peptide-lengths",
         type=parse_int_list,
         help="Lengths of epitopes to consider for MHC binding prediction")
-
-    mhc_options_arg_group.add_argument(
-        "--mhc-epitope-lengths",
-        type=parse_int_list,
-        help="Deprecated name for --mhc-peptide-lengths")
 
     mhc_options_arg_group.add_argument(
         "--mhc-alleles-file",
@@ -139,8 +145,6 @@ def mhc_binding_predictor_from_args(args):
             "Invalid MHC prediction method: %s" % (args.mhc_predictor,))
     alleles = mhc_alleles_from_args(args)
     peptide_lengths = args.mhc_peptide_lengths
-    if not peptide_lengths:
-        peptide_lengths = args.mhc_epitope_lengths
     logger.info(
         ("Building MHC binding prediction %s"
          " for alleles %s"
@@ -153,4 +157,19 @@ def mhc_binding_predictor_from_args(args):
         kwargs["default_peptide_lengths"] = peptide_lengths
     if args.mhc_predictor_models_path:
         kwargs["models_path"] = args.mhc_predictor_models_path
-    return mhc_class(**kwargs)
+
+    # support optionally installed program names here, like netMHCpan-3.0 instead of
+    # netMHCpan - will make it possible to run different versions of the same netMHC suite tools
+    # in the same environment for comparison
+    program_names = versioned_mhc_predictor_program_names.get(args.mhc_predictor)
+    if program_names is None:
+        return mhc_class(**kwargs)
+    
+    for program_name in program_names:
+        try:
+            predictor = mhc_class(program_name=program_name, **kwargs)
+            return predictor
+        except FileNotFoundError:
+            continue
+
+    raise ValueError("Cannot create MHC binding predictor from kwargs %s" % kwargs)
