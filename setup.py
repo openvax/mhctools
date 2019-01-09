@@ -70,7 +70,7 @@ if __name__ == '__main__':
             'pyensembl>=1.0.3',
             'six>=1.9.0',
             'sercol>=0.0.2',
-            'mhcflurry==1.0.0',
+            'mhcflurry==1.2.2',
             'mhcnames>=0.3.2',
         ],
         long_description=readme_restructured,

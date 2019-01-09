@@ -105,9 +105,11 @@ def _parse_iedb_response(response):
     for column in required_columns:
         if column not in df.columns:
             raise ValueError(
-                "Response from IEDB is missing '%s' column: %s" % (
+                "Response from IEDB is missing '%s' column: %s. Full "
+                "response:\n%s" % (
                     column,
-                    df.ix[0],))
+                    df.ix[0],
+                    response))
     # since IEDB has allowed multiple column names for percentile rank,
     # we're defensively normalizing all of them to just 'rank'
     df = df.rename(columns={
@@ -138,13 +140,15 @@ class IedbBasePredictor(BasePredictor):
             default_peptide_lengths,
             prediction_method,
             url,
-            min_peptide_length=8):
+            min_peptide_length=8,
+            include_length_in_request=True):
         BasePredictor.__init__(
             self,
             alleles=alleles,
             default_peptide_lengths=default_peptide_lengths,
             min_peptide_length=min_peptide_length)
         self.prediction_method = prediction_method
+        self.include_length_in_request = include_length_in_request
 
         if not isinstance(url, string_types):
             raise TypeError("Expected URL to be string, not %s : %s" % (
@@ -161,11 +165,13 @@ class IedbBasePredictor(BasePredictor):
     def _get_iedb_request_params(self, sequence, allele):
         params = {
             "method": seq_to_str(self.prediction_method),
-            "length": seq_to_str(self.default_peptide_lengths),
             "sequence_text": sequence,
             # have to repeat allele for each length
             "allele": ",".join([allele] * len(self.default_peptide_lengths)),
         }
+        if self.include_length_in_request:
+            params["length"] = seq_to_str(self.default_peptide_lengths)
+
         return params
 
     def predict_peptides(self, peptides):
@@ -299,4 +305,5 @@ class IedbNetMHCIIpan(IedbBasePredictor):
             default_peptide_lengths=default_peptide_lengths,
             prediction_method="NetMHCIIpan",
             url=IEDB_MHC_CLASS_II_URL,
-            min_peptide_length=9)
+            min_peptide_length=9,
+            include_length_in_request=False)
