@@ -20,12 +20,11 @@ import mhctools
 mhc_classes = [
     mhctools.NetMHCIIpan,
     mhctools.IedbNetMHCIIpan,
-
 ]
 
 def expect_binder(mhc_model, peptide):
     prediction = mhc_model.predict(peptide)[0]
-    assert prediction.value < 1000, "Expected %s to have IC50 < 500nM, got %s" % (
+    assert prediction.value < 2000, "Expected %s to have IC50 < 2000nM, got %s" % (
         peptide, prediction)
 
 def test_Gag233_epitope():
@@ -34,5 +33,5 @@ def test_Gag233_epitope():
     #   Fusion Immunogen Enhances T Cell Epitope Responses in HLA DR4
     #   Transgenic Mice
     for mhc_class in mhc_classes:
-        mhc_model = mhc_class("HLA-DRB1*01:01", default_peptide_lengths=15)
+        mhc_model = mhc_class("DRB1*01:01", default_peptide_lengths=15)
         yield (expect_binder, mhc_model, "GSDIAGTTSTLQEQI")
