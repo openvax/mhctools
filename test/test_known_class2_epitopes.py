@@ -33,5 +33,5 @@ def test_Gag233_epitope():
     #   Fusion Immunogen Enhances T Cell Epitope Responses in HLA DR4
     #   Transgenic Mice
     for mhc_class in mhc_classes:
-        mhc_model = mhc_class("DRB1*01:01", default_peptide_lengths=15)
+        mhc_model = mhc_class("HLA-DRB1*01:01", default_peptide_lengths=15)
         yield (expect_binder, mhc_model, "GSDIAGTTSTLQEQI")
