@@ -1,4 +1,4 @@
-# Copyright (c) 2014-2018. Mount Sinai School of Medicine
+# Copyright (c) 2014-2019. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,14 +27,6 @@ try:
 except:
     logging.warn("Failed to load %s" % readme_filename)
     readme_markdown = ""
-
-try:
-    import pypandoc
-    readme_restructured = pypandoc.convert(readme_markdown, to='rst', format='md')
-except:
-    readme_restructured = readme_markdown
-    logging.warn("Conversion of long_description from MD to RST failed")
-    pass
 
 with open('mhctools/__init__.py', 'r') as f:
     version = re.search(
@@ -70,10 +62,11 @@ if __name__ == '__main__':
             'pyensembl>=1.0.3',
             'six>=1.9.0',
             'sercol>=0.0.2',
-            'mhcflurry==1.2.2',
+            'mhcflurry>=1.2.2,<1.3.0',
             'mhcnames>=0.3.2',
         ],
-        long_description=readme_restructured,
+        long_description=readme_markdown,
+        long_description_content_type="text/markdown",
         packages=['mhctools', 'mhctools.cli'],
         package_data={'mhctools.cli': ['logging.conf']},
         entry_points={
