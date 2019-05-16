@@ -102,8 +102,9 @@ def _parse_iedb_response(response):
         "start",
         "end",
     ]
+    available_columns = set(df.columns)
     for column in required_columns:
-        if column not in df.columns:
+        if column not in available_columns:
             raise ValueError(
                 "Response from IEDB is missing '%s' column: %s. Full "
                 "response:\n%s" % (
