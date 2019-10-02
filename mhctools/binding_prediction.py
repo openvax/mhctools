@@ -23,6 +23,7 @@ class BindingPrediction(object):
             allele,
             affinity,
             percentile_rank,
+            elution_score=None,
             source_sequence_name=None,
             offset=0,
             log_affinity=None,
@@ -41,6 +42,9 @@ class BindingPrediction(object):
 
         percentile_rank : float
             Percentile rank of the binding affinity for that allele
+
+        elution_score : float
+            [NetMHCpan 4.0 only]: mass spec elution score
 
         source_sequence_name : str
             Name of sequence from which peptide was extracted
@@ -81,6 +85,7 @@ class BindingPrediction(object):
         self.peptide = peptide
         self.affinity = affinity
         self.percentile_rank = percentile_rank
+        self.elution_score = elution_score
         self.prediction_method_name = prediction_method_name
 
     def __str__(self):
@@ -90,6 +95,7 @@ class BindingPrediction(object):
             "allele='%s', "
             "affinity=%0.4f, "
             "percentile_rank=%s, "
+            "elution_score=%s, "
             "source_sequence_name=%s, "
             "offset=%d, "
             "prediction_method_name='%s')")
@@ -99,6 +105,9 @@ class BindingPrediction(object):
                 self.affinity,
                 ('%0.4f' % self.percentile_rank
                     if self.percentile_rank
+                    else None),
+                ('%0.4f' % self.elution_score
+                    if self.elution_score is not None
                     else None),
                 ('%s' % self.source_sequence_name
                     if self.source_sequence_name
@@ -132,6 +141,7 @@ class BindingPrediction(object):
         "allele",
         "affinity",
         "percentile_rank",
+        "elution_score",
         "prediction_method_name"
     )
 
@@ -143,6 +153,7 @@ class BindingPrediction(object):
             self.allele,
             self.affinity,
             self.percentile_rank,
+            self.elution_score,
             self.prediction_method_name)
 
     def to_dict(self):

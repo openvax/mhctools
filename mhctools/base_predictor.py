@@ -139,8 +139,12 @@ class BasePredictor(object):
             missing = expected.difference(observed)
             example_allele, example_peptide = list(missing)[0]
             raise ValueError(
-                "Missing %d binding predictions, example peptide='%s' allele='%s'" % (
-                    len(missing), example_peptide, example_allele))
+                "Missing %d predictions, example peptide='%s' allele='%s'. "
+                "Result set had %d predictions." % (
+                    len(missing),
+                    example_peptide,
+                    example_allele,
+                    len(binding_predictions)))
         elif len(observed.intersection(expected)) < len(observed):
             extra = observed.difference(expected)
             example_allele, example_peptide = list(extra)[0]
