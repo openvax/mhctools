@@ -136,7 +136,9 @@ def parse_stdout(
         allele = str(fields[allele_index])
         ic50 = float(fields[ic50_index])
         elution_score = (
-            float(fields[elution_score_index]) if elution_score_index else 0.0)
+            float(fields[elution_score_index])
+            if elution_score_index is not None
+            else None)
         rank = float(fields[rank_index]) if rank_index else 0.0
         log_ic50 = float(fields[log_ic50_index])
 
