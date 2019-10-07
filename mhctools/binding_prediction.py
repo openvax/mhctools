@@ -171,7 +171,7 @@ class BindingPrediction(object):
         return self.value < other.value
 
 def invalid_affinity(x):
-    return x < 0 or np.isnan(x) or np.isinf(x)
+    return x is None or x < 0 or np.isnan(x) or np.isinf(x)
 
 def invalid_percentile_rank(x):
     # for now, we accept a null percentile rank - not all predictors generate a value

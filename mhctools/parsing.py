@@ -134,7 +134,7 @@ def parse_stdout(
         offset = int(fields[offset_index])
         peptide = str(fields[peptide_index])
         allele = str(fields[allele_index])
-        ic50 = float(fields[ic50_index])
+        ic50 = float(fields[ic50_index]) if ic50_index is not None else None
         elution_score = (
             float(fields[elution_score_index])
             if elution_score_index is not None
@@ -301,7 +301,8 @@ def parse_netmhcpan3_stdout(
 def parse_netmhcpan4_stdout(
         stdout,
         prediction_method_name="netmhcpan",
-        sequence_key_mapping=None):
+        sequence_key_mapping=None,
+        mode="binding_affinity"):
     """
     # NetMHCpan version 4.0
 
@@ -336,9 +337,9 @@ def parse_netmhcpan4_stdout(
         offset_index=0,
         peptide_index=2,
         allele_index=1,
-        elution_score_index=11,
-        ic50_index=12,
-        rank_index=13,
+        elution_score_index=11 if mode == "elution_score" else None,
+        ic50_index=None if mode == "elution_score" else 12,
+        rank_index=12 if mode == "elution_score" else 13,
         log_ic50_index=11,
         transforms=transforms)
 
