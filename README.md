@@ -2,10 +2,11 @@
 <a href="https://pypi.python.org/pypi/mhctools/">
     <img src="https://img.shields.io/pypi/v/mhctools.svg?maxAge=1000" alt="PyPI" />
 </a>
+<!-- 
 <a href='https://mhctools.readthedocs.io/en/latest/?badge=latest'>
     <img src='https://readthedocs.org/projects/mhctools/badge/?version=latest' alt='Documentation Status' />
 </a>
-      
+--> 
 <!-- 
 [![DOI](https://zenodo.org/badge/18834/openvax/mhctools.svg)](https://zenodo.org/badge/latestdoi/18834/openvax/mhctools)
 -->
