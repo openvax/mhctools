@@ -94,8 +94,8 @@ class BasePredictor(object):
         """
         Given a list of peptide sequences, returns a BindingPredictionCollection
         """
-        raise NotImplementedError("%s must implement predict_peptides" % (
-            self.__class__.__name__))
+        raise NotImplementedError(
+            "%s must implement predict_peptides" % (self.__class__.__name__,))
 
     def predict_peptides_dataframe(self, peptides):
         return self.predict_peptides(peptides).to_dataframe()
@@ -226,7 +226,7 @@ class BasePredictor(object):
         return BindingPredictionCollection(results)
 
     def predict(self, sequence_dict, peptide_lengths=None):
-        logger.warn("Deprecated method 'predict', use 'predict_subsequences")
+        logger.warning("Deprecated method 'predict', use 'predict_subsequences")
         return self.predict_subsequences(sequence_dict, peptide_lengths=None)
 
     def predict_subsequences_dataframe(
