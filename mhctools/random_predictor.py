@@ -34,6 +34,7 @@ class RandomBindingPredictor(BasePredictor):
             BindingPrediction(
                 allele=allele,
                 peptide=p,
+                score=random.random(),
                 affinity=random.random() * 10000.0,
                 percentile_rank=random.randint(0, 99),
                 prediction_method_name="random")

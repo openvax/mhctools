@@ -214,8 +214,8 @@ class BasePredictor(object):
         # create BindingPrediction objects with sequence name and offset
         results = []
         for binding_prediction in binding_predictions:
-            for name, offset in peptide_to_name_offset_pairs[
-                    binding_prediction.peptide]:
+            peptide = binding_prediction.peptide
+            for name, offset in peptide_to_name_offset_pairs[peptide]:
                 results.append(binding_prediction.clone_with_updates(
                     source_sequence_name=name,
                     offset=offset))

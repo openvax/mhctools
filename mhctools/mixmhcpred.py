@@ -15,8 +15,15 @@
 from __future__ import print_function, division, absolute_import
 
 import pandas as pd
+from tempfile import mkdtemp
+from os.path import join
+
+from mhcnames import normalize_allele_name
 
 from .base_predictor import BasePredictor
+from .binding_prediction import BindingPrediction
+from .process_helpers import run_command
+from .cleanup_context import CleanupFiles
 
 class MixMHCpred(BasePredictor):
     def __init__(
@@ -55,7 +62,6 @@ class MixMHCpred(BasePredictor):
         else:
             self.extra_commandline_args = []
 
-
     def predict_peptides(self, peptides):
         """
 
@@ -68,11 +74,27 @@ class MixMHCpred(BasePredictor):
         -------
         list of BindingPrediction
         """
-        # create input file
-        # create output file
-        # run MixMHCpred
-        # delete files
-        results = parse_mixmhcpred_results(output_filename)
+        results = []
+        for allele in self.alleles:
+
+            temp_dir = mkdtemp(prefix="mhctools", suffix="mixmhcpred")
+            input_file_path = join(temp_dir, "mixmhcpred_inputs.txt")
+            output_file_path = join(temp_dir, "mixmhcpred_outputs.txt")
+
+            with open(input_file_path, "w") as f:
+                for i, p in enumerate(peptides):
+                    f.write(p)
+                    if i < len(peptides) - 1:
+                        f.write("\n")
+            with CleanupFiles(
+                    filenames=[input_file_path, output_file_path],
+                    directories=[temp_dir]):
+                run_command([
+                    self.program_name,
+                    "-i", input_file_path,
+                    "-o", output_file_path,
+                    "-a", normalize_allele_name(allele)] + self.extra_commandline_args)
+                results.extend(parse_mixmhcpred_results(output_file_path))
         return results
 
 def parse_mixmhcpred_results(filename):
@@ -92,15 +114,15 @@ def parse_mixmhcpred_results(filename):
     """
     df = pd.read_csv(filename, comment="#", sep="\t")
     binding_predictions = []
-    for _, row in df.iterrows():
+    for peptide, allele, score, pr in zip(
+            df["Peptide"],
+            df["BestAllele"],
+            df["Score_bestAllele"],
+            df["%Rank_bestAllele"]):
         binding_predictions.append(BindingPrediction(
-            source_sequence_name=original_key,
-            offset=offset,
             peptide=peptide,
             allele=normalize_allele_name(allele),
-            affinity=ic50,
-            elution_score=elution_score,
-            percentile_rank=rank,
-            log_affinity=log_ic50,
-            prediction_method_name=prediction_method_name))
+            score=score,
+            percentile_rank=pr,
+            prediction_method_name="mixmhcpred"))
     return binding_predictions
