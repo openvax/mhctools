@@ -7,6 +7,7 @@ from .iedb import (
     IedbSMM_PMBEC,
     IedbNetMHCIIpan,
 )
+from .mixmhcpred import MixMHCpred
 from .mhcflurry import MHCflurry
 from .netchop import NetChop
 from .netmhc import NetMHC
@@ -31,6 +32,7 @@ __all__ = [
     "IedbSMM",
     "IedbSMM_PMBEC",
     "IedbNetMHCIIpan",
+    "MixMHCpred",
     "MHCflurry",
     "NetChop",
     "NetMHC",

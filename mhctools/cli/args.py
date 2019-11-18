@@ -41,6 +41,7 @@ from .. import (
     IedbSMM_PMBEC,
     IedbNetMHCIIpan,
     MHCflurry,
+    MixMHCpred,
 )
 
 
@@ -71,6 +72,7 @@ mhc_predictors = {
     # "smm": None,
     # "smm-pmbec": None,
     "mhcflurry": MHCflurry,
+    "mixmhcpred": MixMHCpred,
 }
 
 def add_mhc_args(arg_parser):
