@@ -17,7 +17,7 @@ from .netmhc_cons import NetMHCcons
 from .netmhc_pan import NetMHCpan
 from .netmhc_pan28 import NetMHCpan28
 from .netmhc_pan3 import NetMHCpan3
-from .netmhc_pan4 import NetMHCpan4
+from .netmhc_pan4 import NetMHCpan4, NetMHCpan4_BA, NetMHCpan4_EL
 from .netmhcii_pan import NetMHCIIpan
 from .random_predictor import RandomBindingPredictor
 from .unsupported_allele import UnsupportedAllele
@@ -43,6 +43,8 @@ __all__ = [
     "NetMHCpan28",
     "NetMHCpan3",
     "NetMHCpan4",
+    "NetMHCpan4_BA",
+    "NetMHCpan4_EL",
     "NetMHCIIpan",
     "RandomBindingPredictor",
     "UnsupportedAllele",

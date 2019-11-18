@@ -22,6 +22,7 @@ from mhcnames import normalize_allele_name
 
 from .base_predictor import BasePredictor
 from .binding_prediction import BindingPrediction
+from .binding_prediction_collection import BindingPredictionCollection
 from .process_helpers import run_command
 from .cleanup_context import CleanupFiles
 
@@ -95,7 +96,7 @@ class MixMHCpred(BasePredictor):
                     "-o", output_file_path,
                     "-a", normalize_allele_name(allele)] + self.extra_commandline_args)
                 results.extend(parse_mixmhcpred_results(output_file_path))
-        return results
+        return BindingPredictionCollection(results)
 
 def parse_mixmhcpred_results(filename):
     """
