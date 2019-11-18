@@ -1,4 +1,4 @@
-# Copyright (c) 2014-2017. Mount Sinai School of Medicine
+# Copyright (c) 2014-2019. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,9 +14,12 @@
 
 from __future__ import print_function, division, absolute_import
 
+import numpy as np
+
 from mhcnames import normalize_allele_name
 
 from .binding_prediction import BindingPrediction
+
 
 NETMHC_TOKENS = {
     "pos",
@@ -97,6 +100,24 @@ def clean_fields(fields, ignored_value_indices, transforms):
         cleaned_fields.append(cleaned_field)
     return cleaned_fields
 
+def valid_affinity(x):
+    """
+    Check that an IC50 affinity value is valid.
+
+    Parameters
+    ----------
+    x : float
+
+    Returns
+    -------
+    bool
+    """
+    if x is None:
+        return False
+    if np.isnan(x) or np.isinf(x):
+        return False
+    return x >= 0
+
 def parse_stdout(
         stdout,
         prediction_method_name,
@@ -105,20 +126,44 @@ def parse_stdout(
         offset_index,
         peptide_index,
         allele_index,
-        ic50_index,
-        rank_index,
-        log_ic50_index,
+        score_index,
+        rank_index=None,
+        ic50_index=None,
+
         ignored_value_indices={},
-        transforms={},
-        elution_score_index=None):
+        transforms={}):
     """
     Generic function for parsing any NetMHC* output, given expected indices
     of values of interest.
 
     Parameters
     ----------
+    stdout : str
+
+    prediction_method_name : str
+
+    key_index : int
+
+    offset_index : int
+
+    peptide_index : int
+
+    allele_index : int
+
+    score_index : int
+
+    rank_index : int
+
+    ic50_index : int
+
+    sequence_key_mapping : dict
+        Dictionary mapping sequence names (which might be hashes or truncated)
+        to the sequence names which should be used in the parsed
+        BindingPrediction objects
+
     ignored_value_indices : dict
-        Map from values to the positions we'll ignore them at. See clean_fields.
+        Map from values to the positions we'll ignore them at.
+        See clean_fields.
 
     transforms  : dict
         Map from field index to a transform function to be applied to values in
@@ -134,13 +179,21 @@ def parse_stdout(
         offset = int(fields[offset_index])
         peptide = str(fields[peptide_index])
         allele = str(fields[allele_index])
-        ic50 = float(fields[ic50_index]) if ic50_index is not None else None
-        elution_score = (
-            float(fields[elution_score_index])
-            if elution_score_index is not None
-            else None)
-        rank = float(fields[rank_index]) if rank_index else 0.0
-        log_ic50 = float(fields[log_ic50_index])
+
+        if score_index is None:
+            score = None
+        else:
+            score = float(fields[score_index])
+
+        if rank_index is None:
+            rank = None
+        else:
+            rank = float(fields[rank_index])
+
+        if ic50_index is None:
+            ic50 = None
+        else:
+            ic50 = float(fields[ic50_index])
 
         key = str(fields[key_index])
         if sequence_key_mapping:
@@ -150,15 +203,20 @@ def parse_stdout(
             # identity function
             original_key = key
 
+        # if we have a bad IC50 score we might still get a salvageable
+        # log of the score. Strangely, this is necessary sometimes!
+        if ic50_index is not None and (not valid_affinity(ic50)) and np.isfinite(score):
+            # pylint: disable=invalid-unary-operand-type
+            ic50 = 50000 ** (1 - score)
+
         binding_predictions.append(BindingPrediction(
             source_sequence_name=original_key,
             offset=offset,
             peptide=peptide,
             allele=normalize_allele_name(allele),
+            score=score,
             affinity=ic50,
-            elution_score=elution_score,
             percentile_rank=rank,
-            log_affinity=log_ic50,
             prediction_method_name=prediction_method_name))
     return binding_predictions
 
@@ -188,9 +246,9 @@ def parse_netmhc3_stdout(
         offset_index=0,
         peptide_index=1,
         allele_index=5,
+        score_index=2,
         ic50_index=3,
         rank_index=None,
-        log_ic50_index=2,
         ignored_value_indices={"WB": 4, "SB": 4})
 
 def parse_netmhc4_stdout(
@@ -225,7 +283,7 @@ def parse_netmhc4_stdout(
         allele_index=1,
         ic50_index=12,
         rank_index=13,
-        log_ic50_index=11)
+        score_index=11)
 
 def parse_netmhcpan28_stdout(
         stdout,
@@ -263,7 +321,7 @@ def parse_netmhcpan28_stdout(
         allele_index=1,
         ic50_index=5,
         rank_index=6,
-        log_ic50_index=4)
+        score_index=4)
 
 def parse_netmhcpan3_stdout(
         stdout,
@@ -294,7 +352,7 @@ def parse_netmhcpan3_stdout(
         allele_index=1,
         ic50_index=12,
         rank_index=13,
-        log_ic50_index=11,
+        score_index=11,
         transforms=transforms)
 
 
@@ -337,10 +395,9 @@ def parse_netmhcpan4_stdout(
         offset_index=0,
         peptide_index=2,
         allele_index=1,
-        elution_score_index=11 if mode == "elution_score" else None,
+        score_index=11,
         ic50_index=None if mode == "elution_score" else 12,
         rank_index=12 if mode == "elution_score" else 13,
-        log_ic50_index=11,
         transforms=transforms)
 
 
@@ -379,7 +436,7 @@ def parse_netmhccons_stdout(
         allele_index=1,
         ic50_index=5,
         rank_index=6,
-        log_ic50_index=4)
+        score_index=4)
 
 def parse_netmhciipan_stdout(
         stdout,
@@ -419,4 +476,4 @@ def parse_netmhciipan_stdout(
         allele_index=1,
         ic50_index=8,
         rank_index=9,
-        log_ic50_index=7)
+        score_index=7)

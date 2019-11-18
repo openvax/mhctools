@@ -1,4 +1,4 @@
-# Copyright (c) 2016-2017. Mount Sinai School of Medicine
+# Copyright (c) 2016-2019. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -56,3 +56,43 @@ class NetMHCpan4(BaseCommandlinePredictor):
             process_limit=process_limit)
 
         self.mode = mode
+
+class NetMHCpan4_EL(NetMHCpan4):
+    """
+    Wrapper for NetMHCpan4 when the preferred mode is elution score
+    """
+    def __init__(
+            self,
+            alleles,
+            default_peptide_lengths=[9],
+            program_name="netMHCpan",
+            process_limit=-1,
+            extra_flags=[]):
+        NetMHCpan4.__init__(
+            self,
+            alleles=alleles,
+            default_peptide_lengths=default_peptide_lengths,
+            program_name=program_name,
+            process_limit=process_limit,
+            mode="elution_score",
+            extra_flags=extra_flags)
+
+class NetMHCpan4_BA(NetMHCpan4):
+    """
+    Wrapper for NetMHCpan4 when the preferred mode is binding affinity
+    """
+    def __init__(
+            self,
+            alleles,
+            default_peptide_lengths=[9],
+            program_name="netMHCpan",
+            process_limit=-1,
+            extra_flags=[]):
+        NetMHCpan4.__init__(
+            self,
+            alleles=alleles,
+            default_peptide_lengths=default_peptide_lengths,
+            program_name=program_name,
+            process_limit=process_limit,
+            mode="binding_affinity",
+            extra_flags=extra_flags)

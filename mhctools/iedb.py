@@ -1,4 +1,4 @@
-# Copyright (c) 2014-2017. Mount Sinai School of Medicine
+# Copyright (c) 2014-2019. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ from six.moves.urllib.parse import urlencode
 from six import string_types
 
 import pandas as pd
+import numpy as np
 from mhcnames.normalization import normalize_allele_name
 
 from .base_predictor import BasePredictor
@@ -305,6 +306,6 @@ class IedbNetMHCIIpan(IedbBasePredictor):
             # only epitope lengths of 15 currently supported by IEDB's web API
             default_peptide_lengths=default_peptide_lengths,
             prediction_method="NetMHCIIpan",
-            url=IEDB_MHC_CLASS_II_URL,
+            url=url,
             min_peptide_length=9,
             include_length_in_request=False)

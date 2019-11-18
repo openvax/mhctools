@@ -41,6 +41,10 @@ class MHCflurry(BasePredictor):
         """
         Parameters
         -----------
+        alleles : list of str
+
+        default_peptide_lengths : list of int
+
         predictor : mhcflurry.Class1AffinityPredictor (optional)
             MHCflurry predictor to use
 
@@ -94,7 +98,6 @@ class MHCflurry(BasePredictor):
                     percentile_rank=(
                         row.prediction_percentile
                         if 'prediction_percentile' in row else nan),
-                    prediction_method_name="mhcflurry"
-                )
+                    prediction_method_name="mhcflurry")
                 binding_predictions.append(binding_prediction)
         return BindingPredictionCollection(binding_predictions)

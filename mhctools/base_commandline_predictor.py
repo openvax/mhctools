@@ -282,7 +282,7 @@ class BaseCommandlinePredictor(BasePredictor):
                             prediction_method_name=self.program_name))
 
         if len(binding_predictions) == 0:
-            logger.warn("No binding predictions from %s" % self.program_name)
+            logger.warning("No binding predictions from %s" % self.program_name)
         return BindingPredictionCollection(binding_predictions)
 
     def predict_peptides(self, peptides):

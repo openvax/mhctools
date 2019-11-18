@@ -1,4 +1,4 @@
-# Copyright (c) 2014-2017. Mount Sinai School of Medicine
+# Copyright (c) 2014-2019. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,12 +14,7 @@
 
 from __future__ import print_function, division, absolute_import
 
-# Python3 doesn't have a unicode classes
-try:
-    # pylint: disable=undefined-variable
-    string_classes = (unicode, str)
-except NameError:
-    string_classes = (str,)
+from six import string_types
 
 def seq_to_str(obj, sep=","):
     """
@@ -27,7 +22,7 @@ def seq_to_str(obj, sep=","):
     If, however, the argument is a single object, return its string
     representation.
     """
-    if isinstance(obj, string_classes):
+    if isinstance(obj, string_types):
         return obj
     elif isinstance(obj, (list, tuple)):
         return sep.join([str(x) for x in obj])

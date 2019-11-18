@@ -1,4 +1,4 @@
-# Copyright (c) 2014-2017. Mount Sinai School of Medicine
+# Copyright (c) 2014-2019. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,18 +15,18 @@
 from __future__ import print_function, division, absolute_import
 
 import numpy as np
+from serializable import Serializable
 
-class BindingPrediction(object):
+class BindingPrediction(Serializable):
     def __init__(
             self,
             peptide,
             allele,
-            affinity,
-            percentile_rank,
-            elution_score=None,
+            score=None,
+            percentile_rank=None,
+            affinity=None,
             source_sequence_name=None,
             offset=0,
-            log_affinity=None,
             prediction_method_name=""):
         """
         Parameters
@@ -37,14 +37,17 @@ class BindingPrediction(object):
         allele : str
             HLA allele, e.g. HLA-A*02:01
 
-        affinity : float
-            Predicted binding affinity
+        score : float
+            Continuous prediction of peptide-MHC binding where larger values
+            indicate either higher affinity or higher probability. For affinity
+            predictors this can be 1-log(IC50)/log(max_IC50) For mass spec
+            predictors this can be the probability of detection.
 
         percentile_rank : float
-            Percentile rank of the binding affinity for that allele
+            Percentile rank of the score
 
-        elution_score : float
-            [NetMHCpan 4.0 only]: mass spec elution score
+        affinity : float
+            Predicted binding affinity IC50
 
         source_sequence_name : str
             Name of sequence from which peptide was extracted
@@ -53,39 +56,21 @@ class BindingPrediction(object):
             Base0 starting position in source sequence that all epitopes were
             extracted from
 
-        log_affinity : float, optional
-            NetMHC sometimes gives invalid IC50 values but we can still
-            reconstruct the value from its (1.0 - log_50000(IC50)) score.
-
         prediction_method_name : str, optional
             Name of predictor used to generate this prediction.
         """
-        # if we have a bad IC50 score we might still get a salvageable
-        # log of the score. Strangely, this is necessary sometimes!
-        if invalid_affinity(affinity) and np.isfinite(log_affinity):
-            # pylint: disable=invalid-unary-operand-type
-            affinity = 50000 ** (-log_affinity + 1)
-
-        # if IC50 is still NaN or otherwise invalid, abort
-        if invalid_affinity(affinity):
-            raise ValueError(
-                "Invalid IC50 value %0.4f for %s w/ allele %s" % (
-                    affinity,
-                    peptide,
-                    allele))
-
-        if invalid_percentile_rank(percentile_rank):
-            raise ValueError(
-                "Invalid percentile rank %s for %s w/ allele %s" % (
-                    percentile_rank, peptide, allele))
-
         self.source_sequence_name = source_sequence_name
         self.offset = offset
         self.allele = allele
         self.peptide = peptide
-        self.affinity = affinity
+
+        if score is None and affinity is not None:
+            # make an ascending score by taking 1-log_50k (IC50)
+            score = 1.0 - (np.log(affinity) / np.log(50000))
+
+        self.score = score
         self.percentile_rank = percentile_rank
-        self.elution_score = elution_score
+        self.affinity = affinity
         self.prediction_method_name = prediction_method_name
 
     def __str__(self):
@@ -93,25 +78,19 @@ class BindingPrediction(object):
             "BindingPrediction("
             "peptide='%s', "
             "allele='%s', "
-            "affinity=%0.4f, "
+            "score=%s, "
             "percentile_rank=%s, "
-            "elution_score=%s, "
+            "affinity=%s, "
             "source_sequence_name=%s, "
             "offset=%d, "
             "prediction_method_name='%s')")
         return format_string % (
                 self.peptide,
                 self.allele,
-                self.affinity,
-                ('%0.4f' % self.percentile_rank
-                    if self.percentile_rank
-                    else None),
-                ('%0.4f' % self.elution_score
-                    if self.elution_score is not None
-                    else None),
-                ('%s' % self.source_sequence_name
-                    if self.source_sequence_name
-                    else None),
+                ("None" if self.score is None else '%0.3f' % self.score),
+                ("None" if self.percentile_rank is None else '%0.3f' % self.percentile_rank),
+                ("None" if self.affinity is None else '%0.3f' % self.affinity),
+                ("None" if self.source_sequence_name is None else "'%s'" % self.source_sequence_name),
                 self.offset,
                 self.prediction_method_name)
 
@@ -134,14 +113,27 @@ class BindingPrediction(object):
         """Alias for affinity preserved for backwards compatibility"""
         return self.affinity
 
+    @property
+    def elution_score(self):
+        """
+        Deprecated alias of `score` from when we only considered
+        predictors of peptide-MHC binding affinity.
+
+        Returns
+        -------
+        float
+        """
+        return self.score
+
+
     fields = (
         "source_sequence_name",
         "offset",
         "peptide",
         "allele",
+        "score",
         "affinity",
         "percentile_rank",
-        "elution_score",
         "prediction_method_name"
     )
 
@@ -151,9 +143,9 @@ class BindingPrediction(object):
             self.offset,
             self.peptide,
             self.allele,
+            self.score,
             self.affinity,
             self.percentile_rank,
-            self.elution_score,
             self.prediction_method_name)
 
     def to_dict(self):
@@ -170,11 +162,3 @@ class BindingPrediction(object):
     def __lt__(self, other):
         return self.value < other.value
 
-def invalid_affinity(x):
-    return x is None or x < 0 or np.isnan(x) or np.isinf(x)
-
-def invalid_percentile_rank(x):
-    # for now, we accept a null percentile rank - not all predictors generate a value
-    if x is None:
-        return False
-    return x < 0 or x > 100
