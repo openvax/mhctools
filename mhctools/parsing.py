@@ -19,7 +19,8 @@ import numpy as np
 from mhcnames import normalize_allele_name
 
 from .binding_prediction import BindingPrediction
-from .parsing_helpers import valid_affinity, valid_percentile_rank
+
+
 NETMHC_TOKENS = {
     "pos",
     "Pos",
@@ -98,6 +99,24 @@ def clean_fields(fields, ignored_value_indices, transforms):
         cleaned_field = transforms[i](field) if i in transforms else field
         cleaned_fields.append(cleaned_field)
     return cleaned_fields
+
+def valid_affinity(x):
+    """
+    Check that an IC50 affinity value is valid.
+
+    Parameters
+    ----------
+    x : float
+
+    Returns
+    -------
+    bool
+    """
+    if x is None:
+        return False
+    if np.isnan(x) or np.isinf(x):
+        return False
+    return x >= 0
 
 def parse_stdout(
         stdout,
