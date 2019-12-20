@@ -15,8 +15,9 @@
 from __future__ import print_function, division, absolute_import
 
 import pandas as pd
-from tempfile import mkdtemp
-from os.path import join
+from tempfile import mkdtemp, NamedTemporaryFile
+from os.path import join, exists
+from os import remove
 
 from mhcnames import normalize_allele_name
 
@@ -75,6 +76,7 @@ class MixMHCpred(BasePredictor):
         -------
         list of BindingPrediction
         """
+        self._check_peptide_inputs(peptides)
         results = []
         for allele in self.alleles:
 
@@ -90,12 +92,23 @@ class MixMHCpred(BasePredictor):
             with CleanupFiles(
                     filenames=[input_file_path, output_file_path],
                     directories=[temp_dir]):
-                run_command([
-                    self.program_name,
-                    "-i", input_file_path,
-                    "-o", output_file_path,
-                    "-a", normalize_allele_name(allele)] + self.extra_commandline_args)
-                results.extend(parse_mixmhcpred_results(output_file_path))
+                with NamedTemporaryFile(prefix="MixMHCpred_stdout", mode="w", delete=False) as stdout_file:
+                    stdout_file_name = stdout_file.name
+                    run_command([
+                        self.program_name,
+                        "-i", input_file_path,
+                        "-o", output_file_path,
+                        "-a", normalize_allele_name(allele)] + self.extra_commandline_args,
+                        suppress_stderr=False,
+                        redirect_stdout_file=stdout_file)
+                if exists(output_file_path):
+                    results.extend(parse_mixmhcpred_results(output_file_path))
+                else:
+                    with open(stdout_file_name, "r") as f:
+                        stdout = f.read().strip()
+                    raise ValueError(
+                        "MixMHCpred failed on allele '%s' with stdout '%s'" % (allele, stdout))
+                remove(stdout_file_name)
         return BindingPredictionCollection(results)
 
 def parse_mixmhcpred_results(filename):
