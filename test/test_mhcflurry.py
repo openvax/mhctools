@@ -1,4 +1,6 @@
-from nose.tools import eq_
+import sys
+
+from nose.tools import eq_, nottest
 from numpy import testing
 
 from mhcflurry import Class1AffinityPredictor
@@ -11,6 +13,15 @@ protein_sequence_dict = {
     "TP53-001": "ASILLLVFYW"
 }
 
+
+def skip_if_py2(function):
+    if sys.version_info[0] < 3:
+        print("MHCflurry requires python 3. Skipping test.")
+        return nottest(function)
+    return function
+
+
+@skip_if_py2
 def test_mhcflurry():
     predictor = MHCflurry(alleles=[DEFAULT_ALLELE])
     binding_predictions = predictor.predict_subsequences(
