@@ -35,6 +35,7 @@ from .. import (
     NetMHCpan4_EL,
     NetMHCpan4_BA,
     NetMHCIIpan,
+    NetMHCIIpan4,
     NetMHCcons,
     RandomBindingPredictor,
     IedbNetMHCpan,
@@ -60,6 +61,7 @@ mhc_predictors = {
     "netmhcpan28": NetMHCpan28,
     "netmhcpan3": NetMHCpan3,
     "netmhciipan": NetMHCIIpan,
+    "netmhciipan4": NetMHCIIpan4,
     "netmhccons": NetMHCcons,
     "random": RandomBindingPredictor,
     # use NetMHCpan via IEDB's web API
