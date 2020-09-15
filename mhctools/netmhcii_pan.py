@@ -19,23 +19,26 @@ import logging
 from mhcnames import parse_classi_or_classii_allele_name
 
 from .base_commandline_predictor import BaseCommandlinePredictor
-from .parsing import parse_netmhciipan_stdout
+from .parsing import parse_netmhciipan_stdout, parse_netmhciipan4_stdout
 
 logger = logging.getLogger(__name__)
 
-class NetMHCIIpan(BaseCommandlinePredictor):
+
+class NetMHCIIpanBase(BaseCommandlinePredictor):
     def __init__(
             self,
             alleles,
+            parse_output_fn,
             default_peptide_lengths=[15, 16, 17, 18, 19, 20],
             program_name="netMHCIIpan",
-            process_limit=-1):
+            process_limit=-1,
+            extra_flags=[]):
         BaseCommandlinePredictor.__init__(
             self,
             program_name=program_name,
             alleles=alleles,
             default_peptide_lengths=default_peptide_lengths,
-            parse_output_fn=parse_netmhciipan_stdout,
+            parse_output_fn=parse_output_fn,
             supported_alleles_flag="-list",
             input_file_flag="-f",
             allele_flag="-a",
@@ -43,6 +46,7 @@ class NetMHCIIpan(BaseCommandlinePredictor):
             length_flag="-length",
             tempdir_flag="-tdir",
             process_limit=process_limit,
+            extra_flags=extra_flags,
             min_peptide_length=9)
 
     def _prepare_drb_allele_name(self, parsed_beta_allele):
@@ -91,3 +95,41 @@ class NetMHCIIpan(BaseCommandlinePredictor):
                 beta.gene,
                 beta.allele_family,
                 beta.allele_code)
+
+
+# TODO: rename this class to NetMHCIIpan3, turn this into a wrapper that figures out which version
+# of NetMHCIIpan is installed and use the appropriate wrapper
+class NetMHCIIpan(NetMHCIIpanBase):
+    def __init__(
+            self,
+            alleles,
+            process_limit=-1,
+            program_name="netMHCIIpan"):
+        NetMHCIIpanBase.__init__(
+            self,
+            program_name=program_name,
+            alleles=alleles,
+            process_limit=process_limit,
+            parse_output_fn=parse_netmhciipan_stdout)
+
+
+class NetMHCIIpan4(NetMHCIIpanBase):
+    def __init__(
+            self,
+            alleles,
+            process_limit=-1,
+            program_name="netMHCIIpan-4.0",  # TODO: change this to netMHCIIpan
+            extra_flags=[]):
+        """
+        Wrapper for NetMHCIIpan 4.0, using a different parser.
+        """
+
+        # Default to including binding affinity data (-BA flag), though the score and %rank will
+        # still be EL-based
+        NetMHCIIpanBase.__init__(
+            self,
+            program_name=program_name,
+            alleles=alleles,
+            process_limit=process_limit,
+            parse_output_fn=parse_netmhciipan4_stdout,
+            extra_flags=['-BA'] + extra_flags)

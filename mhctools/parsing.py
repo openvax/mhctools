@@ -477,3 +477,45 @@ def parse_netmhciipan_stdout(
         ic50_index=8,
         rank_index=9,
         score_index=7)
+
+def parse_netmhciipan4_stdout(
+        stdout,
+        prediction_method_name="netmhciipan",
+        sequence_key_mapping=None):
+    """
+    # Threshold for Strong binding peptides (%Rank) 2%
+    # Threshold for Weak binding peptides (%Rank)   10%
+
+    # Allele: DRB1_0101
+    --------------------------------------------------------------------------------------------------------------------------------------------
+     Pos           MHC              Peptide   Of        Core  Core_Rel        Identity      Score_EL %Rank_EL Exp_Bind      Score_BA  Affinity(nM) %Rank_BA  BindLevel
+    --------------------------------------------------------------------------------------------------------------------------------------------
+       1     DRB1_0101      PAPAPSWPLSSSVPS    4   PSWPLSSSV     0.327            test      0.000857    79.79       NA      0.327674       1442.91    54.35       
+       2     DRB1_0101      APAPSWPLSSSVPSQ    3   PSWPLSSSV     0.333            test      0.001268    71.87       NA      0.346949       1171.30    50.15       
+       3     DRB1_0101      PAPSWPLSSSVPSQK    4   WPLSSSVPS     0.713            test      0.002836    54.45       NA      0.412004        579.40    36.66       
+       4     DRB1_0101      APSWPLSSSVPSQKT    3   WPLSSSVPS     0.773            test      0.003677    49.14       NA      0.448939        388.53    29.75       
+       5     DRB1_0101      PSWPLSSSVPSQKTY    2   WPLSSSVPS     0.407            test      0.001602    66.79       NA      0.470979        306.09    25.98       
+       6     DRB1_0101      SWPLSSSVPSQKTYQ    3   LSSSVPSQK     0.633            test      0.001671    65.82       NA      0.476222        289.21    25.07       
+       7     DRB1_0101      WPLSSSVPSQKTYQG    3   SSSVPSQKT     0.553            test      0.001697    65.45       NA      0.447217        395.83    30.05    
+
+
+    """
+    check_stdout_error(stdout, "NetMHCIIpan")
+
+    # the offset specified in "pos" (at index 0) is 1-based instead of 0-based. we adjust it to be
+    # 0-based, as in all the other netmhc predictors supported by this library.
+    transforms = {
+        0: lambda x: int(x) - 1,
+    }
+    return parse_stdout(
+        stdout=stdout,
+        prediction_method_name=prediction_method_name,
+        sequence_key_mapping=sequence_key_mapping,
+        key_index=6,
+        offset_index=0,
+        peptide_index=2,
+        allele_index=1,
+        ic50_index=11,
+        rank_index=8,
+        score_index=7,
+        transforms=transforms)
