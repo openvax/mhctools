@@ -24,14 +24,18 @@ mhc_classes = [
 
 def expect_binder(mhc_model, peptide):
     prediction = mhc_model.predict(peptide)[0]
-    assert prediction.value < 2000, "Expected %s to have IC50 < 2000nM, got %s" % (
-        peptide, prediction)
+    if prediction.value:
+        assert prediction.value < 500, "Expected %s to have IC50 < 500nM, got %s" % (
+            peptide, prediction)
+    else:
+        assert prediction.percentile_rank < 5, "Expected %s to have %rank < 3, got %s" % (
+            peptide, prediction)
 
-def test_Gag233_epitope():
-    # Test the DRB1*01:01 HIV epitope GSDIAGTTSTLQEQI from
+def test_Gag_epitope():
+    # Test the DRB1*04:01 HIV epitope LERFAVNPGLLETSE from
     #   Dendritic Cell Mediated Delivery of Plasmid DNA Encoding LAMP/HIV-1 Gag
     #   Fusion Immunogen Enhances T Cell Epitope Responses in HLA DR4
     #   Transgenic Mice
     for mhc_class in mhc_classes:
-        mhc_model = mhc_class("HLA-DRB1*01:01", default_peptide_lengths=15)
-        yield (expect_binder, mhc_model, "GSDIAGTTSTLQEQI")
+        mhc_model = mhc_class("HLA-DRB1*04:01", default_peptide_lengths=15)
+        yield (expect_binder, mhc_model, "LERFAVNPGLLETSE")
