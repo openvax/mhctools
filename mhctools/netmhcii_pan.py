@@ -136,6 +136,7 @@ class NetMHCIIpan4(NetMHCIIpanBase):
 
         # Always include binding affinity data (-BA flag), though the main score and %rank will
         # still be EL-based. This gives us access to the BA-based score and %rank columns.
+
         NetMHCIIpanBase.__init__(
             self,
             alleles=alleles,
