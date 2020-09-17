@@ -101,6 +101,9 @@ class NetMHCIIpanBase(BaseCommandlinePredictor):
 
 
 class NetMHCIIpan3(NetMHCIIpanBase):
+    """
+    Wrapper for NetMHCIIpan version 3.
+    """
     def __init__(
             self,
             alleles,
@@ -119,6 +122,9 @@ class NetMHCIIpan3(NetMHCIIpanBase):
 
 
 class NetMHCIIpan4(NetMHCIIpanBase):
+    """
+    Wrapper for NetMHCIIpan 4.0, using a different parser.
+    """
     def __init__(
             self,
             alleles,
@@ -127,9 +133,6 @@ class NetMHCIIpan4(NetMHCIIpanBase):
             process_limit=-1,
             mode="elution_score",
             extra_flags=[]):
-        """
-        Wrapper for NetMHCIIpan 4.0, using a different parser.
-        """
 
         if mode not in ['binding_affinity', 'elution_score']:
             raise ValueError("Unsupported mode", mode)

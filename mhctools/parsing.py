@@ -514,16 +514,15 @@ def parse_netmhciipan4_stdout(
 
     # we're running NetMHCIIpan 4 with -BA every time so both EL and BA are available, but only
     # return one of them depending on the input mode
-    if mode in ['elution_score', 'binding_affinity']:
-        return parse_stdout(
-            stdout=stdout,
-            prediction_method_name=prediction_method_name,
-            sequence_key_mapping=sequence_key_mapping,
-            key_index=6,
-            offset_index=0,
-            peptide_index=2,
-            allele_index=1,
-            ic50_index=11 if mode == "binding_affinity" else None,
-            rank_index=8 if mode == "elution_score" else 12,
-            score_index=7 if mode == "elution_score" else 10,
-            transforms=transforms)
+    return parse_stdout(
+        stdout=stdout,
+        prediction_method_name=prediction_method_name,
+        sequence_key_mapping=sequence_key_mapping,
+        key_index=6,
+        offset_index=0,
+        peptide_index=2,
+        allele_index=1,
+        ic50_index=11 if mode == "binding_affinity" else None,
+        rank_index=8 if mode == "elution_score" else 12,
+        score_index=7 if mode == "elution_score" else 10,
+        transforms=transforms)
