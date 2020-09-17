@@ -131,11 +131,11 @@ class NetMHCIIpan4(NetMHCIIpanBase):
         Wrapper for NetMHCIIpan 4.0, using a different parser.
         """
 
-        if mode not in ['binding_affinity', 'elution_score', 'all_output']:
+        if mode not in ['binding_affinity', 'elution_score']:
             raise ValueError("Unsupported mode", mode)
 
-        # Default to including binding affinity data (-BA flag), though the score and %rank will
-        # still be EL-based
+        # Always include binding affinity data (-BA flag), though the main score and %rank will
+        # still be EL-based. This gives us access to the BA-based score and %rank columns.
         NetMHCIIpanBase.__init__(
             self,
             alleles=alleles,
@@ -144,8 +144,6 @@ class NetMHCIIpan4(NetMHCIIpanBase):
             parse_output_fn=partial(parse_netmhciipan4_stdout, mode=mode),
             default_peptide_lengths=default_peptide_lengths,
             extra_flags=['-BA'] + extra_flags)
-
-        self.mode = mode
 
 
 class NetMHCIIpan4_EL(NetMHCIIpan4):
