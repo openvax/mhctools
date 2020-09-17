@@ -481,7 +481,8 @@ def parse_netmhciipan_stdout(
 def parse_netmhciipan4_stdout(
         stdout,
         prediction_method_name="netmhciipan",
-        sequence_key_mapping=None):
+        sequence_key_mapping=None,
+        mode="elution_score"):
     """
     # Threshold for Strong binding peptides (%Rank) 2%
     # Threshold for Weak binding peptides (%Rank)   10%
@@ -502,20 +503,27 @@ def parse_netmhciipan4_stdout(
     """
     check_stdout_error(stdout, "NetMHCIIpan")
 
+    if mode not in ["elution_score", "binding_affinity"]:
+        raise ValueError("Mode is %s but must be one of: elution_score, binding affinity" % mode)
+
     # the offset specified in "pos" (at index 0) is 1-based instead of 0-based. we adjust it to be
     # 0-based, as in all the other netmhc predictors supported by this library.
     transforms = {
         0: lambda x: int(x) - 1,
     }
-    return parse_stdout(
-        stdout=stdout,
-        prediction_method_name=prediction_method_name,
-        sequence_key_mapping=sequence_key_mapping,
-        key_index=6,
-        offset_index=0,
-        peptide_index=2,
-        allele_index=1,
-        ic50_index=11,
-        rank_index=8,
-        score_index=7,
-        transforms=transforms)
+
+    # we're running NetMHCIIpan 4 with -BA every time so both EL and BA are available, but only
+    # return one of them depending on the input mode
+    if mode in ['elution_score', 'binding_affinity']:
+        return parse_stdout(
+            stdout=stdout,
+            prediction_method_name=prediction_method_name,
+            sequence_key_mapping=sequence_key_mapping,
+            key_index=6,
+            offset_index=0,
+            peptide_index=2,
+            allele_index=1,
+            ic50_index=11 if mode == "binding_affinity" else None,
+            rank_index=8 if mode == "elution_score" else 12,
+            score_index=7 if mode == "elution_score" else 10,
+            transforms=transforms)

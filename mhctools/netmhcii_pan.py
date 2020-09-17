@@ -14,7 +14,10 @@
 
 from __future__ import print_function, division, absolute_import
 
+from functools import partial
 import logging
+import os
+from subprocess import check_output
 
 from mhcnames import parse_classi_or_classii_allele_name
 
@@ -99,37 +102,121 @@ class NetMHCIIpanBase(BaseCommandlinePredictor):
 
 # TODO: rename this class to NetMHCIIpan3, turn this into a wrapper that figures out which version
 # of NetMHCIIpan is installed and use the appropriate wrapper
-class NetMHCIIpan(NetMHCIIpanBase):
+class NetMHCIIpan3(NetMHCIIpanBase):
     def __init__(
             self,
             alleles,
+            default_peptide_lengths=[15, 16, 17, 18, 19, 20],
+            program_name="netMHCIIpan",
             process_limit=-1,
-            program_name="netMHCIIpan"):
+            extra_flags=[]):
         NetMHCIIpanBase.__init__(
             self,
-            program_name=program_name,
             alleles=alleles,
+            parse_output_fn=parse_netmhciipan_stdout,
+            default_peptide_lengths=default_peptide_lengths,
+            program_name=program_name,
             process_limit=process_limit,
-            parse_output_fn=parse_netmhciipan_stdout)
+            extra_flags=extra_flags)
 
 
 class NetMHCIIpan4(NetMHCIIpanBase):
     def __init__(
             self,
             alleles,
+            default_peptide_lengths=[15, 16, 17, 18, 19, 20],
+            program_name="netMHCIIpan",
             process_limit=-1,
-            program_name="netMHCIIpan-4.0",  # TODO: change this to netMHCIIpan
+            mode="elution_score",
             extra_flags=[]):
         """
         Wrapper for NetMHCIIpan 4.0, using a different parser.
         """
 
+        if mode not in ['binding_affinity', 'elution_score', 'all_output']:
+            raise ValueError("Unsupported mode", mode)
+
         # Default to including binding affinity data (-BA flag), though the score and %rank will
         # still be EL-based
         NetMHCIIpanBase.__init__(
             self,
-            program_name=program_name,
             alleles=alleles,
+            program_name=program_name,
             process_limit=process_limit,
-            parse_output_fn=parse_netmhciipan4_stdout,
+            parse_output_fn=partial(parse_netmhciipan4_stdout, mode=mode),
+            default_peptide_lengths=default_peptide_lengths,
             extra_flags=['-BA'] + extra_flags)
+
+        self.mode = mode
+
+
+class NetMHCIIpan4_EL(NetMHCIIpan4):
+    """
+    Wrapper for NetMHCIIpan4 when the preferred mode is elution score
+    """
+    def __init__(
+            self,
+            alleles,
+            default_peptide_lengths=[15, 16, 17, 18, 19, 20],
+            program_name="netMHCIIpan",
+            process_limit=-1,
+            extra_flags=[]):
+        NetMHCIIpan4.__init__(
+            self,
+            alleles=alleles,
+            default_peptide_lengths=default_peptide_lengths,
+            program_name=program_name,
+            process_limit=process_limit,
+            mode="elution_score",
+            extra_flags=extra_flags)
+
+
+class NetMHCIIpan4_BA(NetMHCIIpan4):
+    """
+    Wrapper for NetMHCIIpan4 when the preferred mode is binding affinity
+    """
+    def __init__(
+            self,
+            alleles,
+            default_peptide_lengths=[15, 16, 17, 18, 19, 20],
+            program_name="netMHCIIpan",
+            process_limit=-1,
+            extra_flags=[]):
+        NetMHCIIpan4.__init__(
+            self,
+            alleles=alleles,
+            default_peptide_lengths=default_peptide_lengths,
+            program_name=program_name,
+            process_limit=process_limit,
+            mode="binding_affinity",
+            extra_flags=extra_flags)
+
+
+def NetMHCIIpan(
+        alleles,
+        process_limit=-1,
+        program_name="netMHCIIpan",
+        default_peptide_lengths=[15, 16, 17, 18, 19, 20],
+        extra_flags=[]):
+    """
+    This function wraps NetMHCIIpan4 and NetMHCIIpan3 to automatically detect which class to use.
+    """
+    # convert to str since Python3 returns a "bytes" object.
+    with open(os.devnull, 'w') as devnull:
+        output = check_output([program_name, "-h"], stderr=devnull)
+    output_str = output.decode("ascii", "ignore")
+    kwargs = {
+        "alleles": alleles,
+        "default_peptide_lengths": default_peptide_lengths,
+        "program_name": program_name,
+        "process_limit": process_limit,
+        "extra_flags": extra_flags,
+    }
+    if "NetMHCIIpan-4.0" in output_str:
+        logger.info("Using NetMHCIIpan 4.0")
+        return NetMHCIIpan4(**kwargs)
+    elif "NetMHCIIpan-3" in output_str:
+        logger.info("Using NetMHCIIpan 3.x")
+        return NetMHCIIpan3(**kwargs)
+    else:
+        raise ValueError("This software expects NetMHCIIpan version 3.x or 4.0")
