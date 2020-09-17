@@ -100,8 +100,6 @@ class NetMHCIIpanBase(BaseCommandlinePredictor):
                 beta.allele_code)
 
 
-# TODO: rename this class to NetMHCIIpan3, turn this into a wrapper that figures out which version
-# of NetMHCIIpan is installed and use the appropriate wrapper
 class NetMHCIIpan3(NetMHCIIpanBase):
     def __init__(
             self,
