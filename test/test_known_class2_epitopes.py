@@ -28,7 +28,7 @@ def expect_binder(mhc_model, peptide):
         assert prediction.value < 500, "Expected %s to have IC50 < 500nM, got %s" % (
             peptide, prediction)
     else:
-        assert prediction.percentile_rank < 5, "Expected %s to have %rank < 3, got %s" % (
+        assert prediction.percentile_rank < 5, "Expected %s to have percent rank < 3, got %s" % (
             peptide, prediction)
 
 def test_Gag_epitope():
