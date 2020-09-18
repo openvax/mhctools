@@ -18,6 +18,7 @@ import logging.config
 import pkg_resources
 import sys
 
+import pandas as pd
 from pyensembl.fasta import parse_fasta_dictionary
 
 from .args import make_mhc_arg_parser, mhc_binding_predictor_from_args
@@ -114,6 +115,7 @@ def main(args_list=None):
     args = parse_args(args_list)
     binding_predictions = run_predictor(args)
     df = binding_predictions.to_dataframe()
+    pd.set_option('display.max_columns', None)
     logger.info('\n%s', df)
     if args.output_csv:
         df.to_csv(args.output_csv, index=False)

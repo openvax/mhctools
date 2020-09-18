@@ -55,8 +55,6 @@ class NetMHCpan4(BaseCommandlinePredictor):
             extra_flags=flags + extra_flags,
             process_limit=process_limit)
 
-        self.mode = mode
-
 class NetMHCpan4_EL(NetMHCpan4):
     """
     Wrapper for NetMHCpan4 when the preferred mode is elution score
