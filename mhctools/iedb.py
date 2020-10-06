@@ -110,7 +110,7 @@ def _parse_iedb_response(response):
                 "Response from IEDB is missing '%s' column: %s. Full "
                 "response:\n%s" % (
                     column,
-                    df.ix[0],
+                    df.iloc[0],
                     response))
     # since IEDB has allowed multiple column names for percentile rank,
     # we're defensively normalizing all of them to just 'rank'
@@ -184,10 +184,15 @@ class IedbBasePredictor(BasePredictor):
                 self.predict_subsequences(
                     {"seq%d" % (i + 1): peptide},
                     peptide_lengths=len(peptide)))
-        self._check_results(
-            binding_predictions,
-            peptides=peptides,
-            alleles=self.alleles)
+
+        try:
+            self._check_results(
+                binding_predictions,
+                peptides=peptides,
+                alleles=self.alleles)
+        except ValueError as e:
+            logger.error("Check results errored with message: %s" % str(e))
+
         return BindingPredictionCollection(binding_predictions)
 
     def predict_subsequences(self, sequence_dict, peptide_lengths=None):
@@ -225,21 +230,31 @@ class IedbBasePredictor(BasePredictor):
                     "Calling IEDB (%s) with request %s",
                     self.url,
                     request)
-                response_df = _query_iedb(request, self.url)
-                for _, row in response_df.iterrows():
-                    binding_predictions.append(
-                        BindingPrediction(
-                            source_sequence_name=key,
-                            offset=row['start'] - 1,
-                            allele=row['allele'],
-                            peptide=row['peptide'],
-                            affinity=row['ic50'],
-                            percentile_rank=row['rank'],
-                            prediction_method_name="iedb-" + self.prediction_method))
-        self._check_results(
-            binding_predictions,
-            alleles=normalized_alleles,
-            peptides=expected_peptides)
+                try:
+                    response_df = _query_iedb(request, self.url)
+                    for _, row in response_df.iterrows():
+                        binding_predictions.append(
+                            BindingPrediction(
+                                source_sequence_name=key,
+                                offset=row['start'] - 1,
+                                allele=row['allele'],
+                                peptide=row['peptide'],
+                                affinity=row['ic50'],
+                                percentile_rank=row['rank'],
+                                prediction_method_name="iedb-" + self.prediction_method))
+                except ValueError as e:
+                    logger.error("IEDB request failed with message: %s" % str(e))
+
+        try:
+            self._check_results(
+                binding_predictions,
+                alleles=normalized_alleles,
+                peptides=expected_peptides)
+
+        # be relatively permissive with IEDB, log instead of erroring
+        except ValueError as e:
+            logger.error("Check results errored with message: %s" % str(e))
+
         return BindingPredictionCollection(binding_predictions)
 
 IEDB_MHC_CLASS_I_URL = "http://tools-cluster-interface.iedb.org/tools_api/mhci/"
