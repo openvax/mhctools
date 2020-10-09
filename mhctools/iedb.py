@@ -110,7 +110,7 @@ def _parse_iedb_response(response):
                 "Response from IEDB is missing '%s' column: %s. Full "
                 "response:\n%s" % (
                     column,
-                    df.ix[0],
+                    df.iloc[0],
                     response))
     # since IEDB has allowed multiple column names for percentile rank,
     # we're defensively normalizing all of them to just 'rank'
@@ -143,7 +143,8 @@ class IedbBasePredictor(BasePredictor):
             prediction_method,
             url,
             min_peptide_length=8,
-            include_length_in_request=True):
+            include_length_in_request=True,
+            raise_on_error=True):
         BasePredictor.__init__(
             self,
             alleles=alleles,
@@ -151,6 +152,10 @@ class IedbBasePredictor(BasePredictor):
             min_peptide_length=min_peptide_length)
         self.prediction_method = prediction_method
         self.include_length_in_request = include_length_in_request
+
+        # by default, raise an exception on error the way we do in all other predictors. But allow
+        # for not raising, since sometimes we want to be more permissive with IEDB predictors
+        self.raise_on_error = raise_on_error
 
         if not isinstance(url, string_types):
             raise TypeError("Expected URL to be string, not %s : %s" % (
@@ -164,15 +169,15 @@ class IedbBasePredictor(BasePredictor):
             self.default_peptide_lengths,
             self.prediction_method)
 
-    def _get_iedb_request_params(self, sequence, allele):
+    def _get_iedb_request_params(self, sequence, allele, peptide_lengths):
         params = {
             "method": seq_to_str(self.prediction_method),
             "sequence_text": sequence,
             # have to repeat allele for each length
-            "allele": ",".join([allele] * len(self.default_peptide_lengths)),
+            "allele": ",".join([allele] * len(peptide_lengths)),
         }
         if self.include_length_in_request:
-            params["length"] = seq_to_str(self.default_peptide_lengths)
+            params["length"] = seq_to_str(peptide_lengths)
 
         return params
 
@@ -184,10 +189,18 @@ class IedbBasePredictor(BasePredictor):
                 self.predict_subsequences(
                     {"seq%d" % (i + 1): peptide},
                     peptide_lengths=len(peptide)))
-        self._check_results(
-            binding_predictions,
-            peptides=peptides,
-            alleles=self.alleles)
+
+        try:
+            self._check_results(
+                binding_predictions,
+                peptides=peptides,
+                alleles=self.alleles)
+        except ValueError as e:
+            if self.raise_on_error:
+                raise e
+            else:
+                logger.error("Check results errored with message: %s" % str(e))
+
         return BindingPredictionCollection(binding_predictions)
 
     def predict_subsequences(self, sequence_dict, peptide_lengths=None):
@@ -220,26 +233,41 @@ class IedbBasePredictor(BasePredictor):
                 allele = normalize_allele_name(allele, omit_dra1=True)
                 normalized_alleles.append(allele)
                 request = self._get_iedb_request_params(
-                    amino_acid_sequence, allele)
+                    amino_acid_sequence, allele, peptide_lengths)
                 logger.info(
                     "Calling IEDB (%s) with request %s",
                     self.url,
                     request)
-                response_df = _query_iedb(request, self.url)
-                for _, row in response_df.iterrows():
-                    binding_predictions.append(
-                        BindingPrediction(
-                            source_sequence_name=key,
-                            offset=row['start'] - 1,
-                            allele=row['allele'],
-                            peptide=row['peptide'],
-                            affinity=row['ic50'],
-                            percentile_rank=row['rank'],
-                            prediction_method_name="iedb-" + self.prediction_method))
-        self._check_results(
-            binding_predictions,
-            alleles=normalized_alleles,
-            peptides=expected_peptides)
+
+                try:
+                    response_df = _query_iedb(request, self.url)
+                    for _, row in response_df.iterrows():
+                        binding_predictions.append(
+                            BindingPrediction(
+                                source_sequence_name=key,
+                                offset=row['start'] - 1,
+                                allele=row['allele'],
+                                peptide=row['peptide'],
+                                affinity=row['ic50'],
+                                percentile_rank=row['rank'],
+                                prediction_method_name="iedb-" + self.prediction_method))
+                except ValueError as e:
+                    if self.raise_on_error:
+                        raise e
+                    else:
+                        logger.error("IEDB request failed with message: %s" % str(e))
+
+        try:
+            self._check_results(
+                binding_predictions,
+                alleles=normalized_alleles,
+                peptides=expected_peptides)
+        except ValueError as e:
+            if self.raise_on_error:
+                raise e
+            else:
+                logger.error("Check results errored with message: %s" % str(e))
+
         return BindingPredictionCollection(binding_predictions)
 
 IEDB_MHC_CLASS_I_URL = "http://tools-cluster-interface.iedb.org/tools_api/mhci/"
@@ -248,11 +276,13 @@ class IedbNetMHCcons(IedbBasePredictor):
     def __init__(
             self,
             alleles,
-            default_peptide_lengths=[8, 9, 10, 11]):
+            default_peptide_lengths=[8, 9, 10, 11],
+            raise_on_error=True):
         IedbBasePredictor.__init__(
             self,
             alleles=alleles,
             default_peptide_lengths=default_peptide_lengths,
+            raise_on_error=raise_on_error,
             prediction_method="netmhccons",
             url=IEDB_MHC_CLASS_I_URL)
 
@@ -260,11 +290,13 @@ class IedbNetMHCpan(IedbBasePredictor):
     def __init__(
             self,
             alleles,
-            default_peptide_lengths=[8, 9, 10, 11]):
+            default_peptide_lengths=[8, 9, 10, 11],
+            raise_on_error=True):
         IedbBasePredictor.__init__(
             self,
             alleles=alleles,
             default_peptide_lengths=default_peptide_lengths,
+            raise_on_error=raise_on_error,
             prediction_method="netmhcpan",
             url=IEDB_MHC_CLASS_I_URL)
 
@@ -272,11 +304,13 @@ class IedbSMM(IedbBasePredictor):
     def __init__(
             self,
             alleles,
-            default_peptide_lengths=[8, 9, 10, 11]):
+            default_peptide_lengths=[8, 9, 10, 11],
+            raise_on_error=True):
         IedbBasePredictor.__init__(
             self,
             alleles=alleles,
             default_peptide_lengths=default_peptide_lengths,
+            raise_on_error=raise_on_error,
             prediction_method="smm",
             url=IEDB_MHC_CLASS_I_URL)
 
@@ -284,11 +318,13 @@ class IedbSMM_PMBEC(IedbBasePredictor):
     def __init__(
             self,
             alleles,
-            default_peptide_lengths=[8, 9, 10, 11]):
+            default_peptide_lengths=[8, 9, 10, 11],
+            raise_on_error=True):
         IedbBasePredictor.__init__(
             self,
             alleles=alleles,
             default_peptide_lengths=default_peptide_lengths,
+            raise_on_error=raise_on_error,
             prediction_method="smmpmbec",
             url=IEDB_MHC_CLASS_I_URL)
 
@@ -299,6 +335,7 @@ class IedbNetMHCIIpan(IedbBasePredictor):
             self,
             alleles,
             default_peptide_lengths=[15, 16, 17, 18, 19, 20],
+            raise_on_error=True,
             url=IEDB_MHC_CLASS_II_URL):
         IedbBasePredictor.__init__(
             self,
@@ -306,6 +343,7 @@ class IedbNetMHCIIpan(IedbBasePredictor):
             # only epitope lengths of 15 currently supported by IEDB's web API
             default_peptide_lengths=default_peptide_lengths,
             prediction_method="NetMHCIIpan",
+            raise_on_error=raise_on_error,
             url=url,
             min_peptide_length=9,
             include_length_in_request=False)
