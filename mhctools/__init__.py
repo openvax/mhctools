@@ -22,7 +22,7 @@ from .netmhcii_pan import NetMHCIIpan, NetMHCIIpan3, NetMHCIIpan4, NetMHCIIpan4_
 from .random_predictor import RandomBindingPredictor
 from .unsupported_allele import UnsupportedAllele
 
-__version__ = "1.8.1"
+__version__ = "1.8.2"
 
 __all__ = [
     "BindingPrediction",

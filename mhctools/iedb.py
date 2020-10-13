@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from __future__ import print_function, division, absolute_import
-import logging
 import io
 
 # pylint: disable=import-error
@@ -31,6 +30,7 @@ from .base_predictor import BasePredictor
 from .common import seq_to_str, check_sequence_dictionary
 from .binding_prediction import BindingPrediction
 from .binding_prediction_collection import BindingPredictionCollection
+from .logging import get_logger
 
 """
 A note about prediction methods, copied from the IEDB website:
@@ -50,7 +50,7 @@ Excluded because IEDB results lack unique IC50 & Percentile Rank columns:
 """
 
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 VALID_CLASS_I_METHODS = [
@@ -195,7 +195,7 @@ class IedbBasePredictor(BasePredictor):
                 binding_predictions,
                 peptides=peptides,
                 alleles=self.alleles)
-        except ValueError as e:
+        except Exception as e:
             if self.raise_on_error:
                 raise e
             else:
@@ -251,7 +251,7 @@ class IedbBasePredictor(BasePredictor):
                                 affinity=row['ic50'],
                                 percentile_rank=row['rank'],
                                 prediction_method_name="iedb-" + self.prediction_method))
-                except ValueError as e:
+                except Exception as e:
                     if self.raise_on_error:
                         raise e
                     else:
@@ -262,7 +262,7 @@ class IedbBasePredictor(BasePredictor):
                 binding_predictions,
                 alleles=normalized_alleles,
                 peptides=expected_peptides)
-        except ValueError as e:
+        except Exception as e:
             if self.raise_on_error:
                 raise e
             else:

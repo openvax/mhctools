@@ -128,6 +128,11 @@ def add_mhc_args(arg_parser):
         default="",
         help="Comma or space separated list of allele (default HLA-A*02:01)")
 
+    mhc_options_arg_group.add_argument(
+        "--do-not-raise-on-error",
+        action="store_true", default=False,
+        help="If this arg is present, will not crash on error. Only applies to IEDB predictors")
+
     return mhc_options_arg_group
 
 
@@ -179,5 +184,8 @@ def mhc_binding_predictor_from_args(args):
 
     if args.mhc_predictor_path:
         kwargs["program_name"] = args.mhc_predictor_path
+
+    if args.do_not_raise_on_error:
+        kwargs["raise_on_error"] = False
 
     return mhc_class(**kwargs)
