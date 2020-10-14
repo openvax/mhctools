@@ -131,7 +131,9 @@ def add_mhc_args(arg_parser):
     mhc_options_arg_group.add_argument(
         "--do-not-raise-on-error",
         action="store_true", default=False,
-        help="If this arg is present, will not crash on error. Only applies to IEDB predictors")
+        help="Only applies to IEDB predictors: if this arg is present, will not crash on any "
+        "errors, which can result from connection issues or supplying unsupported MHC alleles. "
+        "In such cases, some predictions may get dropped from the returned result set.")
 
     return mhc_options_arg_group
 
