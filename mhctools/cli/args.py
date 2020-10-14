@@ -186,6 +186,9 @@ def mhc_binding_predictor_from_args(args):
         kwargs["program_name"] = args.mhc_predictor_path
 
     if args.do_not_raise_on_error:
-        kwargs["raise_on_error"] = False
+        if 'iedb' in args.mhc_predictor.lower():
+            kwargs["raise_on_error"] = False
+        else:
+            logger.warning('--do-not-raise-on-error ignored for non-IEDB predictor')
 
     return mhc_class(**kwargs)
