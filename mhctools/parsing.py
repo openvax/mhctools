@@ -400,6 +400,44 @@ def parse_netmhcpan4_stdout(
         rank_index=12 if mode == "elution_score" else 13,
         transforms=transforms)
 
+def parse_netmhcpan41_stdout(
+        stdout,
+        prediction_method_name="netmhcpan",
+        sequence_key_mapping=None,
+        mode="binding_affinity"):
+    """
+	NetMHCpan version 4.1b
+	# Rank Threshold for Strong binding peptides   0.500
+	# Rank Threshold for Weak binding peptides   2.000
+	---------------------------------------------------------------------------------------------------------------------------
+	 Pos         MHC        Peptide      Core Of Gp Gl Ip Il        Icore        Identity  Score_EL %Rank_EL Score_BA %Rank_BA  Aff(nM) BindLevel
+	---------------------------------------------------------------------------------------------------------------------------
+	   1 HLA-A*03:01    GKSGGGRCGGG GKSGGGRGG  0  7  2  0  0  GKSGGGRCGGG            seq1 0.0000000  100.000 0.009240   95.346 45243.03
+	---------------------------------------------------------------------------------------------------------------------------
+
+	Protein seq1. Allele HLA-A*03:01. Number of high binders 0. Number of weak binders 0. Number of peptides 1
+
+	-----------------------------------------------------------------------------------
+    """
+
+    # the offset specified in "pos" (at index 0) is 1-based instead of 0-based. we adjust it to be
+    # 0-based, as in all the other netmhc predictors supported by this library.
+    transforms = {
+        0: lambda x: int(x) - 1,
+    }
+    return parse_stdout(
+        stdout=stdout,
+        prediction_method_name=prediction_method_name,
+        sequence_key_mapping=sequence_key_mapping,
+        key_index=10,
+        offset_index=0,
+        peptide_index=2,
+        allele_index=1,
+        score_index=11 if mode == "elution_score" else 13,
+        ic50_index=None if mode == "elution_score" else 15,
+        rank_index=12 if mode == "elution_score" else 14,
+        transforms=transforms)
+
 
 def parse_netmhccons_stdout(
         stdout,
