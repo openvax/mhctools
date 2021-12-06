@@ -30,6 +30,7 @@ def NetMHCpan(
         program_name="netMHCpan",
         process_limit=-1,
         default_peptide_lengths=[9],
+        raise_on_error=True,
         extra_flags=[]):
     """
     This function wraps NetMHCpan28 and NetMHCpan3 to automatically detect which class
@@ -48,6 +49,7 @@ def NetMHCpan(
         "default_peptide_lengths": default_peptide_lengths,
         "program_name": program_name,
         "process_limit": process_limit,
+        "raise_on_error": raise_on_error,
         "extra_flags": extra_flags,
     }
     if "NetMHCpan version 2.8" in output_str:

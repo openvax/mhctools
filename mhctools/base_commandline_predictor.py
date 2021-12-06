@@ -54,7 +54,8 @@ class BaseCommandlinePredictor(BasePredictor):
             default_peptide_lengths=[9],
             group_peptides_by_length=False,
             min_peptide_length=8,
-            max_peptide_length=None,):
+            max_peptide_length=None,
+            raise_on_error=True):
         """
         Parameters
         ----------
@@ -111,6 +112,10 @@ class BaseCommandlinePredictor(BasePredictor):
 
         max_peptide_length : int
             Longest peptide this predictor can handle
+
+        raise_on_error : bool
+            If false, will log error instead of raising. (Default: true)
+
         """
         require_string(program_name, "Predictor program name")
         self.program_name = program_name
@@ -152,6 +157,8 @@ class BaseCommandlinePredictor(BasePredictor):
             default_peptide_lengths = [default_peptide_lengths]
 
         self.group_peptides_by_length = group_peptides_by_length
+
+        self.raise_on_error = raise_on_error
 
         if self.supported_alleles_flag:
             valid_alleles = self._determine_supported_alleles(
@@ -324,8 +331,14 @@ class BaseCommandlinePredictor(BasePredictor):
             commands=commands,
             input_filenames=input_filenames,
             temp_dir_list=dirs)
-        self._check_results(
-            results,
-            peptides=peptides,
-            alleles=self.alleles)
+        try:
+            self._check_results(
+                results,
+                peptides=peptides,
+                alleles=self.alleles)
+        except ValueError as e:
+            if self.raise_on_error:
+                raise e
+            else:
+                logger.error("Check results errored with message: %s" % str(e))
         return results

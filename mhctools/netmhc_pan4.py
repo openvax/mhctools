@@ -25,6 +25,7 @@ class NetMHCpan4(BaseCommandlinePredictor):
             default_peptide_lengths=[9],
             program_name="netMHCpan",
             process_limit=-1,
+            raise_on_error=True,
             mode="binding_affinity",
             extra_flags=[]):
         """
@@ -53,6 +54,7 @@ class NetMHCpan4(BaseCommandlinePredictor):
             length_flag="-l",
             allele_flag="-a",
             extra_flags=flags + extra_flags,
+            raise_on_error=raise_on_error,
             process_limit=process_limit)
 
 class NetMHCpan4_EL(NetMHCpan4):
@@ -65,6 +67,7 @@ class NetMHCpan4_EL(NetMHCpan4):
             default_peptide_lengths=[9],
             program_name="netMHCpan",
             process_limit=-1,
+            raise_on_error=True,
             extra_flags=[]):
         NetMHCpan4.__init__(
             self,
@@ -73,6 +76,7 @@ class NetMHCpan4_EL(NetMHCpan4):
             program_name=program_name,
             process_limit=process_limit,
             mode="elution_score",
+            raise_on_error=raise_on_error,
             extra_flags=extra_flags)
 
 class NetMHCpan4_BA(NetMHCpan4):
@@ -85,6 +89,7 @@ class NetMHCpan4_BA(NetMHCpan4):
             default_peptide_lengths=[9],
             program_name="netMHCpan",
             process_limit=-1,
+            raise_on_error=True,
             extra_flags=[]):
         NetMHCpan4.__init__(
             self,
@@ -93,4 +98,5 @@ class NetMHCpan4_BA(NetMHCpan4):
             program_name=program_name,
             process_limit=process_limit,
             mode="binding_affinity",
+            raise_on_error=raise_on_error,
             extra_flags=extra_flags)
