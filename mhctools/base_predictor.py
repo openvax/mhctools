@@ -37,7 +37,8 @@ class BasePredictor(object):
             min_peptide_length=8,
             max_peptide_length=None,
             allow_X_in_peptides=False,
-            allow_lowercase_in_peptides=False):
+            allow_lowercase_in_peptides=False,
+            raise_on_error=True):
         """
         Parameters
         ----------
@@ -65,6 +66,9 @@ class BasePredictor(object):
 
         allow_lowercase_in_peptides : bool
             Allow lowercase letters in peptide sequences
+
+        raise_on_error : bool
+            If false, will log error instead of raising. (Default: true)
         """
         # I find myself often constructing a predictor with just one allele
         # so as a convenience, allow user to not wrap that allele as a list
@@ -80,6 +84,7 @@ class BasePredictor(object):
         self.max_peptide_length = max_peptide_length
         self.allow_X_in_peptides = allow_X_in_peptides
         self.allow_lowercase_in_peptides = allow_lowercase_in_peptides
+        self.raise_on_error = raise_on_error
 
     def __repr__(self):
         return str(self)
@@ -219,10 +224,16 @@ class BasePredictor(object):
                 results.append(binding_prediction.clone_with_updates(
                     source_sequence_name=name,
                     offset=offset))
-        self._check_results(
-            results,
-            peptides=peptide_set,
-            alleles=self.alleles)
+        try:
+            self._check_results(
+                results,
+                peptides=peptide_set,
+                alleles=self.alleles)
+        except ValueError as e:
+            if self.raise_on_error:
+                raise e
+            else:
+                logger.error("Check results errored with message: %s" % str(e))
         return BindingPredictionCollection(results)
 
     def predict(self, sequence_dict, peptide_lengths=None):
