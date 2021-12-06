@@ -181,7 +181,8 @@ class BaseCommandlinePredictor(BasePredictor):
                 valid_alleles=valid_alleles,
                 default_peptide_lengths=default_peptide_lengths,
                 min_peptide_length=min_peptide_length,
-                max_peptide_length=max_peptide_length)
+                max_peptide_length=max_peptide_length,
+                raise_on_error=raise_on_error)
         except UnsupportedAllele as e:
             if self.supported_alleles_flag:
                 additional_message = (
