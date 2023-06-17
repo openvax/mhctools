@@ -42,12 +42,12 @@ if __name__ == '__main__':
         name='mhctools',
         version=version,
         description="Python interface to running command-line and web-based MHC binding predictors",
-        author="Alex Rubinsteyn",
-        author_email="alex.rubinsteyn@mssm.edu",
+        author="Alex Rubinsteyn, Julia Kodysh, Tim O'Donnell",
+        author_email="alex@openvax.org, julia@openvax.org, tim@openvax.org",
         url="https://github.com/openvax/mhctools",
         license="http://www.apache.org/licenses/LICENSE-2.0.html",
         classifiers=[
-            'Development Status :: 3 - Alpha',
+            'Development Status :: 4 - Beta',
             'Environment :: Console',
             'Operating System :: OS Independent',
             'Intended Audience :: Science/Research',
@@ -68,7 +68,9 @@ if __name__ == '__main__':
         long_description=readme_markdown,
         long_description_content_type="text/markdown",
         packages=['mhctools', 'mhctools.cli'],
-        package_data={'mhctools.cli': ['logging.conf']},
+        package_data={
+            'mhctools.cli': ['logging.conf'],
+            'mhctools': ['logging.conf']},
         entry_points={
             'console_scripts': [
                 'mhctools = mhctools.cli.script:main'
