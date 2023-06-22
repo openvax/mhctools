@@ -285,6 +285,44 @@ def parse_netmhc4_stdout(
         rank_index=13,
         score_index=11)
 
+def parse_netmhc41_stdout(
+        stdout,
+        mode,
+        prediction_method_name="netmhc41",
+        sequence_key_mapping=None):
+    """
+    # NetMHCpan version 4.1b
+
+    # Tmpdir made /tmp/netMHCpanGjkOCb
+    # Input is in PEPTIDE format
+
+    # Make both EL and BA predictions
+
+    HLA-A02:01 : Distance to training data  0.000 (using nearest neighbor HLA-A02:01)
+
+    # Rank Threshold for Strong binding peptides   0.500
+    # Rank Threshold for Weak binding peptides   2.000
+    ---------------------------------------------------------------------------------------------------------------------------
+     Pos         MHC        Peptide      Core Of Gp Gl Ip Il        Icore        Identity  Score_EL %Rank_EL Score_BA %Rank_BA  Aff(nM) BindLevel
+    ---------------------------------------------------------------------------------------------------------------------------
+       1 HLA-A*02:01       SIINFEKL SII-NFEKL  0  0  0  3  1     SIINFEKL         PEPLIST 0.0100620    6.723 0.110414   20.171 15140.42
+    ---------------------------------------------------------------------------------------------------------------------------
+
+    Protein PEPLIST. Allele HLA-A*02:01. Number of high binders 0. Number of weak binders 0. Number of peptides 1
+    """
+    assert mode in ("binding_affinity", "elution_score")
+    return parse_stdout(
+        stdout=stdout,
+        prediction_method_name=prediction_method_name,
+        sequence_key_mapping=sequence_key_mapping,
+        key_index=10,
+        offset_index=0,
+        peptide_index=2,
+        allele_index=1,
+        ic50_index=15 if mode == "binding_affinity" else None,
+        rank_index=14 if mode == "binding_affinity" else 12,
+        score_index=13 if mode == "binding_affinity" else 11)
+
 def parse_netmhcpan28_stdout(
         stdout,
         prediction_method_name="netmhcpan",
