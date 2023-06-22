@@ -23,6 +23,7 @@ OPTIONAL_NETMHCPAN_PROGRAM_NAMES = [
     "netMHCpan-2.8",
     "netMHCpan-3.0",
     "netMHCpan-4.0",
+    "netMHCpan-4.1",
 ]
 
 

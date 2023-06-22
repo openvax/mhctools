@@ -1,4 +1,4 @@
-# Copyright (c) 2016-2019. Mount Sinai School of Medicine
+# Copyright (c) 2016-2023. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,10 +15,11 @@
 from __future__ import print_function, division, absolute_import
 
 from .base_commandline_predictor import BaseCommandlinePredictor
-from .parsing import parse_netmhcpan4_stdout, parse_netmhcpan41_stdout
+from .parsing import parse_netmhc41_stdout
 from functools import partial
 
-class NetMHCpan4(BaseCommandlinePredictor):
+
+class NetMHCpan41(BaseCommandlinePredictor):
     def __init__(
             self,
             alleles,
@@ -28,7 +29,7 @@ class NetMHCpan4(BaseCommandlinePredictor):
             mode="binding_affinity",
             extra_flags=[]):
         """
-        Wrapper for NetMHCpan4.
+        Wrapper for NetMHCpan4.1.
 
         The mode argument should be one of "binding_affinity" (default) or
         "elution_score".
@@ -47,7 +48,7 @@ class NetMHCpan4(BaseCommandlinePredictor):
             program_name=program_name,
             alleles=alleles,
             default_peptide_lengths=default_peptide_lengths,
-            parse_output_fn=partial(parse_netmhcpan4_stdout, mode=mode),
+            parse_output_fn=partial(parse_netmhc41_stdout, mode=mode),
             supported_alleles_flag="-listMHC",
             input_file_flag="-f",
             length_flag="-l",
@@ -55,7 +56,7 @@ class NetMHCpan4(BaseCommandlinePredictor):
             extra_flags=flags + extra_flags,
             process_limit=process_limit)
 
-class NetMHCpan4_EL(NetMHCpan4):
+class NetMHCpan41_EL(NetMHCpan41):
     """
     Wrapper for NetMHCpan4 when the preferred mode is elution score
     """
@@ -66,7 +67,7 @@ class NetMHCpan4_EL(NetMHCpan4):
             program_name="netMHCpan",
             process_limit=-1,
             extra_flags=[]):
-        NetMHCpan4.__init__(
+        NetMHCpan41.__init__(
             self,
             alleles=alleles,
             default_peptide_lengths=default_peptide_lengths,
@@ -75,7 +76,8 @@ class NetMHCpan4_EL(NetMHCpan4):
             mode="elution_score",
             extra_flags=extra_flags)
 
-class NetMHCpan4_BA(NetMHCpan4):
+
+class NetMHCpan41_BA(NetMHCpan41):
     """
     Wrapper for NetMHCpan4 when the preferred mode is binding affinity
     """
@@ -86,7 +88,7 @@ class NetMHCpan4_BA(NetMHCpan4):
             program_name="netMHCpan",
             process_limit=-1,
             extra_flags=[]):
-        NetMHCpan4.__init__(
+        NetMHCpan41.__init__(
             self,
             alleles=alleles,
             default_peptide_lengths=default_peptide_lengths,

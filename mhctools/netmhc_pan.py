@@ -20,7 +20,7 @@ import os
 from .netmhc_pan28 import NetMHCpan28
 from .netmhc_pan3 import NetMHCpan3
 from .netmhc_pan4 import NetMHCpan4
-
+from .netmhc_pan41 import NetMHCpan41
 
 logger = logging.getLogger(__name__)
 
@@ -52,13 +52,12 @@ def NetMHCpan(
     }
     if "NetMHCpan version 2.8" in output_str:
         return NetMHCpan28(**common_kwargs)
-
     elif "NetMHCpan version 3.0" in output_str:
         return NetMHCpan3(**common_kwargs)
-
     elif "NetMHCpan version 4.0" in output_str:
         return NetMHCpan4(**common_kwargs)
-
+    elif "NetMHCpan version 4.1" in output_str:
+            return NetMHCpan4(**common_kwargs)
     else:
         raise RuntimeError(
-            "This software expects NetMHCpan version 2.8, 3.0, or 4.0")
+            "This software expects NetMHCpan version 2.8, 3.0, or 4.0, or 4.1")
