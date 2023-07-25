@@ -57,7 +57,7 @@ def NetMHCpan(
     elif "NetMHCpan version 4.0" in output_str:
         return NetMHCpan4(**common_kwargs)
     elif "NetMHCpan version 4.1" in output_str:
-            return NetMHCpan4(**common_kwargs)
+        return NetMHCpan41(**common_kwargs)
     else:
         raise RuntimeError(
             "This software expects NetMHCpan version 2.8, 3.0, or 4.0, or 4.1")
