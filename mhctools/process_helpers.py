@@ -1,5 +1,3 @@
-# Copyright (c) 2014. Mount Sinai School of Medicine
-#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -20,7 +18,7 @@ import time
 from multiprocessing import cpu_count
 
 # pylint: disable=import-error
-from six.moves.queue import Queue
+from queue import Queue
 
 logger = logging.getLogger(__name__)
 

@@ -18,7 +18,6 @@ import logging
 from subprocess import check_output
 import tempfile
 
-from six import string_types
 from typechecks import require_string, require_integer, require_iterable_of
 from mhcnames import normalize_allele_name, AlleleParseError
 
@@ -128,14 +127,14 @@ class BaseCommandlinePredictor(BasePredictor):
         require_string(allele_flag, "Allele flag")
         self.allele_flag = allele_flag
 
-        require_iterable_of(peptide_mode_flags, string_types)
+        require_iterable_of(peptide_mode_flags, str)
         self.peptide_mode_flags = peptide_mode_flags
 
         if tempdir_flag is not None:
             require_string(tempdir_flag, "Temporary directory flag")
         self.tempdir_flag = tempdir_flag
 
-        require_iterable_of(extra_flags, string_types)
+        require_iterable_of(extra_flags, str)
         self.extra_flags = extra_flags
 
         require_integer(

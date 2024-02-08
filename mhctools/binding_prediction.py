@@ -1,5 +1,3 @@
-# Copyright (c) 2014-2019. Mount Sinai School of Medicine
-#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -11,8 +9,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from __future__ import print_function, division, absolute_import
 
 import numpy as np
 from serializable import Serializable
@@ -40,7 +36,7 @@ class BindingPrediction(Serializable):
         score : float
             Continuous prediction of peptide-MHC binding where larger values
             indicate either higher affinity or higher probability. For affinity
-            predictors this can be 1-log(IC50)/log(max_IC50) For mass spec
+            predictors this can be 1-log(IC50)/log(max_IC50). For mass spec
             predictors this can be the probability of detection.
 
         percentile_rank : float

@@ -1,5 +1,3 @@
-# Copyright (c) 2014-2019. Mount Sinai School of Medicine
-#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -12,17 +10,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import print_function, division, absolute_import
-
-from six import string_types
-
 def seq_to_str(obj, sep=","):
     """
     Given a sequence convert it to a comma separated string.
     If, however, the argument is a single object, return its string
     representation.
     """
-    if isinstance(obj, string_types):
+    if type(obj) is str:
         return obj
     elif isinstance(obj, (list, tuple)):
         return sep.join([str(x) for x in obj])

@@ -1,5 +1,3 @@
-# Copyright (c) 2014-2019. Mount Sinai School of Medicine
-#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -60,7 +58,6 @@ if __name__ == '__main__':
             'pandas>=0.13.1',
             'varcode>=0.5.9',
             'pyensembl>=1.0.3',
-            'six>=1.9.0',
             'sercol>=0.0.2',
             'mhcflurry>=2.0.0',
             'mhcnames>=0.3.2',

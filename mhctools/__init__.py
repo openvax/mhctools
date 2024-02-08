@@ -47,6 +47,8 @@ __all__ = [
     "NetMHCpan41",
     "NetMHCpan4_BA",
     "NetMHCpan4_EL",
+    "NetMHCpan41_BA", 
+    "NetMHCpan41_EL",
     "NetMHCIIpan",
     "NetMHCIIpan3",
     "NetMHCIIpan4",

@@ -1,5 +1,3 @@
-# Copyright (c) 2014-2017. Mount Sinai School of Medicine
-#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -12,11 +10,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import print_function, division, absolute_import
 import logging
 from collections import defaultdict
 
-from six import string_types
 from typechecks import require_iterable_of
 from mhcnames import normalize_allele_name
 
@@ -68,11 +64,11 @@ class BasePredictor(object):
         """
         # I find myself often constructing a predictor with just one allele
         # so as a convenience, allow user to not wrap that allele as a list
-        if isinstance(alleles, string_types):
+        if type(alleles) is str:
             alleles = alleles.split(',')
         self.alleles = self._check_hla_alleles(alleles, valid_alleles)
 
-        if isinstance(default_peptide_lengths, int):
+        if type(default_peptide_lengths) is int:
             default_peptide_lengths = [default_peptide_lengths]
         require_iterable_of(default_peptide_lengths, int)
         self.default_peptide_lengths = default_peptide_lengths
@@ -156,7 +152,7 @@ class BasePredictor(object):
         """
         Check peptide sequences to make sure they are valid for this predictor.
         """
-        require_iterable_of(peptides, string_types)
+        require_iterable_of(peptides, str)
         check_X = not self.allow_X_in_peptides
         check_lower = not self.allow_lowercase_in_peptides
         check_min_length = self.min_peptide_length is not None
@@ -188,7 +184,7 @@ class BasePredictor(object):
         and an optional list of peptide lengths, returns a
         BindingPredictionCollection.
         """
-        if isinstance(sequence_dict, string_types):
+        if isinstance(sequence_dict, str):
             sequence_dict = {"seq": sequence_dict}
         elif isinstance(sequence_dict, (list, tuple)):
             sequence_dict = {seq: seq for seq in sequence_dict}
