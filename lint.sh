@@ -1,9 +1,12 @@
 #!/bin/bash
 set -o errexit
 
-find mhctools test -name '*.py' \
+# getting false positives due to this issue with pylint:
+# https://bitbucket.org/logilab/pylint/issues/701/false-positives-with-not-an-iterable-and
+
+find mhctools tests -name '*.py' \
   | xargs pylint \
   --errors-only \
-  --disable=print-statement
+  --disable=unsubscriptable-object,not-an-iterable
 
 echo 'Passes pylint check'
