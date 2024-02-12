@@ -2,11 +2,7 @@ from nose.tools import eq_
 
 from mhctools import NetMHCpan
 
-# Defining FileNotFoundError for Python 2.x
-try:
-    FileNotFoundError
-except NameError:
-    FileNotFoundError = IOError
+
 
 
 DEFAULT_ALLELE = 'HLA-A*02:01'

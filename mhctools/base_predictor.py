@@ -242,7 +242,7 @@ class BasePredictor(object):
         HLA alleles, return a set of alleles that we will pass into
         the MHC binding predictor.
         """
-        require_iterable_of(alleles, string_types, "HLA alleles")
+        require_iterable_of(alleles, str, "HLA alleles")
 
         # Don't run the MHC predictor twice for homozygous alleles,
         # only run it for unique alleles

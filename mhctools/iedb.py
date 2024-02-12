@@ -153,7 +153,7 @@ class IedbBasePredictor(BasePredictor):
         # for not raising, since sometimes we want to be more permissive with IEDB predictors
         self.raise_on_error = raise_on_error
 
-        if not isinstance(url, string_types):
+        if not isinstance(url, str):
             raise TypeError("Expected URL to be string, not %s : %s" % (
                 url, type(url)))
         self.url = url
