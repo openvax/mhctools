@@ -40,9 +40,12 @@ jobs:
       - name: Run default linting script
         run: |
           ./lint.sh
+      - name: Checkout private netmhc-bundle repo
+        uses: actions/checkout@v4
+        with:
+          repository: openvax/netmhc-bundle
       - name: Install MHCflurry data
         run: |
-          # TODO: also install netmhc-bundle for testing
           mhcflurry-downloads fetch
       - name: Run unit tests
         run: |
