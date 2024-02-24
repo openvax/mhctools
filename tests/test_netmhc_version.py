@@ -1,7 +1,7 @@
-from nose.tools import raises, eq_
 
 from mhctools import NetMHC, NetMHC3, NetMHC4
 from mhcnames import normalize_allele_name
+from .common import raises, eq_
 
 
 def run_class_with_executable(mhc_class, mhc_executable):

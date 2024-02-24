@@ -1,6 +1,18 @@
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import sys
 
-from nose.tools import eq_, nottest
+from .common  import eq_
 from numpy import testing
 
 from mhcflurry import Class1AffinityPredictor
@@ -14,14 +26,6 @@ protein_sequence_dict = {
 }
 
 
-def skip_if_py2(function):
-    if sys.version_info[0] < 3:
-        print("MHCflurry requires python 3. Skipping test.")
-        return nottest(function)
-    return function
-
-
-@skip_if_py2
 def test_mhcflurry():
     predictor = MHCflurry(alleles=[DEFAULT_ALLELE])
     binding_predictions = predictor.predict_subsequences(

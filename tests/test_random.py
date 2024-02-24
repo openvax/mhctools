@@ -1,6 +1,6 @@
 
-from nose.tools import eq_
 from mhctools import RandomBindingPredictor
+from .common import eq_
 
 
 alleles = [
