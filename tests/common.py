@@ -64,6 +64,7 @@ class assert_raises:
     
     def to_string(self):
         return " or ".join(["%s" % e for e in self.exception_types])
+    
     def __exit__(self, type, value, traceback):
         if type is None:
             raise AssertionError("Expected exception %s not raised" % self.to_string())
