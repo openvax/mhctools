@@ -56,24 +56,26 @@ def lte_(x, y, msg=None):
         assert x <= y, msg
 
 class assert_raises:
-    def __init__(self, exception_type):
-        self.exception_type = exception_type
+    def __init__(self, *exception_types):
+        self.exception_types = exception_types
 
     def __enter__(self):
         pass
-
+    
+    def to_string(self):
+        return " or ".join(["%s" % e for e in self.exception_types])
     def __exit__(self, type, value, traceback):
         if type is None:
-            raise AssertionError("Expected exception %s not raised" % self.exception_type)
-        if type != self.exception_type:
-            raise AssertionError("Expected exception %s, got %s" % (self.exception_type, type))
+            raise AssertionError("Expected exception %s not raised" % self.to_string())
+        if type not in self.exception_types:
+            raise AssertionError("Expected exception %s, got %s" % (self.to_string(), type))
         return True
     
-def raises(exception_type):    
+def raises(*exception_types):    
     def decorator(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
-            with assert_raises(exception_type):
+            with assert_raises(*exception_types):
                 f(*args, **kwargs)
         return wrapper
     return decorator
