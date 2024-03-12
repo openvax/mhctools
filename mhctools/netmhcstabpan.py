@@ -36,4 +36,10 @@ class NetMHCstabpan(BaseCommandlinePredictor):
             allele_flag="-a",
             extra_flags=flags,
             process_limit=process_limit)
+        
+    def predict_peptides(self, peptides):
+        peptide_lengths = set(len(p) for p in peptides)
+        if len(peptide_lengths) > 1:
+            raise ValueError("All peptides must be the same length")
+        return super().predict_peptides(peptides)
     

@@ -24,6 +24,12 @@ def eq_(x, y, msg=None):
     else:
         assert x == y, msg
 
+def approx_(x, y, tol=1e-6, msg=None):
+    if msg is None:
+        assert abs(x - y) < tol
+    else:
+        assert abs(x - y) < tol, msg
+
 def neq_(x, y, msg=None):
     if msg is None:
         assert x != y
