@@ -600,3 +600,46 @@ def parse_netmhciipan4_stdout(
         rank_index=8 if mode == "elution_score" else 12,
         score_index=7 if mode == "elution_score" else 10,
         transforms=transforms)
+
+def parse_netmhcstabpan(
+        stdout,
+        prediction_method_name="netmhcstabpan",
+        sequence_key_mapping=None,
+        mode=None):
+    """
+    # NetMHCstabpan version 1.0
+
+    # Input is in PEPTIDE format
+
+    HLA-A02:01 : Distance to traning data  0.000 (using nearest neighbor HLA-A02:01)
+
+    # Rank Threshold for Strong binding peptides   0.500
+    # Rank Threshold for Weak binding peptides   2.000
+    -----------------------------------------------------------------------------------------------------
+     pos      HLA         peptide         Identity       Pred     Thalf(h) %Rank_Stab BindLevel
+    -----------------------------------------------------------------------------------------------------
+        0  HLA-A*02:01   AAAAAAAAAA         PEPLIST      0.075       0.27      19.00
+    -----------------------------------------------------------------------------------------------------
+
+    Protein PEPLIST. Allele HLA-A*02:01. Number of high binders 0. Number of weak binders 0. Number of peptides 1
+
+    -----------------------------------------------------------------------------------------------------
+    """
+
+    # the offset specified in "pos" (at index 0) is 1-based instead of 0-based. we adjust it to be
+    # 0-based, as in all the other netmhc predictors supported by this library.
+    transforms = {
+        0: lambda x: int(x) - 1,
+    }
+    return parse_stdout(
+        stdout=stdout,
+        prediction_method_name=prediction_method_name,
+        sequence_key_mapping=sequence_key_mapping,
+        key_index=3,
+        offset_index=0,
+        peptide_index=2,
+        allele_index=1,
+        score_index=5,
+        rank_index=6,
+        transforms=transforms)
+
