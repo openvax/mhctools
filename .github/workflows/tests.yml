@@ -34,7 +34,9 @@ jobs:
           path: $HOME/netmhc-bundle
       - name: Configure netmhc-bundle paths
         run: |
-          export NETMHC_BUNDLE_HOME=$$HOME/netmhc-bundle
+
+          export NETMHC_BUNDLE_HOME=$HOME/netmhc-bundle
+          echo "Home dir:" && ls -l $HOME && echo "NetMHC-Bundle dir:" && ls -l $NETMHC_BUNDLE_HOME
           mkdir $HOME/tmp
           export NETMHC_BUNDLE_TMPDIR=$HOME/tmp
           export PATH=$PATH:$NETMHC_BUNDLE_HOME/bin
