@@ -21,6 +21,7 @@ from .netmhc_pan4 import NetMHCpan4, NetMHCpan4_BA, NetMHCpan4_EL
 from .netmhc_pan41 import NetMHCpan41, NetMHCpan41_BA, NetMHCpan41_EL
 from .netmhcii_pan import NetMHCIIpan, NetMHCIIpan3, NetMHCIIpan4, NetMHCIIpan4_BA, NetMHCIIpan4_EL
 from .random_predictor import RandomBindingPredictor
+from .netmhcstabpan import NetMHCstabpan
 from .unsupported_allele import UnsupportedAllele
 
 __version__ = "1.9.0"
@@ -54,6 +55,7 @@ __all__ = [
     "NetMHCIIpan4",
     "NetMHCIIpan4_BA",
     "NetMHCIIpan4_EL",
+    "NetMHCstabpan",
     "RandomBindingPredictor",
     "UnsupportedAllele",
 ]
