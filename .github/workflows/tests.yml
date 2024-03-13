@@ -20,10 +20,7 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-      - name: Get the current WORKDIR
-        run: |
-          export WORKDIR=$PWD/..
-          ls -l $WORKDIR
+
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v3
         with:
@@ -35,13 +32,13 @@ jobs:
         with:
           repository: openvax/netmhc-bundle
           token: ${{ secrets.NETMHC_BUNDLE_ACCESS_TOKEN }}
-          path: $WORKDIR/netmhc-bundle
+          path: netmhc-bundle
       - name: Configure netmhc-bundle paths
         run: |
-          export NETMHC_BUNDLE_HOME=$WORKDIR/netmhc-bundle
+          export NETMHC_BUNDLE_HOME=$PWD/netmhc-bundle
           echo "NetMHC-bundle dir:" && ls -l $NETMHC_BUNDLE_HOME
-          mkdir $WORKDIR/tmp
-          export NETMHC_BUNDLE_TMPDIR=$WORKDIR/tmp
+          mkdir $PWD/netmhc-bundle-tmp
+          export NETMHC_BUNDLE_TMPDIR=$PWD/netmhc-bundle-tmp
           export PATH=$PATH:$NETMHC_BUNDLE_HOME/bin
           # make sure netmhc-bundle tools are actually installed
           echo `which netMHC` && echo `which netMHCpan` && echo `which netMHCcons`
