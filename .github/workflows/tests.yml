@@ -19,7 +19,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v3
         with:
@@ -30,8 +30,11 @@ jobs:
         with:
           repository: openvax/netmhc-bundle
           token: ${{ secrets.NETMHC_BUNDLE_ACCESS_TOKEN }}
+          path: netmhc-bundle
       - name: Configure netmhc-bundle paths
         run: |
+          ls -l .
+          ls -l netmhc-bundle
           export NETMHC_BUNDLE_HOME=$PWD/netmhc-bundle
           mkdir tmp
           export NETMHC_BUNDLE_TMPDIR=$PWD/tmp
