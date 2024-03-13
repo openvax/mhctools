@@ -36,4 +36,4 @@ def test_Gag_epitope():
     #   Transgenic Mice
     for mhc_class in mhc_classes:
         mhc_model = mhc_class("HLA-DRB1*04:01", default_peptide_lengths=15)
-        yield (expect_binder, mhc_model, "LERFAVNPGLLETSE")
+        expect_binder(mhc_model, "LERFAVNPGLLETSE")
