@@ -25,19 +25,18 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: "pip"
+
       - name: Checkout private netmhc-bundle repo
         uses: actions/checkout@v4
         with:
           repository: openvax/netmhc-bundle
           token: ${{ secrets.NETMHC_BUNDLE_ACCESS_TOKEN }}
-          path: netmhc-bundle
+          path: $HOME/netmhc-bundle
       - name: Configure netmhc-bundle paths
         run: |
-          ls -l .
-          ls -l netmhc-bundle
-          export NETMHC_BUNDLE_HOME=$PWD/netmhc-bundle
-          mkdir tmp
-          export NETMHC_BUNDLE_TMPDIR=$PWD/tmp
+          export NETMHC_BUNDLE_HOME=$$HOME/netmhc-bundle
+          mkdir $HOME/tmp
+          export NETMHC_BUNDLE_TMPDIR=$HOME/tmp
           export PATH=$PATH:$NETMHC_BUNDLE_HOME/bin
           # make sure netmhc-bundle tools are actually installed
           echo `which netMHC` && echo `which netMHCpan` && echo `which netMHCcons`
