@@ -36,10 +36,10 @@ OPTIONAL_NETMHCPAN_PROGRAM_NAMES = [
 
 
 def test_netmhc_pan():
-    yield check_netmhc_pan, "netMHCpan", True  # required
+    check_netmhc_pan("netMHCpan", True)  # required
 
     for program_name in OPTIONAL_NETMHCPAN_PROGRAM_NAMES:
-        yield check_netmhc_pan, program_name, False  # optional
+        check_netmhc_pan(program_name, False)  # optional
 
 
 def check_netmhc_pan(program_name, fail_if_no_such_program=True):

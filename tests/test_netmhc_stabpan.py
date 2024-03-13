@@ -40,8 +40,7 @@ web_server_predictions = [
 def test_netmhc_stabpan_accuracy():    
     # Check that the netMHCstabpan program is working and returning th eexpected outputs.
     predictor = NetMHCstabpan(
-    alleles=[DEFAULT_ALLELE], program_name='netMHCstabpan'
-    )
+        alleles=[DEFAULT_ALLELE], program_name='netMHCstabpan')
 
     binding_predictions = predictor.predict_peptides(protein_sequences)
     stability_predictions = [p.score for p in binding_predictions]

@@ -54,7 +54,7 @@ if __name__ == '__main__':
             'Topic :: Scientific/Engineering :: Bio-Informatics',
         ],
         install_requires=[
-            'numpy>=1.7',
+            'numpy>=1.7,<2.0',
             'pandas>=0.13.1',
             'varcode>=0.5.9',
             'pyensembl>=1.0.3',

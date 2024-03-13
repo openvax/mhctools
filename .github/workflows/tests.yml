@@ -68,6 +68,7 @@ jobs:
           echo `which netMHCcons` && netMHCcons -h
           echo `which netMHCstab` && netMHCstab -h
           echo `which netMHCstabpan` && netMHCstabpan -h
+
           ./test.sh
       - name: Publish coverage to Coveralls
         uses: coverallsapp/github-action@v2.2.3

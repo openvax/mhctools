@@ -132,10 +132,10 @@ protein_sequence_dict = {
 
 # follows similar model to test_netmhc_pan.py
 def test_netmhcii_pan():
-    yield check_netmhcii_pan, "netMHCIIpan", True  # required
+    check_netmhcii_pan("netMHCIIpan", True)  # required
 
     for program_name in OPTIONAL_NETMHCIIPAN_PROGRAM_NAMES:
-        yield check_netmhcii_pan, program_name, False  # optional
+        check_netmhcii_pan(program_name, False)  # optional
 
 # TODO: add more actual tests to this
 def check_netmhcii_pan(program_name, fail_if_no_such_program=True):
