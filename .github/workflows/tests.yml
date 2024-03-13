@@ -37,6 +37,8 @@ jobs:
           export NETMHC_BUNDLE_TMPDIR=$PWD/tmp
           export PATH=$PATH:$NETMHC_BUNDLE_HOME/bin
           # make sure netmhc-bundle tools are actually installed
+          echo `which netMHC` && echo `which netMHCpan` && echo `which netMHCcons`
+          # make sure netmhc-bundle tools are executable
           netMHC -h
       - name: Install dependencies
         run: |
