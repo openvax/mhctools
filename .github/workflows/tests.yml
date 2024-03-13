@@ -39,8 +39,7 @@ jobs:
         with:
           packages: tcsh
           version: 1.0
-        run: |
-          sudo apt-get update
+
       - name: Configure netmhc-bundle paths
         run: |
           export NETMHC_BUNDLE_HOME=$PWD/netmhc-bundle
