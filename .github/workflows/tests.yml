@@ -33,6 +33,14 @@ jobs:
           repository: openvax/netmhc-bundle
           token: ${{ secrets.NETMHC_BUNDLE_ACCESS_TOKEN }}
           path: netmhc-bundle
+
+      - name: Install netmhc-bundle dependencies
+        uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: tcsh
+          version: 1.0
+        run: |
+          sudo apt-get update
       - name: Configure netmhc-bundle paths
         run: |
           export NETMHC_BUNDLE_HOME=$PWD/netmhc-bundle
