@@ -47,10 +47,15 @@ jobs:
           mkdir $PWD/netmhc-bundle-tmp
           export NETMHC_BUNDLE_TMPDIR=$PWD/netmhc-bundle-tmp
           export PATH=$PATH:$NETMHC_BUNDLE_HOME/bin
+      - name: Make sure all the netmhc-bundle tools can run
+        run: |
           # make sure netmhc-bundle tools are actually installed
-          echo `which netMHC` && echo `which netMHCpan` && echo `which netMHCcons`
-          # make sure netmhc-bundle tools are executable
-          netMHC -h
+          echo `which netMHC` && netMHC -h
+          echo `which netMHCpan` && netMHCpan -h
+          echo `which netMHCcons` && netMHCcons -h
+          echo `which netMHCstab` && netMHCstab -h
+          echo `which netMHCstabpan` && netMHCstabpan -h
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
