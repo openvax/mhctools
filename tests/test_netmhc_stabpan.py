@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import numpy as np
+from numpy.testing import assert_allclose
 from mhctools import NetMHCstabpan
 
 
@@ -57,6 +57,6 @@ def test_netmhc_stabpan_accuracy():
     for i, (expected, actual) in enumerate(zip(web_server_predictions, stability_predictions)):
         # Check to make sure that the stability predictions are within 0.01 of the webserver values.
         # This could be the result of different versions of dependencies or the nature of the ANN itself.
-        np.testing.assert_allclose(expected, actual, atol=0.01, error_msg="Peptide %d: expected %f but got %f" % (i, expected, actual))
+        assert_allclose(expected, actual, atol=0.01, err_msg="Peptide %d: expected %f but got %f" % (i, expected, actual))
 
     
