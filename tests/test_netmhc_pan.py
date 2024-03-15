@@ -15,8 +15,6 @@ from .common import eq_
 from mhctools import NetMHCpan
 
 
-
-
 DEFAULT_ALLELE = 'HLA-A*02:01'
 
 protein_sequence_dict = {
@@ -67,3 +65,25 @@ def check_netmhc_pan(program_name, fail_if_no_such_program=True):
         eq_(expected_peptide, x.peptide,
             "Peptide mismatch: expected %s but got %s in binding prediction '%s'" % (
                 expected_peptide, x.peptide, x,))
+
+
+def test_netmhc_pan_multiple_lengths():
+    predictor = NetMHCpan(alleles=["A6801"])
+    binding_predictions = predictor.predict_peptides(
+        ["A" * 8, "A" * 9, "A" * 10, "A" * 11])
+    assert len(binding_predictions) == 4, \
+        "Expected 4 epitopes from %s" % (binding_predictions,)
+
+def test_netmhc_pan_multiple_alleles():
+    alleles = 'A*02:01,B*35:02'
+    predictor = NetMHCpan(
+        alleles=alleles,
+        default_peptide_lengths=[9])
+    sequence_dict = {
+        "SMAD4-001": "ASIINFKELA",
+        "TP53-001": "ASILLLVFYW"
+    }
+    binding_predictions = predictor.predict_subsequences(
+        sequence_dict=sequence_dict)
+    assert len(binding_predictions) == 8, \
+        "Expected 4 binding predictions from %s" % (binding_predictions,)

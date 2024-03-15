@@ -13,12 +13,9 @@
 """
 Make sure all class II binding predictors give a high IC50 and percentile rank.
 """
-import mhctools
+import pytest
+from .predictor_classes import mhc2_predictor_classes
 
-mhc_classes = [
-    mhctools.NetMHCIIpan,
-    mhctools.IedbNetMHCIIpan,
-]
 
 def expect_binder(mhc_model, peptide):
     prediction = mhc_model.predict(peptide)[0]
@@ -29,11 +26,12 @@ def expect_binder(mhc_model, peptide):
         assert prediction.percentile_rank < 5, "Expected %s to have percent rank < 3, got %s" % (
             peptide, prediction)
 
-def test_Gag_epitope():
+
+@pytest.mark.parametrize("mhc_class", mhc2_predictor_classes)
+def test_Gag_epitope(mhc_class):
     # Test the DRB1*04:01 HIV epitope LERFAVNPGLLETSE from
     #   Dendritic Cell Mediated Delivery of Plasmid DNA Encoding LAMP/HIV-1 Gag
     #   Fusion Immunogen Enhances T Cell Epitope Responses in HLA DR4
     #   Transgenic Mice
-    for mhc_class in mhc_classes:
-        mhc_model = mhc_class("HLA-DRB1*04:01", default_peptide_lengths=15)
-        expect_binder(mhc_model, "LERFAVNPGLLETSE")
+    mhc_model = mhc_class("HLA-DRB1*04:01", default_peptide_lengths=15)
+    expect_binder(mhc_model, "LERFAVNPGLLETSE")

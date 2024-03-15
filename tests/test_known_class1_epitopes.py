@@ -13,19 +13,10 @@
 """
 Make sure all class I binding predictors give a high IC50 and percentile rank.
 """
+import pytest
 import mhctools
+from .predictor_classes import mhc1_predictor_classes
 
-mhc_classes = [
-    mhctools.NetMHCcons,
-    mhctools.NetMHCpan,
-    mhctools.NetMHC,
-    mhctools.NetMHC3,
-    mhctools.NetMHC4,
-    mhctools.IedbNetMHCcons,
-    mhctools.IedbNetMHCpan,
-    mhctools.IedbSMM,
-    mhctools.IedbSMM_PMBEC,
-]
 
 # Tests assume that a netMHC-3.4 binary exists, and that netMHC is 4.0.
 program_name_overrides = {mhctools.NetMHC3: "netMHC-3.4"}
@@ -41,18 +32,19 @@ def make_mhc_model(mhc_class, alleles):
         kwargs.update({"program_name": program_name_overrides[mhc_class]})
     return mhc_class(**kwargs)
 
-def test_MAGE_epitope():
+
+@pytest.mark.parametrize("mhc_class", mhc1_predictor_classes)
+def test_MAGE_epitope(mhc_class):
     # Test the A1 MAGE epitope ESDPIVAQY from
     #   Identification of a Titin-Derived HLA-A1-Presented Peptide
     #   as a Cross-Reactive Target for Engineered MAGE A3-Directed
     #   T Cells
-    for mhc_class in mhc_classes:
-        mhc_model = make_mhc_model(mhc_class, "HLA-A*01:01")
-        expect_binder(mhc_model, "ESDPIVAQY")
+    mhc_model = make_mhc_model(mhc_class, "HLA-A*01:01")
+    expect_binder(mhc_model, "ESDPIVAQY")
 
-def test_HIV_epitope():
+@pytest.mark.parametrize("mhc_class", mhc1_predictor_classes)
+def test_HIV_epitope(mhc_class):
     # Test the A2 HIV epitope SLYNTVATL from
     #    The HIV-1 HLA-A2-SLYNTVATL Is a Help-Independent CTL Epitope
-    for mhc_class in mhc_classes:
-        mhc_model = make_mhc_model(mhc_class, "HLA-A*02:01")
-        expect_binder(mhc_model, "SLYNTVATL")
+    mhc_model = make_mhc_model(mhc_class, "HLA-A*02:01")
+    expect_binder(mhc_model, "SLYNTVATL")

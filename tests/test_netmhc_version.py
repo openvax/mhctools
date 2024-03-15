@@ -1,7 +1,8 @@
-
+import pytest 
 from mhctools import NetMHC, NetMHC3, NetMHC4
 from mhcnames import normalize_allele_name
 from .common import raises, eq_
+from .arch import apple_silicon
 
 
 def run_class_with_executable(mhc_class, mhc_executable):
@@ -21,30 +22,36 @@ def run_class_with_executable(mhc_class, mhc_executable):
 def test_executable_mismatch_3_4():
     run_class_with_executable(NetMHC3, "netMHC")
 
+@pytest.mark.skipif(apple_silicon, "Can't run netMHC-3.4 on arm64 architecture")
 @raises(SystemError)
 def test_executable_mismatch_4_3():
     run_class_with_executable(NetMHC4, "netMHC-3.4")
 
-def test_wrapper_function():
+def test_wrapper_function_netMHC4():
     alleles = [normalize_allele_name("HLA-A*02:01")]
     wrapped_4 = NetMHC(
         alleles=alleles,
         default_peptide_lengths=[9],
         program_name="netMHC")
     eq_(type(wrapped_4), NetMHC4)
+
+@pytest.mark.skipif(apple_silicon, "Can't run netMHC-3.4 on arm64 architecture")
+def test_wrapper_function_netMHC3():
+    alleles = [normalize_allele_name("HLA-A*02:01")]
     wrapped_3 = NetMHC(
         alleles=alleles,
         default_peptide_lengths=[9],
         program_name="netMHC-3.4")
     eq_(type(wrapped_3), NetMHC3)
 
-@raises(SystemError, OSError)
+@raises(SystemError, OSError, FileNotFoundError)
 def test_wrapper_failure():
     alleles = [normalize_allele_name("HLA-A*02:01")]
     NetMHC(alleles=alleles,
            default_peptide_lengths=[9],
            program_name="netMHC-none")
 
+@pytest.mark.skipif(apple_silicon, "Can't run netMHC-3.4 on arm64 architecture")
 def test_multiple_lengths_netmhc3():
     alleles = [normalize_allele_name("H-2-Kb")]
     predictor = NetMHC3(alleles=alleles,

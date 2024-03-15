@@ -10,9 +10,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import pytest 
 from numpy import testing
-
 from mhctools import NetChop
+from .arch import apple_silicon
 
 # Peptides from http://tools.iedb.org/netchop/example/
 peptides = """
@@ -22,6 +23,7 @@ MDSHTVSSFQDILMRMSKMQLGSSSGDLNGMITQFESLKLYRDSLGEAVMRLGDLHSLQHRNGKWREQLGQKFEEIRWLI
 """.strip().split()
 
 
+@pytest.mark.skipif(apple_silicon, "Can't run netChop on arm64 architecture")
 def test_simple():
     obj = NetChop()
     result = obj.predict(peptides)
