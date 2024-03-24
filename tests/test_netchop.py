@@ -23,7 +23,7 @@ MDSHTVSSFQDILMRMSKMQLGSSSGDLNGMITQFESLKLYRDSLGEAVMRLGDLHSLQHRNGKWREQLGQKFEEIRWLI
 """.strip().split()
 
 
-@pytest.mark.skipif(apple_silicon, "Can't run netChop on arm64 architecture")
+@pytest.mark.skipif(apple_silicon, reason="Can't run netChop on arm64 architecture")
 def test_simple():
     obj = NetChop()
     result = obj.predict(peptides)

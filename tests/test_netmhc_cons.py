@@ -20,7 +20,7 @@ from .arch import apple_silicon
 
 DEFAULT_ALLELE = 'HLA-A*02:01'
 
-@pytest.mark.skipif(apple_silicon, "Can't run netMHCcons on arm64 architecture")
+@pytest.mark.skipif(apple_silicon, reason="Can't run netMHCcons on arm64 architecture")
 def test_netmhc_cons():
     alleles = [normalize_allele_name(DEFAULT_ALLELE)]
     cons_predictor = NetMHCcons(
@@ -36,7 +36,7 @@ def test_netmhc_cons():
     assert len(binding_predictions) == 4, \
         "Expected 4 epitopes from %s" % (binding_predictions,)
 
-@pytest.mark.skipif(apple_silicon, "Can't run netMHCcons on arm64 architecture")
+@pytest.mark.skipif(apple_silicon, reason="Can't run netMHCcons on arm64 architecture")
 def test_netmhc_cons_multiple_lengths():
     cons_predictor = NetMHCcons(alleles=["A6801"])
     binding_predictions = cons_predictor.predict_peptides(
@@ -44,7 +44,7 @@ def test_netmhc_cons_multiple_lengths():
     assert len(binding_predictions) == 4, \
         "Expected 4 epitopes from %s" % (binding_predictions,)
 
-@pytest.mark.skipif(apple_silicon, "Can't run netMHCcons on arm64 architecture")
+@pytest.mark.skipif(apple_silicon, reason="Can't run netMHCcons on arm64 architecture")
 def test_netmhc_cons_multiple_alleles():
     alleles = 'A*02:01,B*35:02'
     cons_predictor = NetMHCcons(
@@ -59,7 +59,7 @@ def test_netmhc_cons_multiple_alleles():
     assert len(binding_predictions) == 8, \
         "Expected 4 binding predictions from %s" % (binding_predictions,)
 
-@pytest.mark.skipif(apple_silicon, "Can't run netMHCcons on arm64 architecture")
+@pytest.mark.skipif(apple_silicon, reason="Can't run netMHCcons on arm64 architecture")
 def test_netmhc_cons_process_limits():
     alleles = [normalize_allele_name(DEFAULT_ALLELE)]
     sequence_dict = {
