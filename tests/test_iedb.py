@@ -10,6 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import pytest
 from mhctools import IedbNetMHCpan
 from .common import assert_raises
 
@@ -22,7 +23,7 @@ protein_sequence_dict = {
     "TP53-001": "ASILLLVFYW"
 }
 
-
+@pytest.mark.xfail(reason="IEDB server giving 403 errors from GitHub actions runners")
 def test_netmhcpan_iedb():
     predictor = IedbNetMHCpan(alleles=[DEFAULT_ALLELE])
     binding_predictions = predictor.predict_subsequences(
@@ -37,7 +38,7 @@ def test_netmhcpan_iedb():
     assert len(binding_predictions) == 10, \
         "Expected 4 binding predictions from %s" % (binding_predictions,)
 
-
+@pytest.mark.xfail(reason="IEDB server giving 403 errors from GitHub actions runners")
 def test_netmhcpan_iedb_unsupported_allele():
     predictor = IedbNetMHCpan(alleles=[DEFAULT_ALLELE, UNSUPPORTED_ALLELE], raise_on_error=False)
     binding_predictions = predictor.predict_subsequences(

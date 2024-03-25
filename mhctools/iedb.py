@@ -19,7 +19,6 @@ from urllib.parse import urlencode
 
 
 import pandas as pd
-import numpy as np
 from mhcnames.normalization import normalize_allele_name
 
 from .base_predictor import BasePredictor
@@ -174,7 +173,6 @@ class IedbBasePredictor(BasePredictor):
         }
         if self.include_length_in_request:
             params["length"] = seq_to_str(peptide_lengths)
-
         return params
 
     def predict_peptides(self, peptides):
