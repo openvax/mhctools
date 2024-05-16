@@ -18,7 +18,7 @@ from subprocess import check_output
 from mhcnames import parse_classi_or_classii_allele_name
 
 from .base_commandline_predictor import BaseCommandlinePredictor
-from .parsing import parse_netmhciipan_stdout, parse_netmhciipan4_stdout
+from .parsing import parse_netmhciipan_stdout, parse_netmhciipan4_stdout, parse_netmhciipan43_stdout
 
 logger = logging.getLogger(__name__)
 
@@ -216,3 +216,73 @@ def NetMHCIIpan(
         return NetMHCIIpan3(**kwargs)
     else:
         raise ValueError("This software expects NetMHCIIpan version 3.x or 4.0")
+
+
+class NetMHCIIpan43(NetMHCIIpanBase):
+    """
+    Wrapper for NetMHCIIpan 4.3, using a different parser.
+    """
+    def __init__(
+            self,
+            alleles,
+            default_peptide_lengths=[15, 16, 17, 18, 19, 20],
+            program_name="netMHCIIpan",
+            process_limit=-1,
+            mode="elution_score",
+            extra_flags=[]):
+
+        if mode not in ['binding_affinity', 'elution_score']:
+            raise ValueError("Unsupported mode", mode)
+
+        # Always include binding affinity data (-BA flag), though the main score and %rank will
+        # still be EL-based. This gives us access to the BA-based score and %rank columns.
+
+        NetMHCIIpanBase.__init__(
+            self,
+            alleles=alleles,
+            program_name=program_name,
+            process_limit=process_limit,
+            parse_output_fn=partial(parse_netmhciipan43_stdout, mode=mode),
+            default_peptide_lengths=default_peptide_lengths,
+            extra_flags=['-BA'] + extra_flags)
+
+class NetMHCIIpan43_EL(NetMHCIIpan43):
+    """
+    Wrapper for NetMHCIIpan43 when the preferred mode is elution score
+    """
+    def __init__(
+            self,
+            alleles,
+            default_peptide_lengths=[15, 16, 17, 18, 19, 20],
+            program_name="netMHCIIpan",
+            process_limit=-1,
+            extra_flags=[]):
+        NetMHCIIpan43.__init__(
+            self,
+            alleles=alleles,
+            default_peptide_lengths=default_peptide_lengths,
+            program_name=program_name,
+            process_limit=process_limit,
+            mode="elution_score",
+            extra_flags=extra_flags)
+
+
+class NetMHCIIpan43_BA(NetMHCIIpan43):
+    """
+    Wrapper for NetMHCIIpan43 when the preferred mode is binding affinity
+    """
+    def __init__(
+            self,
+            alleles,
+            default_peptide_lengths=[15, 16, 17, 18, 19, 20],
+            program_name="netMHCIIpan",
+            process_limit=-1,
+            extra_flags=[]):
+        NetMHCIIpan43.__init__(
+            self,
+            alleles=alleles,
+            default_peptide_lengths=default_peptide_lengths,
+            program_name=program_name,
+            process_limit=process_limit,
+            mode="binding_affinity",
+            extra_flags=extra_flags)

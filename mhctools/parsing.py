@@ -565,13 +565,13 @@ def parse_netmhciipan4_stdout(
     --------------------------------------------------------------------------------------------------------------------------------------------
      Pos           MHC              Peptide   Of        Core  Core_Rel        Identity      Score_EL %Rank_EL Exp_Bind      Score_BA  Affinity(nM) %Rank_BA  BindLevel
     --------------------------------------------------------------------------------------------------------------------------------------------
-       1     DRB1_0101      PAPAPSWPLSSSVPS    4   PSWPLSSSV     0.327            test      0.000857    79.79       NA      0.327674       1442.91    54.35       
-       2     DRB1_0101      APAPSWPLSSSVPSQ    3   PSWPLSSSV     0.333            test      0.001268    71.87       NA      0.346949       1171.30    50.15       
-       3     DRB1_0101      PAPSWPLSSSVPSQK    4   WPLSSSVPS     0.713            test      0.002836    54.45       NA      0.412004        579.40    36.66       
-       4     DRB1_0101      APSWPLSSSVPSQKT    3   WPLSSSVPS     0.773            test      0.003677    49.14       NA      0.448939        388.53    29.75       
-       5     DRB1_0101      PSWPLSSSVPSQKTY    2   WPLSSSVPS     0.407            test      0.001602    66.79       NA      0.470979        306.09    25.98       
-       6     DRB1_0101      SWPLSSSVPSQKTYQ    3   LSSSVPSQK     0.633            test      0.001671    65.82       NA      0.476222        289.21    25.07       
-       7     DRB1_0101      WPLSSSVPSQKTYQG    3   SSSVPSQKT     0.553            test      0.001697    65.45       NA      0.447217        395.83    30.05    
+       1     DRB1_0101      PAPAPSWPLSSSVPS    4   PSWPLSSSV     0.327            test      0.000857    79.79       NA      0.327674       1442.91    54.35
+       2     DRB1_0101      APAPSWPLSSSVPSQ    3   PSWPLSSSV     0.333            test      0.001268    71.87       NA      0.346949       1171.30    50.15
+       3     DRB1_0101      PAPSWPLSSSVPSQK    4   WPLSSSVPS     0.713            test      0.002836    54.45       NA      0.412004        579.40    36.66
+       4     DRB1_0101      APSWPLSSSVPSQKT    3   WPLSSSVPS     0.773            test      0.003677    49.14       NA      0.448939        388.53    29.75
+       5     DRB1_0101      PSWPLSSSVPSQKTY    2   WPLSSSVPS     0.407            test      0.001602    66.79       NA      0.470979        306.09    25.98
+       6     DRB1_0101      SWPLSSSVPSQKTYQ    3   LSSSVPSQK     0.633            test      0.001671    65.82       NA      0.476222        289.21    25.07
+       7     DRB1_0101      WPLSSSVPSQKTYQG    3   SSSVPSQKT     0.553            test      0.001697    65.45       NA      0.447217        395.83    30.05
 
 
     """
@@ -643,3 +643,53 @@ def parse_netmhcstabpan(
         rank_index=6,
         transforms=transforms)
 
+def parse_netmhciipan43_stdout(
+        stdout,
+        prediction_method_name="netmhciipan",
+        sequence_key_mapping=None,
+        mode="elution_score"):
+    """
+    # Threshold for Strong binding peptides (%Rank)  1.00%
+    # Threshold for Weak binding peptides (%Rank)    5.00%
+
+    # DRB1_0101 : Distance to training data  0.000 (using nearest neighbor DRB1_0101)
+
+    # Allele: DRB1_0101
+    --------------------------------------------------------------------------------------------------------------------------------------------
+     Pos               MHC              Peptide   Of        Core  Core_Rel Inverted        Identity      Score_EL %Rank_EL  Exp_Bind      Score_BA %Rank_BA  Affinity(nM)  BindLevel
+    --------------------------------------------------------------------------------------------------------------------------------------------
+       1         DRB1_0101        AAAGAEAGKATTE    1   AAGAEAGKA     0.740        0        Sequence      0.000143    72.70     0.000      0.086339    95.13      19645.62
+       2         DRB1_0101      AALAAAAGVPPADKY    2   LAAAAGVPP     0.950        0        Sequence      0.030661    15.86     0.300      0.616438     7.87         63.44
+       3         DRB1_0101         EKPGNRNPYENL    3   GNRNPYENL     0.680        0        Sequence      0.000000   100.00     0.670      0.030746    98.27      35850.53
+       4         DRB1_0101      STWLLKPGAGIMIFD    2   WLLKPGAGI     0.420        0        Sequence      0.027506    16.58     0.000      0.708645     2.85         23.39
+       5         DRB1_0101      KSVPLEMLLINLTTI    4   LEMLLINLT     0.980        0        Sequence      0.007346    26.97     0.560      0.662093     4.95         38.71
+       6         DRB1_0101      KTKEDLFGKKNLIPS    5   LFGKKNLIP     0.560        0        Sequence      0.000144    72.62     0.670      0.298919    55.60       1969.51
+       7         DRB1_0101      KIYHKCDNACIGSIR    2   YHKCDNACI     0.830        0        Sequence      0.003393    34.40     0.940      0.407849    34.13        606.04
+       8         DRB1_0101      PCLFMRTVSHVILHG    3   FMRTVSHVI     0.960        0        Sequence      0.047565    13.05     0.345      0.664932     4.80         37.54
+       9         DRB1_0101      GAATVAAGAATTAAG    4   VAAGAATTA     0.920        0        Sequence      0.164981     6.81     0.000      0.514261    17.98        191.63
+  """
+    check_stdout_error(stdout, "NetMHCIIpan")
+
+    if mode not in ["elution_score", "binding_affinity"]:
+        raise ValueError("Mode is %s but must be one of: elution_score, binding affinity" % mode)
+
+    # the offset specified in "pos" (at index 0) is 1-based instead of 0-based. we adjust it to be
+    # 0-based, as in all the other netmhc predictors supported by this library.
+    transforms = {
+        0: lambda x: int(x) - 1,
+    }
+
+    # we're running NetMHCIIpan 4.3 with -BA every time so both EL and BA are available, but only
+    # return one of them depending on the input mode
+    return parse_stdout(
+        stdout=stdout,
+        prediction_method_name=prediction_method_name,
+        sequence_key_mapping=sequence_key_mapping,
+        key_index=7,
+        offset_index=0,
+        peptide_index=2,
+        allele_index=1,
+        ic50_index=13 if mode == "binding_affinity" else None,
+        rank_index=9 if mode == "elution_score" else 12,
+        score_index=8 if mode == "elution_score" else 11,
+        transforms=transforms)
