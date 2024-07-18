@@ -301,7 +301,8 @@ class BaseCommandlinePredictor(BasePredictor):
                         prefix="tmp_%d_%d_%s" % (
                             i,
                             j,
-                            self.program_name))
+                            self.program_name),
+                    suffix="XXXXXX")
                     logger.debug(
                         "Created temporary directory %s for allele %s",
                         temp_dirname,
