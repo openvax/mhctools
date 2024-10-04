@@ -1,3 +1,3 @@
 set -e
 
-pip install -e .
+uv pip install -e .
