@@ -1,31 +1,65 @@
-# This workflow will install Python dependencies, run tests and lint with a variety of Python versions
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
+name: CI
 
-# TODO:
-# - cache this directory $HOME/.cache/pyensembl/
-# - update coveralls
-# - get a badge for tests passing
-# - download binary dependencies from conda
-name: Tests
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+
+permissions:
+  contents: read
 
 jobs:
-  build:
+  quality:
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
-        python-version: ["3.9", "3.10", "3.11"]
+        python-version: ["3.10", "3.11", "3.12"]
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-          cache: "pip"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+
+      - name: Run lint checks
+        run: ./lint.sh
+
+      - name: Build distribution artifacts
+        run: python -m build --sdist --wheel --no-isolation
+
+      - name: Run public pytest subset
+        run: |
+          pytest -ra \
+            tests/test_binding_prediction.py \
+            tests/test_binding_prediction_collection.py \
+            tests/test_cli_parsing_helpers.py \
+            tests/test_mhc_formats.py \
+            tests/test_random.py
+
+  integration-netmhc:
+    if: ${{ secrets.NETMHC_BUNDLE_ACCESS_TOKEN != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
 
       - name: Checkout private netmhc-bundle repo
         uses: actions/checkout@v4
@@ -35,40 +69,23 @@ jobs:
           path: netmhc-bundle
 
       - name: Install netmhc-bundle dependencies
-        uses: awalsh128/cache-apt-pkgs-action@latest
-        with:
-          packages: tcsh gawk python2-minimal
-          version: 1.0
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tcsh gawk
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install flake8 pytest pytest-cov coveralls
+          python -m pip install -e ".[dev]"
 
-          echo `pwd` && echo " || requirements:" && cat requirements.txt
-          pip install -r requirements.txt
-          pip install .
-      - name: Run default linting script
-        run: |
-          ./lint.sh
       - name: Install MHCflurry data
-        run: |
-          mhcflurry-downloads fetch
-      - name: Run unit tests
-        run: |
-          # configure netmhc-bundle paths
-          export NETMHC_BUNDLE_HOME=$PWD/netmhc-bundle
-          echo "NetMHC-bundle dir:" && ls -l $NETMHC_BUNDLE_HOME
-          mkdir $PWD/netmhc-bundle-tmp
-          export NETMHC_BUNDLE_TMPDIR=$PWD/netmhc-bundle-tmp
-          export PATH=$PATH:$NETMHC_BUNDLE_HOME/bin
+        run: mhcflurry-downloads fetch
 
-          # make sure netmhc-bundle tools are actually installed
-          echo `which netMHC` && netMHC -h
-          echo `which netMHCpan` && netMHCpan -h
-          echo `which netMHCcons` && netMHCcons -h
-          echo `which netMHCstab` && netMHCstab -h
-          echo `which netMHCstabpan` && netMHCstabpan -h
-
+      - name: Run full test suite
+        env:
+          NETMHC_BUNDLE_HOME: ${{ github.workspace }}/netmhc-bundle
+          NETMHC_BUNDLE_TMPDIR: ${{ github.workspace }}/netmhc-bundle-tmp
+        run: |
+          mkdir -p "$NETMHC_BUNDLE_TMPDIR"
+          export PATH="$PATH:$NETMHC_BUNDLE_HOME/bin"
           ./test.sh
-      - name: Publish coverage to Coveralls
-        uses: coverallsapp/github-action@v2.2.3

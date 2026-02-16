@@ -1,3 +1,3 @@
 set -e
 
-uv pip install -e .
+uv pip install -e ".[dev]"

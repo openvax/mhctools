@@ -19,7 +19,7 @@ from subprocess import check_output
 import tempfile
 
 from typechecks import require_string, require_integer, require_iterable_of
-from mhcnames import normalize_allele_name, AlleleParseError
+from .allele_normalization import normalize_allele_name, AlleleParseError
 
 from .base_predictor import BasePredictor
 from .unsupported_allele import UnsupportedAllele

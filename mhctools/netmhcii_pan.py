@@ -15,7 +15,7 @@ import logging
 import os
 from subprocess import check_output
 
-from mhcnames import parse_classi_or_classii_allele_name
+from .allele_normalization import parse_classi_or_classii_allele_name
 
 from .base_commandline_predictor import BaseCommandlinePredictor
 from .parsing import parse_netmhciipan_stdout, parse_netmhciipan4_stdout, parse_netmhciipan43_stdout

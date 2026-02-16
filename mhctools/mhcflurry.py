@@ -68,7 +68,7 @@ class MHCflurry(BasePredictor):
             self.predictor = Class1AffinityPredictor.load()
 
         # relying on BasePredictor and MHCflurry to both normalize
-        # allele names the same way using mhcnames
+        # allele names to the same canonical representation
         for allele in self.alleles:
             if allele not in self.predictor.supported_alleles:
                 raise UnsupportedAllele(allele)

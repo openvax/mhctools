@@ -13,9 +13,6 @@
 # limitations under the License.
 
 from __future__ import print_function, division, absolute_import
-import logging
-import logging.config
-import pkg_resources
 import sys
 
 import pandas as pd
@@ -25,7 +22,7 @@ from .args import make_mhc_arg_parser, mhc_binding_predictor_from_args
 from mhctools.logging import get_logger
 
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 arg_parser = make_mhc_arg_parser(

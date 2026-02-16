@@ -14,7 +14,7 @@ import logging
 from collections import defaultdict
 
 from typechecks import require_iterable_of
-from mhcnames import normalize_allele_name
+from .allele_normalization import normalize_allele_name
 
 from .unsupported_allele import UnsupportedAllele
 from .binding_prediction_collection import BindingPredictionCollection

@@ -15,7 +15,7 @@ from tempfile import mkdtemp, NamedTemporaryFile
 from os.path import join, exists
 from os import remove
 
-from mhcnames import normalize_allele_name
+from .allele_normalization import normalize_allele_name
 
 from .base_predictor import BasePredictor
 from .binding_prediction import BindingPrediction
