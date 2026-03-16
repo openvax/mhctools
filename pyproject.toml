@@ -30,7 +30,7 @@ dependencies = [
   "pyensembl>=2.3.0,<3.0.0",
   "sercol>=0.0.2",
   "mhcflurry>=2.0.0",
-  "mhcgnomes>=2.0.0",
+  "mhcgnomes>=3.4.0",
 ]
 
 [project.optional-dependencies]
