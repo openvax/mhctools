@@ -19,7 +19,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v3
@@ -28,13 +28,16 @@ jobs:
           cache: "pip"
 
       - name: Checkout private netmhc-bundle repo
+        if: ${{ secrets.NETMHC_BUNDLE_ACCESS_TOKEN != '' }}
         uses: actions/checkout@v4
         with:
           repository: openvax/netmhc-bundle
+          ref: v1.0.0
           token: ${{ secrets.NETMHC_BUNDLE_ACCESS_TOKEN }}
           path: netmhc-bundle
 
       - name: Install netmhc-bundle dependencies
+        if: ${{ secrets.NETMHC_BUNDLE_ACCESS_TOKEN != '' }}
         uses: awalsh128/cache-apt-pkgs-action@latest
         with:
           packages: tcsh gawk python2-minimal
@@ -53,7 +56,8 @@ jobs:
       - name: Install MHCflurry data
         run: |
           mhcflurry-downloads fetch
-      - name: Run unit tests
+      - name: Set up netmhc-bundle environment
+        if: ${{ secrets.NETMHC_BUNDLE_ACCESS_TOKEN != '' }}
         run: |
           # configure netmhc-bundle paths
           export NETMHC_BUNDLE_HOME=$PWD/netmhc-bundle
@@ -68,6 +72,14 @@ jobs:
           echo `which netMHCcons` && netMHCcons -h
           echo `which netMHCstab` && netMHCstab -h
           echo `which netMHCstabpan` && netMHCstabpan -h
+      - name: Run unit tests
+        run: |
+          if [ -d "$PWD/netmhc-bundle" ]; then
+            export NETMHC_BUNDLE_HOME=$PWD/netmhc-bundle
+            mkdir -p $PWD/netmhc-bundle-tmp
+            export NETMHC_BUNDLE_TMPDIR=$PWD/netmhc-bundle-tmp
+            export PATH=$PATH:$NETMHC_BUNDLE_HOME/bin
+          fi
 
           ./test.sh
       - name: Publish coverage to Coveralls
