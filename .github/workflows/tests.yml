@@ -49,7 +49,7 @@ jobs:
             tests/test_random.py
 
   integration-netmhc:
-    if: ${{ secrets.NETMHC_BUNDLE_ACCESS_TOKEN != '' }}
+    if: github.repository == 'openvax/mhctools'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
