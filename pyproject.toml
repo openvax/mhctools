@@ -36,7 +36,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
   "build",
-  "pylint>=1.4.4",
+  "pylint>=3.0",
   "pytest",
   "pytest-cov",
   "twine",
