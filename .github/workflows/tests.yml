@@ -12,6 +12,8 @@ on: [push, pull_request]
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      HAS_NETMHC_TOKEN: ${{ secrets.NETMHC_BUNDLE_ACCESS_TOKEN != '' }}
     strategy:
       fail-fast: true
       matrix:
@@ -22,13 +24,13 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
           cache: "pip"
 
       - name: Checkout private netmhc-bundle repo
-        if: ${{ secrets.NETMHC_BUNDLE_ACCESS_TOKEN != '' }}
+        if: env.HAS_NETMHC_TOKEN == 'true'
         uses: actions/checkout@v4
         with:
           repository: openvax/netmhc-bundle
@@ -37,7 +39,7 @@ jobs:
           path: netmhc-bundle
 
       - name: Install netmhc-bundle dependencies
-        if: ${{ secrets.NETMHC_BUNDLE_ACCESS_TOKEN != '' }}
+        if: env.HAS_NETMHC_TOKEN == 'true'
         uses: awalsh128/cache-apt-pkgs-action@latest
         with:
           packages: tcsh gawk python2-minimal
@@ -57,7 +59,7 @@ jobs:
         run: |
           mhcflurry-downloads fetch
       - name: Set up netmhc-bundle environment
-        if: ${{ secrets.NETMHC_BUNDLE_ACCESS_TOKEN != '' }}
+        if: env.HAS_NETMHC_TOKEN == 'true'
         run: |
           # configure netmhc-bundle paths
           export NETMHC_BUNDLE_HOME=$PWD/netmhc-bundle
