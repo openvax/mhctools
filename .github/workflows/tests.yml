@@ -90,17 +90,8 @@ jobs:
           # Wrapper scripts have hardcoded /tools/src paths; symlink so they resolve
           sudo mkdir -p /tools
           sudo ln -s "$NETMHC_BUNDLE_HOME" /tools/src
-          mkdir -p "$NETMHC_BUNDLE_TMPDIR"
-          # Debug
-          echo "=== netMHC-3.4/bin ==="
-          ls -laR "$NETMHC_BUNDLE_HOME"/netMHC-3.4/bin/ 2>/dev/null || echo "NOT FOUND"
-          echo "=== file type of binaries ==="
-          find "$NETMHC_BUNDLE_HOME"/netMHC-3.4/bin/ -type f -exec file {} \; 2>/dev/null || true
-          echo "=== Testing netMHC-3.4 -A ==="
-          export PATH="$PATH:$NETMHC_BUNDLE_HOME/bin"
-          netMHC-3.4 -A 2>&1 || true
-          echo "=== Testing netMHC-3.4 -h ==="
-          netMHC-3.4 -h 2>&1 || true
+          # netMHC-3.4 wrapper calls python2 which isn't on Ubuntu 24.04
+          sudo ln -s "$(which python3)" /usr/local/bin/python2
 
       - name: Run full test suite
         env:
