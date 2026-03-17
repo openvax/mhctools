@@ -11,7 +11,7 @@ on: [push, pull_request]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     env:
       HAS_NETMHC_TOKEN: ${{ secrets.NETMHC_BUNDLE_ACCESS_TOKEN != '' }}
     strategy:
