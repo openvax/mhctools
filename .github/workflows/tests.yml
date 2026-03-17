@@ -89,6 +89,18 @@ jobs:
           # Wrapper scripts have hardcoded /tools/src paths; symlink so they resolve
           sudo mkdir -p /tools
           sudo ln -s "$NETMHC_BUNDLE_HOME" /tools/src
+          # Debug: show bundle structure and test netMHC-3.4
+          echo "=== Bundle top-level ==="
+          ls -la "$NETMHC_BUNDLE_HOME"/
+          echo "=== Bundle bin ==="
+          ls -la "$NETMHC_BUNDLE_HOME"/bin/
+          echo "=== netMHC-3.4 wrapper ==="
+          cat "$NETMHC_BUNDLE_HOME"/bin/netMHC-3.4 2>/dev/null || echo "NOT FOUND"
+          echo "=== netMHC-3.4 directory ==="
+          ls -la /tools/src/netMHC-3.4/ 2>/dev/null || echo "NOT FOUND"
+          echo "=== Testing netMHC-3.4 -A ==="
+          export PATH="$PATH:$NETMHC_BUNDLE_HOME/bin"
+          netMHC-3.4 -A 2>&1 || true
 
       - name: Run full test suite
         env:
