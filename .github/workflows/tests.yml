@@ -90,8 +90,11 @@ jobs:
           # Wrapper scripts have hardcoded /tools/src paths; symlink so they resolve
           sudo mkdir -p /tools
           sudo ln -s "$NETMHC_BUNDLE_HOME" /tools/src
-          # netMHC-3.4 wrapper calls python2 which isn't on Ubuntu 24.04
+          # netMHC-3.4 and netMHCcons have Python 2 scripts; patch for Python 3
           sudo ln -s "$(which python3)" /usr/local/bin/python2
+          python3 -m lib2to3 -w -n "$NETMHC_BUNDLE_HOME"/netMHC-3.4/netMHC.py 2>/dev/null || true
+          python3 -m lib2to3 -w -n "$NETMHC_BUNDLE_HOME"/netMHC-3.4/netMHCpre_a.py 2>/dev/null || true
+          find "$NETMHC_BUNDLE_HOME"/netMHCcons-1.1/ -name "*.py" -o -name "pseudofind" | xargs python3 -m lib2to3 -w -n 2>/dev/null || true
 
       - name: Run full test suite
         env:
