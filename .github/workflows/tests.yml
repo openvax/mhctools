@@ -85,22 +85,22 @@ jobs:
       - name: Configure netMHC tool paths
         env:
           NETMHC_BUNDLE_HOME: ${{ github.workspace }}/netmhc-bundle
+          NETMHC_BUNDLE_TMPDIR: ${{ github.workspace }}/netmhc-bundle-tmp
         run: |
           # Wrapper scripts have hardcoded /tools/src paths; symlink so they resolve
           sudo mkdir -p /tools
           sudo ln -s "$NETMHC_BUNDLE_HOME" /tools/src
-          # Debug: show bundle structure and test netMHC-3.4
-          echo "=== Bundle top-level ==="
-          ls -la "$NETMHC_BUNDLE_HOME"/
-          echo "=== Bundle bin ==="
-          ls -la "$NETMHC_BUNDLE_HOME"/bin/
-          echo "=== netMHC-3.4 wrapper ==="
-          cat "$NETMHC_BUNDLE_HOME"/bin/netMHC-3.4 2>/dev/null || echo "NOT FOUND"
-          echo "=== netMHC-3.4 directory ==="
-          ls -la /tools/src/netMHC-3.4/ 2>/dev/null || echo "NOT FOUND"
+          mkdir -p "$NETMHC_BUNDLE_TMPDIR"
+          # Debug
+          echo "=== netMHC-3.4/bin ==="
+          ls -laR "$NETMHC_BUNDLE_HOME"/netMHC-3.4/bin/ 2>/dev/null || echo "NOT FOUND"
+          echo "=== file type of binaries ==="
+          find "$NETMHC_BUNDLE_HOME"/netMHC-3.4/bin/ -type f -exec file {} \; 2>/dev/null || true
           echo "=== Testing netMHC-3.4 -A ==="
           export PATH="$PATH:$NETMHC_BUNDLE_HOME/bin"
           netMHC-3.4 -A 2>&1 || true
+          echo "=== Testing netMHC-3.4 -h ==="
+          netMHC-3.4 -h 2>&1 || true
 
       - name: Run full test suite
         env:
