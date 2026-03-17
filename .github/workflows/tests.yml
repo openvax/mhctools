@@ -82,6 +82,14 @@ jobs:
       - name: Install MHCflurry data
         run: mhcflurry-downloads fetch
 
+      - name: Configure netMHC tool paths
+        env:
+          NETMHC_BUNDLE_HOME: ${{ github.workspace }}/netmhc-bundle
+        run: |
+          # Wrapper scripts have hardcoded /tools/src paths; symlink so they resolve
+          sudo mkdir -p /tools
+          sudo ln -s "$NETMHC_BUNDLE_HOME" /tools/src
+
       - name: Run full test suite
         env:
           NETMHC_BUNDLE_HOME: ${{ github.workspace }}/netmhc-bundle
