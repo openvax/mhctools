@@ -34,7 +34,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: openvax/netmhc-bundle
-          ref: v1.0.0
           token: ${{ secrets.NETMHC_BUNDLE_ACCESS_TOKEN }}
           path: netmhc-bundle
 
