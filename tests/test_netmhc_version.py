@@ -1,6 +1,6 @@
 import pytest 
 from mhctools import NetMHC, NetMHC3, NetMHC4
-from mhcnames import normalize_allele_name
+from mhctools.allele_normalization import normalize_allele_name
 from .common import raises, eq_
 from .arch import apple_silicon
 

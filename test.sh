@@ -1,1 +1,1 @@
-pytest --cov=mhctools/ --cov-report=term-missing tests
+python -m pytest --cov=mhctools/ --cov-report=term-missing tests

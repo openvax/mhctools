@@ -1,0 +1,59 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mhctools"
+dynamic = ["version"]
+description = "Python interface to running command-line and web-based MHC binding predictors"
+readme = { file = "README.md", content-type = "text/markdown" }
+license = { text = "Apache-2.0" }
+requires-python = ">=3.9"
+authors = [
+  { name = "Alex Rubinsteyn", email = "alex@openvax.org" },
+  { name = "Julia Kodysh", email = "julia@openvax.org" },
+  { name = "Tim O'Donnell", email = "tim@openvax.org" },
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Operating System :: OS Independent",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python",
+  "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+dependencies = [
+  "numpy>=1.7,<2.0",
+  "pandas>=0.13.1",
+  "varcode>=0.5.9",
+  "pyensembl>=2.3.0,<3.0.0",
+  "sercol>=0.0.2",
+  "mhcflurry>=2.0.0",
+  "mhcgnomes>=3.4.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "build",
+  "pylint>=3.0",
+  "pytest",
+  "pytest-cov",
+  "twine",
+]
+
+[project.scripts]
+mhctools = "mhctools.cli.script:main"
+
+[project.urls]
+Homepage = "https://github.com/openvax/mhctools"
+
+[tool.setuptools.dynamic]
+version = { attr = "mhctools.__version__" }
+
+[tool.setuptools]
+packages = ["mhctools", "mhctools.cli"]
+
+[tool.setuptools.package-data]
+"mhctools" = ["logging.conf"]
+"mhctools.cli" = ["logging.conf"]

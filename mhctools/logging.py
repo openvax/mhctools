@@ -12,9 +12,11 @@
 
 import logging
 import logging.config
-import pkg_resources
+from importlib.resources import as_file, files
 
 
 def get_logger(name):
-    logging.config.fileConfig(pkg_resources.resource_filename('mhctools', 'logging.conf'))
+    config_resource = files("mhctools").joinpath("logging.conf")
+    with as_file(config_resource) as config_path:
+        logging.config.fileConfig(str(config_path))
     return logging.getLogger(name)

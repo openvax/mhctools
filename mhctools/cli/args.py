@@ -21,7 +21,7 @@ from __future__ import print_function, division, absolute_import
 from argparse import ArgumentParser
 import logging
 
-from mhcnames import normalize_allele_name
+from ..allele_normalization import normalize_allele_name
 
 from .parsing_helpers import parse_int_list
 from .. import (

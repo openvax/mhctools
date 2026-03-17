@@ -13,7 +13,7 @@
 from .common import eq_
 
 from mhctools import NetMHCIIpan
-from mhcnames import normalize_allele_name
+from mhctools.allele_normalization import normalize_allele_name
 
 def test_netmhcii_pan_DRB():
     alleles = [normalize_allele_name("HLA-DRB1*01:01")]

@@ -14,7 +14,7 @@ from __future__ import print_function, division, absolute_import
 
 import numpy as np
 
-from mhcnames import normalize_allele_name
+from .allele_normalization import normalize_allele_name
 
 from .binding_prediction import BindingPrediction
 
@@ -673,6 +673,27 @@ def parse_netmhciipan43_stdout(
     if mode not in ["elution_score", "binding_affinity"]:
         raise ValueError("Mode is %s but must be one of: elution_score, binding affinity" % mode)
 
+    # NetMHCIIpan 4.3 introduced an extra "Inverted" column and swapped
+    # "%Rank_BA"/"Affinity(nM)" order compared to 4.0.
+    # This parser is intentionally tolerant and can handle either layout,
+    # since some installations expose the same executable name across versions.
+    uses_v43_layout = " Inverted " in stdout
+
+    if uses_v43_layout:
+        key_index = 7
+        el_score_index = 8
+        el_rank_index = 9
+        ba_score_index = 11
+        ba_rank_index = 12
+        ba_ic50_index = 13
+    else:
+        key_index = 6
+        el_score_index = 7
+        el_rank_index = 8
+        ba_score_index = 10
+        ba_rank_index = 12
+        ba_ic50_index = 11
+
     # the offset specified in "pos" (at index 0) is 1-based instead of 0-based. we adjust it to be
     # 0-based, as in all the other netmhc predictors supported by this library.
     transforms = {
@@ -685,11 +706,11 @@ def parse_netmhciipan43_stdout(
         stdout=stdout,
         prediction_method_name=prediction_method_name,
         sequence_key_mapping=sequence_key_mapping,
-        key_index=7,
+        key_index=key_index,
         offset_index=0,
         peptide_index=2,
         allele_index=1,
-        ic50_index=13 if mode == "binding_affinity" else None,
-        rank_index=9 if mode == "elution_score" else 12,
-        score_index=8 if mode == "elution_score" else 11,
+        ic50_index=ba_ic50_index if mode == "binding_affinity" else None,
+        rank_index=el_rank_index if mode == "elution_score" else ba_rank_index,
+        score_index=el_score_index if mode == "elution_score" else ba_score_index,
         transforms=transforms)

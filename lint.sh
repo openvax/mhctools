@@ -5,7 +5,7 @@ set -o errexit
 # https://bitbucket.org/logilab/pylint/issues/701/false-positives-with-not-an-iterable-and
 
 find mhctools tests -name '*.py' \
-  | xargs pylint \
+  | xargs python -m pylint \
   --errors-only \
   --disable=unsubscriptable-object,not-an-iterable
 

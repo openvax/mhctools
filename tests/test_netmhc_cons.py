@@ -14,7 +14,7 @@
 import pytest 
 
 from mhctools import NetMHCcons
-from mhcnames import normalize_allele_name
+from mhctools.allele_normalization import normalize_allele_name
 
 from .arch import apple_silicon
 

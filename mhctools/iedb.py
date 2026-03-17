@@ -19,7 +19,7 @@ from urllib.parse import urlencode
 
 
 import pandas as pd
-from mhcnames.normalization import normalize_allele_name
+from .allele_normalization import normalize_allele_name
 
 from .base_predictor import BasePredictor
 from .common import seq_to_str, check_sequence_dictionary

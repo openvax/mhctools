@@ -15,7 +15,7 @@ import logging
 import os
 from subprocess import check_output
 
-from mhcnames import parse_classi_or_classii_allele_name
+from .allele_normalization import parse_classi_or_classii_allele_name
 
 from .base_commandline_predictor import BaseCommandlinePredictor
 from .parsing import parse_netmhciipan_stdout, parse_netmhciipan4_stdout, parse_netmhciipan43_stdout
@@ -211,11 +211,14 @@ def NetMHCIIpan(
     if "NetMHCIIpan-4.0" in output_str:
         logger.info("Using NetMHCIIpan 4.0")
         return NetMHCIIpan4(**kwargs)
+    elif "NetMHCIIpan-4" in output_str:
+        logger.info("Using NetMHCIIpan 4.x")
+        return NetMHCIIpan43(**kwargs)
     elif "NetMHCIIpan-3" in output_str:
         logger.info("Using NetMHCIIpan 3.x")
         return NetMHCIIpan3(**kwargs)
     else:
-        raise ValueError("This software expects NetMHCIIpan version 3.x or 4.0")
+        raise ValueError("This software expects NetMHCIIpan version 3.x or 4.x")
 
 
 class NetMHCIIpan43(NetMHCIIpanBase):
