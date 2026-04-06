@@ -13,6 +13,7 @@
 from mhctools.parsing import (
   parse_netmhcpan28_stdout,
   parse_netmhcpan3_stdout,
+  parse_netmhcpan_stdout,
   parse_netmhc3_stdout,
   parse_netmhc4_stdout,
 )
@@ -185,3 +186,162 @@ def test_mhcpan3_stdout():
             # expect the epitopes to be sorted in increasing IC50
             assert entry.value == 18234.7, entry
             assert entry.percentile_rank == 10.00, entry
+
+
+def test_auto_detect_netmhcpan28():
+    """Auto-detecting parser should produce identical results to parse_netmhcpan28_stdout."""
+    netmhcpan28_output = """
+    # Affinity Threshold for Strong binding peptides  50.000',
+    # Affinity Threshold for Weak binding peptides 500.000',
+    # Rank Threshold for Strong binding peptides   0.500',
+    # Rank Threshold for Weak binding peptides   2.000',
+    ---------------------------------------------------x
+    pos  HLA  peptide  Identity 1-log50k(aff) Affinity(nM)    %Rank  BindLevel
+    ----------------------------------------------------------------------------
+      0  HLA-A*02:03    QQQQQYFPE   id0         0.024     38534.25   50.00
+      1  HLA-A*02:03    QQQQYFPEI   id0         0.278      2461.53   15.00
+     11  HLA-A*02:03    HIIIASSSL   id0         0.515       189.74    4.00 <= WB
+    """
+    results = parse_netmhcpan_stdout(netmhcpan28_output)
+    assert len(results) == 3
+    for entry in results:
+        assert entry.allele == 'HLA-A*02:03'
+    last = [e for e in results if e.peptide == "HIIIASSSL"][0]
+    assert last.value == 189.74
+    assert last.percentile_rank == 4.00
+    assert last.offset == 11
+
+
+def test_auto_detect_netmhcpan3():
+    """Auto-detecting parser should produce identical results to parse_netmhcpan3_stdout."""
+    netmhcpan3_output = """
+    # Rank Threshold for Strong binding peptides   0.500
+    # Rank Threshold for Weak binding peptides   2.000
+    -----------------------------------------------------------------------------------
+      Pos          HLA         Peptide       Core Of Gp Gl Ip Il        Icore        Identity   Score Aff(nM)   %Rank  BindLevel
+    -----------------------------------------------------------------------------------
+        1  HLA-B*18:01        QQQQQYFP  QQQQQYFP-  0  0  0  8  1     QQQQQYFP             id0 0.06456 24866.4   17.00
+        9  HLA-B*18:01        EITHIIAS  -EITHIIAS  0  0  0  0  1     EITHIIAS             id0 0.09323 18234.7   10.00
+    """
+    results = parse_netmhcpan_stdout(netmhcpan3_output)
+    assert len(results) == 2
+    for entry in results:
+        assert entry.allele == 'HLA-B*18:01'
+    first = results[0]
+    assert first.peptide == "QQQQQYFP"
+    assert first.offset == 0  # 1-based converted to 0-based
+    assert first.percentile_rank == 17.00
+
+    second = results[1]
+    assert second.value == 18234.7
+    assert second.percentile_rank == 10.00
+    assert second.offset == 8  # 9 -> 8 (1-based to 0-based)
+
+
+def test_auto_detect_netmhcpan4_ba():
+    """Auto-detecting parser for NetMHCpan 4.0 binding affinity mode."""
+    netmhcpan4_ba_output = """
+# NetMHCpan version 4.0
+
+# Input is in PEPTIDE format
+
+# Make binding affinity predictions
+
+HLA-A02:01 : Distance to training data  0.000 (using nearest neighbor HLA-A02:01)
+
+# Rank Threshold for Strong binding peptides   0.500
+# Rank Threshold for Weak binding peptides   2.000
+-----------------------------------------------------------------------------------
+  Pos          HLA         Peptide       Core Of Gp Gl Ip Il        Icore        Identity     Score Aff(nM)   %Rank  BindLevel
+-----------------------------------------------------------------------------------
+    1  HLA-A*02:01        SIINFEKL  SIINF-EKL  0  0  0  5  1     SIINFEKL         PEPLIST 0.1141340 14543.1 18.9860
+-----------------------------------------------------------------------------------
+"""
+    results = parse_netmhcpan_stdout(netmhcpan4_ba_output)
+    assert len(results) == 1
+    entry = results[0]
+    assert entry.allele == 'HLA-A*02:01'
+    assert entry.peptide == "SIINFEKL"
+    assert entry.offset == 0  # 1-based to 0-based
+    assert abs(entry.score - 0.1141340) < 1e-6
+    assert abs(entry.value - 14543.1) < 0.1
+    assert abs(entry.percentile_rank - 18.9860) < 0.001
+
+
+def test_auto_detect_netmhcpan4_el():
+    """Auto-detecting parser for NetMHCpan 4.0 elution score mode (no Aff column)."""
+    netmhcpan4_el_output = """
+# NetMHCpan version 4.0
+
+# Input is in PEPTIDE format
+
+HLA-A02:01 : Distance to training data  0.000 (using nearest neighbor HLA-A02:01)
+
+# Rank Threshold for Strong binding peptides   0.500
+# Rank Threshold for Weak binding peptides   2.000
+-----------------------------------------------------------------------------------
+  Pos          HLA         Peptide       Core Of Gp Gl Ip Il        Icore        Identity     Score   %Rank  BindLevel
+-----------------------------------------------------------------------------------
+    1  HLA-A*02:01        SIINFEKL  SIINF-EKL  0  0  0  5  1     SIINFEKL         PEPLIST 0.3456780  5.1230
+-----------------------------------------------------------------------------------
+"""
+    results = parse_netmhcpan_stdout(netmhcpan4_el_output)
+    assert len(results) == 1
+    entry = results[0]
+    assert entry.allele == 'HLA-A*02:01'
+    assert entry.peptide == "SIINFEKL"
+    assert entry.offset == 0
+    assert abs(entry.score - 0.3456780) < 1e-6
+    assert entry.value is None  # no Aff(nM) column
+    assert abs(entry.percentile_rank - 5.1230) < 0.001
+
+
+def test_auto_detect_netmhcpan41_ba():
+    """Auto-detecting parser for NetMHCpan 4.1 in binding affinity mode."""
+    netmhcpan41_output = """
+# NetMHCpan version 4.1b
+
+# Input is in PEPTIDE format
+
+# Make both EL and BA predictions
+
+HLA-A02:01 : Distance to training data  0.000 (using nearest neighbor HLA-A02:01)
+
+# Rank Threshold for Strong binding peptides   0.500
+# Rank Threshold for Weak binding peptides   2.000
+---------------------------------------------------------------------------------------------------------------------------
+ Pos         MHC        Peptide      Core Of Gp Gl Ip Il        Icore        Identity  Score_EL %Rank_EL Score_BA %Rank_BA  Aff(nM) BindLevel
+---------------------------------------------------------------------------------------------------------------------------
+   1 HLA-A*02:01       SIINFEKL SII-NFEKL  0  0  0  3  1     SIINFEKL         PEPLIST 0.0100620    6.723 0.110414   20.171 15140.42
+---------------------------------------------------------------------------------------------------------------------------
+"""
+    results = parse_netmhcpan_stdout(netmhcpan41_output, mode="binding_affinity")
+    assert len(results) == 1
+    entry = results[0]
+    assert entry.allele == 'HLA-A*02:01'
+    assert entry.peptide == "SIINFEKL"
+    assert entry.offset == 0
+    assert abs(entry.score - 0.110414) < 1e-5  # Score_BA
+    assert abs(entry.percentile_rank - 20.171) < 0.01  # %Rank_BA
+    assert abs(entry.value - 15140.42) < 0.1  # Aff(nM)
+
+
+def test_auto_detect_netmhcpan41_el():
+    """Auto-detecting parser for NetMHCpan 4.1 in elution score mode."""
+    netmhcpan41_output = """
+# NetMHCpan version 4.1b
+
+# Make both EL and BA predictions
+
+---------------------------------------------------------------------------------------------------------------------------
+ Pos         MHC        Peptide      Core Of Gp Gl Ip Il        Icore        Identity  Score_EL %Rank_EL Score_BA %Rank_BA  Aff(nM) BindLevel
+---------------------------------------------------------------------------------------------------------------------------
+   1 HLA-A*02:01       SIINFEKL SII-NFEKL  0  0  0  3  1     SIINFEKL         PEPLIST 0.0100620    6.723 0.110414   20.171 15140.42
+---------------------------------------------------------------------------------------------------------------------------
+"""
+    results = parse_netmhcpan_stdout(netmhcpan41_output, mode="elution_score")
+    assert len(results) == 1
+    entry = results[0]
+    assert abs(entry.score - 0.0100620) < 1e-6  # Score_EL
+    assert abs(entry.percentile_rank - 6.723) < 0.01  # %Rank_EL
+    assert entry.value is None  # ic50 not used in EL mode

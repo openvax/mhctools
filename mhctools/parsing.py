@@ -12,11 +12,16 @@
 
 from __future__ import print_function, division, absolute_import
 
+import logging
+import re
+
 import numpy as np
 
 from .allele_normalization import normalize_allele_name
 
 from .binding_prediction import BindingPrediction
+
+logger = logging.getLogger(__name__)
 
 
 NETMHC_TOKENS = {
@@ -472,6 +477,155 @@ def parse_netmhcpan41_stdout(
         score_index=11 if mode == "elution_score" else 13,
         ic50_index=None if mode == "elution_score" else 15,
         rank_index=12 if mode == "elution_score" else 14,
+        transforms=transforms)
+
+
+def _find_header_fields(stdout):
+    """
+    Find the header line in NetMHCpan stdout and return its whitespace-split
+    fields. The header is the first non-dash, non-empty line that follows a
+    line of dashes and contains known column names.
+    """
+    prev_was_dash = False
+    for line in stdout.split("\n"):
+        stripped = line.strip()
+        if stripped.startswith("---"):
+            prev_was_dash = True
+            continue
+        if prev_was_dash and stripped:
+            fields = stripped.split()
+            if any(f.lower() in ('pos', 'hla', 'mhc') for f in fields):
+                return fields
+            prev_was_dash = False
+    return None
+
+
+def _detect_netmhcpan_version_label(stdout, header_fields):
+    """
+    Best-effort detection of NetMHCpan version for logging.
+    Checks for an explicit version string first, then infers from header
+    column names.
+    """
+    match = re.search(r'# NetMHCpan version (\S+)', stdout)
+    if match:
+        return "NetMHCpan %s" % match.group(1)
+
+    field_set = set(header_fields)
+    if 'Score_EL' in field_set:
+        return "NetMHCpan 4.1"
+    elif '1-log50k(aff)' in field_set and 'Core' not in field_set:
+        return "NetMHCpan 2.8"
+    elif 'Core' in field_set and 'Aff(nM)' in field_set:
+        return "NetMHCpan 3.x/4.x (binding affinity mode)"
+    elif 'Core' in field_set:
+        return "NetMHCpan 4.x (elution score mode)"
+    else:
+        return "NetMHCpan (unknown version)"
+
+
+def parse_netmhcpan_stdout(
+        stdout,
+        prediction_method_name="netmhcpan",
+        sequence_key_mapping=None,
+        mode=None):
+    """
+    Auto-detecting parser for NetMHCpan output of any supported version
+    (2.8, 3.0, 4.0, 4.1).
+
+    Parses the header line between dash separators to determine column
+    positions, then extracts binding predictions accordingly.
+
+    Parameters
+    ----------
+    stdout : str
+        Raw stdout from any version of NetMHCpan.
+
+    prediction_method_name : str
+
+    sequence_key_mapping : dict or None
+
+    mode : str or None
+        One of "binding_affinity", "elution_score", or None.
+        Only relevant when the output contains both EL and BA columns
+        (NetMHCpan 4.1). Defaults to "binding_affinity".
+
+    Returns
+    -------
+    list of BindingPrediction
+    """
+    check_stdout_error(stdout, "NetMHCpan")
+
+    header_fields = _find_header_fields(stdout)
+    if header_fields is None:
+        raise ValueError(
+            "Could not find header line in NetMHCpan output. "
+            "Expected a header row between lines of dashes.")
+
+    field_index = {name: i for i, name in enumerate(header_fields)}
+
+    version_label = _detect_netmhcpan_version_label(stdout, header_fields)
+    logger.info("Detected %s output format", version_label)
+
+    # Position column (case varies across versions)
+    offset_index = field_index.get('Pos', field_index.get('pos'))
+    if offset_index is None:
+        raise ValueError("No position column found in header: %s" % header_fields)
+
+    # Allele column
+    allele_index = field_index.get('HLA', field_index.get('MHC'))
+    if allele_index is None:
+        raise ValueError("No allele column found in header: %s" % header_fields)
+
+    # Peptide column
+    peptide_index = field_index.get('Peptide', field_index.get('peptide'))
+    if peptide_index is None:
+        raise ValueError("No peptide column found in header: %s" % header_fields)
+
+    # Identity/key column
+    key_index = field_index.get('Identity')
+    if key_index is None:
+        raise ValueError("No Identity column found in header: %s" % header_fields)
+
+    # Versions with a Core column (3.0+) use 1-based offsets
+    has_core = 'Core' in field_index
+    transforms = {}
+    if has_core:
+        transforms[offset_index] = lambda x: int(x) - 1
+
+    # Determine score, ic50, rank columns from what is present
+    if 'Score_EL' in field_index:
+        # NetMHCpan 4.1 format with separate EL and BA columns
+        effective_mode = mode or "binding_affinity"
+        if effective_mode == "binding_affinity" and 'Score_BA' in field_index:
+            score_index = field_index['Score_BA']
+            rank_index = field_index.get('%Rank_BA')
+            ic50_index = field_index.get('Aff(nM)')
+        else:
+            score_index = field_index['Score_EL']
+            rank_index = field_index.get('%Rank_EL')
+            ic50_index = None
+    elif '1-log50k(aff)' in field_index:
+        # NetMHCpan 2.8 format
+        score_index = field_index['1-log50k(aff)']
+        rank_index = field_index.get('%Rank')
+        ic50_index = field_index.get('Affinity(nM)')
+    else:
+        # NetMHCpan 3.0 or 4.0 format
+        score_index = field_index.get('Score')
+        rank_index = field_index.get('%Rank')
+        ic50_index = field_index.get('Aff(nM)')
+
+    return parse_stdout(
+        stdout=stdout,
+        prediction_method_name=prediction_method_name,
+        sequence_key_mapping=sequence_key_mapping,
+        key_index=key_index,
+        offset_index=offset_index,
+        peptide_index=peptide_index,
+        allele_index=allele_index,
+        score_index=score_index,
+        rank_index=rank_index,
+        ic50_index=ic50_index,
         transforms=transforms)
 
 
