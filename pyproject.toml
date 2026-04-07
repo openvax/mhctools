@@ -7,7 +7,7 @@ name = "mhctools"
 dynamic = ["version"]
 description = "Python interface to running command-line and web-based MHC binding predictors"
 readme = { file = "README.md", content-type = "text/markdown" }
-license = { text = "Apache-2.0" }
+license = "Apache-2.0"
 requires-python = ">=3.9"
 authors = [
   { name = "Alex Rubinsteyn", email = "alex@openvax.org" },
@@ -19,7 +19,6 @@ classifiers = [
   "Environment :: Console",
   "Operating System :: OS Independent",
   "Intended Audience :: Science/Research",
-  "License :: OSI Approved :: Apache Software License",
   "Programming Language :: Python",
   "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
