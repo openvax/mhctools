@@ -20,6 +20,7 @@ import numpy as np
 from .allele_normalization import normalize_allele_name
 
 from .binding_prediction import BindingPrediction
+from .pred import Pred, Kind
 
 logger = logging.getLogger(__name__)
 
@@ -523,35 +524,54 @@ def _detect_netmhcpan_version_label(stdout, header_fields):
         return "NetMHCpan (unknown version)"
 
 
-def parse_netmhcpan_stdout(
-        stdout,
-        prediction_method_name="netmhcpan",
-        sequence_key_mapping=None,
-        mode=None):
-    """
-    Auto-detecting parser for NetMHCpan output of any supported version
-    (2.8, 3.0, 4.0, 4.1).
+def _safe_float(fields, index):
+    """Extract a float from fields at index, or None if index is None."""
+    if index is None:
+        return None
+    return float(fields[index])
 
-    Parses the header line between dash separators to determine column
-    positions, then extracts binding predictions accordingly.
+
+def _affinity_score(ic50, raw_score):
+    """Compute a higher-is-better score (~0-1) from IC50 or raw log score.
+
+    If IC50 is valid, compute 1 - log(IC50)/log(50000).
+    Otherwise fall back to raw_score (already higher-is-better for NetMHC tools).
+    """
+    if ic50 is not None and valid_affinity(ic50):
+        return 1.0 - (np.log(ic50) / np.log(50000))
+    if raw_score is not None and np.isfinite(raw_score):
+        return raw_score
+    return 0.0
+
+
+def parse_netmhcpan_to_preds(
+        stdout,
+        predictor_name="netMHCpan",
+        predictor_version="",
+        sequence_key_mapping=None):
+    """
+    Auto-detecting parser for NetMHCpan output. Returns list[Pred].
+
+    Reads the header line between dash separators to determine column
+    positions. Supports NetMHCpan 2.8, 3.0, 4.0, and 4.1.
+
+    For NetMHCpan 4.1 (which has both EL and BA columns), emits both
+    a pMHC_affinity Pred and a pMHC_presentation Pred per data row.
 
     Parameters
     ----------
     stdout : str
-        Raw stdout from any version of NetMHCpan.
 
-    prediction_method_name : str
+    predictor_name : str
+
+    predictor_version : str
+        If empty, auto-detected from stdout.
 
     sequence_key_mapping : dict or None
 
-    mode : str or None
-        One of "binding_affinity", "elution_score", or None.
-        Only relevant when the output contains both EL and BA columns
-        (NetMHCpan 4.1). Defaults to "binding_affinity".
-
     Returns
     -------
-    list of BindingPrediction
+    list of Pred
     """
     check_stdout_error(stdout, "NetMHCpan")
 
@@ -566,67 +586,170 @@ def parse_netmhcpan_stdout(
     version_label = _detect_netmhcpan_version_label(stdout, header_fields)
     logger.info("Detected %s output format", version_label)
 
-    # Position column (case varies across versions)
+    if not predictor_version:
+        match = re.search(r'# NetMHCpan version (\S+)', stdout)
+        predictor_version = match.group(1) if match else ""
+
+    # --- locate columns from header ---
+
     offset_index = field_index.get('Pos', field_index.get('pos'))
     if offset_index is None:
-        raise ValueError("No position column found in header: %s" % header_fields)
+        raise ValueError("No position column in header: %s" % header_fields)
 
-    # Allele column
     allele_index = field_index.get('HLA', field_index.get('MHC'))
     if allele_index is None:
-        raise ValueError("No allele column found in header: %s" % header_fields)
+        raise ValueError("No allele column in header: %s" % header_fields)
 
-    # Peptide column
     peptide_index = field_index.get('Peptide', field_index.get('peptide'))
     if peptide_index is None:
-        raise ValueError("No peptide column found in header: %s" % header_fields)
+        raise ValueError("No peptide column in header: %s" % header_fields)
 
-    # Identity/key column
     key_index = field_index.get('Identity')
     if key_index is None:
-        raise ValueError("No Identity column found in header: %s" % header_fields)
+        raise ValueError("No Identity column in header: %s" % header_fields)
 
-    # Versions with a Core column (3.0+) use 1-based offsets
     has_core = 'Core' in field_index
-    transforms = {}
-    if has_core:
-        transforms[offset_index] = lambda x: int(x) - 1
+    offset_is_one_based = has_core
 
-    # Determine score, ic50, rank columns from what is present
-    if 'Score_EL' in field_index:
-        # NetMHCpan 4.1 format with separate EL and BA columns
-        effective_mode = mode or "binding_affinity"
-        if effective_mode == "binding_affinity" and 'Score_BA' in field_index:
-            score_index = field_index['Score_BA']
-            rank_index = field_index.get('%Rank_BA')
-            ic50_index = field_index.get('Aff(nM)')
+    # Detect which column groups are available
+    has_el = 'Score_EL' in field_index
+    has_ba_separate = 'Score_BA' in field_index
+    has_log_score = '1-log50k(aff)' in field_index
+    has_plain_score = 'Score' in field_index
+
+    # --- parse data rows ---
+
+    preds = []
+    for fields in split_stdout_lines(stdout):
+        # Strip optional trailing bind-level tokens (<=, WB, SB)
+        # These appear after the last numeric column and shift nothing
+
+        offset = int(fields[offset_index])
+        if offset_is_one_based:
+            offset -= 1
+
+        peptide = str(fields[peptide_index])
+        allele = normalize_allele_name(str(fields[allele_index]))
+
+        key = str(fields[key_index])
+        if sequence_key_mapping:
+            key = sequence_key_mapping.get(key, key)
+
+        shared = dict(
+            peptide=peptide,
+            allele=allele,
+            source_sequence_name=key,
+            offset=offset,
+            predictor_name=predictor_name,
+            predictor_version=predictor_version,
+        )
+
+        if has_el and has_ba_separate:
+            # NetMHCpan 4.1: emit BOTH affinity and presentation Preds
+            el_score = _safe_float(fields, field_index.get('Score_EL'))
+            el_rank = _safe_float(fields, field_index.get('%Rank_EL'))
+            ba_score = _safe_float(fields, field_index.get('Score_BA'))
+            ba_rank = _safe_float(fields, field_index.get('%Rank_BA'))
+            ic50 = _safe_float(fields, field_index.get('Aff(nM)'))
+
+            preds.append(Pred(
+                kind=Kind.pMHC_affinity,
+                score=_affinity_score(ic50, ba_score),
+                value=ic50,
+                percentile_rank=ba_rank,
+                **shared))
+            preds.append(Pred(
+                kind=Kind.pMHC_presentation,
+                score=el_score if el_score is not None else 0.0,
+                percentile_rank=el_rank,
+                **shared))
+
+        elif has_el and not has_ba_separate:
+            # NetMHCpan 4.1 EL-only (no -BA flag) or 4.0 EL mode
+            el_score = _safe_float(fields, field_index.get('Score_EL', field_index.get('Score')))
+            el_rank = _safe_float(fields, field_index.get('%Rank_EL', field_index.get('%Rank')))
+            preds.append(Pred(
+                kind=Kind.pMHC_presentation,
+                score=el_score if el_score is not None else 0.0,
+                percentile_rank=el_rank,
+                **shared))
+
+        elif has_log_score:
+            # NetMHCpan 2.8: 1-log50k(aff), Affinity(nM), %Rank
+            raw_score = _safe_float(fields, field_index['1-log50k(aff)'])
+            ic50 = _safe_float(fields, field_index.get('Affinity(nM)'))
+            rank = _safe_float(fields, field_index.get('%Rank'))
+            preds.append(Pred(
+                kind=Kind.pMHC_affinity,
+                score=_affinity_score(ic50, raw_score),
+                value=ic50,
+                percentile_rank=rank,
+                **shared))
+
+        elif has_plain_score:
+            # NetMHCpan 3.0 or 4.0 BA mode: Score, Aff(nM), %Rank
+            raw_score = _safe_float(fields, field_index['Score'])
+            ic50 = _safe_float(fields, field_index.get('Aff(nM)'))
+            rank = _safe_float(fields, field_index.get('%Rank'))
+
+            if ic50 is not None:
+                # BA mode — has affinity
+                preds.append(Pred(
+                    kind=Kind.pMHC_affinity,
+                    score=_affinity_score(ic50, raw_score),
+                    value=ic50,
+                    percentile_rank=rank,
+                    **shared))
+            else:
+                # 4.0 EL mode — Score and %Rank only, no Aff(nM)
+                preds.append(Pred(
+                    kind=Kind.pMHC_presentation,
+                    score=raw_score if raw_score is not None else 0.0,
+                    percentile_rank=rank,
+                    **shared))
         else:
-            score_index = field_index['Score_EL']
-            rank_index = field_index.get('%Rank_EL')
-            ic50_index = None
-    elif '1-log50k(aff)' in field_index:
-        # NetMHCpan 2.8 format
-        score_index = field_index['1-log50k(aff)']
-        rank_index = field_index.get('%Rank')
-        ic50_index = field_index.get('Affinity(nM)')
-    else:
-        # NetMHCpan 3.0 or 4.0 format
-        score_index = field_index.get('Score')
-        rank_index = field_index.get('%Rank')
-        ic50_index = field_index.get('Aff(nM)')
+            raise ValueError(
+                "Could not determine score columns from header: %s" % header_fields)
 
-    return parse_stdout(
+    return preds
+
+
+def parse_netmhcpan_stdout(
+        stdout,
+        prediction_method_name="netmhcpan",
+        sequence_key_mapping=None,
+        mode=None):
+    """
+    Auto-detecting parser for NetMHCpan output. Returns list[BindingPrediction]
+    for backward compatibility.
+
+    For new code, use parse_netmhcpan_to_preds() instead.
+    """
+    preds = parse_netmhcpan_to_preds(
         stdout=stdout,
-        prediction_method_name=prediction_method_name,
-        sequence_key_mapping=sequence_key_mapping,
-        key_index=key_index,
-        offset_index=offset_index,
-        peptide_index=peptide_index,
-        allele_index=allele_index,
-        score_index=score_index,
-        rank_index=rank_index,
-        ic50_index=ic50_index,
-        transforms=transforms)
+        predictor_name=prediction_method_name,
+        sequence_key_mapping=sequence_key_mapping)
+
+    # For compat, pick one Pred per data row based on mode
+    if mode == "elution_score":
+        keep_kind = Kind.pMHC_presentation
+    else:
+        keep_kind = Kind.pMHC_affinity
+
+    # Group by row key, prefer keep_kind
+    from collections import defaultdict
+    by_row = defaultdict(list)
+    for pred in preds:
+        row_key = (pred.peptide, pred.allele, pred.offset, pred.source_sequence_name)
+        by_row[row_key].append(pred)
+
+    results = []
+    for row_preds in by_row.values():
+        preferred = [p for p in row_preds if p.kind == keep_kind]
+        chosen = preferred[0] if preferred else row_preds[0]
+        results.append(BindingPrediction.from_pred(chosen))
+
+    return results
 
 
 def parse_netmhccons_stdout(

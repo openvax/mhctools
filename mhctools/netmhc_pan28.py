@@ -13,7 +13,7 @@
 from __future__ import print_function, division, absolute_import
 
 from .base_commandline_predictor import BaseCommandlinePredictor
-from .parsing import parse_netmhcpan28_stdout
+from .parsing import parse_netmhcpan28_stdout, parse_netmhcpan_to_preds
 
 class NetMHCpan28(BaseCommandlinePredictor):
     def __init__(
@@ -30,6 +30,7 @@ class NetMHCpan28(BaseCommandlinePredictor):
             default_peptide_lengths=default_peptide_lengths,
             group_peptides_by_length=True,
             parse_output_fn=parse_netmhcpan28_stdout,
+            parse_to_preds_fn=parse_netmhcpan_to_preds,
             supported_alleles_flag="-listMHC",
             input_file_flag="-f",
             length_flag="-l",

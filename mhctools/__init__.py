@@ -1,5 +1,7 @@
 from .binding_prediction import BindingPrediction
 from .binding_prediction_collection import BindingPredictionCollection
+from .pred import Pred, PeptidePreds, Kind, preds_from_rows
+from .sample import MultiSample
 from .iedb import (
     IedbNetMHCcons,
     IedbNetMHCpan,
@@ -27,6 +29,11 @@ from .unsupported_allele import UnsupportedAllele
 __version__ = "2.2.0"
 
 __all__ = [
+    "Pred",
+    "PeptidePreds",
+    "Kind",
+    "preds_from_rows",
+    "MultiSample",
     "BindingPrediction",
     "BindingPredictionCollection",
     "IedbNetMHCcons",
