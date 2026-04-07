@@ -13,7 +13,7 @@
 from __future__ import print_function, division, absolute_import
 
 from .base_commandline_predictor import BaseCommandlinePredictor
-from .parsing import parse_netmhcpan4_stdout, parse_netmhcpan41_stdout
+from .parsing import parse_netmhcpan4_stdout, parse_netmhcpan_to_preds
 from functools import partial
 
 class NetMHCpan4(BaseCommandlinePredictor):
@@ -46,6 +46,7 @@ class NetMHCpan4(BaseCommandlinePredictor):
             alleles=alleles,
             default_peptide_lengths=default_peptide_lengths,
             parse_output_fn=partial(parse_netmhcpan4_stdout, mode=mode),
+            parse_to_preds_fn=parse_netmhcpan_to_preds,
             supported_alleles_flag="-listMHC",
             input_file_flag="-f",
             length_flag="-l",

@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
+
 
 from .common  import eq_
 from numpy import testing

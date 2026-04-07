@@ -18,6 +18,7 @@ from .allele_normalization import normalize_allele_name
 
 from .unsupported_allele import UnsupportedAllele
 from .binding_prediction_collection import BindingPredictionCollection
+from .pred import Pred, Kind, PeptidePreds
 
 logger = logging.getLogger(__name__)
 
@@ -86,14 +87,117 @@ class BasePredictor(object):
             self.alleles,
             self.default_peptide_lengths)
 
+    # --- new API ---
+
+    def predict(self, peptides):
+        """
+        Predict for a list of peptide sequences.
+
+        Returns
+        -------
+        list of PeptidePreds
+        """
+        collection = self.predict_peptides(peptides)
+        return collection.to_peptide_preds(kind=self._default_pred_kind())
+
+    def predict_dataframe(self, peptides, sample_name=""):
+        """predict() flattened to a DataFrame."""
+        import pandas as pd
+        dfs = [pp.to_dataframe(sample_name) for pp in self.predict(peptides)]
+        if not dfs:
+            from .pred import COLUMNS
+            return pd.DataFrame(columns=COLUMNS)
+        return pd.concat(dfs, ignore_index=True)
+
+    def predict_proteins(self, sequence_dict, peptide_lengths=None):
+        """
+        Scan protein sequences and predict for all subsequences.
+
+        Parameters
+        ----------
+        sequence_dict : dict or str
+            Mapping of sequence names to amino acid strings.
+            If a string, treated as {"seq": string}.
+
+        peptide_lengths : list of int, optional
+
+        Returns
+        -------
+        dict mapping sequence_name -> list of PeptidePreds
+        """
+        if isinstance(sequence_dict, str):
+            sequence_dict = {"seq": sequence_dict}
+        elif isinstance(sequence_dict, (list, tuple)):
+            sequence_dict = {seq: seq for seq in sequence_dict}
+
+        peptide_lengths = self._check_peptide_lengths(peptide_lengths)
+
+        peptide_set = set()
+        peptide_to_name_offset_pairs = defaultdict(list)
+
+        for name, sequence in sequence_dict.items():
+            for peptide_length in peptide_lengths:
+                for i in range(len(sequence) - peptide_length + 1):
+                    peptide = sequence[i:i + peptide_length]
+                    peptide_set.add(peptide)
+                    peptide_to_name_offset_pairs[peptide].append((name, i))
+
+        peptide_list = sorted(peptide_set)
+        flat_preds = self.predict(peptide_list)
+
+        # Expand: each PeptidePreds may map to multiple (name, offset) positions
+        results = defaultdict(list)
+        for pp in flat_preds:
+            if not pp.preds:
+                continue
+            peptide = pp.preds[0].peptide
+            for name, offset in peptide_to_name_offset_pairs.get(peptide, []):
+                relocated = PeptidePreds(preds=tuple(
+                    Pred(
+                        kind=p.kind,
+                        score=p.score,
+                        peptide=p.peptide,
+                        allele=p.allele,
+                        value=p.value,
+                        percentile_rank=p.percentile_rank,
+                        source_sequence_name=name,
+                        offset=offset,
+                        predictor_name=p.predictor_name,
+                        predictor_version=p.predictor_version,
+                    ) for p in pp.preds
+                ))
+                results[name].append(relocated)
+        return dict(results)
+
+    def predict_proteins_dataframe(self, sequence_dict, peptide_lengths=None, sample_name=""):
+        """predict_proteins() flattened to a DataFrame."""
+        import pandas as pd
+        dfs = []
+        for name, pp_list in self.predict_proteins(sequence_dict, peptide_lengths).items():
+            for pp in pp_list:
+                dfs.append(pp.to_dataframe(sample_name))
+        if not dfs:
+            from .pred import COLUMNS
+            return pd.DataFrame(columns=COLUMNS)
+        return pd.concat(dfs, ignore_index=True)
+
+    def _default_pred_kind(self):
+        """Override in subclasses to set the Kind for compat conversion."""
+        return Kind.pMHC_affinity
+
+    # --- deprecated API (still works) ---
+
     def predict_peptides(self, peptides):
         """
-        Given a list of peptide sequences, returns a BindingPredictionCollection
+        Deprecated: use predict() instead.
+
+        Given a list of peptide sequences, returns a BindingPredictionCollection.
         """
         raise NotImplementedError(
             "%s must implement predict_peptides" % (self.__class__.__name__,))
 
     def predict_peptides_dataframe(self, peptides):
+        """Deprecated: use predict_dataframe() instead."""
         return self.predict_peptides(peptides).to_dataframe()
 
     def _check_peptide_lengths(self, peptide_lengths=None):
@@ -180,6 +284,8 @@ class BasePredictor(object):
             sequence_dict,
             peptide_lengths=None):
         """
+        Deprecated: use predict_proteins() instead.
+
         Given a dictionary mapping sequence names to amino acid strings,
         and an optional list of peptide lengths, returns a
         BindingPredictionCollection.
@@ -221,14 +327,11 @@ class BasePredictor(object):
             alleles=self.alleles)
         return BindingPredictionCollection(results)
 
-    def predict(self, sequence_dict, peptide_lengths=None):
-        logger.warning("Deprecated method 'predict', use 'predict_subsequences")
-        return self.predict_subsequences(sequence_dict, peptide_lengths=None)
-
     def predict_subsequences_dataframe(
             self,
             sequence_dict,
             peptide_lengths=None):
+        """Deprecated: use predict_proteins_dataframe() instead."""
         return self.predict_subsequences(
                 sequence_dict=sequence_dict,
                 peptide_lengths=peptide_lengths).to_dataframe()

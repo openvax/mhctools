@@ -11,11 +11,11 @@
 # limitations under the License.
 
 from .base_commandline_predictor import BaseCommandlinePredictor
-from .parsing import parse_netmhc41_stdout, parse_netmhcpan_to_preds
+from .parsing import parse_netmhcpan41_stdout, parse_netmhcpan_to_preds
 from functools import partial
 
 
-class NetMHCpan41(BaseCommandlinePredictor):
+class NetMHCpan42(BaseCommandlinePredictor):
     def __init__(
             self,
             alleles,
@@ -25,13 +25,14 @@ class NetMHCpan41(BaseCommandlinePredictor):
             mode="binding_affinity",
             extra_flags=[]):
         """
-        Wrapper for NetMHCpan4.1.
+        Wrapper for NetMHCpan 4.2.
+
+        Output format is identical to 4.1 (Score_EL, %Rank_EL, Score_BA,
+        %Rank_BA, Aff(nM) columns).
 
         The mode argument should be one of "binding_affinity" (default) or
         "elution_score".
         """
-
-        # The -BA flag is required to predict binding affinity
         if mode == "binding_affinity":
             flags = ["-BA"]
         elif mode == "elution_score":
@@ -44,7 +45,7 @@ class NetMHCpan41(BaseCommandlinePredictor):
             program_name=program_name,
             alleles=alleles,
             default_peptide_lengths=default_peptide_lengths,
-            parse_output_fn=partial(parse_netmhc41_stdout, mode=mode),
+            parse_output_fn=partial(parse_netmhcpan41_stdout, mode=mode),
             parse_to_preds_fn=parse_netmhcpan_to_preds,
             supported_alleles_flag="-listMHC",
             input_file_flag="-f",
@@ -53,10 +54,9 @@ class NetMHCpan41(BaseCommandlinePredictor):
             extra_flags=flags + extra_flags,
             process_limit=process_limit)
 
-class NetMHCpan41_EL(NetMHCpan41):
-    """
-    Wrapper for NetMHCpan4 when the preferred mode is elution score
-    """
+
+class NetMHCpan42_EL(NetMHCpan42):
+    """NetMHCpan 4.2 in elution score mode."""
     def __init__(
             self,
             alleles,
@@ -64,7 +64,7 @@ class NetMHCpan41_EL(NetMHCpan41):
             program_name="netMHCpan",
             process_limit=-1,
             extra_flags=[]):
-        NetMHCpan41.__init__(
+        NetMHCpan42.__init__(
             self,
             alleles=alleles,
             default_peptide_lengths=default_peptide_lengths,
@@ -74,10 +74,8 @@ class NetMHCpan41_EL(NetMHCpan41):
             extra_flags=extra_flags)
 
 
-class NetMHCpan41_BA(NetMHCpan41):
-    """
-    Wrapper for NetMHCpan4 when the preferred mode is binding affinity
-    """
+class NetMHCpan42_BA(NetMHCpan42):
+    """NetMHCpan 4.2 in binding affinity mode."""
     def __init__(
             self,
             alleles,
@@ -85,7 +83,7 @@ class NetMHCpan41_BA(NetMHCpan41):
             program_name="netMHCpan",
             process_limit=-1,
             extra_flags=[]):
-        NetMHCpan41.__init__(
+        NetMHCpan42.__init__(
             self,
             alleles=alleles,
             default_peptide_lengths=default_peptide_lengths,

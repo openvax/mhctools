@@ -11,6 +11,7 @@
 # limitations under the License.
 
 import logging
+import re
 from subprocess import check_output
 import os
 
@@ -18,8 +19,31 @@ from .netmhc_pan28 import NetMHCpan28
 from .netmhc_pan3 import NetMHCpan3
 from .netmhc_pan4 import NetMHCpan4
 from .netmhc_pan41 import NetMHCpan41
+from .netmhc_pan42 import NetMHCpan42
 
 logger = logging.getLogger(__name__)
+
+# Maps (major, minor) version tuple to the predictor class.
+# Checked in order; the last entry is the fallback for any 4.x not
+# explicitly listed (future-proofing).
+_VERSION_MAP = [
+    ((2, 8), NetMHCpan28),
+    ((3, 0), NetMHCpan3),
+    ((4, 0), NetMHCpan4),
+    ((4, 1), NetMHCpan41),
+    ((4, 2), NetMHCpan42),
+]
+
+
+def _parse_version(version_str):
+    """Parse '4.2c' into (4, 2). Returns None on failure."""
+    # strip trailing letter suffixes like 'b', 'c'
+    cleaned = re.sub(r'[a-zA-Z]+$', '', version_str)
+    parts = cleaned.split('.')
+    try:
+        return (int(parts[0]), int(parts[1]))
+    except (IndexError, ValueError):
+        return None
 
 
 def NetMHCpan(
@@ -29,17 +53,23 @@ def NetMHCpan(
         default_peptide_lengths=[9],
         extra_flags=[]):
     """
-    This function wraps NetMHCpan28 and NetMHCpan3 to automatically detect which class
-    to use, with the help of the miraculous and strange '--version' netmhcpan argument.
+    Auto-detecting wrapper for any installed version of NetMHCpan.
+
+    Runs ``netMHCpan --version`` to detect the installed version and returns
+    the appropriate predictor class. For unrecognized versions >= 4.1,
+    falls back to the latest known class (which uses the header-driven
+    auto-detecting parser).
     """
-    # convert to str since Python3 returns a `bytes` object.
-    # The '_MHCTOOLS_VERSION_SNIFFING' here is meaningless, but it is necessary
-    # to call `netmhcpan --version` with some argument, otherwise it hangs.
     with open(os.devnull, 'w') as devnull:
         output = check_output([
             program_name, "--version", "_MHCTOOLS_VERSION_SNIFFING"],
             stderr=devnull)
     output_str = output.decode("ascii", "ignore")
+
+    match = re.search(r'# NetMHCpan version (\S+)', output_str)
+    version_str = match.group(1) if match else ""
+    version_tuple = _parse_version(version_str) if version_str else None
+
     common_kwargs = {
         "alleles": alleles,
         "default_peptide_lengths": default_peptide_lengths,
@@ -47,14 +77,19 @@ def NetMHCpan(
         "process_limit": process_limit,
         "extra_flags": extra_flags,
     }
-    if "NetMHCpan version 2.8" in output_str:
-        return NetMHCpan28(**common_kwargs)
-    elif "NetMHCpan version 3.0" in output_str:
-        return NetMHCpan3(**common_kwargs)
-    elif "NetMHCpan version 4.0" in output_str:
-        return NetMHCpan4(**common_kwargs)
-    elif "NetMHCpan version 4.1" in output_str:
-        return NetMHCpan41(**common_kwargs)
-    else:
-        raise RuntimeError(
-            "This software expects NetMHCpan version 2.8, 3.0, or 4.0, or 4.1")
+
+    # Exact match
+    if version_tuple:
+        for (major_minor, cls) in _VERSION_MAP:
+            if version_tuple == major_minor:
+                logger.info("Detected NetMHCpan %s, using %s", version_str, cls.__name__)
+                return cls(**common_kwargs)
+
+    # Fallback: use the latest known class (header-driven parser handles
+    # any output format with Score_EL / Score_BA columns)
+    fallback_cls = _VERSION_MAP[-1][1]
+    logger.warning(
+        "NetMHCpan version %s not explicitly supported, falling back to %s "
+        "(header-driven auto-detecting parser)",
+        version_str or "unknown", fallback_cls.__name__)
+    return fallback_cls(**common_kwargs)

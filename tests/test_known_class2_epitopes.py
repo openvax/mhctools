@@ -18,7 +18,7 @@ from .predictor_classes import mhc2_predictor_classes
 
 
 def expect_binder(mhc_model, peptide):
-    prediction = mhc_model.predict(peptide)[0]
+    prediction = mhc_model.predict_subsequences(peptide)[0]
     if prediction.value:
         assert prediction.value < 500, "Expected %s to have IC50 < 500nM, got %s" % (
             peptide, prediction)

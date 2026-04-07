@@ -28,6 +28,7 @@ from .cleanup_context import CleanupFiles
 from .input_file_formats import create_input_peptides_files
 from .process_helpers import run_multiple_commands_redirect_stdout
 from .binding_prediction_collection import BindingPredictionCollection
+from .pred import PeptidePreds
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +54,8 @@ class BaseCommandlinePredictor(BasePredictor):
             default_peptide_lengths=[9],
             group_peptides_by_length=False,
             min_peptide_length=8,
-            max_peptide_length=None,):
+            max_peptide_length=None,
+            parse_to_preds_fn=None,):
         """
         Parameters
         ----------
@@ -146,6 +148,7 @@ class BaseCommandlinePredictor(BasePredictor):
         self.process_limit = process_limit
 
         self.parse_output_fn = parse_output_fn
+        self.parse_to_preds_fn = parse_to_preds_fn
 
         if isinstance(default_peptide_lengths, int):
             default_peptide_lengths = [default_peptide_lengths]
@@ -162,7 +165,7 @@ class BaseCommandlinePredictor(BasePredictor):
             # it's present
             try:
                 run_command([self.program_name])
-            except:
+            except Exception:
                 raise SystemError("Failed to run %s" % self.program_name)
             valid_alleles = None
 
@@ -283,6 +286,89 @@ class BaseCommandlinePredictor(BasePredictor):
         if len(binding_predictions) == 0:
             logger.warning("No binding predictions from %s" % self.program_name)
         return BindingPredictionCollection(binding_predictions)
+
+    def _run_commands_and_collect_preds(
+            self,
+            commands,
+            input_filenames,
+            temp_dir_list,
+            sequence_key_mapping=None):
+        """Like _run_commands_and_collect_predictions but returns list[Pred]."""
+        if sequence_key_mapping is None:
+            sequence_key_mapping = defaultdict(lambda: "seq")
+        all_preds = []
+
+        filenames_to_delete = list(input_filenames) + [
+            f.name for f in commands.keys()]
+        with CleanupFiles(
+                filenames=filenames_to_delete,
+                directories=temp_dir_list):
+            run_multiple_commands_redirect_stdout(
+                commands,
+                print_commands=True,
+                process_limit=self.process_limit)
+            for output_file, command in commands.items():
+                output_file.close()
+                with open(output_file.name, 'r') as f:
+                    file_contents = f.read()
+                    all_preds.extend(
+                        self.parse_to_preds_fn(
+                            stdout=file_contents,
+                            sequence_key_mapping=sequence_key_mapping,
+                            predictor_name=self.program_name))
+
+        if len(all_preds) == 0:
+            logger.warning("No predictions from %s" % self.program_name)
+
+        # Group by (peptide, offset, source) into PeptidePreds
+        groups = defaultdict(list)
+        for pred in all_preds:
+            key = (pred.peptide, pred.offset, pred.source_sequence_name)
+            groups[key].append(pred)
+        return [PeptidePreds(preds=tuple(preds)) for preds in groups.values()]
+
+    def predict(self, peptides):
+        """
+        Predict for a list of peptide sequences.
+
+        Returns list of PeptidePreds. When a native parse_to_preds_fn is
+        available, parses directly to Pred objects. Otherwise falls back
+        to converting from BindingPrediction.
+        """
+        if self.parse_to_preds_fn is None:
+            return super().predict(peptides)
+
+        self._check_peptide_inputs(peptides)
+        input_filenames = create_input_peptides_files(
+            peptides,
+            max_peptides_per_file=self.max_peptides_per_file,
+            group_by_length=self.group_peptides_by_length)
+        commands = {}
+        dirs = []
+
+        for i, input_filename in enumerate(input_filenames):
+            for j, allele in enumerate(self.alleles):
+                if self.tempdir_flag:
+                    temp_dirname = tempfile.mkdtemp(
+                        prefix="tmp_%d_%d_%s" % (i, j, self.program_name),
+                        suffix="XXXXXX")
+                    dirs.append(temp_dirname)
+                else:
+                    temp_dirname = None
+                output_file = tempfile.NamedTemporaryFile(
+                    "w",
+                    prefix="%s_output_length_%d_%d" % (
+                        self.program_name, i, j),
+                    delete=False)
+                commands[output_file] = self._build_command(
+                    input_filename=input_filename,
+                    allele=allele,
+                    peptide_mode=True,
+                    temp_dirname=temp_dirname)
+        return self._run_commands_and_collect_preds(
+            commands=commands,
+            input_filenames=input_filenames,
+            temp_dir_list=dirs)
 
     def predict_peptides(self, peptides):
         self._check_peptide_inputs(peptides)

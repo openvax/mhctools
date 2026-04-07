@@ -14,9 +14,11 @@ from mhctools.parsing import (
   parse_netmhcpan28_stdout,
   parse_netmhcpan3_stdout,
   parse_netmhcpan_stdout,
+  parse_netmhcpan_to_preds,
   parse_netmhc3_stdout,
   parse_netmhc4_stdout,
 )
+from mhctools.pred import Kind
 
 def test_netmhc3_stdout():
     """
@@ -345,3 +347,108 @@ def test_auto_detect_netmhcpan41_el():
     assert abs(entry.score - 0.0100620) < 1e-6  # Score_EL
     assert abs(entry.percentile_rank - 6.723) < 0.01  # %Rank_EL
     assert entry.value is None  # ic50 not used in EL mode
+
+
+# --- Tests for parse_netmhcpan_to_preds (new-style Pred output) ---
+
+def test_to_preds_netmhcpan28():
+    """New-style parser returns Pred objects for NetMHCpan 2.8."""
+    output = """
+    ---------------------------------------------------x
+    pos  HLA  peptide  Identity 1-log50k(aff) Affinity(nM)    %Rank  BindLevel
+    ----------------------------------------------------------------------------
+      0  HLA-A*02:03    QQQQQYFPE   id0         0.024     38534.25   50.00
+     11  HLA-A*02:03    HIIIASSSL   id0         0.515       189.74    4.00 <= WB
+    """
+    preds = parse_netmhcpan_to_preds(output)
+    assert len(preds) == 2
+    for p in preds:
+        assert p.kind == Kind.pMHC_affinity
+        assert p.allele == "HLA-A*02:03"
+    last = [p for p in preds if p.peptide == "HIIIASSSL"][0]
+    assert abs(last.value - 189.74) < 0.01
+    assert last.percentile_rank == 4.00
+    assert last.score > 0.4  # 1 - log(189.74)/log(50000)
+
+
+def test_to_preds_netmhcpan41_emits_both_kinds():
+    """NetMHCpan 4.1 emits both affinity and presentation Preds per row."""
+    output = """
+# NetMHCpan version 4.1b
+
+# Make both EL and BA predictions
+
+---------------------------------------------------------------------------------------------------------------------------
+ Pos         MHC        Peptide      Core Of Gp Gl Ip Il        Icore        Identity  Score_EL %Rank_EL Score_BA %Rank_BA  Aff(nM) BindLevel
+---------------------------------------------------------------------------------------------------------------------------
+   1 HLA-A*02:01       SIINFEKL SII-NFEKL  0  0  0  3  1     SIINFEKL         PEPLIST 0.0100620    6.723 0.110414   20.171 15140.42
+---------------------------------------------------------------------------------------------------------------------------
+"""
+    preds = parse_netmhcpan_to_preds(output)
+    assert len(preds) == 2  # one affinity + one presentation
+
+    affinity = [p for p in preds if p.kind == Kind.pMHC_affinity]
+    presentation = [p for p in preds if p.kind == Kind.pMHC_presentation]
+    assert len(affinity) == 1
+    assert len(presentation) == 1
+
+    aff = affinity[0]
+    assert aff.allele == "HLA-A*02:01"
+    assert aff.peptide == "SIINFEKL"
+    assert abs(aff.value - 15140.42) < 0.1  # IC50 in nM
+    assert abs(aff.percentile_rank - 20.171) < 0.01
+    assert aff.score > 0  # higher-is-better transform of IC50
+
+    pres = presentation[0]
+    assert abs(pres.score - 0.0100620) < 1e-6
+    assert abs(pres.percentile_rank - 6.723) < 0.01
+    assert pres.value is None  # presentation has no native-unit value
+
+
+def test_to_preds_netmhcpan4_el():
+    """NetMHCpan 4.0 EL mode (no Aff column) returns presentation Preds."""
+    output = """
+# NetMHCpan version 4.0
+-----------------------------------------------------------------------------------
+  Pos          HLA         Peptide       Core Of Gp Gl Ip Il        Icore        Identity     Score   %Rank  BindLevel
+-----------------------------------------------------------------------------------
+    1  HLA-A*02:01        SIINFEKL  SIINF-EKL  0  0  0  5  1     SIINFEKL         PEPLIST 0.3456780  5.1230
+-----------------------------------------------------------------------------------
+"""
+    preds = parse_netmhcpan_to_preds(output)
+    assert len(preds) == 1
+    p = preds[0]
+    assert p.kind == Kind.pMHC_presentation  # no Aff(nM) → EL mode
+    assert abs(p.score - 0.3456780) < 1e-6
+
+
+def test_to_preds_auto_detects_version():
+    """Predictor version auto-detected from stdout."""
+    output = """
+# NetMHCpan version 4.1b
+---------------------------------------------------------------------------------------------------------------------------
+ Pos         MHC        Peptide      Core Of Gp Gl Ip Il        Icore        Identity  Score_EL %Rank_EL Score_BA %Rank_BA  Aff(nM) BindLevel
+---------------------------------------------------------------------------------------------------------------------------
+   1 HLA-A*02:01       SIINFEKL SII-NFEKL  0  0  0  3  1     SIINFEKL         PEPLIST 0.0100620    6.723 0.110414   20.171 15140.42
+---------------------------------------------------------------------------------------------------------------------------
+"""
+    preds = parse_netmhcpan_to_preds(output)
+    assert preds[0].predictor_version == "4.1b"
+
+
+def test_to_preds_self_contained():
+    """Each Pred carries full context — peptide, allele, source, offset."""
+    output = """
+    ---------------------------------------------------x
+    pos  HLA  peptide  Identity 1-log50k(aff) Affinity(nM)    %Rank  BindLevel
+    ----------------------------------------------------------------------------
+      5  HLA-A*02:03    YFPEITHII   id0         0.231      4123.85   15.00
+    """
+    preds = parse_netmhcpan_to_preds(output, predictor_name="netMHCpan", predictor_version="2.8")
+    p = preds[0]
+    assert p.peptide == "YFPEITHII"
+    assert p.allele == "HLA-A*02:03"
+    assert p.source_sequence_name == "id0"
+    assert p.offset == 5
+    assert p.predictor_name == "netMHCpan"
+    assert p.predictor_version == "2.8"

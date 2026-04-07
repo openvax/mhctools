@@ -13,6 +13,8 @@
 import numpy as np
 from serializable import Serializable
 
+from .pred import Pred, Kind
+
 class BindingPrediction(Serializable):
     def __init__(
             self,
@@ -157,4 +159,39 @@ class BindingPrediction(Serializable):
 
     def __lt__(self, other):
         return self.value < other.value
+
+    def to_pred(self, kind=Kind.pMHC_affinity):
+        """Convert to a Pred object.
+
+        Parameters
+        ----------
+        kind : Kind
+            What this prediction measures. Defaults to pMHC_affinity since
+            most BindingPrediction objects represent binding affinity.
+        """
+        return Pred(
+            kind=kind,
+            score=self.score if self.score is not None else 0.0,
+            peptide=self.peptide,
+            allele=self.allele or "",
+            value=self.affinity,
+            percentile_rank=self.percentile_rank,
+            source_sequence_name=self.source_sequence_name,
+            offset=self.offset,
+            predictor_name=self.prediction_method_name,
+        )
+
+    @classmethod
+    def from_pred(cls, pred):
+        """Create a BindingPrediction from a Pred object."""
+        return cls(
+            peptide=pred.peptide,
+            allele=pred.allele,
+            score=pred.score,
+            affinity=pred.value,
+            percentile_rank=pred.percentile_rank,
+            source_sequence_name=pred.source_sequence_name,
+            offset=pred.offset,
+            prediction_method_name=pred.predictor_name,
+        )
 

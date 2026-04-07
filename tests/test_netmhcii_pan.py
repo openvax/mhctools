@@ -140,7 +140,7 @@ def test_netmhcii_pan():
 # TODO: add more actual tests to this
 def check_netmhcii_pan(program_name, fail_if_no_such_program=True):
     try:
-        predictor = NetMHCIIpan(
+        NetMHCIIpan(
             alleles=[DEFAULT_ALLELE], program_name=program_name)
     except FileNotFoundError:
         if fail_if_no_such_program:
