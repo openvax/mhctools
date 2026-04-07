@@ -49,24 +49,24 @@ class CleanupFiles(object):
             logger.debug("Cleaning up %s", name)
             try:
                 f.close()
-            except:
+            except Exception:
                 pass
 
             try:
                 os.remove(f.name)
-            except:
+            except Exception:
                 pass
 
         for name in self.filenames:
             logger.debug("Cleaning up %s", name)
             try:
                 os.remove(name)
-            except:
+            except Exception:
                 pass
 
         for dirname in self.directories:
             logger.debug("Removing directory %s", dirname)
             try:
                 shutil.rmtree(dirname)
-            except:
+            except Exception:
                 pass

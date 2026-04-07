@@ -30,7 +30,7 @@ def create_input_peptides_files(
     """
     if group_by_length:
         peptide_lengths = {len(p) for p in peptides}
-        peptide_groups = {l: [] for l in peptide_lengths}
+        peptide_groups = {plen: [] for plen in peptide_lengths}
         for p in peptides:
             peptide_groups[len(p)].append(p)
     else:

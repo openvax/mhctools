@@ -12,7 +12,7 @@
 
 import pandas as pd
 
-from .pred import PeptidePreds, COLUMNS
+from .pred import COLUMNS
 
 
 class MultiSample:

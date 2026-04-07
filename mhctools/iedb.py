@@ -85,7 +85,7 @@ def _parse_iedb_response(response):
     df = pd.read_csv(io.BytesIO(response), delim_whitespace=True, header=0)
 
     # pylint doesn't realize that df is a DataFrame, so tell is
-    assert type(df) == pd.DataFrame
+    assert isinstance(df, pd.DataFrame)
     df = pd.DataFrame(df)
 
     if len(df) == 0:
@@ -218,9 +218,9 @@ class IedbBasePredictor(BasePredictor):
 
         normalized_alleles = []
         for key, amino_acid_sequence in sequence_dict.items():
-            for l in peptide_lengths:
-                for i in range(len(amino_acid_sequence) - l + 1):
-                    expected_peptides.add(amino_acid_sequence[i:i + l])
+            for plen in peptide_lengths:
+                for i in range(len(amino_acid_sequence) - plen + 1):
+                    expected_peptides.add(amino_acid_sequence[i:i + plen])
             self._check_peptide_inputs(expected_peptides)
             for allele in self.alleles:
                 # IEDB MHCII predictor expects DRA1 to be omitted.

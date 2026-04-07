@@ -1,12 +1,6 @@
 #!/bin/bash
 set -o errexit
 
-# getting false positives due to this issue with pylint:
-# https://bitbucket.org/logilab/pylint/issues/701/false-positives-with-not-an-iterable-and
+python -m ruff check mhctools tests
 
-find mhctools tests -name '*.py' \
-  | xargs python -m pylint \
-  --errors-only \
-  --disable=unsubscriptable-object,not-an-iterable
-
-echo 'Passes pylint check'
+echo 'Passes ruff check'

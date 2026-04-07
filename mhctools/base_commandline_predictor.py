@@ -27,9 +27,8 @@ from .process_helpers import run_command
 from .cleanup_context import CleanupFiles
 from .input_file_formats import create_input_peptides_files
 from .process_helpers import run_multiple_commands_redirect_stdout
-from .binding_prediction import BindingPrediction
 from .binding_prediction_collection import BindingPredictionCollection
-from .pred import Pred, PeptidePreds
+from .pred import PeptidePreds
 
 logger = logging.getLogger(__name__)
 
@@ -166,7 +165,7 @@ class BaseCommandlinePredictor(BasePredictor):
             # it's present
             try:
                 run_command([self.program_name])
-            except:
+            except Exception:
                 raise SystemError("Failed to run %s" % self.program_name)
             valid_alleles = None
 
