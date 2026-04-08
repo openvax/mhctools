@@ -10,9 +10,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pytest 
+import pytest
 from numpy import testing
 from mhctools import NetChop
+from mhctools.proteasome_predictor import ProteasomePredictor
+from mhctools.pred import Kind, PeptidePreds
 from .arch import apple_silicon
 
 # Peptides from http://tools.iedb.org/netchop/example/
@@ -23,20 +25,40 @@ MDSHTVSSFQDILMRMSKMQLGSSSGDLNGMITQFESLKLYRDSLGEAVMRLGDLHSLQHRNGKWREQLGQKFEEIRWLI
 """.strip().split()
 
 
-@pytest.mark.skipif(apple_silicon, reason="Can't run netChop on arm64 architecture")
-def test_simple():
-    obj = NetChop()
-    result = obj.predict(peptides)
-    assert len(result) == 3
-    assert len(result[0]) == len(peptides[0])
-    assert len(result[1]) == len(peptides[1])
-    assert len(result[2]) == len(peptides[2])
+def test_is_proteasome_predictor():
+    assert issubclass(NetChop, ProteasomePredictor)
 
-    # These numbers are from running http://tools.iedb.org/netchop
-    # via the web interface on 12/19/2016.
-    testing.assert_almost_equal(result[0][95], 0.976629)
-    testing.assert_almost_equal(result[0][22], 0.022000)
-    testing.assert_almost_equal(result[1][146], 0.977417)
-    testing.assert_almost_equal(result[1][84], 0.285210)
-    testing.assert_almost_equal(result[2][0], 0.547588)
-    testing.assert_almost_equal(result[2][84], 0.104684)
+
+@pytest.mark.skipif(apple_silicon, reason="Can't run netChop on arm64 architecture")
+def test_cleavage_probs():
+    obj = NetChop()
+    for pep in peptides:
+        probs = obj.cleavage_probs(pep)
+        assert len(probs) == len(pep)
+
+    # Spot-check values from http://tools.iedb.org/netchop (12/19/2016)
+    probs0 = obj.cleavage_probs(peptides[0])
+    probs1 = obj.cleavage_probs(peptides[1])
+    probs2 = obj.cleavage_probs(peptides[2])
+    testing.assert_almost_equal(probs0[95], 0.976629)
+    testing.assert_almost_equal(probs0[22], 0.022000)
+    testing.assert_almost_equal(probs1[146], 0.977417)
+    testing.assert_almost_equal(probs1[84], 0.285210)
+    testing.assert_almost_equal(probs2[0], 0.547588)
+    testing.assert_almost_equal(probs2[84], 0.104684)
+
+
+@pytest.mark.skipif(apple_silicon, reason="Can't run netChop on arm64 architecture")
+def test_predict_proteins():
+    obj = NetChop()
+    result = obj.predict_proteins({"pep0": peptides[0]})
+    assert "pep0" in result
+    pp_list = result["pep0"]
+    assert isinstance(pp_list, list)
+    assert all(isinstance(pp, PeptidePreds) for pp in pp_list)
+    for pp in pp_list:
+        pred = pp.preds[0]
+        assert pred.kind == Kind.proteasome_cleavage
+        assert pred.source_sequence_name == "pep0"
+        assert pred.predictor_name == "netchop"
+        assert 0.0 <= pred.score <= 1.0
