@@ -13,6 +13,8 @@ from .mixmhcpred import MixMHCpred
 from .mhcflurry import MHCflurry
 from .processing_predictor import (
     ProcessingPredictor,
+    SCORING_MODES,
+    resolve_scoring,
     score_cterm,
     score_nterm_cterm,
     score_cterm_anti_max_internal,
@@ -57,6 +59,8 @@ __all__ = [
     "MHCflurry",
     "ProcessingPredictor",
     "ProteasomePredictor",
+    "SCORING_MODES",
+    "resolve_scoring",
     "score_cterm",
     "score_nterm_cterm",
     "score_cterm_anti_max_internal",

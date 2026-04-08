@@ -60,8 +60,13 @@ def test_init_invalid_proteasome_type():
         Pepsickle(proteasome_type="X")
 
 
-def test_init_custom_scoring():
+def test_init_custom_scoring_callable():
     p = Pepsickle(scoring=score_cterm)
+    assert p.scoring is score_cterm
+
+
+def test_init_custom_scoring_string():
+    p = Pepsickle(scoring="cterm")
     assert p.scoring is score_cterm
 
 

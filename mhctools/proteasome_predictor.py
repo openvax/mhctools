@@ -11,14 +11,14 @@
 # limitations under the License.
 
 from .pred import Kind
-from .processing_predictor import ProcessingPredictor, score_cterm_anti_max_internal
+from .processing_predictor import ProcessingPredictor, resolve_scoring
 
 
 class ProteasomePredictor(ProcessingPredictor):
     """
     Base class for proteasome-cleavage predictors.
 
-    Defaults *scoring* to :func:`score_cterm_anti_max_internal`
+    Defaults *scoring* to ``"cterm_max_internal"``
     (``c_term * (1 - max(internal))``) and emits
     :attr:`Kind.proteasome_cleavage` predictions.
 
@@ -26,8 +26,9 @@ class ProteasomePredictor(ProcessingPredictor):
     """
 
     def __init__(self, default_peptide_lengths=None, scoring=None, **kwargs):
+        scoring = resolve_scoring(scoring)
         if scoring is None:
-            scoring = score_cterm_anti_max_internal
+            scoring = "cterm_max_internal"
         ProcessingPredictor.__init__(
             self,
             default_peptide_lengths=default_peptide_lengths,

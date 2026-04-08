@@ -99,6 +99,34 @@ def score_nterm_cterm_anti_mean_internal(c_term, n_term, internal):
     return _geomean(*components)
 
 
+SCORING_MODES = {
+    "cterm": score_cterm,
+    "nterm_cterm": score_nterm_cterm,
+    "cterm_max_internal": score_cterm_anti_max_internal,
+    "cterm_mean_internal": score_cterm_anti_mean_internal,
+    "nterm_cterm_max_internal": score_nterm_cterm_anti_max_internal,
+    "nterm_cterm_mean_internal": score_nterm_cterm_anti_mean_internal,
+}
+
+
+def resolve_scoring(scoring):
+    """Resolve a scoring argument to a callable.
+
+    Accepts a string mode name (see :data:`SCORING_MODES`), a callable,
+    or ``None`` (returns ``None`` so the caller can apply its default).
+    """
+    if scoring is None or callable(scoring):
+        return scoring
+    if isinstance(scoring, str):
+        if scoring not in SCORING_MODES:
+            raise ValueError(
+                "Unknown scoring mode %r, choose from %s" % (
+                    scoring, list(SCORING_MODES)))
+        return SCORING_MODES[scoring]
+    raise TypeError(
+        "scoring must be a string mode, callable, or None — got %r" % type(scoring))
+
+
 # ------------------------------------------------------------------
 # ProcessingPredictor
 # ------------------------------------------------------------------
@@ -126,10 +154,12 @@ class ProcessingPredictor:
     default_peptide_lengths : list of int, optional
         Peptide lengths used when scanning proteins. Default ``[9]``.
 
-    scoring : callable, optional
-        ``scoring(c_term, n_term, internal_probs) -> float``.
-        See module docstring for the signature contract.
-        Default: :func:`score_nterm_cterm_anti_max_internal`.
+    scoring : str or callable, optional
+        Either a mode name (``"cterm"``, ``"nterm_cterm"``,
+        ``"cterm_max_internal"``, ``"cterm_mean_internal"``,
+        ``"nterm_cterm_max_internal"``, ``"nterm_cterm_mean_internal"``)
+        or a callable ``(c_term, n_term, internal_probs) -> float``.
+        Default: ``"nterm_cterm_max_internal"``.
     """
 
     def __init__(
@@ -140,10 +170,9 @@ class ProcessingPredictor:
             default_peptide_lengths = [9]
         if isinstance(default_peptide_lengths, int):
             default_peptide_lengths = [default_peptide_lengths]
+        scoring = resolve_scoring(scoring)
         if scoring is None:
             scoring = score_nterm_cterm_anti_max_internal
-        if not callable(scoring):
-            raise TypeError("scoring must be callable, got %r" % type(scoring))
         self.default_peptide_lengths = default_peptide_lengths
         self.scoring = scoring
 

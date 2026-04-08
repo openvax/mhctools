@@ -22,6 +22,8 @@ import pytest
 
 from mhctools.processing_predictor import (
     ProcessingPredictor,
+    SCORING_MODES,
+    resolve_scoring,
     score_cterm,
     score_nterm_cterm,
     score_cterm_anti_max_internal,
@@ -135,13 +137,55 @@ class TestInit:
         p = StubPredictor({}, scoring=fn)
         assert p.scoring is fn
 
-    def test_non_callable_scoring_raises(self):
-        with pytest.raises(TypeError, match="callable"):
+    def test_invalid_string_scoring_raises(self):
+        with pytest.raises(ValueError, match="Unknown scoring mode"):
             StubPredictor({}, scoring="not_a_function")
 
-    def test_non_callable_scoring_int_raises(self):
-        with pytest.raises(TypeError, match="callable"):
+    def test_string_mode_scoring(self):
+        p = StubPredictor({}, scoring="cterm")
+        assert p.scoring is score_cterm
+
+    def test_all_string_modes(self):
+        for name, fn in SCORING_MODES.items():
+            p = StubPredictor({}, scoring=name)
+            assert p.scoring is fn, name
+
+    def test_invalid_string_mode_raises(self):
+        with pytest.raises(ValueError, match="Unknown scoring mode"):
+            StubPredictor({}, scoring="bad_mode")
+
+    def test_non_string_non_callable_scoring_raises(self):
+        with pytest.raises(TypeError):
             StubPredictor({}, scoring=42)
+
+
+# ======================================================================
+# resolve_scoring()
+# ======================================================================
+
+class TestResolveScoring:
+
+    def test_none_returns_none(self):
+        assert resolve_scoring(None) is None
+
+    def test_callable_passthrough(self):
+        fn = lambda c, n, i: c
+        assert resolve_scoring(fn) is fn
+
+    def test_string_mode(self):
+        assert resolve_scoring("cterm") is score_cterm
+
+    def test_all_modes(self):
+        for name, fn in SCORING_MODES.items():
+            assert resolve_scoring(name) is fn
+
+    def test_invalid_string(self):
+        with pytest.raises(ValueError, match="Unknown scoring mode"):
+            resolve_scoring("invalid")
+
+    def test_non_string_non_callable(self):
+        with pytest.raises(TypeError):
+            resolve_scoring(42)
 
 
 # ======================================================================
