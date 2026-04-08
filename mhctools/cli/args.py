@@ -17,7 +17,6 @@
 Commandline options for MHC Binding Prediction
 """
 
-from __future__ import print_function, division, absolute_import
 from argparse import ArgumentParser
 import logging
 

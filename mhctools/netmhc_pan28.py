@@ -10,8 +10,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import print_function, division, absolute_import
-
 from .base_commandline_predictor import BaseCommandlinePredictor
 from .parsing import parse_netmhcpan28_stdout, parse_netmhcpan_to_preds
 

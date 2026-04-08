@@ -1,4 +1,4 @@
-numpy>=1.7
+numpy>=2.0.0,<3.0.0
 pandas>=0.13.1
 pyensembl>=2.3.0,<3.0.0
 varcode>=0.5.9
