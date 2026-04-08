@@ -132,8 +132,9 @@ class TestInit:
         p = StubPredictor({}, scoring=score_cterm)
         assert p.scoring is score_cterm
 
-    def test_lambda_scoring(self):
-        fn = lambda c, n, i: c
+    def test_callable_scoring(self):
+        def fn(c, n, i):
+            return c
         p = StubPredictor({}, scoring=fn)
         assert p.scoring is fn
 
@@ -169,7 +170,8 @@ class TestResolveScoring:
         assert resolve_scoring(None) is None
 
     def test_callable_passthrough(self):
-        fn = lambda c, n, i: c
+        def fn(c, n, i):
+            return c
         assert resolve_scoring(fn) is fn
 
     def test_string_mode(self):
@@ -202,12 +204,13 @@ class TestRepr:
         p = StubPredictor({}, scoring=score_cterm)
         assert "score_cterm" in str(p)
 
-    def test_str_lambda_scoring(self):
-        p = StubPredictor({}, scoring=lambda c, n, i: c)
+    def test_str_custom_scoring(self):
+        def my_fn(c, n, i):
+            return c
+        p = StubPredictor({}, scoring=my_fn)
         s = str(p)
         assert "StubPredictor" in s
-        # lambda has no __name__ in the usual sense, should still work
-        assert "lambda" in s or "function" in s or "<" in s
+        assert "my_fn" in s
 
     def test_repr_equals_str(self):
         p = StubPredictor({})
