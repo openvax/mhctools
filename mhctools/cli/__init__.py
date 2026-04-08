@@ -16,8 +16,6 @@
 Commandline interface for MHC Binding Prediction
 """
 
-from __future__ import print_function, division, absolute_import
-
 from .args import (
     mhc_binding_predictor_from_args,
     mhc_alleles_from_args,

@@ -27,7 +27,7 @@ from .random_predictor import RandomBindingPredictor
 from .netmhcstabpan import NetMHCstabpan
 from .unsupported_allele import UnsupportedAllele
 
-__version__ = "3.0.0"
+__version__ = "3.0.1"
 
 __all__ = [
     "Pred",

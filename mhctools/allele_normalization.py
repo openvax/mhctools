@@ -7,8 +7,6 @@ This module preserves the subset of mhcnames behavior relied on by mhctools:
 - AlleleParseError
 """
 
-from __future__ import print_function, division, absolute_import
-
 from collections import namedtuple
 
 from mhcgnomes import Allele, Pair, ParseError, parse
