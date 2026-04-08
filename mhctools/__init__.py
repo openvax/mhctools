@@ -11,6 +11,7 @@ from .iedb import (
 )
 from .mixmhcpred import MixMHCpred
 from .mhcflurry import MHCflurry
+from .processing_predictor import ProcessingPredictor
 from .netchop import NetChop
 from .pepsickle import Pepsickle
 from .netmhc import NetMHC
@@ -45,6 +46,7 @@ __all__ = [
     "IedbNetMHCIIpan",
     "MixMHCpred",
     "MHCflurry",
+    "ProcessingPredictor",
     "NetChop",
     "Pepsickle",
     "NetMHC",

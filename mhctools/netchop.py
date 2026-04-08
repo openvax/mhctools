@@ -10,56 +10,90 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-import subprocess
 import logging
+import subprocess
 import tempfile
 
+from .processing_predictor import ProcessingPredictor
 
-class NetChop(object):
+logger = logging.getLogger(__name__)
+
+
+class NetChop(ProcessingPredictor):
     """
-    Wrapper around netChop tool. Assumes netChop is in your PATH.
+    Wrapper around the netChop command-line tool.
+
+    Assumes ``netChop`` (or a custom *program_name*) is on your PATH.
+
+    Parameters
+    ----------
+    default_peptide_lengths : list of int, optional
+        Peptide lengths used when scanning proteins. Default ``[9]``.
+
+    scoring : str
+        Aggregation method (see :class:`ProcessingPredictor`).
+
+    program_name : str
+        Name or path of the netChop executable (default ``"netChop"``).
     """
 
-    def predict(self, sequences):
+    def __init__(
+            self,
+            default_peptide_lengths=None,
+            scoring="nterm_cterm_max_internal",
+            program_name="netChop"):
+        ProcessingPredictor.__init__(
+            self,
+            default_peptide_lengths=default_peptide_lengths,
+            scoring=scoring,
+        )
+        self.program_name = program_name
+
+    def __str__(self):
+        return "%s(program_name=%r, scoring=%r)" % (
+            self.__class__.__name__, self.program_name, self.scoring)
+
+    def _predictor_name(self):
+        return "netchop"
+
+    def cleavage_probs(self, sequence):
         """
-        Return netChop predictions for each position in each sequence.
-
-        Parameters
-        -----------
-        sequences : list of string
-            Amino acid sequences to predict cleavage for
+        Run netChop on a single sequence.
 
         Returns
-        -----------
-        list of list of float
-
-        The i'th list corresponds to the i'th sequence. Each list gives
-        the cleavage probability for each position in the sequence.
+        -------
+        list of float
+            Per-position cleavage probabilities.
         """
-        with tempfile.NamedTemporaryFile(suffix=".fsa", mode="w") as input_fd:
-            for (i, sequence) in enumerate(sequences):
-                input_fd.write("> %d\n" % i)
-                input_fd.write(sequence)
-                input_fd.write("\n")
-            input_fd.flush()
+        with tempfile.NamedTemporaryFile(suffix=".fsa", mode="w") as fd:
+            fd.write("> seq\n")
+            fd.write(sequence)
+            fd.write("\n")
+            fd.flush()
             try:
-                output = subprocess.check_output(["netChop", input_fd.name])
+                output = subprocess.check_output([self.program_name, fd.name])
             except subprocess.CalledProcessError as e:
-                logging.error("Error calling netChop: %s:\n%s" % (e, e.output))
+                logger.error(
+                    "Error calling %s: %s:\n%s",
+                    self.program_name, e, e.output)
                 raise
-
         parsed = self.parse_netchop(output)
-        assert len(parsed) == len(sequences), \
-            "Expected %d results but got %d" % (
-                len(sequences), len(parsed))
-        assert [len(x) for x in parsed] == [len(x) for x in sequences]
-        return parsed
+        assert len(parsed) == 1, \
+            "Expected 1 result from netChop, got %d" % len(parsed)
+        assert len(parsed[0]) == len(sequence), \
+            "Expected %d scores, got %d" % (len(sequence), len(parsed[0]))
+        return parsed[0]
 
     @staticmethod
     def parse_netchop(netchop_output):
         """
         Parse netChop stdout.
+
+        Returns
+        -------
+        list of list of float
+            One inner list per input sequence, with per-position
+            cleavage scores.
         """
         line_iterator = iter(netchop_output.decode().split("\n"))
         scores = []
