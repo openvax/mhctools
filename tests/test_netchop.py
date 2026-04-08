@@ -13,6 +13,7 @@
 import pytest
 from numpy import testing
 from mhctools import NetChop
+from mhctools.proteasome_predictor import ProteasomePredictor
 from mhctools.pred import Kind, PeptidePreds
 from .arch import apple_silicon
 
@@ -22,6 +23,10 @@ MSLLTEVETPIRNEWGCRCNDSSDPLVVAASIIGIVHLILWIIDRLFSKSIYRIFKHGLKRGPSTEGVPESMREEYREEQ
 MDSHTVSSFQVDCFLWHVRKQVADQDLGDAPFLDRLRRDQKSLKGRGSTLGLNIETATCVGKQIVERILKEESDEAFKMTMASALASRYLTDMTIEEMSRDWFMLMPKQKVAGPLCVRMDQAIMDKNIILKANFSVIFDRLENLTLLRAFTEEGAIVGEISPLPSLPGHTNEDVKNAIGVLIGGLEWNDNTVRVSETLQRFTWRSSNETGGPPFTPTQKRKMAGTIRSEV
 MDSHTVSSFQDILMRMSKMQLGSSSGDLNGMITQFESLKLYRDSLGEAVMRLGDLHSLQHRNGKWREQLGQKFEEIRWLIEEVRHKLKTTENSFEQITFMQALQLLFEVEQEIRTFSFQLI
 """.strip().split()
+
+
+def test_is_proteasome_predictor():
+    assert issubclass(NetChop, ProteasomePredictor)
 
 
 @pytest.mark.skipif(apple_silicon, reason="Can't run netChop on arm64 architecture")
@@ -53,7 +58,7 @@ def test_predict_proteins():
     assert all(isinstance(pp, PeptidePreds) for pp in pp_list)
     for pp in pp_list:
         pred = pp.preds[0]
-        assert pred.kind == Kind.antigen_processing
+        assert pred.kind == Kind.proteasome_cleavage
         assert pred.source_sequence_name == "pep0"
         assert pred.predictor_name == "netchop"
         assert 0.0 <= pred.score <= 1.0

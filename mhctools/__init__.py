@@ -11,7 +11,16 @@ from .iedb import (
 )
 from .mixmhcpred import MixMHCpred
 from .mhcflurry import MHCflurry
-from .processing_predictor import ProcessingPredictor
+from .processing_predictor import (
+    ProcessingPredictor,
+    score_cterm,
+    score_nterm_cterm,
+    score_cterm_anti_max_internal,
+    score_cterm_anti_mean_internal,
+    score_nterm_cterm_anti_max_internal,
+    score_nterm_cterm_anti_mean_internal,
+)
+from .proteasome_predictor import ProteasomePredictor
 from .netchop import NetChop
 from .pepsickle import Pepsickle
 from .netmhc import NetMHC
@@ -47,6 +56,13 @@ __all__ = [
     "MixMHCpred",
     "MHCflurry",
     "ProcessingPredictor",
+    "ProteasomePredictor",
+    "score_cterm",
+    "score_nterm_cterm",
+    "score_cterm_anti_max_internal",
+    "score_cterm_anti_mean_internal",
+    "score_nterm_cterm_anti_max_internal",
+    "score_nterm_cterm_anti_mean_internal",
     "NetChop",
     "Pepsickle",
     "NetMHC",

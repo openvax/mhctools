@@ -11,8 +11,25 @@
 # limitations under the License.
 
 """
-Base class for antigen-processing predictors that produce per-position
-cleavage probabilities and aggregate them into peptide-level scores.
+Base class for antigen-processing predictors and built-in scoring functions.
+
+Scoring functions
+-----------------
+A scoring function combines three components extracted from a per-position
+cleavage profile into a single peptide-level score::
+
+    score = scoring(c_term, n_term, internal_probs)
+
+*c_term* (float)
+    Cleavage probability after the peptide's last residue.
+*n_term* (float or None)
+    Cleavage probability after the residue immediately upstream of the
+    peptide. ``None`` when the peptide starts at position 0 (no upstream
+    residue).
+*internal_probs* (list of float)
+    Cleavage probabilities at positions *within* the peptide (excluding
+    the C-terminal position). Cleavage at any of these would destroy the
+    peptide.
 """
 
 from collections import defaultdict
@@ -20,14 +37,86 @@ from collections import defaultdict
 from .pred import Pred, Kind, PeptidePreds
 
 
+# ------------------------------------------------------------------
+# Built-in scoring functions
+# ------------------------------------------------------------------
+
+def _geomean(*values):
+    product = 1.0
+    for v in values:
+        product *= v
+    return product ** (1.0 / len(values))
+
+
+def score_cterm(c_term, n_term, internal):
+    """C-terminal cleavage probability only."""
+    return c_term
+
+
+def score_nterm_cterm(c_term, n_term, internal):
+    """Geometric mean of N- and C-terminal cleavage.
+
+    Falls back to C-terminal only when *n_term* is ``None``.
+    """
+    if n_term is None:
+        return c_term
+    return _geomean(c_term, n_term)
+
+
+def score_cterm_anti_max_internal(c_term, n_term, internal):
+    """``c_term * (1 - max(internal))``."""
+    max_i = max(internal) if internal else 0.0
+    return c_term * (1.0 - max_i)
+
+
+def score_cterm_anti_mean_internal(c_term, n_term, internal):
+    """``c_term * (1 - mean(internal))``."""
+    mean_i = sum(internal) / len(internal) if internal else 0.0
+    return c_term * (1.0 - mean_i)
+
+
+def score_nterm_cterm_anti_max_internal(c_term, n_term, internal):
+    """Geometric mean of C-term, N-term, and ``1 - max(internal)``.
+
+    N-term is omitted from the mean when ``None``.
+    """
+    max_i = max(internal) if internal else 0.0
+    components = [c_term, 1.0 - max_i]
+    if n_term is not None:
+        components.append(n_term)
+    return _geomean(*components)
+
+
+def score_nterm_cterm_anti_mean_internal(c_term, n_term, internal):
+    """Geometric mean of C-term, N-term, and ``1 - mean(internal)``.
+
+    N-term is omitted from the mean when ``None``.
+    """
+    mean_i = sum(internal) / len(internal) if internal else 0.0
+    components = [c_term, 1.0 - mean_i]
+    if n_term is not None:
+        components.append(n_term)
+    return _geomean(*components)
+
+
+# ------------------------------------------------------------------
+# ProcessingPredictor
+# ------------------------------------------------------------------
+
 class ProcessingPredictor:
     """
     Base class for antigen-processing predictors.
 
-    Subclasses must implement :meth:`cleavage_probs`, which returns a
-    list of per-position cleavage probabilities for a protein sequence.
-    This class provides the aggregation logic that converts those
-    per-position probabilities into peptide-level processing scores.
+    Subclasses implement :meth:`cleavage_probs` (per-position cleavage
+    probabilities for a sequence).  This class provides:
+
+    * **Component helpers** that extract C-terminal, N-terminal, and
+      internal cleavage components from a probability vector.
+    * **Configurable scoring** via a callable that combines those
+      components into a single peptide-level score.
+    * **Flanking-sequence support** so cleavage models see context around
+      the peptide (optional for ``predict``, automatic for
+      ``predict_proteins``).
 
     Unlike :class:`BasePredictor`, this class has **no allele parameter**
     because antigen processing is allele-independent.
@@ -37,45 +126,24 @@ class ProcessingPredictor:
     default_peptide_lengths : list of int, optional
         Peptide lengths used when scanning proteins. Default ``[9]``.
 
-    scoring : str
-        How to aggregate per-position cleavage probabilities into a
-        single peptide processing score (all use geometric mean):
-
-        * ``"cterm"`` -- C-terminal cleavage probability only.
-        * ``"nterm_cterm"`` -- N- and C-terminal cleavage.
-        * ``"cterm_max_internal"`` -- C-terminal and (1 - max internal).
-        * ``"cterm_mean_internal"`` -- C-terminal and (1 - mean internal).
-        * ``"nterm_cterm_max_internal"`` -- N-term, C-term, and
-          (1 - max internal).
-        * ``"nterm_cterm_mean_internal"`` -- N-term, C-term, and
-          (1 - mean internal).
-
-        When the N-terminal cleavage site falls outside the sequence
-        (``offset == 0`` or isolated peptides), the N-term component is
-        omitted from the geometric mean.
+    scoring : callable, optional
+        ``scoring(c_term, n_term, internal_probs) -> float``.
+        See module docstring for the signature contract.
+        Default: :func:`score_nterm_cterm_anti_max_internal`.
     """
-
-    SCORING_METHODS = (
-        "cterm",
-        "nterm_cterm",
-        "cterm_max_internal",
-        "cterm_mean_internal",
-        "nterm_cterm_max_internal",
-        "nterm_cterm_mean_internal",
-    )
 
     def __init__(
             self,
             default_peptide_lengths=None,
-            scoring="nterm_cterm_max_internal"):
+            scoring=None):
         if default_peptide_lengths is None:
             default_peptide_lengths = [9]
         if isinstance(default_peptide_lengths, int):
             default_peptide_lengths = [default_peptide_lengths]
-        if scoring not in self.SCORING_METHODS:
-            raise ValueError(
-                "scoring must be one of %s, got %r" % (
-                    self.SCORING_METHODS, scoring))
+        if scoring is None:
+            scoring = score_nterm_cterm_anti_max_internal
+        if not callable(scoring):
+            raise TypeError("scoring must be callable, got %r" % type(scoring))
         self.default_peptide_lengths = default_peptide_lengths
         self.scoring = scoring
 
@@ -83,7 +151,8 @@ class ProcessingPredictor:
         return str(self)
 
     def __str__(self):
-        return "%s(scoring=%r)" % (self.__class__.__name__, self.scoring)
+        return "%s(scoring=%s)" % (
+            self.__class__.__name__, getattr(self.scoring, "__name__", repr(self.scoring)))
 
     # ------------------------------------------------------------------
     # Abstract
@@ -96,120 +165,137 @@ class ProcessingPredictor:
         Position *i* represents the probability of cleavage **after**
         residue *i* (0-based).
 
-        Parameters
-        ----------
-        sequence : str
-            Amino acid sequence.
-
-        Returns
-        -------
-        list of float
-            One probability per residue, in ``[0, 1]``.
+        Must be implemented by subclasses.
         """
         raise NotImplementedError(
             "%s must implement cleavage_probs" % self.__class__.__name__)
+
+    # ------------------------------------------------------------------
+    # Component helpers
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def c_term_prob(probs, offset, length):
+        """Cleavage probability after the peptide's last residue."""
+        return probs[offset + length - 1]
+
+    @staticmethod
+    def n_term_prob(probs, offset, length):
+        """Cleavage probability upstream of the peptide, or ``None``."""
+        return probs[offset - 1] if offset > 0 else None
+
+    @staticmethod
+    def internal_probs(probs, offset, length):
+        """Cleavage probabilities at positions within the peptide
+        (excluding C-terminal)."""
+        return probs[offset:offset + length - 1]
+
+    @staticmethod
+    def max_internal_prob(probs, offset, length):
+        """Maximum internal cleavage probability."""
+        internal = probs[offset:offset + length - 1]
+        return max(internal) if internal else 0.0
+
+    @staticmethod
+    def mean_internal_prob(probs, offset, length):
+        """Mean internal cleavage probability."""
+        internal = probs[offset:offset + length - 1]
+        return sum(internal) / len(internal) if internal else 0.0
 
     # ------------------------------------------------------------------
     # Scoring
     # ------------------------------------------------------------------
 
     def _peptide_score(self, probs, offset, length):
-        """
-        Aggregate per-position cleavage probabilities into a single
-        peptide processing score.
+        """Extract components and delegate to ``self.scoring``."""
+        c = self.c_term_prob(probs, offset, length)
+        n = self.n_term_prob(probs, offset, length)
+        internal = self.internal_probs(probs, offset, length)
+        return self.scoring(c, n, internal)
 
-        Components (depending on ``self.scoring``):
+    def _pred_kind(self):
+        """Kind value for Pred objects.  Override in subclasses."""
+        return Kind.antigen_processing
 
-        * **C-terminal** -- ``probs[offset + length - 1]``: cleavage
-          after the last residue of the peptide.
-        * **N-terminal** -- ``probs[offset - 1]`` (when ``offset > 0``):
-          cleavage after the residue immediately upstream.
-        * **Internal** -- ``probs[offset : offset + length - 1]``:
-          cleavage within the peptide (destroying it).  Enters the
-          formula as ``1 - summary(internal)``.
-        """
-        c_term = probs[offset + length - 1]
-
-        n_term = probs[offset - 1] if offset > 0 else None
-
-        internal = probs[offset:offset + length - 1]
-
-        components = [c_term]
-
-        if "nterm" in self.scoring and n_term is not None:
-            components.append(n_term)
-
-        if "internal" in self.scoring and internal:
-            if "max" in self.scoring:
-                summary = max(internal)
-            else:
-                summary = sum(internal) / len(internal)
-            components.append(1.0 - summary)
-
-        product = 1.0
-        for c in components:
-            product *= c
-        return product ** (1.0 / len(components))
+    def _predictor_name(self):
+        return self.__class__.__name__.lower()
 
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
 
-    def predict(self, peptides):
+    def predict(self, peptides, n_flanks=None, c_flanks=None):
         """
-        Predict antigen-processing scores for isolated peptides.
-
-        .. note::
-
-           For short peptides the C-terminal position may lack downstream
-           flanking context, producing unreliable scores.  Prefer
-           :meth:`predict_proteins` when the source protein is available.
+        Predict processing scores for peptides.
 
         Parameters
         ----------
         peptides : list of str
+
+        n_flanks : list of str, optional
+            N-terminal flanking sequences, one per peptide.  When
+            provided the cleavage model sees ``n_flank + peptide +
+            c_flank`` so that edge positions get proper context.
+
+        c_flanks : list of str, optional
+            C-terminal flanking sequences, one per peptide.
 
         Returns
         -------
         list of PeptidePreds
         """
         results = []
-        for peptide in peptides:
-            probs = self.cleavage_probs(peptide)
-            score = self._peptide_score(probs, offset=0, length=len(peptide))
+        for i, peptide in enumerate(peptides):
+            n_flank = n_flanks[i] if n_flanks else ""
+            c_flank = c_flanks[i] if c_flanks else ""
+
+            full_seq = n_flank + peptide + c_flank
+            probs = self.cleavage_probs(full_seq)
+
+            offset = len(n_flank)
+            score = self._peptide_score(probs, offset, len(peptide))
             pred = Pred(
-                kind=Kind.antigen_processing,
+                kind=self._pred_kind(),
                 score=score,
                 peptide=peptide,
+                n_flank=n_flank,
+                c_flank=c_flank,
                 predictor_name=self._predictor_name(),
             )
             results.append(PeptidePreds(preds=(pred,)))
         return results
 
-    def predict_dataframe(self, peptides, sample_name=""):
+    def predict_dataframe(self, peptides, n_flanks=None, c_flanks=None,
+                          sample_name=""):
         """``predict()`` flattened to a DataFrame."""
         import pandas as pd
         from .pred import COLUMNS
-        dfs = [pp.to_dataframe(sample_name) for pp in self.predict(peptides)]
+        dfs = [pp.to_dataframe(sample_name)
+               for pp in self.predict(peptides, n_flanks, c_flanks)]
         if not dfs:
             return pd.DataFrame(columns=COLUMNS)
         return pd.concat(dfs, ignore_index=True)
 
-    def predict_proteins(self, sequence_dict, peptide_lengths=None):
+    def predict_proteins(self, sequence_dict, peptide_lengths=None,
+                         flank_length=0):
         """
         Run cleavage prediction on full protein sequences and aggregate
         into peptide-level processing scores.
 
-        This is the preferred entry-point because flanking-sequence
-        context produces more accurate cleavage probabilities.
+        This is the preferred entry-point because the full protein gives
+        the cleavage model proper flanking context at every position.
 
         Parameters
         ----------
         sequence_dict : dict or str
-            Mapping of sequence names to amino acid strings, or a single
-            sequence string.
 
         peptide_lengths : list of int, optional
+
+        flank_length : int
+            How many residues of flanking context to record in each
+            :class:`Pred`'s ``n_flank`` / ``c_flank`` fields (default 0).
+            This does **not** affect the cleavage model — it always sees
+            the full protein.
 
         Returns
         -------
@@ -229,10 +315,18 @@ class ProcessingPredictor:
                 for i in range(len(sequence) - plen + 1):
                     peptide = sequence[i:i + plen]
                     score = self._peptide_score(probs, offset=i, length=plen)
+                    if flank_length:
+                        n_flank = sequence[max(0, i - flank_length):i]
+                        c_flank = sequence[i + plen:i + plen + flank_length]
+                    else:
+                        n_flank = ""
+                        c_flank = ""
                     pred = Pred(
-                        kind=Kind.antigen_processing,
+                        kind=self._pred_kind(),
                         score=score,
                         peptide=peptide,
+                        n_flank=n_flank,
+                        c_flank=c_flank,
                         source_sequence_name=name,
                         offset=i,
                         predictor_name=self._predictor_name(),
@@ -241,13 +335,14 @@ class ProcessingPredictor:
         return dict(results)
 
     def predict_proteins_dataframe(
-            self, sequence_dict, peptide_lengths=None, sample_name=""):
+            self, sequence_dict, peptide_lengths=None,
+            flank_length=0, sample_name=""):
         """``predict_proteins()`` flattened to a DataFrame."""
         import pandas as pd
         from .pred import COLUMNS
         dfs = []
         for name, pp_list in self.predict_proteins(
-                sequence_dict, peptide_lengths).items():
+                sequence_dict, peptide_lengths, flank_length).items():
             for pp in pp_list:
                 dfs.append(pp.to_dataframe(sample_name))
         if not dfs:
@@ -257,10 +352,6 @@ class ProcessingPredictor:
     def predict_cleavage_sites(self, sequence_dict):
         """
         Return raw per-position cleavage probabilities.
-
-        Parameters
-        ----------
-        sequence_dict : dict or str
 
         Returns
         -------
@@ -276,9 +367,6 @@ class ProcessingPredictor:
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
-
-    def _predictor_name(self):
-        return self.__class__.__name__.lower()
 
     def _resolve_peptide_lengths(self, peptide_lengths):
         if peptide_lengths is None:

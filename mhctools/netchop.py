@@ -14,12 +14,12 @@ import logging
 import subprocess
 import tempfile
 
-from .processing_predictor import ProcessingPredictor
+from .proteasome_predictor import ProteasomePredictor
 
 logger = logging.getLogger(__name__)
 
 
-class NetChop(ProcessingPredictor):
+class NetChop(ProteasomePredictor):
     """
     Wrapper around the netChop command-line tool.
 
@@ -30,8 +30,9 @@ class NetChop(ProcessingPredictor):
     default_peptide_lengths : list of int, optional
         Peptide lengths used when scanning proteins. Default ``[9]``.
 
-    scoring : str
-        Aggregation method (see :class:`ProcessingPredictor`).
+    scoring : callable, optional
+        See :class:`ProcessingPredictor`.  Default:
+        ``score_cterm_anti_max_internal``.
 
     program_name : str
         Name or path of the netChop executable (default ``"netChop"``).
@@ -40,9 +41,9 @@ class NetChop(ProcessingPredictor):
     def __init__(
             self,
             default_peptide_lengths=None,
-            scoring="nterm_cterm_max_internal",
+            scoring=None,
             program_name="netChop"):
-        ProcessingPredictor.__init__(
+        ProteasomePredictor.__init__(
             self,
             default_peptide_lengths=default_peptide_lengths,
             scoring=scoring,
@@ -50,8 +51,10 @@ class NetChop(ProcessingPredictor):
         self.program_name = program_name
 
     def __str__(self):
-        return "%s(program_name=%r, scoring=%r)" % (
-            self.__class__.__name__, self.program_name, self.scoring)
+        return "%s(program_name=%r, scoring=%s)" % (
+            self.__class__.__name__,
+            self.program_name,
+            getattr(self.scoring, "__name__", repr(self.scoring)))
 
     def _predictor_name(self):
         return "netchop"

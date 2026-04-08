@@ -10,10 +10,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .processing_predictor import ProcessingPredictor
+from .proteasome_predictor import ProteasomePredictor
 
 
-class Pepsickle(ProcessingPredictor):
+class Pepsickle(ProteasomePredictor):
     """
     Wrapper around the pepsickle proteasomal cleavage predictor.
 
@@ -22,8 +22,9 @@ class Pepsickle(ProcessingPredictor):
     default_peptide_lengths : list of int, optional
         Peptide lengths used when scanning proteins. Default ``[9]``.
 
-    scoring : str
-        Aggregation method (see :class:`ProcessingPredictor`).
+    scoring : callable, optional
+        See :class:`ProcessingPredictor`.  Default:
+        ``score_cterm_anti_max_internal``.
 
     model_type : str
         Pepsickle model to use. One of ``"epitope"`` (default),
@@ -47,7 +48,7 @@ class Pepsickle(ProcessingPredictor):
     def __init__(
             self,
             default_peptide_lengths=None,
-            scoring="nterm_cterm_max_internal",
+            scoring=None,
             model_type="epitope",
             proteasome_type="C",
             threshold=0.5,
@@ -59,7 +60,7 @@ class Pepsickle(ProcessingPredictor):
         if proteasome_type not in self.VALID_PROTEASOME_TYPES:
             raise ValueError(
                 "proteasome_type must be 'C' or 'I', got %r" % proteasome_type)
-        ProcessingPredictor.__init__(
+        ProteasomePredictor.__init__(
             self,
             default_peptide_lengths=default_peptide_lengths,
             scoring=scoring,
@@ -71,11 +72,11 @@ class Pepsickle(ProcessingPredictor):
         self._model = None
 
     def __str__(self):
-        return "%s(model_type=%r, proteasome_type=%r, scoring=%r)" % (
+        return "%s(model_type=%r, proteasome_type=%r, scoring=%s)" % (
             self.__class__.__name__,
             self.model_type,
             self.proteasome_type,
-            self.scoring)
+            getattr(self.scoring, "__name__", repr(self.scoring)))
 
     def _predictor_name(self):
         return "pepsickle"

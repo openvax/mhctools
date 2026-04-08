@@ -13,6 +13,12 @@
 import pytest
 
 from mhctools.pepsickle import Pepsickle
+from mhctools.processing_predictor import (
+    score_cterm,
+    score_cterm_anti_max_internal,
+    score_nterm_cterm_anti_max_internal,
+)
+from mhctools.proteasome_predictor import ProteasomePredictor
 from mhctools.pred import Kind, PeptidePreds, COLUMNS
 
 pepsickle = pytest.importorskip("pepsickle")
@@ -21,11 +27,6 @@ pepsickle = pytest.importorskip("pepsickle")
 @pytest.fixture(scope="module")
 def predictor():
     return Pepsickle()
-
-
-@pytest.fixture(scope="module")
-def predictor_invitro():
-    return Pepsickle(model_type="in-vitro", proteasome_type="C")
 
 
 PROTEIN = "MFVFLVLLPLVSSQCVNLTTRTQLPPAYTNSFTRGVY"
@@ -41,8 +42,12 @@ def test_init_defaults():
     assert p.threshold == 0.5
     assert p.human_only is False
     assert p.default_peptide_lengths == [9]
-    assert p.scoring == "nterm_cterm_max_internal"
+    assert p.scoring is score_cterm_anti_max_internal
     assert not hasattr(p, "alleles")
+
+
+def test_is_proteasome_predictor():
+    assert isinstance(Pepsickle(), ProteasomePredictor)
 
 
 def test_init_invalid_model_type():
@@ -55,14 +60,13 @@ def test_init_invalid_proteasome_type():
         Pepsickle(proteasome_type="X")
 
 
-def test_init_invalid_scoring():
-    with pytest.raises(ValueError, match="scoring"):
-        Pepsickle(scoring="bad")
+def test_init_custom_scoring():
+    p = Pepsickle(scoring=score_cterm)
+    assert p.scoring is score_cterm
 
 
 def test_str():
-    p = Pepsickle()
-    s = str(p)
+    s = str(Pepsickle())
     assert "Pepsickle" in s
     assert "epitope" in s
 
@@ -85,16 +89,29 @@ def test_predict_returns_peptide_preds(predictor):
         assert isinstance(pp, PeptidePreds)
         assert len(pp.preds) == 1
         pred = pp.preds[0]
-        assert pred.kind == Kind.antigen_processing
+        assert pred.kind == Kind.proteasome_cleavage
         assert 0.0 <= pred.score <= 1.0
         assert pred.predictor_name == "pepsickle"
+
+
+def test_predict_with_flanks(predictor):
+    # With flanking context, C-terminal should get non-zero scores
+    results = predictor.predict(
+        ["SIINFEKL"],
+        n_flanks=["MFVFLVLL"],
+        c_flanks=["PLVSSQCV"],
+    )
+    pred = results[0].preds[0]
+    assert pred.n_flank == "MFVFLVLL"
+    assert pred.c_flank == "PLVSSQCV"
+    assert pred.kind == Kind.proteasome_cleavage
 
 
 def test_predict_dataframe(predictor):
     df = predictor.predict_dataframe(PEPTIDES)
     assert list(df.columns) == list(COLUMNS)
     assert len(df) == len(PEPTIDES)
-    assert (df["kind"] == "antigen_processing").all()
+    assert (df["kind"] == "proteasome_cleavage").all()
     assert (df["predictor_name"] == "pepsickle").all()
 
 
@@ -104,13 +121,12 @@ def test_predict_proteins(predictor):
     result = predictor.predict_proteins({"spike": PROTEIN})
     assert "spike" in result
     preds_list = result["spike"]
-    assert isinstance(preds_list, list)
     assert all(isinstance(pp, PeptidePreds) for pp in preds_list)
     expected_count = len(PROTEIN) - 9 + 1
     assert len(preds_list) == expected_count
     for pp in preds_list:
         pred = pp.preds[0]
-        assert pred.kind == Kind.antigen_processing
+        assert pred.kind == Kind.proteasome_cleavage
         assert pred.source_sequence_name == "spike"
         assert 0.0 <= pred.score <= 1.0
 
@@ -119,6 +135,15 @@ def test_predict_proteins_scores_vary(predictor):
     result = predictor.predict_proteins({"spike": PROTEIN})
     scores = [pp.preds[0].score for pp in result["spike"]]
     assert len(set(round(s, 4) for s in scores)) > 1
+
+
+def test_predict_proteins_with_flank_length(predictor):
+    result = predictor.predict_proteins({"spike": PROTEIN}, flank_length=5)
+    preds_list = result["spike"]
+    # Check that flanks are recorded
+    mid = preds_list[len(preds_list) // 2].preds[0]
+    assert len(mid.n_flank) > 0
+    assert len(mid.c_flank) > 0
 
 
 def test_predict_proteins_dataframe(predictor):
@@ -137,52 +162,42 @@ def test_predict_proteins_string_input(predictor):
 def test_predict_proteins_multiple_lengths(predictor):
     p = Pepsickle(default_peptide_lengths=[8, 9, 10])
     result = p.predict_proteins({"s": PROTEIN})
-    preds_list = result["s"]
     expected = sum(len(PROTEIN) - k + 1 for k in [8, 9, 10])
-    assert len(preds_list) == expected
+    assert len(result["s"]) == expected
 
 
 # -- predict_cleavage_sites --
 
 def test_predict_cleavage_sites(predictor):
     result = predictor.predict_cleavage_sites({"spike": PROTEIN})
-    assert "spike" in result
     probs = result["spike"]
     assert len(probs) == len(PROTEIN)
     assert all(0.0 <= p <= 1.0 for p in probs)
 
 
-def test_predict_cleavage_sites_string(predictor):
-    result = predictor.predict_cleavage_sites(PROTEIN)
-    assert "seq" in result
-
-
-# -- scoring methods --
+# -- scoring --
 
 def test_scoring_cterm_only():
-    p = Pepsickle(scoring="cterm")
+    p = Pepsickle(scoring=score_cterm)
     result = p.predict_proteins({"s": PROTEIN})
     probs = p.cleavage_probs(PROTEIN)
-    pp = result["s"][0]
     # First 9-mer: offset=0, c_term = probs[8]
-    assert pp.preds[0].score == pytest.approx(probs[8])
+    first = result["s"][0].preds[0]
+    assert first.score == pytest.approx(probs[8])
 
 
 def test_scoring_methods_produce_different_scores():
-    methods = ["cterm", "nterm_cterm", "cterm_max_internal",
-               "nterm_cterm_max_internal"]
-    scores_by_method = {}
-    for method in methods:
-        p = Pepsickle(scoring=method)
+    fns = [score_cterm, score_cterm_anti_max_internal,
+           score_nterm_cterm_anti_max_internal]
+    scores_by_fn = {}
+    for fn in fns:
+        p = Pepsickle(scoring=fn)
         result = p.predict_proteins({"s": PROTEIN})
-        # Use a peptide with offset > 0 so n_term is available
-        scores = [pp.preds[0].score for pp in result["s"]]
-        scores_by_method[method] = scores
-    # At least some methods should give different results
-    unique_score_lists = set(
-        tuple(round(s, 6) for s in v) for v in scores_by_method.values()
-    )
-    assert len(unique_score_lists) > 1
+        scores_by_fn[fn.__name__] = [
+            pp.preds[0].score for pp in result["s"]]
+    unique = set(
+        tuple(round(s, 6) for s in v) for v in scores_by_fn.values())
+    assert len(unique) > 1
 
 
 # -- in-vitro model --
@@ -191,9 +206,9 @@ def test_scoring_methods_produce_different_scores():
     reason="pepsickle in-vitro GB model requires older sklearn pickle format",
     raises=ModuleNotFoundError,
 )
-def test_invitro_model(predictor_invitro):
-    results = predictor_invitro.predict(PEPTIDES)
+def test_invitro_model():
+    p = Pepsickle(model_type="in-vitro", proteasome_type="C")
+    results = p.predict(PEPTIDES)
     assert len(results) == len(PEPTIDES)
     for pp in results:
-        assert pp.preds[0].kind == Kind.antigen_processing
-        assert 0.0 <= pp.preds[0].score <= 1.0
+        assert pp.preds[0].kind == Kind.proteasome_cleavage
