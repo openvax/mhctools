@@ -12,6 +12,7 @@ from .iedb import (
 from .mixmhcpred import MixMHCpred
 from .mhcflurry import MHCflurry
 from .netchop import NetChop
+from .pepsickle import Pepsickle
 from .netmhc import NetMHC
 from .netmhc3 import NetMHC3
 from .netmhc4 import NetMHC4
@@ -45,6 +46,7 @@ __all__ = [
     "MixMHCpred",
     "MHCflurry",
     "NetChop",
+    "Pepsickle",
     "NetMHC",
     "NetMHC3",
     "NetMHC4",
