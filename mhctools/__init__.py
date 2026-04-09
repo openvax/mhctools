@@ -41,7 +41,7 @@ from .netmhcstabpan import NetMHCstabpan
 from .bigmhc import BigMHC
 from .unsupported_allele import UnsupportedAllele
 
-__version__ = "3.1.0"
+__version__ = "3.1.1"
 
 __all__ = [
     "Pred",
