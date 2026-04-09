@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "mhctools"
 dynamic = ["version"]
-description = "Python interface to running command-line and web-based MHC binding predictors"
+description = "Python interface to MHC binding, presentation, immunogenicity, and antigen processing predictors"
 readme = { file = "README.md", content-type = "text/markdown" }
 license = "Apache-2.0"
 requires-python = ">=3.9"

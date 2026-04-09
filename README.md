@@ -5,7 +5,7 @@
 
 # mhctools
 
-Python interface to running command-line and web-based MHC binding predictors.
+Python interface to MHC binding, presentation, immunogenicity, and antigen processing predictors.
 
 ## Installation
 
@@ -138,6 +138,7 @@ The `Kind` enum describes what biological quantity a `Pred` measures:
 | `pMHC_affinity` | Peptide-MHC binding affinity |
 | `pMHC_presentation` | Likelihood of surface presentation (EL) |
 | `pMHC_stability` | Peptide-MHC complex stability |
+| `immunogenicity` | T-cell immunogenicity |
 | `cellular_presentation` | Cross-allele presentation (e.g. MHCflurry) |
 | `antigen_processing` | Combined processing score |
 | `proteasome_cleavage` | Proteasomal cleavage score |
@@ -171,19 +172,33 @@ affinity, hours for stability). `percentile_rank` is always optional,
 
 ## Supported predictors
 
+### MHC binding & presentation
+
 | Predictor | Kinds produced | Requires |
 |---|---|---|
-| `NetMHCpan` / `NetMHCpan41` | affinity + presentation | [NetMHCpan](http://www.cbs.dtu.dk/services/NetMHCpan/) |
+| `NetMHCpan` / `NetMHCpan41` / `NetMHCpan42` | affinity + presentation | [NetMHCpan](https://services.healthtech.dtu.dk/services/NetMHCpan-4.1/) |
 | `NetMHCpan4` | affinity or presentation | NetMHCpan 4.0 |
 | `NetMHCpan3` / `NetMHCpan28` | affinity | older NetMHCpan |
-| `NetMHC` / `NetMHC3` / `NetMHC4` | affinity | [NetMHC](http://www.cbs.dtu.dk/services/NetMHC/) |
-| `NetMHCIIpan` | affinity or presentation | [NetMHCIIpan](http://www.cbs.dtu.dk/services/NetMHCIIpan/) |
-| `NetMHCcons` | affinity | [NetMHCcons](http://www.cbs.dtu.dk/services/NetMHCcons/) |
-| `NetMHCstabpan` | stability | [NetMHCstabpan](http://www.cbs.dtu.dk/services/NetMHCstabpan/) |
-| `MHCflurry` | affinity | `pip install mhcflurry` + `mhcflurry-downloads fetch` |
+| `NetMHC` / `NetMHC3` / `NetMHC4` | affinity | [NetMHC](https://services.healthtech.dtu.dk/services/NetMHC-4.0/) |
+| `NetMHCIIpan` / `NetMHCIIpan43` | affinity or presentation | [NetMHCIIpan](https://services.healthtech.dtu.dk/services/NetMHCIIpan-4.3/) |
+| `NetMHCcons` | affinity | [NetMHCcons](https://services.healthtech.dtu.dk/services/NetMHCcons-1.1/) |
+| `NetMHCstabpan` | stability | [NetMHCstabpan](https://services.healthtech.dtu.dk/services/NetMHCstabpan-1.0/) |
+| `MHCflurry` | affinity + presentation | `pip install mhcflurry` + `mhcflurry-downloads fetch` |
+| `BigMHC` | presentation or immunogenicity | [BigMHC](https://github.com/KarchinLab/bigmhc) clone (set `BIGMHC_DIR`) |
 | `MixMHCpred` | presentation | [MixMHCpred](https://github.com/GfellerLab/MixMHCpred) |
+| `IedbNetMHCpan` / `IedbSMM` / `IedbNetMHCIIpan` | affinity | IEDB web API |
 | `RandomBindingPredictor` | affinity | (built-in) |
-| `NetChop` | cleavage | [NetChop](http://www.cbs.dtu.dk/services/NetChop/) |
+
+### Antigen processing
+
+| Predictor | Kinds produced | Requires |
+|---|---|---|
+| `Pepsickle` | proteasome cleavage | `pip install mhctools[pepsickle]` |
+| `NetChop` | proteasome cleavage | [NetChop](https://services.healthtech.dtu.dk/services/NetChop-3.1/) |
+
+Processing predictors use configurable scoring to aggregate per-position
+cleavage probabilities into peptide-level scores. See `ProcessingPredictor`
+and `ProteasomePredictor` for details.
 
 ## Commandline examples
 
