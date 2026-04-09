@@ -136,14 +136,13 @@ The `Kind` enum describes what biological quantity a `Pred` measures:
 | Kind | Meaning |
 |---|---|
 | `pMHC_affinity` | Peptide-MHC binding affinity |
-| `pMHC_presentation` | Likelihood of surface presentation (EL) |
+| `pMHC_presentation` | Likelihood of surface presentation (EL/processing) |
 | `pMHC_stability` | Peptide-MHC complex stability |
 | `immunogenicity` | T-cell immunogenicity |
-| `cellular_presentation` | Cross-allele presentation (e.g. MHCflurry) |
 | `antigen_processing` | Combined processing score |
 | `proteasome_cleavage` | Proteasomal cleavage score |
-| `tap_transport` | TAP transport score |
-| `erap_trimming` | ERAP trimming score |
+| `tap_transport` | TAP transport score (reserved, not yet used) |
+| `erap_trimming` | ERAP trimming score (reserved, not yet used) |
 
 ### The Pred object
 

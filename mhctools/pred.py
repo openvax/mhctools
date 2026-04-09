@@ -21,12 +21,10 @@ import pandas as pd
 
 class Kind(Enum):
     """What biological quantity is being predicted."""
-    # Per-allele
+    # Peptide-MHC
     pMHC_affinity = "pMHC_affinity"
     pMHC_presentation = "pMHC_presentation"
     pMHC_stability = "pMHC_stability"
-    # Cell-level
-    cellular_presentation = "cellular_presentation"
     immunogenicity = "immunogenicity"
     # Processing pathway
     antigen_processing = "antigen_processing"
