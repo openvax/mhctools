@@ -17,6 +17,8 @@ from mhctools.parsing import (
   parse_netmhcpan_to_preds,
   parse_netmhc3_stdout,
   parse_netmhc4_stdout,
+  parse_netmhciipan43_stdout,
+  parse_netmhciipan4_stdout,
 )
 from mhctools.pred import Kind
 
@@ -452,3 +454,63 @@ def test_to_preds_self_contained():
     assert p.offset == 5
     assert p.predictor_name == "netMHCpan"
     assert p.predictor_version == "2.8"
+
+
+# ---------- NetMHCIIpan 4.3 ----------
+
+def test_netmhciipan43_el_with_bind_level():
+    """Rows with <=SB BindLevel should parse without error (GH-169)."""
+    output = """
+    --------------------------------------------------------------------------------------------------------------------------------------------
+     Pos               MHC              Peptide   Of        Core  Core_Rel Inverted        Identity      Score_EL %Rank_EL  Exp_Bind      Score_BA %Rank_BA  Affinity(nM)  BindLevel
+    --------------------------------------------------------------------------------------------------------------------------------------------
+       1         DRB1_0101      GAATVAAGAATTAAG    4   VAAGAATTA     0.920        0        Sequence      0.164981     6.81     0.000      0.514261    17.98        191.63
+       2         DRB1_0101      KSVPLEMLLINLTTI    4   LEMLLINLT     0.980        0        Sequence      0.807346     0.50     0.560      0.662093     4.95         38.71 <=SB
+    """
+    results = parse_netmhciipan43_stdout(output, mode="elution_score")
+    assert len(results) == 2
+    assert results[0].peptide == "GAATVAAGAATTAAG"
+    assert abs(results[0].percentile_rank - 6.81) < 0.01
+    assert results[1].peptide == "KSVPLEMLLINLTTI"
+    assert abs(results[1].percentile_rank - 0.50) < 0.01
+
+
+def test_netmhciipan43_ba_with_bind_level():
+    """BA mode should parse rows with <=WB BindLevel (GH-169)."""
+    output = """
+    --------------------------------------------------------------------------------------------------------------------------------------------
+     Pos               MHC              Peptide   Of        Core  Core_Rel Inverted        Identity      Score_EL %Rank_EL  Exp_Bind      Score_BA %Rank_BA  Affinity(nM)  BindLevel
+    --------------------------------------------------------------------------------------------------------------------------------------------
+       1         DRB1_0101      GAATVAAGAATTAAG    4   VAAGAATTA     0.920        0        Sequence      0.164981     6.81     0.000      0.514261    17.98        191.63 <=WB
+    """
+    results = parse_netmhciipan43_stdout(output, mode="binding_affinity")
+    assert len(results) == 1
+    assert abs(results[0].affinity - 191.63) < 0.01
+    assert abs(results[0].percentile_rank - 17.98) < 0.01
+
+
+def test_netmhciipan43_exp_bind_na():
+    """Exp_Bind = NA should not crash float conversion (GH-169)."""
+    output = """
+    --------------------------------------------------------------------------------------------------------------------------------------------
+     Pos               MHC              Peptide   Of        Core  Core_Rel Inverted        Identity      Score_EL %Rank_EL  Exp_Bind      Score_BA %Rank_BA  Affinity(nM)  BindLevel
+    --------------------------------------------------------------------------------------------------------------------------------------------
+       1         DRB1_0101      PAPAPSWPLSSSVPS    4   PSWPLSSSV     0.327        0        Sequence      0.000857    79.79       NA      0.327674    54.35       1442.91
+    """
+    results = parse_netmhciipan43_stdout(output, mode="elution_score")
+    assert len(results) == 1
+    assert abs(results[0].score - 0.000857) < 0.0001
+
+
+def test_netmhciipan4_with_bind_level():
+    """v4.0 layout with BindLevel should also parse (GH-169)."""
+    output = """
+    --------------------------------------------------------------------------------------------------------------------------------------------
+     Pos           MHC              Peptide   Of        Core  Core_Rel        Identity      Score_EL %Rank_EL Exp_Bind      Score_BA  Affinity(nM) %Rank_BA  BindLevel
+    --------------------------------------------------------------------------------------------------------------------------------------------
+       1     DRB1_0101      PAPAPSWPLSSSVPS    4   PSWPLSSSV     0.327            test      0.000857    79.79       NA      0.327674       1442.91    54.35
+       2     DRB1_0101      GAATVAAGAATTAAG    4   VAAGAATTA     0.920            test      0.800000     0.50     0.000      0.514261        191.63    17.98 <=SB
+    """
+    results = parse_netmhciipan4_stdout(output, mode="elution_score")
+    assert len(results) == 2
+    assert abs(results[1].score - 0.800000) < 0.0001
