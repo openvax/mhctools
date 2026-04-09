@@ -27,6 +27,7 @@ class Kind(Enum):
     pMHC_stability = "pMHC_stability"
     # Cell-level
     cellular_presentation = "cellular_presentation"
+    immunogenicity = "immunogenicity"
     # Processing pathway
     antigen_processing = "antigen_processing"
     proteasome_cleavage = "proteasome_cleavage"
