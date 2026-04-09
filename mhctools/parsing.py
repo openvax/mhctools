@@ -185,17 +185,17 @@ def parse_stdout(
         if score_index is None:
             score = None
         else:
-            score = float(fields[score_index])
+            score = _try_float(fields[score_index])
 
         if rank_index is None:
             rank = None
         else:
-            rank = float(fields[rank_index])
+            rank = _try_float(fields[rank_index])
 
         if ic50_index is None:
             ic50 = None
         else:
-            ic50 = float(fields[ic50_index])
+            ic50 = _try_float(fields[ic50_index])
 
         key = str(fields[key_index])
         if sequence_key_mapping:
@@ -522,6 +522,14 @@ def _detect_netmhcpan_version_label(stdout, header_fields):
         return "NetMHCpan (unknown version)"
 
 
+def _try_float(value):
+    """Convert *value* to float, returning NaN for non-numeric strings like 'NA'."""
+    try:
+        return float(value)
+    except (ValueError, TypeError):
+        return float('nan')
+
+
 def _safe_float(fields, index):
     """Extract a float from fields at index, or None if index is None."""
     if index is None:
@@ -619,8 +627,9 @@ def parse_netmhcpan_to_preds(
 
     preds = []
     for fields in split_stdout_lines(stdout):
-        # Strip optional trailing bind-level tokens (<=, WB, SB)
-        # These appear after the last numeric column and shift nothing
+        # Optional trailing bind-level tokens (<=, WB, SB) may appear
+        # after the last numeric column; they are harmless because the
+        # header-driven indices never reach them.
 
         offset = int(fields[offset_index])
         if offset_is_one_based:
@@ -861,6 +870,15 @@ def parse_netmhciipan4_stdout(
         0: lambda x: int(x) - 1,
     }
 
+    # Strip optional BindLevel indicators (index 13 for v4.0 layout).
+    ignored = {
+        "<=SB": 13,
+        "<=WB": 13,
+        "<=": 13,
+        "SB": 14,
+        "WB": 14,
+    }
+
     # we're running NetMHCIIpan 4 with -BA every time so both EL and BA are available, but only
     # return one of them depending on the input mode
     return parse_stdout(
@@ -874,6 +892,7 @@ def parse_netmhciipan4_stdout(
         ic50_index=11 if mode == "binding_affinity" else None,
         rank_index=8 if mode == "elution_score" else 12,
         score_index=7 if mode == "elution_score" else 10,
+        ignored_value_indices=ignored,
         transforms=transforms)
 
 def parse_netmhcstabpan(
@@ -961,6 +980,8 @@ def parse_netmhciipan43_stdout(
         ba_score_index = 11
         ba_rank_index = 12
         ba_ic50_index = 13
+        # BindLevel (e.g. "<=SB", "<=WB") is optional at index 14
+        bind_level_index = 14
     else:
         key_index = 6
         el_score_index = 7
@@ -968,11 +989,24 @@ def parse_netmhciipan43_stdout(
         ba_score_index = 10
         ba_rank_index = 12
         ba_ic50_index = 11
+        # BindLevel is optional at index 13
+        bind_level_index = 13
 
     # the offset specified in "pos" (at index 0) is 1-based instead of 0-based. we adjust it to be
     # 0-based, as in all the other netmhc predictors supported by this library.
     transforms = {
         0: lambda x: int(x) - 1,
+    }
+
+    # Strip optional BindLevel indicators that only appear on some rows.
+    # These are at the end of the line and may be one token ("<=SB") or
+    # two ("<=", "SB") depending on the netMHCIIpan version.
+    ignored = {
+        "<=SB": bind_level_index,
+        "<=WB": bind_level_index,
+        "<=": bind_level_index,
+        "SB": bind_level_index + 1,
+        "WB": bind_level_index + 1,
     }
 
     # we're running NetMHCIIpan 4.3 with -BA every time so both EL and BA are available, but only
@@ -988,4 +1022,5 @@ def parse_netmhciipan43_stdout(
         ic50_index=ba_ic50_index if mode == "binding_affinity" else None,
         rank_index=el_rank_index if mode == "elution_score" else ba_rank_index,
         score_index=el_score_index if mode == "elution_score" else ba_score_index,
+        ignored_value_indices=ignored,
         transforms=transforms)

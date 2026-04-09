@@ -11,9 +11,9 @@
 # limitations under the License.
 
 import logging
-import re
-from subprocess import check_output
 import os
+import re
+import subprocess
 
 from .netmhc_pan28 import NetMHCpan28
 from .netmhc_pan3 import NetMHCpan3
@@ -60,11 +60,14 @@ def NetMHCpan(
     falls back to the latest known class (which uses the header-driven
     auto-detecting parser).
     """
-    with open(os.devnull, 'w') as devnull:
-        output = check_output([
-            program_name, "--version", "_MHCTOOLS_VERSION_SNIFFING"],
-            stderr=devnull)
-    output_str = output.decode("ascii", "ignore")
+    # Pass /dev/null as the input file so netMHCpan doesn't try to
+    # open a nonexistent file (it hangs without any argument).
+    # Use run() instead of check_output() because netMHCpan may exit
+    # non-zero even though the version string is still in stdout.
+    result = subprocess.run(
+        [program_name, "--version", os.devnull],
+        capture_output=True)
+    output_str = result.stdout.decode("ascii", "ignore")
 
     match = re.search(r'# NetMHCpan version (\S+)', output_str)
     version_str = match.group(1) if match else ""
