@@ -16,7 +16,7 @@ import pandas as pd
 from sercol import Collection
 
 from .binding_prediction import BindingPrediction
-from .pred import Kind, PeptidePreds
+from .pred import Kind, PeptideResult
 
 class BindingPredictionCollection(Collection):
     def to_dataframe(
@@ -32,19 +32,19 @@ class BindingPredictionCollection(Collection):
     def to_preds(self, kind=Kind.pMHC_affinity):
         """Convert all BindingPredictions to Pred objects.
 
-        Returns a list of Pred (not grouped into PeptidePreds, since
+        Returns a list of Pred (not grouped into PeptideResult, since
         BindingPredictionCollection has no peptide-position grouping).
         """
         return [bp.to_pred(kind=kind) for bp in self]
 
     def to_peptide_preds(self, kind=Kind.pMHC_affinity):
-        """Convert to a list of PeptidePreds, grouped by (peptide, offset, source).
+        """Convert to a list of PeptideResult, grouped by (peptide, offset, source).
 
-        Each PeptidePreds contains all alleles for one peptide position.
+        Each PeptideResult contains all alleles for one peptide position.
         """
         from collections import defaultdict
         groups = defaultdict(list)
         for bp in self:
             key = (bp.peptide, bp.offset, bp.source_sequence_name)
             groups[key].append(bp.to_pred(kind=kind))
-        return [PeptidePreds(preds=tuple(preds)) for preds in groups.values()]
+        return [PeptideResult(preds=tuple(preds)) for preds in groups.values()]

@@ -19,7 +19,7 @@ from mhctools.processing_predictor import (
     score_nterm_cterm_anti_max_internal,
 )
 from mhctools.proteasome_predictor import ProteasomePredictor
-from mhctools.pred import Kind, PeptidePreds, COLUMNS
+from mhctools.pred import Kind, PeptideResult, COLUMNS
 
 pepsickle = pytest.importorskip("pepsickle")
 
@@ -91,7 +91,7 @@ def test_predict_returns_peptide_preds(predictor):
     assert isinstance(results, list)
     assert len(results) == len(PEPTIDES)
     for pp in results:
-        assert isinstance(pp, PeptidePreds)
+        assert isinstance(pp, PeptideResult)
         assert len(pp.preds) == 1
         pred = pp.preds[0]
         assert pred.kind == Kind.proteasome_cleavage
@@ -126,7 +126,7 @@ def test_predict_proteins(predictor):
     result = predictor.predict_proteins({"spike": PROTEIN})
     assert "spike" in result
     preds_list = result["spike"]
-    assert all(isinstance(pp, PeptidePreds) for pp in preds_list)
+    assert all(isinstance(pp, PeptideResult) for pp in preds_list)
     expected_count = len(PROTEIN) - 9 + 1
     assert len(preds_list) == expected_count
     for pp in preds_list:

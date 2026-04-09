@@ -18,7 +18,7 @@ from .allele_normalization import normalize_allele_name
 
 from .unsupported_allele import UnsupportedAllele
 from .binding_prediction_collection import BindingPredictionCollection
-from .pred import Pred, Kind, PeptidePreds
+from .pred import Pred, Kind, PeptideResult
 
 logger = logging.getLogger(__name__)
 
@@ -95,7 +95,7 @@ class BasePredictor(object):
 
         Returns
         -------
-        list of PeptidePreds
+        list of PeptideResult
         """
         collection = self.predict_peptides(peptides)
         return collection.to_peptide_preds(kind=self._default_pred_kind())
@@ -123,7 +123,7 @@ class BasePredictor(object):
 
         Returns
         -------
-        dict mapping sequence_name -> list of PeptidePreds
+        dict mapping sequence_name -> list of PeptideResult
         """
         if isinstance(sequence_dict, str):
             sequence_dict = {"seq": sequence_dict}
@@ -145,14 +145,14 @@ class BasePredictor(object):
         peptide_list = sorted(peptide_set)
         flat_preds = self.predict(peptide_list)
 
-        # Expand: each PeptidePreds may map to multiple (name, offset) positions
+        # Expand: each PeptideResult may map to multiple (name, offset) positions
         results = defaultdict(list)
         for pp in flat_preds:
             if not pp.preds:
                 continue
             peptide = pp.preds[0].peptide
             for name, offset in peptide_to_name_offset_pairs.get(peptide, []):
-                relocated = PeptidePreds(preds=tuple(
+                relocated = PeptideResult(preds=tuple(
                     Pred(
                         kind=p.kind,
                         score=p.score,

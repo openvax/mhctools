@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from mhctools.pred import Pred, PeptidePreds, Kind, preds_from_rows, COLUMNS
+from mhctools.pred import Pred, PeptideResult, Kind, preds_from_rows, COLUMNS
 from mhctools.sample import MultiSample
 from mhctools.binding_prediction import BindingPrediction
 from mhctools.binding_prediction_collection import BindingPredictionCollection
@@ -68,7 +68,7 @@ def test_pred_defaults():
     assert p.percentile_rank is None
 
 
-# -- PeptidePreds --
+# -- PeptideResult --
 
 def _make_pred_set():
     return preds_from_rows(
@@ -158,7 +158,7 @@ def test_to_dataframe():
 
 
 def test_empty_pred_set():
-    ps = PeptidePreds()
+    ps = PeptideResult()
     assert ps.best_affinity is None
     df = ps.to_dataframe()
     assert list(df.columns) == list(COLUMNS)
@@ -173,7 +173,7 @@ def test_predict_returns_peptide_preds():
         default_peptide_lengths=[9])
     results = predictor.predict(["SIINFEKLL", "GILGFVFTL"])
     assert isinstance(results, list)
-    assert all(isinstance(pp, PeptidePreds) for pp in results)
+    assert all(isinstance(pp, PeptideResult) for pp in results)
     assert len(results) == 2
     for pp in results:
         assert pp.best_affinity is not None
@@ -195,7 +195,7 @@ def test_predict_proteins():
     result = predictor.predict_proteins({"TP53": "SIINFEKLLAA"})
     assert "TP53" in result
     assert isinstance(result["TP53"], list)
-    assert all(isinstance(pp, PeptidePreds) for pp in result["TP53"])
+    assert all(isinstance(pp, PeptideResult) for pp in result["TP53"])
     for pp in result["TP53"]:
         for pred in pp.preds:
             assert pred.source_sequence_name == "TP53"
@@ -225,7 +225,7 @@ def test_multi_sample_predict():
     results = ms.predict(["SIINFEKLL"])
     assert "pat001" in results
     assert "pat002" in results
-    assert all(isinstance(pp, PeptidePreds) for pp in results["pat001"])
+    assert all(isinstance(pp, PeptideResult) for pp in results["pat001"])
 
 
 def test_multi_sample_predict_dataframe():

@@ -34,7 +34,7 @@ cleavage profile into a single peptide-level score::
 
 from collections import defaultdict
 
-from .pred import Pred, Kind, PeptidePreds
+from .pred import Pred, Kind, PeptideResult
 
 
 # ------------------------------------------------------------------
@@ -271,7 +271,7 @@ class ProcessingPredictor:
 
         Returns
         -------
-        list of PeptidePreds
+        list of PeptideResult
         """
         results = []
         for i, peptide in enumerate(peptides):
@@ -291,7 +291,7 @@ class ProcessingPredictor:
                 c_flank=c_flank,
                 predictor_name=self._predictor_name(),
             )
-            results.append(PeptidePreds(preds=(pred,)))
+            results.append(PeptideResult(preds=(pred,)))
         return results
 
     def predict_dataframe(self, peptides, n_flanks=None, c_flanks=None,
@@ -328,7 +328,7 @@ class ProcessingPredictor:
 
         Returns
         -------
-        dict mapping sequence_name -> list of PeptidePreds
+        dict mapping sequence_name -> list of PeptideResult
         """
         if isinstance(sequence_dict, str):
             sequence_dict = {"seq": sequence_dict}
@@ -360,7 +360,7 @@ class ProcessingPredictor:
                         offset=i,
                         predictor_name=self._predictor_name(),
                     )
-                    results[name].append(PeptidePreds(preds=(pred,)))
+                    results[name].append(PeptideResult(preds=(pred,)))
         return dict(results)
 
     def predict_proteins_dataframe(

@@ -48,7 +48,7 @@ class MultiSample:
         """
         Returns
         -------
-        dict mapping sample_name -> list of PeptidePreds
+        dict mapping sample_name -> list of PeptideResult
         """
         results = {}
         for sample_name, alleles in self.samples.items():
@@ -72,7 +72,7 @@ class MultiSample:
         """
         Returns
         -------
-        dict mapping sample_name -> {sequence_name: list of PeptidePreds}
+        dict mapping sample_name -> {sequence_name: list of PeptideResult}
         """
         results = {}
         for sample_name, alleles in self.samples.items():

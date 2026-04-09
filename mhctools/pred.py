@@ -85,7 +85,7 @@ class Pred:
 
 
 @dataclass
-class PeptidePreds:
+class PeptideResult:
     """All Preds for one peptide from one predictor."""
     preds: tuple[Pred, ...] = ()
 
@@ -147,7 +147,7 @@ class PeptidePreds:
 
 
 def preds_from_rows(rows, **shared):
-    """Build a PeptidePreds from dicts, with shared fields filled in.
+    """Build a PeptideResult from dicts, with shared fields filled in.
 
     Example::
 
@@ -163,6 +163,10 @@ def preds_from_rows(rows, **shared):
             predictor_version="4.1",
         )
     """
-    return PeptidePreds(preds=tuple(
+    return PeptideResult(preds=tuple(
         Pred(**{**shared, **row}) for row in rows
     ))
+
+
+# Backward compatibility
+PeptidePreds = PeptideResult
