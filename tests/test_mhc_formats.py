@@ -502,6 +502,19 @@ def test_netmhciipan43_exp_bind_na():
     assert abs(results[0].score - 0.000857) < 0.0001
 
 
+def test_netmhciipan43_two_token_bind_level():
+    """'<= SB' (with space) is two tokens — both should be stripped (GH-169)."""
+    output = """
+    --------------------------------------------------------------------------------------------------------------------------------------------
+     Pos               MHC              Peptide   Of        Core  Core_Rel Inverted        Identity      Score_EL %Rank_EL  Exp_Bind      Score_BA %Rank_BA  Affinity(nM)  BindLevel
+    --------------------------------------------------------------------------------------------------------------------------------------------
+       1         DRB1_0101      KSVPLEMLLINLTTI    4   LEMLLINLT     0.980        0        Sequence      0.807346     0.50     0.560      0.662093     4.95         38.71 <= SB
+    """
+    results = parse_netmhciipan43_stdout(output, mode="binding_affinity")
+    assert len(results) == 1
+    assert abs(results[0].affinity - 38.71) < 0.01
+
+
 def test_netmhciipan4_with_bind_level():
     """v4.0 layout with BindLevel should also parse (GH-169)."""
     output = """

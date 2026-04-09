@@ -627,8 +627,9 @@ def parse_netmhcpan_to_preds(
 
     preds = []
     for fields in split_stdout_lines(stdout):
-        # Strip optional trailing bind-level tokens (<=, WB, SB)
-        # These appear after the last numeric column and shift nothing
+        # Optional trailing bind-level tokens (<=, WB, SB) may appear
+        # after the last numeric column; they are harmless because the
+        # header-driven indices never reach them.
 
         offset = int(fields[offset_index])
         if offset_is_one_based:
