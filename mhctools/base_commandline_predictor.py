@@ -27,7 +27,7 @@ from .cleanup_context import CleanupFiles
 from .input_file_formats import create_input_peptides_files
 from .process_helpers import run_multiple_commands_redirect_stdout
 from .binding_prediction_collection import BindingPredictionCollection
-from .pred import PeptidePreds
+from .pred import PeptideResult
 
 logger = logging.getLogger(__name__)
 
@@ -319,18 +319,18 @@ class BaseCommandlinePredictor(BasePredictor):
         if len(all_preds) == 0:
             logger.warning("No predictions from %s" % self.program_name)
 
-        # Group by (peptide, offset, source) into PeptidePreds
+        # Group by (peptide, offset, source) into PeptideResult
         groups = defaultdict(list)
         for pred in all_preds:
             key = (pred.peptide, pred.offset, pred.source_sequence_name)
             groups[key].append(pred)
-        return [PeptidePreds(preds=tuple(preds)) for preds in groups.values()]
+        return [PeptideResult(preds=tuple(preds)) for preds in groups.values()]
 
     def predict(self, peptides):
         """
         Predict for a list of peptide sequences.
 
-        Returns list of PeptidePreds. When a native parse_to_preds_fn is
+        Returns list of PeptideResult. When a native parse_to_preds_fn is
         available, parses directly to Pred objects. Otherwise falls back
         to converting from BindingPrediction.
         """

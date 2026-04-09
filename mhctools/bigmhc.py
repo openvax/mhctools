@@ -31,7 +31,7 @@ import sys
 import pandas as pd
 import torch
 
-from .pred import Kind, Pred, PeptidePreds, COLUMNS
+from .pred import Kind, Pred, PeptideResult, COLUMNS
 
 
 def _find_bigmhc_dir(bigmhc_path=None):
@@ -236,7 +236,7 @@ class BigMHC:
 
         Returns
         -------
-        list of PeptidePreds
+        list of PeptideResult
             One entry per peptide; each contains one Pred per allele.
         """
         if isinstance(peptides, str):
@@ -268,7 +268,7 @@ class BigMHC:
                     predictor_name=name,
                 ))
                 idx += 1
-            results.append(PeptidePreds(preds=tuple(preds)))
+            results.append(PeptideResult(preds=tuple(preds)))
         return results
 
     def predict_dataframe(self, peptides, sample_name=""):

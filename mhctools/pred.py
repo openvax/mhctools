@@ -12,7 +12,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass, fields
 from enum import Enum
 from typing import Optional
 
@@ -50,7 +50,7 @@ COLUMNS = (
 )
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class Pred:
     """Single prediction from one model on one peptide. Self-contained."""
     kind: Kind
@@ -65,6 +65,22 @@ class Pred:
     offset: int = 0
     predictor_name: str = ""
     predictor_version: str = ""
+
+    def __repr__(self):
+        parts = [self.peptide or "?", self.kind.value]
+        if self.allele:
+            parts.insert(1, self.allele)
+        parts.append("score=%.4g" % self.score)
+        if self.value is not None:
+            parts.append("value=%.4g" % self.value)
+        if self.percentile_rank is not None:
+            parts.append("rank=%.2f%%" % self.percentile_rank)
+        if self.predictor_name:
+            parts.append(self.predictor_name)
+        return "Pred(%s)" % " | ".join(parts)
+
+    def __str__(self):
+        return repr(self)
 
     def to_row(self, sample_name=""):
         return {
@@ -83,11 +99,40 @@ class Pred:
             "percentile_rank": self.percentile_rank,
         }
 
+    def to_dict(self):
+        """Serialize to a JSON-friendly dict."""
+        d = asdict(self)
+        d["kind"] = self.kind.value
+        return d
 
-@dataclass
-class PeptidePreds:
-    """All Preds for one peptide from one predictor."""
+    @classmethod
+    def from_dict(cls, d):
+        """Deserialize from a dict (as produced by :meth:`to_dict`)."""
+        d = dict(d)
+        d["kind"] = Kind(d["kind"])
+        # Only pass fields that Pred knows about
+        valid = {f.name for f in fields(cls)}
+        return cls(**{k: v for k, v in d.items() if k in valid})
+
+
+@dataclass(repr=False)
+class PeptideResult:
+    """All predictions for one peptide. Contains a tuple of Pred objects."""
     preds: tuple[Pred, ...] = ()
+
+    def __repr__(self):
+        if not self.preds:
+            return "PeptideResult(empty)"
+        peptide = self.preds[0].peptide or "?"
+        from collections import Counter
+        kinds = Counter(p.kind.value for p in self.preds)
+        kind_str = ", ".join(
+            "%d\u00d7%s" % (n, k) for k, n in kinds.items())
+        return "PeptideResult(%s, %d preds: %s)" % (
+            peptide, len(self.preds), kind_str)
+
+    def __str__(self):
+        return repr(self)
 
     # --- best allele by score (higher = better) ---
 
@@ -125,6 +170,17 @@ class PeptidePreds:
                 if (kind is None or p.kind == kind)
                 and (allele is None or p.allele == allele)]
 
+    # --- serialization ---
+
+    def to_dict(self):
+        """Serialize to a JSON-friendly dict."""
+        return {"preds": [p.to_dict() for p in self.preds]}
+
+    @classmethod
+    def from_dict(cls, d):
+        """Deserialize from a dict (as produced by :meth:`to_dict`)."""
+        return cls(preds=tuple(Pred.from_dict(p) for p in d["preds"]))
+
     # --- dataframe ---
 
     def to_dataframe(self, sample_name=""):
@@ -147,7 +203,7 @@ class PeptidePreds:
 
 
 def preds_from_rows(rows, **shared):
-    """Build a PeptidePreds from dicts, with shared fields filled in.
+    """Build a PeptideResult from dicts, with shared fields filled in.
 
     Example::
 
@@ -163,6 +219,10 @@ def preds_from_rows(rows, **shared):
             predictor_version="4.1",
         )
     """
-    return PeptidePreds(preds=tuple(
+    return PeptideResult(preds=tuple(
         Pred(**{**shared, **row}) for row in rows
     ))
+
+
+# Backward compatibility
+PeptidePreds = PeptideResult

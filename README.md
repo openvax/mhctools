@@ -19,6 +19,27 @@ For MHCflurry support, also run:
 mhcflurry-downloads fetch
 ```
 
+## Data model
+
+Every predictor returns results as two nested dataclasses:
+
+- **`PeptideResult`** — all predictions for one peptide (across alleles and
+  prediction kinds). This is what you get back per peptide from `predict()`.
+- **`Pred`** — a single prediction: one peptide, one allele, one measurement
+  kind (e.g. affinity, presentation, immunogenicity). Frozen and self-contained.
+
+```
+predict(["SIINFEKL", "GILGFVFTL"])
+  → [PeptideResult, PeptideResult]
+       └── .preds = (Pred(allele=A0201, kind=affinity, ...),
+                     Pred(allele=A0201, kind=presentation, ...),
+                     Pred(allele=B0702, kind=affinity, ...),
+                     ...)
+```
+
+Both convert to DataFrames and have consistent column names for easy downstream
+analysis.
+
 ## Quick start
 
 ```python
@@ -26,12 +47,11 @@ from mhctools import NetMHCpan41
 
 predictor = NetMHCpan41(alleles=["HLA-A*02:01", "HLA-B*07:02"])
 
-# predict for specific peptides
+# predict() returns a list of PeptideResult — one per peptide
 results = predictor.predict(["SIINFEKL", "GILGFVFTL"])
 
-# results is a list of PeptidePreds — one per peptide
-for pp in results:
-    best = pp.best_affinity
+for result in results:
+    best = result.best_affinity
     if best:
         print(f"{best.peptide} -> {best.allele} IC50={best.value:.1f}nM")
 ```
@@ -40,32 +60,29 @@ for pp in results:
 
 ### Predicting peptides
 
-`predict()` takes a list of peptide sequences and returns a `list[PeptidePreds]`.
-Each `PeptidePreds` contains `Pred` objects for every allele and measurement
-kind the predictor supports.
-
 ```python
 from mhctools import NetMHCpan41
 
 predictor = NetMHCpan41(alleles=["HLA-A*02:01", "HLA-B*07:02"])
 results = predictor.predict(["SIINFEKL", "GILGFVFTL"])
 
-pp = results[0]
-pp.best_affinity                # Pred with highest affinity score
-pp.best_affinity.allele         # "HLA-A*02:01"
-pp.best_affinity.value          # IC50 in nM
-pp.best_affinity.score          # higher = better (~0-1)
-pp.best_affinity.percentile_rank  # lower = better (0-100)
+result = results[0]                   # PeptideResult for "SIINFEKL"
+result.preds                          # tuple of Pred objects
+result.best_affinity                  # Pred with highest affinity score
+result.best_affinity.allele           # "HLA-A*02:01"
+result.best_affinity.value            # IC50 in nM
+result.best_affinity.score            # higher = better (~0-1)
+result.best_affinity.percentile_rank  # lower = better (0-100)
 
-pp.best_affinity_by_rank        # Pred with lowest percentile rank
-pp.best_presentation            # best EL/presentation score
-pp.best_presentation_by_rank    # best EL percentile rank
-pp.best_stability               # best pMHC stability (if available)
-pp.best_stability_by_rank
+result.best_affinity_by_rank          # Pred with lowest percentile rank
+result.best_presentation              # best EL/presentation score
+result.best_presentation_by_rank      # best EL percentile rank
+result.best_stability                 # best pMHC stability (if available)
+result.best_stability_by_rank
 
 # filter by kind or allele
-pp.filter(kind=Kind.pMHC_affinity)
-pp.filter(allele="HLA-A*02:01")
+result.filter(kind=Kind.pMHC_affinity)
+result.filter(allele="HLA-A*02:01")
 ```
 
 NetMHCpan 4.1 automatically emits both `pMHC_affinity` and `pMHC_presentation`
@@ -74,7 +91,7 @@ predictions per peptide-allele pair.
 ### Scanning proteins
 
 `predict_proteins()` takes a dictionary of protein sequences and returns
-`{sequence_name: list[PeptidePreds]}`:
+`{sequence_name: list[PeptideResult]}`:
 
 ```python
 proteins = predictor.predict_proteins(
@@ -118,10 +135,10 @@ ms = MultiSample(
     predictor_class=NetMHCpan41,
 )
 
-# {sample_name: list[PeptidePreds]}
+# {sample_name: list[PeptideResult]}
 results = ms.predict(["SIINFEKL", "GILGFVFTL"])
 
-# {sample_name: {seq_name: list[PeptidePreds]}}
+# {sample_name: {seq_name: list[PeptideResult]}}
 protein_results = ms.predict_proteins({"TP53": "MEEPQ..."})
 
 # flat DataFrames with sample_name column
@@ -235,5 +252,5 @@ To convert legacy results to the new types:
 
 ```python
 preds = collection.to_preds()           # list of Pred
-pp_list = collection.to_peptide_preds() # list of PeptidePreds
+pp_list = collection.to_peptide_preds() # list of PeptideResult
 ```

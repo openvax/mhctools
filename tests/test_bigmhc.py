@@ -15,7 +15,7 @@ import os
 import pytest
 
 from mhctools.bigmhc import BigMHC
-from mhctools.pred import Kind, PeptidePreds, COLUMNS
+from mhctools.pred import Kind, PeptideResult, COLUMNS
 
 
 # Skip entire module if BigMHC is not installed
@@ -87,7 +87,7 @@ def test_predict_el_returns_peptide_preds(el_predictor):
     assert isinstance(results, list)
     assert len(results) == len(PEPTIDES)
     for pp in results:
-        assert isinstance(pp, PeptidePreds)
+        assert isinstance(pp, PeptideResult)
         assert len(pp.preds) == len(ALLELES)
 
 

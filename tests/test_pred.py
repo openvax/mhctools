@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from mhctools.pred import Pred, PeptidePreds, Kind, preds_from_rows, COLUMNS
+from mhctools.pred import Pred, PeptideResult, Kind, preds_from_rows, COLUMNS
 from mhctools.sample import MultiSample
 from mhctools.binding_prediction import BindingPrediction
 from mhctools.binding_prediction_collection import BindingPredictionCollection
@@ -68,7 +68,56 @@ def test_pred_defaults():
     assert p.percentile_rank is None
 
 
-# -- PeptidePreds --
+def test_pred_repr():
+    p = Pred(kind=Kind.pMHC_affinity, score=0.85, peptide="SIINFEKL",
+             allele="HLA-A*02:01", value=120.5, percentile_rank=0.8,
+             predictor_name="netMHCpan")
+    r = repr(p)
+    assert "SIINFEKL" in r
+    assert "HLA-A*02:01" in r
+    assert "pMHC_affinity" in r
+    assert "score=0.85" in r
+    assert "value=120.5" in r
+    assert "rank=0.80%" in r
+    assert "netMHCpan" in r
+    assert str(p) == r
+
+
+def test_pred_repr_minimal():
+    p = Pred(kind=Kind.proteasome_cleavage, score=0.5)
+    r = repr(p)
+    assert "score=0.5" in r
+    assert "value" not in r
+    assert "rank" not in r
+
+
+def test_pred_to_dict_round_trip():
+    p = Pred(kind=Kind.pMHC_affinity, score=0.85, peptide="SIINFEKL",
+             allele="HLA-A*02:01", value=120.5, percentile_rank=0.8)
+    d = p.to_dict()
+    assert d["kind"] == "pMHC_affinity"
+    assert d["score"] == 0.85
+    p2 = Pred.from_dict(d)
+    assert p == p2
+
+
+def test_pred_to_dict_json_serializable():
+    import json
+    p = Pred(kind=Kind.pMHC_affinity, score=0.85, peptide="SIINFEKL")
+    s = json.dumps(p.to_dict())
+    p2 = Pred.from_dict(json.loads(s))
+    assert p == p2
+
+
+def test_pred_eq():
+    p1 = Pred(kind=Kind.pMHC_affinity, score=0.85, peptide="SIINFEKL")
+    p2 = Pred(kind=Kind.pMHC_affinity, score=0.85, peptide="SIINFEKL")
+    p3 = Pred(kind=Kind.pMHC_affinity, score=0.50, peptide="SIINFEKL")
+    assert p1 == p2
+    assert p1 != p3
+
+
+# -- PeptideResult --
 
 def _make_pred_set():
     return preds_from_rows(
@@ -95,6 +144,41 @@ def test_preds_from_rows():
     for p in ps.preds:
         assert p.peptide == "SIINFEKL"
         assert p.predictor_name == "mhcflurry"
+
+
+def test_peptide_result_repr():
+    ps = _make_pred_set()
+    r = repr(ps)
+    assert "SIINFEKL" in r
+    assert "5 preds" in r
+    assert "pMHC_affinity" in r
+    assert str(ps) == r
+
+
+def test_peptide_result_repr_empty():
+    assert "empty" in repr(PeptideResult())
+
+
+def test_peptide_result_to_dict_round_trip():
+    ps = _make_pred_set()
+    d = ps.to_dict()
+    assert len(d["preds"]) == 5
+    ps2 = PeptideResult.from_dict(d)
+    assert ps == ps2
+
+
+def test_peptide_result_to_dict_json_serializable():
+    import json
+    ps = _make_pred_set()
+    s = json.dumps(ps.to_dict())
+    ps2 = PeptideResult.from_dict(json.loads(s))
+    assert ps == ps2
+
+
+def test_peptide_result_eq():
+    ps1 = _make_pred_set()
+    ps2 = _make_pred_set()
+    assert ps1 == ps2
 
 
 def test_best_affinity():
@@ -158,7 +242,7 @@ def test_to_dataframe():
 
 
 def test_empty_pred_set():
-    ps = PeptidePreds()
+    ps = PeptideResult()
     assert ps.best_affinity is None
     df = ps.to_dataframe()
     assert list(df.columns) == list(COLUMNS)
@@ -173,7 +257,7 @@ def test_predict_returns_peptide_preds():
         default_peptide_lengths=[9])
     results = predictor.predict(["SIINFEKLL", "GILGFVFTL"])
     assert isinstance(results, list)
-    assert all(isinstance(pp, PeptidePreds) for pp in results)
+    assert all(isinstance(pp, PeptideResult) for pp in results)
     assert len(results) == 2
     for pp in results:
         assert pp.best_affinity is not None
@@ -195,7 +279,7 @@ def test_predict_proteins():
     result = predictor.predict_proteins({"TP53": "SIINFEKLLAA"})
     assert "TP53" in result
     assert isinstance(result["TP53"], list)
-    assert all(isinstance(pp, PeptidePreds) for pp in result["TP53"])
+    assert all(isinstance(pp, PeptideResult) for pp in result["TP53"])
     for pp in result["TP53"]:
         for pred in pp.preds:
             assert pred.source_sequence_name == "TP53"
@@ -225,7 +309,7 @@ def test_multi_sample_predict():
     results = ms.predict(["SIINFEKLL"])
     assert "pat001" in results
     assert "pat002" in results
-    assert all(isinstance(pp, PeptidePreds) for pp in results["pat001"])
+    assert all(isinstance(pp, PeptideResult) for pp in results["pat001"])
 
 
 def test_multi_sample_predict_dataframe():

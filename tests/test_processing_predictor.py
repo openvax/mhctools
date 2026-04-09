@@ -33,7 +33,7 @@ from mhctools.processing_predictor import (
     _geomean,
 )
 from mhctools.proteasome_predictor import ProteasomePredictor
-from mhctools.pred import Kind, PeptidePreds, COLUMNS
+from mhctools.pred import Kind, PeptideResult, COLUMNS
 
 
 # ======================================================================
@@ -517,7 +517,7 @@ class TestPredict:
         results = stub.predict(["ABCD", "EFGH"])
         assert len(results) == 2
         for pp in results:
-            assert isinstance(pp, PeptidePreds)
+            assert isinstance(pp, PeptideResult)
             assert len(pp.preds) == 1
             assert pp.preds[0].kind == Kind.antigen_processing
             assert pp.preds[0].predictor_name == "stubpredictor"

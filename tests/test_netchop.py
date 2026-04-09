@@ -14,7 +14,7 @@ import pytest
 from numpy import testing
 from mhctools import NetChop
 from mhctools.proteasome_predictor import ProteasomePredictor
-from mhctools.pred import Kind, PeptidePreds
+from mhctools.pred import Kind, PeptideResult
 from .arch import apple_silicon
 
 # Peptides from http://tools.iedb.org/netchop/example/
@@ -55,7 +55,7 @@ def test_predict_proteins():
     assert "pep0" in result
     pp_list = result["pep0"]
     assert isinstance(pp_list, list)
-    assert all(isinstance(pp, PeptidePreds) for pp in pp_list)
+    assert all(isinstance(pp, PeptideResult) for pp in pp_list)
     for pp in pp_list:
         pred = pp.preds[0]
         assert pred.kind == Kind.proteasome_cleavage
