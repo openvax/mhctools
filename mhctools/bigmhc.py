@@ -20,14 +20,18 @@ BigMHC offers two models:
 
 Both are pan-allelic deep neural networks that accept peptides of any
 length and produce a probability score (0–1).
+
+Models are loaded lazily on first prediction and kept in memory for
+subsequent calls.
 """
 
-import csv
 import os
-import subprocess
-import tempfile
+import sys
 
-from .pred import Kind, Pred, PeptidePreds
+import pandas as pd
+import torch
+
+from .pred import Kind, Pred, PeptidePreds, COLUMNS
 
 
 def _find_bigmhc_dir(bigmhc_path=None):
@@ -51,8 +55,30 @@ def _find_bigmhc_dir(bigmhc_path=None):
         "Clone from https://github.com/KarchinLab/bigmhc")
 
 
+def _import_bigmhc_modules(bigmhc_dir):
+    """Import BigMHC's internal modules by temporarily adding src/ to sys.path."""
+    src_dir = os.path.join(bigmhc_dir, "src")
+    added = src_dir not in sys.path
+    if added:
+        sys.path.insert(0, src_dir)
+    try:
+        # BigMHC modules use bare imports (e.g. "from bigmhc import BigMHC")
+        import bigmhc as bigmhc_mod
+        import mhcenc as mhcenc_mod
+        import dataset as dataset_mod
+        import mhcuid as mhcuid_mod
+        import encseq as encseq_mod
+        return bigmhc_mod, mhcenc_mod, dataset_mod, mhcuid_mod, encseq_mod
+    finally:
+        if added:
+            sys.path.remove(src_dir)
+
+
 class BigMHC:
     """Wrapper for BigMHC presentation and immunogenicity predictions.
+
+    Models are loaded lazily on the first call to :meth:`predict` and
+    kept in memory for all subsequent calls.
 
     Parameters
     ----------
@@ -64,11 +90,14 @@ class BigMHC:
         Path to the cloned BigMHC repository root.
     device : str
         PyTorch device string. Default ``"cpu"``.
+    max_batch_size : int
+        Maximum peptides per inference batch. Default 4096.
     """
 
     VALID_MODES = ("el", "im")
 
-    def __init__(self, alleles, mode="el", bigmhc_path=None, device="cpu"):
+    def __init__(self, alleles, mode="el", bigmhc_path=None, device="cpu",
+                 max_batch_size=4096):
         if isinstance(alleles, str):
             alleles = [alleles]
         if mode not in self.VALID_MODES:
@@ -78,14 +107,23 @@ class BigMHC:
         self.mode = mode
         self.bigmhc_dir = _find_bigmhc_dir(bigmhc_path)
         self.device = device
+        self.max_batch_size = max_batch_size
 
-        predict_script = os.path.join(self.bigmhc_dir, "src", "predict.py")
-        if not os.path.isfile(predict_script):
+        # Validate installation
+        src_dir = os.path.join(self.bigmhc_dir, "src")
+        if not os.path.isfile(os.path.join(src_dir, "bigmhc.py")):
             raise FileNotFoundError(
-                "predict.py not found at %s" % predict_script)
+                "bigmhc.py not found in %s" % src_dir)
+
+        # Lazy-loaded state
+        self._models = None
+        self._mhcenc = None
+        self._modules = None
 
     def __str__(self):
-        return "BigMHC(mode=%s, alleles=%s)" % (self.mode, self.alleles)
+        loaded = "loaded" if self._models is not None else "not loaded"
+        return "BigMHC(mode=%s, alleles=%s, %s)" % (
+            self.mode, self.alleles, loaded)
 
     def __repr__(self):
         return str(self)
@@ -98,45 +136,92 @@ class BigMHC:
     def _predictor_name(self):
         return "bigmhc_%s" % self.mode
 
+    @property
+    def _model_name(self):
+        return "BigMHC_EL" if self.mode == "el" else "BigMHC_IM"
+
     # ------------------------------------------------------------------
-    # Core prediction
+    # Model loading (lazy, cached)
     # ------------------------------------------------------------------
 
-    def _run_bigmhc(self, peptides, alleles):
-        """Write CSV, run predict.py, return parsed rows."""
-        predict_script = os.path.join(self.bigmhc_dir, "src", "predict.py")
+    def _ensure_loaded(self):
+        """Load models and MHC encoder on first use."""
+        if self._models is not None:
+            return
 
-        with tempfile.TemporaryDirectory() as tmpdir:
-            input_csv = os.path.join(tmpdir, "input.csv")
-            output_csv = input_csv + ".prd"
+        self._modules = _import_bigmhc_modules(self.bigmhc_dir)
+        bigmhc_mod, mhcenc_mod, _, _, _ = self._modules
 
-            with open(input_csv, "w", newline="") as f:
-                writer = csv.writer(f)
-                writer.writerow(["mhc", "pep"])
-                for pep, allele in zip(peptides, alleles):
-                    writer.writerow([allele, pep])
+        # Load MHC pseudo-sequence encoder
+        pseudoseqs = os.path.join(self.bigmhc_dir, "data", "pseudoseqs.csv")
+        self._mhcenc = mhcenc_mod.MHCEncoder.read(pseudoseqs)
 
-            result = subprocess.run(
-                ["python", predict_script,
-                 "-i", input_csv,
-                 "-m", self.mode,
-                 "-d", self.device],
-                capture_output=True,
-                cwd=os.path.join(self.bigmhc_dir, "src"),
-                timeout=600,
-            )
-            if result.returncode != 0:
-                raise RuntimeError(
-                    "BigMHC failed (exit %d):\n%s" % (
-                        result.returncode,
-                        result.stderr.decode("utf-8", "replace")))
+        # Resolve model paths (same logic as cli._parseModel)
+        models_dir = os.path.join(self.bigmhc_dir, "models")
+        el_dirs = [
+            os.path.join(models_dir, "bat%d" % (2 ** x))
+            for x in range(9, 16)
+        ]
+        if self.mode == "im":
+            model_dirs = [os.path.join(d, "im") for d in el_dirs]
+        else:
+            model_dirs = el_dirs
 
-            rows = []
-            with open(output_csv) as f:
-                reader = csv.DictReader(f)
-                for row in reader:
-                    rows.append(row)
-            return rows
+        # Load ensemble
+        self._models = []
+        for d in model_dirs:
+            model = bigmhc_mod.BigMHC.load(d)
+            model.eval()
+            model = bigmhc_mod.BigMHC.accelerate(model, devices=[])
+            self._models.append(model)
+
+    # ------------------------------------------------------------------
+    # Core prediction (in-process)
+    # ------------------------------------------------------------------
+
+    def _predict_raw(self, peptides, alleles):
+        """Run BigMHC in-process. Returns list of float scores."""
+        self._ensure_loaded()
+        _, _, dataset_mod, mhcuid_mod, _ = self._modules
+
+        # Build DataFrame in the format BigMHC expects
+        df = pd.DataFrame({"mhc": alleles, "pep": peptides})
+        df["pep"] = df["pep"].str.upper()
+        df["tgt"] = None
+        df["len"] = df["pep"].apply(len)
+        df.insert(
+            0, "uid",
+            df["mhc"].apply(mhcuid_mod.mhcuid) + "_" + df["pep"])
+        df.set_index("uid", drop=True, inplace=True)
+        df = df.astype({
+            "mhc": "string", "pep": "string",
+            "tgt": "float32", "len": "int8"})
+
+        # Create Dataset and batch
+        data = dataset_mod.Dataset(pmhcs=df, mhcenc=self._mhcenc)
+        data.makebats(self.max_batch_size)
+        loader = torch.utils.data.DataLoader(
+            data, batch_size=None, shuffle=False,
+            num_workers=0)
+
+        # Run inference
+        preds_parts = []
+        with torch.no_grad():
+            for idx, bat in enumerate(loader):
+                out_stack = []
+                for model in self._models:
+                    dev = next(model.parameters()).device
+                    out, _ = model(
+                        mhc=bat.mhc.to(dev),
+                        pep=bat.pep.to(dev))
+                    out_stack.append(torch.sigmoid(out))
+                ensemble_out = torch.mean(torch.stack(out_stack), dim=0)
+                rawbat = data.getbat(idx=idx, enc=False)
+                rawbat[self._model_name] = ensemble_out.cpu().numpy()
+                preds_parts.append(rawbat)
+
+        result_df = pd.concat(preds_parts).sort_index()
+        return result_df[self._model_name].tolist()
 
     # ------------------------------------------------------------------
     # Public API
@@ -165,23 +250,19 @@ class BigMHC:
                 all_peptides.append(pep)
                 all_alleles.append(allele)
 
-        rows = self._run_bigmhc(all_peptides, all_alleles)
+        scores = self._predict_raw(all_peptides, all_alleles)
 
-        # Parse into Pred objects, grouped by peptide
-        score_col = [c for c in rows[0] if c.startswith("BigMHC")][0]
         kind = self._pred_kind()
         name = self._predictor_name()
 
-        # Group by peptide in input order
         idx = 0
         results = []
         for pep in peptides:
             preds = []
             for allele in self.alleles:
-                score = float(rows[idx][score_col])
                 preds.append(Pred(
                     kind=kind,
-                    score=score,
+                    score=float(scores[idx]),
                     peptide=pep,
                     allele=allele,
                     predictor_name=name,
@@ -192,8 +273,6 @@ class BigMHC:
 
     def predict_dataframe(self, peptides, sample_name=""):
         """``predict()`` flattened to a DataFrame."""
-        import pandas as pd
-        from .pred import COLUMNS
         dfs = [pp.to_dataframe(sample_name) for pp in self.predict(peptides)]
         if not dfs:
             return pd.DataFrame(columns=COLUMNS)
