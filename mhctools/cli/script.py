@@ -17,7 +17,7 @@ import sys
 import pandas as pd
 from pyensembl.fasta import parse_fasta_dictionary
 
-from .args import make_mhc_arg_parser, mhc_binding_predictor_from_args
+from .args import make_mhc_arg_parser, predictors_from_args
 from mhctools.logging import get_logger
 
 
@@ -51,12 +51,38 @@ def add_input_args(arg_parser):
         help="Path to FASTA file which contains protein sequences")
     return input_group
 
+def add_filter_args(parser):
+    filter_group = parser.add_argument_group(
+        "Filtering",
+        description="Filter predictions before output. "
+        "All active filters must pass for a row to be kept.")
+    filter_group.add_argument(
+        "--max-affinity",
+        type=float,
+        default=None,
+        help="Keep predictions with affinity (IC50 nM) <= this value. "
+             "E.g. --max-affinity 500")
+    filter_group.add_argument(
+        "--max-percentile-rank",
+        type=float,
+        default=None,
+        help="Keep predictions with percentile rank <= this value. "
+             "E.g. --max-percentile-rank 2")
+    filter_group.add_argument(
+        "--min-score",
+        type=float,
+        default=None,
+        help="Keep predictions with normalized score >= this value. "
+             "E.g. --min-score 0.5")
+    return filter_group
+
 def add_output_args(parser):
     output_group = arg_parser.add_argument_group("Outputs")
     output_group.add_argument("--output-csv", default=None)
     return output_group
 
 add_input_args(arg_parser)
+add_filter_args(arg_parser)
 add_output_args(arg_parser)
 
 def parse_args(args_list=None):
@@ -64,9 +90,7 @@ def parse_args(args_list=None):
         args_list = sys.argv[1:]
     return arg_parser.parse_args(args_list)
 
-def run_predictor(args):
-    predictor = mhc_binding_predictor_from_args(args)
-
+def _run_single_predictor(predictor, args):
     if args.input_fasta_file:
         input_dictionary = parse_fasta_dictionary(args.input_fasta_file)
         if not input_dictionary:
@@ -76,24 +100,44 @@ def run_predictor(args):
         # Capitalize sequences
         input_dictionary = dict(
             (key, value.upper()) for (key, value) in input_dictionary.items())
-        binding_predictions = predictor.predict_subsequences(input_dictionary)
+        return predictor.predict_subsequences(input_dictionary)
     elif args.sequence:
         if args.extract_subsequences:
-            binding_predictions = predictor.predict_subsequences(args.sequence)
+            return predictor.predict_subsequences(args.sequence)
         else:
-            binding_predictions = predictor.predict_peptides(args.sequence)
+            return predictor.predict_peptides(args.sequence)
     elif args.input_peptides_file:
         with open(args.input_peptides_file) as f:
             peptides = [line.strip() for line in f if line]
         if args.extract_subsequences:
-            binding_predictions = predictor.predict_subsequences(peptides)
+            return predictor.predict_subsequences(peptides)
         else:
-            binding_predictions = predictor.predict_peptides(peptides)
+            return predictor.predict_peptides(peptides)
     else:
         raise ValueError(
             ("No input sequences provided, "
              "use --sequence, --input-fasta-file, or input-peptides-file"))
-    return binding_predictions
+
+
+def run_predictor(args):
+    from mhctools.binding_prediction_collection import BindingPredictionCollection
+    predictors = predictors_from_args(args)
+    all_predictions = []
+    for predictor in predictors:
+        results = _run_single_predictor(predictor, args)
+        all_predictions.extend(results)
+    return BindingPredictionCollection(all_predictions)
+
+def apply_filters(df, args):
+    """Apply --max-affinity, --max-percentile-rank, --min-score filters."""
+    if args.max_affinity is not None:
+        df = df[df["affinity"].isna() | (df["affinity"] <= args.max_affinity)]
+    if args.max_percentile_rank is not None:
+        df = df[df["percentile_rank"].isna() | (df["percentile_rank"] <= args.max_percentile_rank)]
+    if args.min_score is not None:
+        df = df[df["score"].isna() | (df["score"] >= args.min_score)]
+    return df
+
 
 def main(args_list=None):
     """
@@ -112,6 +156,12 @@ def main(args_list=None):
     args = parse_args(args_list)
     binding_predictions = run_predictor(args)
     df = binding_predictions.to_dataframe()
+    n_before = len(df)
+    df = apply_filters(df, args)
+    n_after = len(df)
+    if n_before != n_after:
+        logger.info(
+            "Filtered %d → %d predictions", n_before, n_after)
     pd.set_option('display.max_columns', None)
     logger.info('\n%s', df)
     if args.output_csv:
