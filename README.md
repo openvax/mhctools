@@ -23,17 +23,18 @@ mhcflurry-downloads fetch
 
 Every predictor returns results as two nested dataclasses:
 
-- **`PeptideResult`** — all predictions for one peptide (across alleles and
+- `PeptideResult` — all predictions for one peptide (across alleles and
   prediction kinds). This is what you get back per peptide from `predict()`.
-- **`Pred`** — a single prediction: one peptide, one allele, one measurement
+- `Pred` — a single prediction: one peptide, one allele, one measurement
   kind (e.g. affinity, presentation, immunogenicity). Frozen and self-contained.
+  Each `Pred` carries the peptide string itself, so it's fully self-contained.
 
 ```
 predict(["SIINFEKL", "GILGFVFTL"])
   → [PeptideResult, PeptideResult]
-       └── .preds = (Pred(allele=A0201, kind=affinity, ...),
-                     Pred(allele=A0201, kind=presentation, ...),
-                     Pred(allele=B0702, kind=affinity, ...),
+       └── .preds = (Pred(peptide="SIINFEKL", allele=A0201, kind=affinity, value=85.3, ...),
+                     Pred(peptide="SIINFEKL", allele=A0201, kind=presentation, score=0.92, ...),
+                     Pred(peptide="SIINFEKL", allele=B0702, kind=affinity, value=4200, ...),
                      ...)
 ```
 
