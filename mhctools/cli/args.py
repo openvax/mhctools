@@ -50,6 +50,9 @@ from .. import (
     IedbNetMHCIIpan,
     MHCflurry,
     MixMHCpred,
+    BigMHC,
+    BigMHC_EL,
+    BigMHC_IM,
 )
 
 
@@ -90,6 +93,9 @@ mhc_predictors = {
     # "smm-pmbec": None,
     "mhcflurry": MHCflurry,
     "mixmhcpred": MixMHCpred,
+    "bigmhc": BigMHC,
+    "bigmhc-el": BigMHC_EL,
+    "bigmhc-im": BigMHC_IM,
 }
 
 def add_mhc_args(arg_parser):
@@ -190,7 +196,10 @@ def mhc_binding_predictor_from_args(args):
         kwargs["models_path"] = args.mhc_predictor_models_path
 
     if args.mhc_predictor_path:
-        kwargs["program_name"] = args.mhc_predictor_path
+        if 'bigmhc' in args.mhc_predictor:
+            kwargs["bigmhc_path"] = args.mhc_predictor_path
+        else:
+            kwargs["program_name"] = args.mhc_predictor_path
 
     if args.do_not_raise_on_error:
         if 'iedb' in args.mhc_predictor.lower():

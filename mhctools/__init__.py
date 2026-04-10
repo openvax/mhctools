@@ -38,7 +38,7 @@ from .netmhc_pan42 import NetMHCpan42, NetMHCpan42_BA, NetMHCpan42_EL
 from .netmhcii_pan import NetMHCIIpan, NetMHCIIpan3, NetMHCIIpan4, NetMHCIIpan4_BA, NetMHCIIpan4_EL, NetMHCIIpan43, NetMHCIIpan43_BA, NetMHCIIpan43_EL
 from .random_predictor import RandomBindingPredictor
 from .netmhcstabpan import NetMHCstabpan
-from .bigmhc import BigMHC
+from .bigmhc import BigMHC, BigMHC_EL, BigMHC_IM
 from .unsupported_allele import UnsupportedAllele
 
 __version__ = "3.3.0"
@@ -97,6 +97,8 @@ __all__ = [
     "NetMHCIIpan43_EL",
     "NetMHCstabpan",
     "BigMHC",
+    "BigMHC_EL",
+    "BigMHC_IM",
     "RandomBindingPredictor",
     "UnsupportedAllele",
 ]
