@@ -37,8 +37,6 @@ PEPTIDES = ["SIINFEKL", "GILGFVFTL", "NLVPMVATV"]
 
 def test_init_defaults():
     p = Pepsickle()
-    assert p.model_type == "epitope"
-    assert p.proteasome_type == "C"
     assert p.threshold == 0.5
     assert p.human_only is False
     assert p.default_peptide_lengths == [9]
@@ -48,16 +46,6 @@ def test_init_defaults():
 
 def test_is_proteasome_predictor():
     assert isinstance(Pepsickle(), ProteasomePredictor)
-
-
-def test_init_invalid_model_type():
-    with pytest.raises(ValueError, match="model_type"):
-        Pepsickle(model_type="bad")
-
-
-def test_init_invalid_proteasome_type():
-    with pytest.raises(ValueError, match="proteasome_type"):
-        Pepsickle(proteasome_type="X")
 
 
 def test_init_custom_scoring_callable():
@@ -73,7 +61,6 @@ def test_init_custom_scoring_string():
 def test_str():
     s = str(Pepsickle())
     assert "Pepsickle" in s
-    assert "epitope" in s
 
 
 # -- cleavage_probs --
@@ -205,15 +192,3 @@ def test_scoring_methods_produce_different_scores():
     assert len(unique) > 1
 
 
-# -- in-vitro model --
-
-@pytest.mark.xfail(
-    reason="pepsickle in-vitro GB model requires older sklearn pickle format",
-    raises=ModuleNotFoundError,
-)
-def test_invitro_model():
-    p = Pepsickle(model_type="in-vitro", proteasome_type="C")
-    results = p.predict(PEPTIDES)
-    assert len(results) == len(PEPTIDES)
-    for pp in results:
-        assert pp.preds[0].kind == Kind.proteasome_cleavage
