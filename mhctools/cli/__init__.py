@@ -22,6 +22,7 @@ from .args import (
     make_mhc_arg_parser,
     add_mhc_args,
     mhc_predictors,
+    predictors_from_args,
 )
 
 __all__ = [
@@ -30,4 +31,5 @@ __all__ = [
     "make_mhc_arg_parser",
     "add_mhc_args",
     "mhc_predictors",
+    "predictors_from_args",
 ]
