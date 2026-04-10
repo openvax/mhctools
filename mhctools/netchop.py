@@ -11,12 +11,16 @@
 # limitations under the License.
 
 import logging
+import shutil
 import subprocess
 import tempfile
 
 from .proteasome_predictor import ProteasomePredictor
 
 logger = logging.getLogger(__name__)
+
+# Timeout in seconds for a single netChop invocation.
+NETCHOP_TIMEOUT_SECONDS = 120
 
 
 class NetChop(ProteasomePredictor):
@@ -49,6 +53,11 @@ class NetChop(ProteasomePredictor):
             scoring=scoring,
         )
         self.program_name = program_name
+        if not shutil.which(self.program_name):
+            raise FileNotFoundError(
+                "Could not find '%s' on PATH. Is netChop installed? "
+                "You can pass a full path via program_name=."
+                % self.program_name)
 
     def __str__(self):
         return "%s(program_name=%r, scoring=%s)" % (
@@ -74,17 +83,48 @@ class NetChop(ProteasomePredictor):
             fd.write("\n")
             fd.flush()
             try:
-                output = subprocess.check_output([self.program_name, fd.name])
-            except subprocess.CalledProcessError as e:
-                logger.error(
-                    "Error calling %s: %s:\n%s",
-                    self.program_name, e, e.output)
-                raise
-        parsed = self.parse_netchop(output)
-        assert len(parsed) == 1, \
-            "Expected 1 result from netChop, got %d" % len(parsed)
-        assert len(parsed[0]) == len(sequence), \
-            "Expected %d scores, got %d" % (len(sequence), len(parsed[0]))
+                result = subprocess.run(
+                    [self.program_name, fd.name],
+                    capture_output=True,
+                    timeout=NETCHOP_TIMEOUT_SECONDS,
+                )
+            except subprocess.TimeoutExpired:
+                raise RuntimeError(
+                    "%s timed out after %d seconds on a sequence of "
+                    "length %d"
+                    % (self.program_name, NETCHOP_TIMEOUT_SECONDS,
+                       len(sequence)))
+            except FileNotFoundError:
+                raise FileNotFoundError(
+                    "Could not execute '%s'. Is netChop installed and on "
+                    "your PATH?" % self.program_name)
+        stderr_text = result.stderr.decode("utf-8", errors="replace").strip()
+        if stderr_text:
+            logger.warning("%s stderr:\n%s", self.program_name, stderr_text)
+        if result.returncode != 0:
+            raise RuntimeError(
+                "%s exited with code %d.\nstdout: %s\nstderr: %s"
+                % (self.program_name, result.returncode,
+                   result.stdout.decode("utf-8", errors="replace").strip(),
+                   stderr_text))
+        parsed = self.parse_netchop(result.stdout)
+        if len(parsed) != 1:
+            raise ValueError(
+                "Expected 1 result sequence from %s, got %d. "
+                "stdout: %s\nstderr: %s"
+                % (self.program_name, len(parsed),
+                   result.stdout.decode("utf-8", errors="replace").strip(),
+                   stderr_text))
+        if len(parsed[0]) != len(sequence):
+            raise ValueError(
+                "Expected %d per-position scores from %s, got %d. "
+                "This usually means netChop's internal temp files are "
+                "broken — try reinstalling netChop or use pepsickle as "
+                "an alternative (--mhc-predictor pepsickle).\n"
+                "stdout: %s\nstderr: %s"
+                % (len(sequence), self.program_name, len(parsed[0]),
+                   result.stdout.decode("utf-8", errors="replace").strip(),
+                   stderr_text))
         return parsed[0]
 
     @staticmethod
@@ -98,16 +138,30 @@ class NetChop(ProteasomePredictor):
             One inner list per input sequence, with per-position
             cleavage scores.
         """
-        line_iterator = iter(netchop_output.decode().split("\n"))
+        text = netchop_output.decode("utf-8", errors="replace")
+        lines = text.split("\n")
+        line_iterator = iter(lines)
         scores = []
         for line in line_iterator:
             if "pos" in line and 'AA' in line and 'score' in line:
                 scores.append([])
-                if "----" not in next(line_iterator):
-                    raise ValueError("Dashes expected")
-                line = next(line_iterator)
+                dashes_line = next(line_iterator, "")
+                if "----" not in dashes_line:
+                    raise ValueError(
+                        "Expected dashes after netChop header, got: %r"
+                        % dashes_line)
+                line = next(line_iterator, "-------")
                 while '-------' not in line:
-                    score = float(line.split()[3])
+                    parts = line.split()
+                    if len(parts) < 4:
+                        raise ValueError(
+                            "Unexpected netChop output line: %r" % line)
+                    try:
+                        score = float(parts[3])
+                    except ValueError:
+                        raise ValueError(
+                            "Could not parse score from netChop "
+                            "output line: %r" % line)
                     scores[-1].append(score)
-                    line = next(line_iterator)
+                    line = next(line_iterator, "-------")
         return scores
