@@ -219,6 +219,77 @@ def test_best_stability_empty():
     assert ps.best_stability_by_rank is None
 
 
+# -- shared fields --
+
+def test_peptide_result_peptide():
+    ps = _make_pred_set()
+    assert ps.peptide == "SIINFEKL"
+
+def test_peptide_result_offset():
+    ps = _make_pred_set()
+    assert ps.offset == 0
+
+def test_peptide_result_source_sequence_name():
+    ps = _make_pred_set()
+    assert ps.source_sequence_name is None
+
+def test_peptide_result_kinds():
+    ps = _make_pred_set()
+    assert ps.kinds == {
+        Kind.pMHC_affinity,
+        Kind.pMHC_presentation,
+        Kind.antigen_processing,
+    }
+
+def test_peptide_result_alleles():
+    ps = _make_pred_set()
+    assert ps.alleles == {"HLA-A*02:01", "HLA-B*07:02"}
+
+def test_empty_peptide_result_shared_fields():
+    ps = PeptideResult()
+    assert ps.peptide == ""
+    assert ps.offset == 0
+    assert ps.source_sequence_name is None
+    assert ps.kinds == set()
+    assert ps.alleles == set()
+
+
+# -- kind accessors --
+
+def test_affinity_accessor():
+    ps = _make_pred_set()
+    assert ps.affinity
+    assert ps.affinity.value == 120.5
+    assert ps.affinity.score == 0.85
+    assert ps.affinity.percentile_rank == 0.8
+    assert ps.affinity.allele == "HLA-A*02:01"
+    assert ps.affinity.pred is not None
+
+def test_presentation_accessor():
+    ps = _make_pred_set()
+    assert ps.presentation
+    assert ps.presentation.score == 0.92
+    assert ps.presentation.allele == "HLA-A*02:01"
+
+def test_missing_kind_accessor():
+    ps = _make_pred_set()
+    assert not ps.stability
+    assert ps.stability.value is None
+    assert ps.stability.score is None
+    assert ps.stability.percentile_rank is None
+    assert ps.stability.allele is None
+    assert ps.stability.pred is None
+
+def test_missing_kind_repr():
+    ps = _make_pred_set()
+    assert "No prediction" in repr(ps.stability)
+
+def test_kind_accessor_on_empty_result():
+    ps = PeptideResult()
+    assert not ps.affinity
+    assert ps.affinity.value is None
+
+
 def test_filter():
     ps = _make_pred_set()
     affinity_preds = ps.filter(kind=Kind.pMHC_affinity)

@@ -29,10 +29,9 @@ predictor = NetMHCpan41(alleles=["HLA-A*02:01", "HLA-B*07:02"])
 # predict() returns a list of PeptideResult — one per peptide
 results = predictor.predict(["SIINFEKL", "GILGFVFTL"])
 
-for result in results:
-    best = result.best_affinity
-    if best:
-        print(f"{best.peptide} -> {best.allele} IC50={best.value:.1f}nM")
+for r in results:
+    if r.affinity:
+        print(f"{r.peptide} -> {r.affinity.allele} IC50={r.affinity.value:.1f}nM")
 ```
 
 ## Data model
@@ -67,23 +66,28 @@ from mhctools import NetMHCpan41
 predictor = NetMHCpan41(alleles=["HLA-A*02:01", "HLA-B*07:02"])
 results = predictor.predict(["SIINFEKL", "GILGFVFTL"])
 
-result = results[0]                   # PeptideResult for "SIINFEKL"
-result.preds                          # tuple of Pred objects
-result.best_affinity                  # Pred with highest affinity score
-result.best_affinity.allele           # "HLA-A*02:01"
-result.best_affinity.value            # IC50 in nM
-result.best_affinity.score            # higher = better (~0-1)
-result.best_affinity.percentile_rank  # lower = better (0-100)
+r = results[0]
+r.peptide                      # "SIINFEKL"
+r.offset                       # position in source protein (if scanned)
+r.kinds                        # {Kind.pMHC_affinity, Kind.pMHC_presentation}
+r.alleles                      # {"HLA-A*02:01", "HLA-B*07:02"}
 
-result.best_affinity_by_rank          # Pred with lowest percentile rank
-result.best_presentation              # best EL/presentation score
-result.best_presentation_by_rank      # best EL percentile rank
-result.best_stability                 # best pMHC stability (if available)
-result.best_stability_by_rank
+# best prediction by kind — safe when the kind is absent
+r.affinity.value               # IC50 in nM (or None)
+r.affinity.percentile_rank     # 0-100, lower = better (or None)
+r.affinity.score               # ~0-1, higher = better (or None)
+r.affinity.allele              # best allele for this kind (or None)
+r.presentation.score           # EL/presentation score (or None)
 
-# filter by kind or allele
-result.filter(kind=Kind.pMHC_affinity)
-result.filter(allele="HLA-A*02:01")
+if r.affinity:                 # falsy when the predictor has no affinity
+    print(r.affinity.value)
+
+# lower-level: raw Pred objects
+r.best_affinity                # Pred with highest affinity score, or None
+r.best_affinity_by_rank        # Pred with lowest percentile rank, or None
+r.preds                        # tuple of all Pred objects
+r.filter(kind=Kind.pMHC_affinity)
+r.filter(allele="HLA-A*02:01")
 ```
 
 NetMHCpan 4.1 automatically emits both `pMHC_affinity` and `pMHC_presentation`
@@ -100,10 +104,9 @@ proteins = predictor.predict_proteins(
     peptide_lengths=[9, 10],
 )
 
-for pp in proteins["TP53"]:
-    best = pp.best_affinity
-    if best and best.value < 500:
-        print(f"  offset={best.offset} {best.peptide} IC50={best.value:.0f}")
+for r in proteins["TP53"]:
+    if r.affinity and r.affinity.value < 500:
+        print(f"  offset={r.offset} {r.peptide} IC50={r.affinity.value:.0f}")
 ```
 
 ### DataFrames
