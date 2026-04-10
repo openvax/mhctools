@@ -210,7 +210,7 @@ affinity, hours for stability). `percentile_rank` is always optional,
 
 | Predictor | Kinds produced | Requires |
 |---|---|---|
-| `Pepsickle` | proteasome cleavage | `pip install mhctools[pepsickle]` |
+| `Pepsickle` | proteasome cleavage | `pip install pepsickle` ([paper](https://doi.org/10.1093/bioinformatics/btab628)) |
 | `NetChop` | proteasome cleavage | [NetChop](https://services.healthtech.dtu.dk/services/NetChop-3.1/) |
 
 Processing predictors use configurable scoring to aggregate per-position
