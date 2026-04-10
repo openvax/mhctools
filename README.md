@@ -69,24 +69,26 @@ results = predictor.predict(["SIINFEKL", "GILGFVFTL"])
 r = results[0]
 r.peptide                      # "SIINFEKL"
 r.offset                       # position in source protein (if scanned)
-r.kinds                        # {Kind.pMHC_affinity, Kind.pMHC_presentation}
+r.kinds                        # {"pMHC_affinity", "pMHC_presentation"}
 r.alleles                      # {"HLA-A*02:01", "HLA-B*07:02"}
 
-# best prediction by kind — safe when the kind is absent
-r.affinity.value               # IC50 in nM (or None)
-r.affinity.percentile_rank     # 0-100, lower = better (or None)
-r.affinity.score               # ~0-1, higher = better (or None)
-r.affinity.allele              # best allele for this kind (or None)
-r.presentation.score           # EL/presentation score (or None)
+# best prediction by kind — None when the kind is absent
+r.affinity                     # Pred or None
+r.presentation                 # Pred or None
+r.stability                    # None (predictor doesn't produce it)
 
-if r.affinity:                 # falsy when the predictor has no affinity
-    print(r.affinity.value)
+if r.affinity:
+    r.affinity.value            # IC50 in nM
+    r.affinity.percentile_rank  # 0-100, lower = better
+    r.affinity.score            # ~0-1, higher = better
+    r.affinity.allele           # best allele for this kind
 
-# lower-level: raw Pred objects
-r.best_affinity                # Pred with highest affinity score, or None
+# by rank instead of score
 r.best_affinity_by_rank        # Pred with lowest percentile rank, or None
+
+# all predictions
 r.preds                        # tuple of all Pred objects
-r.filter(kind=Kind.pMHC_affinity)
+r.filter(kind="pMHC_affinity")
 r.filter(allele="HLA-A*02:01")
 ```
 
@@ -152,7 +154,7 @@ df = ms.predict_proteins_dataframe({"TP53": "MEEPQ..."})
 
 ### Measurement kinds
 
-The `Kind` enum describes what biological quantity a `Pred` measures:
+Each `Pred` has a `kind` string describing what it measures:
 
 | Kind | Meaning |
 |---|---|
@@ -170,10 +172,10 @@ The `Kind` enum describes what biological quantity a `Pred` measures:
 Every prediction is a frozen, self-contained `Pred` dataclass:
 
 ```python
-from mhctools import Pred, Kind
+from mhctools import Pred
 
 pred = Pred(
-    kind=Kind.pMHC_affinity,
+    kind="pMHC_affinity",
     score=0.85,           # ~0-1, higher = better
     peptide="SIINFEKL",
     allele="HLA-A*02:01",

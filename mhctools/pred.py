@@ -13,20 +13,21 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, fields
-from enum import Enum
 from typing import Optional
 
 import pandas as pd
 
 
-class Kind(Enum):
-    """What biological quantity is being predicted."""
-    # Peptide-MHC
+class Kind:
+    """String constants for prediction kinds.
+
+    You can use ``Kind.pMHC_affinity`` or just ``"pMHC_affinity"`` —
+    they're the same string.
+    """
     pMHC_affinity = "pMHC_affinity"
     pMHC_presentation = "pMHC_presentation"
     pMHC_stability = "pMHC_stability"
     immunogenicity = "immunogenicity"
-    # Processing pathway
     antigen_processing = "antigen_processing"
     proteasome_cleavage = "proteasome_cleavage"
     tap_transport = "tap_transport"
@@ -53,7 +54,7 @@ COLUMNS = (
 @dataclass(frozen=True, repr=False)
 class Pred:
     """Single prediction from one model on one peptide. Self-contained."""
-    kind: Kind
+    kind: str
     score: float
     peptide: str = ""
     allele: str = ""
@@ -67,7 +68,7 @@ class Pred:
     predictor_version: str = ""
 
     def __repr__(self):
-        parts = [self.peptide or "?", self.kind.value]
+        parts = [self.peptide or "?", self.kind]
         if self.allele:
             parts.insert(1, self.allele)
         parts.append("score=%.4g" % self.score)
@@ -93,7 +94,7 @@ class Pred:
             "predictor_name": self.predictor_name,
             "predictor_version": self.predictor_version,
             "allele": self.allele,
-            "kind": self.kind.value,
+            "kind": self.kind,
             "score": self.score,
             "value": self.value,
             "percentile_rank": self.percentile_rank,
@@ -101,63 +102,13 @@ class Pred:
 
     def to_dict(self):
         """Serialize to a JSON-friendly dict."""
-        d = asdict(self)
-        d["kind"] = self.kind.value
-        return d
+        return asdict(self)
 
     @classmethod
     def from_dict(cls, d):
         """Deserialize from a dict (as produced by :meth:`to_dict`)."""
-        d = dict(d)
-        d["kind"] = Kind(d["kind"])
-        # Only pass fields that Pred knows about
         valid = {f.name for f in fields(cls)}
         return cls(**{k: v for k, v in d.items() if k in valid})
-
-
-class _KindAccessor:
-    """Returned by PeptideResult.affinity / .presentation / etc.
-
-    Gives direct access to the best prediction's fields without
-    chaining through an intermediate Pred. Returns None for missing
-    fields instead of raising AttributeError.
-
-    Truthiness: True if the kind has predictions, False otherwise.
-    """
-
-    __slots__ = ("_pred",)
-
-    def __init__(self, pred: Optional[Pred]):
-        self._pred = pred
-
-    def __bool__(self):
-        return self._pred is not None
-
-    def __repr__(self):
-        if self._pred is None:
-            return "No prediction"
-        return repr(self._pred)
-
-    @property
-    def pred(self) -> Optional[Pred]:
-        """The underlying Pred object, or None."""
-        return self._pred
-
-    @property
-    def value(self) -> Optional[float]:
-        return self._pred.value if self._pred else None
-
-    @property
-    def score(self) -> Optional[float]:
-        return self._pred.score if self._pred else None
-
-    @property
-    def percentile_rank(self) -> Optional[float]:
-        return self._pred.percentile_rank if self._pred else None
-
-    @property
-    def allele(self) -> Optional[str]:
-        return self._pred.allele if self._pred else None
 
 
 @dataclass(repr=False)
@@ -169,7 +120,7 @@ class PeptideResult:
         if not self.preds:
             return "PeptideResult(empty)"
         from collections import Counter
-        kinds = Counter(p.kind.value for p in self.preds)
+        kinds = Counter(p.kind for p in self.preds)
         kind_str = ", ".join(
             "%d\u00d7%s" % (n, k) for k, n in kinds.items())
         return "PeptideResult(%s, %d preds: %s)" % (
@@ -205,44 +156,42 @@ class PeptideResult:
     # --- kind accessors (best by score, wrapped for safe field access) ---
 
     @property
-    def affinity(self) -> _KindAccessor:
-        """Best affinity prediction. Check truthiness or access
-        .value, .score, .percentile_rank, .allele directly."""
-        return _KindAccessor(self._best_by_score(Kind.pMHC_affinity))
-
-    @property
-    def presentation(self) -> _KindAccessor:
-        """Best presentation prediction."""
-        return _KindAccessor(self._best_by_score(Kind.pMHC_presentation))
-
-    @property
-    def stability(self) -> _KindAccessor:
-        """Best stability prediction."""
-        return _KindAccessor(self._best_by_score(Kind.pMHC_stability))
-
-    @property
-    def immunogenicity(self) -> _KindAccessor:
-        """Best immunogenicity prediction."""
-        return _KindAccessor(self._best_by_score(Kind.immunogenicity))
-
-    @property
-    def cleavage(self) -> _KindAccessor:
-        """Best proteasomal cleavage prediction."""
-        return _KindAccessor(self._best_by_score(Kind.proteasome_cleavage))
-
-    # --- best by score (return raw Pred) ---
-
-    @property
-    def best_affinity(self) -> Optional[Pred]:
+    def affinity(self) -> Optional[Pred]:
+        """Best affinity prediction, or None."""
         return self._best_by_score(Kind.pMHC_affinity)
 
     @property
-    def best_presentation(self) -> Optional[Pred]:
+    def presentation(self) -> Optional[Pred]:
+        """Best presentation prediction, or None."""
         return self._best_by_score(Kind.pMHC_presentation)
 
     @property
-    def best_stability(self) -> Optional[Pred]:
+    def stability(self) -> Optional[Pred]:
+        """Best stability prediction, or None."""
         return self._best_by_score(Kind.pMHC_stability)
+
+    @property
+    def immunogenicity(self) -> Optional[Pred]:
+        """Best immunogenicity prediction, or None."""
+        return self._best_by_score(Kind.immunogenicity)
+
+    @property
+    def cleavage(self) -> Optional[Pred]:
+        """Best proteasomal cleavage prediction, or None."""
+        return self._best_by_score(Kind.proteasome_cleavage)
+
+    # backward compat aliases
+    @property
+    def best_affinity(self) -> Optional[Pred]:
+        return self.affinity
+
+    @property
+    def best_presentation(self) -> Optional[Pred]:
+        return self.presentation
+
+    @property
+    def best_stability(self) -> Optional[Pred]:
+        return self.stability
 
     # --- best by rank (return raw Pred) ---
 

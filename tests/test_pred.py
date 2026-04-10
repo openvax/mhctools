@@ -258,36 +258,26 @@ def test_empty_peptide_result_shared_fields():
 
 def test_affinity_accessor():
     ps = _make_pred_set()
-    assert ps.affinity
+    assert ps.affinity is not None
     assert ps.affinity.value == 120.5
     assert ps.affinity.score == 0.85
     assert ps.affinity.percentile_rank == 0.8
     assert ps.affinity.allele == "HLA-A*02:01"
-    assert ps.affinity.pred is not None
 
 def test_presentation_accessor():
     ps = _make_pred_set()
-    assert ps.presentation
+    assert ps.presentation is not None
     assert ps.presentation.score == 0.92
     assert ps.presentation.allele == "HLA-A*02:01"
 
-def test_missing_kind_accessor():
+def test_missing_kind_is_none():
     ps = _make_pred_set()
-    assert not ps.stability
-    assert ps.stability.value is None
-    assert ps.stability.score is None
-    assert ps.stability.percentile_rank is None
-    assert ps.stability.allele is None
-    assert ps.stability.pred is None
-
-def test_missing_kind_repr():
-    ps = _make_pred_set()
-    assert "No prediction" in repr(ps.stability)
+    assert ps.stability is None
+    assert ps.immunogenicity is None
 
 def test_kind_accessor_on_empty_result():
     ps = PeptideResult()
-    assert not ps.affinity
-    assert ps.affinity.value is None
+    assert ps.affinity is None
 
 
 def test_filter():
