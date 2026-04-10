@@ -277,3 +277,21 @@ class BigMHC:
         if not dfs:
             return pd.DataFrame(columns=COLUMNS)
         return pd.concat(dfs, ignore_index=True)
+
+
+class BigMHC_EL(BigMHC):
+    """BigMHC in presentation (eluted-ligand) mode."""
+    def __init__(self, alleles, bigmhc_path=None, device="cpu",
+                 max_batch_size=4096):
+        BigMHC.__init__(
+            self, alleles, mode="el", bigmhc_path=bigmhc_path,
+            device=device, max_batch_size=max_batch_size)
+
+
+class BigMHC_IM(BigMHC):
+    """BigMHC in immunogenicity mode."""
+    def __init__(self, alleles, bigmhc_path=None, device="cpu",
+                 max_batch_size=4096):
+        BigMHC.__init__(
+            self, alleles, mode="im", bigmhc_path=bigmhc_path,
+            device=device, max_batch_size=max_batch_size)
