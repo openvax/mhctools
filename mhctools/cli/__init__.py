@@ -23,6 +23,7 @@ from .args import (
     add_mhc_args,
     mhc_predictors,
     predictors_from_args,
+    _cls_accepts,
 )
 
 __all__ = [
@@ -32,4 +33,5 @@ __all__ = [
     "add_mhc_args",
     "mhc_predictors",
     "predictors_from_args",
+    "_cls_accepts",
 ]
