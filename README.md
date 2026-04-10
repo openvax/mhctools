@@ -36,25 +36,25 @@ for r in results:
 
 ## Data model
 
-Every predictor returns results as two nested dataclasses:
+`predict()` returns a list of `PeptideResult` — one per peptide. Each
+result carries the peptide string and provides accessors for each
+prediction kind (affinity, presentation, stability, etc.). Accessors
+return `None` when a predictor doesn't produce that kind.
 
-- `PeptideResult` — all predictions for one peptide (across alleles and
-  prediction kinds). This is what you get back per peptide from `predict()`.
-- `Pred` — a single prediction: one peptide, one allele, one measurement
-  kind (e.g. affinity, presentation, immunogenicity). Frozen and self-contained.
-  Each `Pred` carries the peptide string itself, so it's fully self-contained.
+```python
+results = predictor.predict(["SIINFEKL", "GILGFVFTL"])
+r = results[0]
 
+r.peptide                    # "SIINFEKL"
+r.affinity.value             # IC50 in nM
+r.affinity.percentile_rank   # 0-100, lower = better
+r.affinity.allele            # best allele for this kind
+r.presentation               # None if predictor doesn't produce it
 ```
-predict(["SIINFEKL", "GILGFVFTL"])
-  → [PeptideResult, PeptideResult]
-       └── .preds = (Pred(peptide="SIINFEKL", allele=A0201, kind=affinity, value=85.3, ...),
-                     Pred(peptide="SIINFEKL", allele=A0201, kind=presentation, score=0.92, ...),
-                     Pred(peptide="SIINFEKL", allele=B0702, kind=affinity, value=4200, ...),
-                     ...)
-```
 
-Both convert to DataFrames and have consistent column names for easy downstream
-analysis.
+Under the hood, each `PeptideResult` wraps a tuple of `Pred` objects —
+frozen dataclasses, one per allele-kind combination. Everything converts
+to DataFrames with consistent column names.
 
 ## Python API
 
