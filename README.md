@@ -19,6 +19,22 @@ For MHCflurry support, also run:
 mhcflurry-downloads fetch
 ```
 
+## Quick start
+
+```python
+from mhctools import NetMHCpan41
+
+predictor = NetMHCpan41(alleles=["HLA-A*02:01", "HLA-B*07:02"])
+
+# predict() returns a list of PeptideResult — one per peptide
+results = predictor.predict(["SIINFEKL", "GILGFVFTL"])
+
+for result in results:
+    best = result.best_affinity
+    if best:
+        print(f"{best.peptide} -> {best.allele} IC50={best.value:.1f}nM")
+```
+
 ## Data model
 
 Every predictor returns results as two nested dataclasses:
@@ -40,22 +56,6 @@ predict(["SIINFEKL", "GILGFVFTL"])
 
 Both convert to DataFrames and have consistent column names for easy downstream
 analysis.
-
-## Quick start
-
-```python
-from mhctools import NetMHCpan41
-
-predictor = NetMHCpan41(alleles=["HLA-A*02:01", "HLA-B*07:02"])
-
-# predict() returns a list of PeptideResult — one per peptide
-results = predictor.predict(["SIINFEKL", "GILGFVFTL"])
-
-for result in results:
-    best = result.best_affinity
-    if best:
-        print(f"{best.peptide} -> {best.allele} IC50={best.value:.1f}nM")
-```
 
 ## Python API
 
