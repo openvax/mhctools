@@ -14,6 +14,7 @@
 
 from collections import defaultdict
 import logging
+import os
 from subprocess import check_output
 import tempfile
 
@@ -271,16 +272,16 @@ class BaseCommandlinePredictor(BasePredictor):
                 print_commands=True,
                 process_limit=self.process_limit)
             for output_file, command in commands.items():
-                # closing/opening looks insane
-                # but I was getting empty files otherwise
+                output_file.flush()
+                os.fsync(output_file.fileno())
+                output_file.seek(0)
+                file_contents = output_file.read()
                 output_file.close()
-                with open(output_file.name, 'r') as f:
-                    file_contents = f.read()
-                    binding_predictions.extend(
-                        self.parse_output_fn(
-                            stdout=file_contents,
-                            sequence_key_mapping=sequence_key_mapping,
-                            prediction_method_name=self.program_name))
+                binding_predictions.extend(
+                    self.parse_output_fn(
+                        stdout=file_contents,
+                        sequence_key_mapping=sequence_key_mapping,
+                        prediction_method_name=self.program_name))
 
         if len(binding_predictions) == 0:
             logger.warning("No binding predictions from %s" % self.program_name)
@@ -307,14 +308,16 @@ class BaseCommandlinePredictor(BasePredictor):
                 print_commands=True,
                 process_limit=self.process_limit)
             for output_file, command in commands.items():
+                output_file.flush()
+                os.fsync(output_file.fileno())
+                output_file.seek(0)
+                file_contents = output_file.read()
                 output_file.close()
-                with open(output_file.name, 'r') as f:
-                    file_contents = f.read()
-                    all_preds.extend(
-                        self.parse_to_preds_fn(
-                            stdout=file_contents,
-                            sequence_key_mapping=sequence_key_mapping,
-                            predictor_name=self.program_name))
+                all_preds.extend(
+                    self.parse_to_preds_fn(
+                        stdout=file_contents,
+                        sequence_key_mapping=sequence_key_mapping,
+                        predictor_name=self.program_name))
 
         if len(all_preds) == 0:
             logger.warning("No predictions from %s" % self.program_name)
@@ -355,7 +358,7 @@ class BaseCommandlinePredictor(BasePredictor):
                 else:
                     temp_dirname = None
                 output_file = tempfile.NamedTemporaryFile(
-                    "w",
+                    "w+",
                     prefix="%s_output_length_%d_%d" % (
                         self.program_name, i, j),
                     delete=False)
@@ -396,7 +399,7 @@ class BaseCommandlinePredictor(BasePredictor):
                 else:
                     temp_dirname = None
                 output_file = tempfile.NamedTemporaryFile(
-                    "w",
+                    "w+",
                     prefix="%s_output_length_%d_%d" % (
                         self.program_name, i, j),
                     delete=False)
