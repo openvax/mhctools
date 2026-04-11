@@ -11,6 +11,7 @@
 # limitations under the License.
 
 import logging
+import math
 
 from numpy import nan
 
@@ -127,9 +128,6 @@ class MHCflurry(BasePredictor):
                 presentation_score = row.presentation_score
                 presentation_pct = row.presentation_percentile
 
-                # Higher score = better binding. Convert IC50 nM to 0-1 score:
-                # score = 1 - log(IC50)/log(50000), clamped to [0,1]
-                import math
                 aff_score = max(0.0, min(1.0,
                     1.0 - math.log(max(affinity_nM, 1e-6)) / math.log(50000)))
 
