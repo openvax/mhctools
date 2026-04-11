@@ -233,6 +233,17 @@ class BasePredictor(object):
         return peptide_lengths
 
     def _check_results(self, binding_predictions, peptides, alleles):
+        # For large inputs the Cartesian product set is very expensive;
+        # skip the detailed check when the expected size exceeds a threshold.
+        n_expected = len(alleles) * len(peptides)
+        if n_expected > 100_000:
+            if len(binding_predictions) != n_expected:
+                logger.warning(
+                    "Expected %d predictions but got %d (skipping "
+                    "detailed check for large inputs)",
+                    n_expected, len(binding_predictions))
+            return
+
         expected = {(a, p) for a in alleles for p in peptides}
         observed = {(bp.allele, bp.peptide) for bp in binding_predictions}
         if len(expected.intersection(observed)) < len(expected):
