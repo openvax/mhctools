@@ -52,7 +52,7 @@ r.affinity.allele            # best allele for this kind
 r.presentation               # None if predictor doesn't produce it
 ```
 
-Under the hood, each `PeptideResult` wraps a tuple of `Pred` objects —
+Under the hood, each `PeptideResult` wraps a tuple of `Prediction` objects —
 frozen dataclasses, one per allele-kind combination. Everything converts
 to DataFrames with consistent column names.
 
@@ -73,8 +73,8 @@ r.kinds                        # {"pMHC_affinity", "pMHC_presentation"}
 r.alleles                      # {"HLA-A*02:01", "HLA-B*07:02"}
 
 # best prediction by kind — None when the kind is absent
-r.affinity                     # Pred or None
-r.presentation                 # Pred or None
+r.affinity                     # Prediction or None
+r.presentation                 # Prediction or None
 r.stability                    # None (predictor doesn't produce it)
 
 if r.affinity:
@@ -84,10 +84,10 @@ if r.affinity:
     r.affinity.allele           # best allele for this kind
 
 # by rank instead of score
-r.best_affinity_by_rank        # Pred with lowest percentile rank, or None
+r.best_affinity_by_rank        # Prediction with lowest percentile rank, or None
 
 # all predictions
-r.preds                        # tuple of all Pred objects
+r.preds                        # tuple of all Prediction objects
 r.filter(kind="pMHC_affinity")
 r.filter(allele="HLA-A*02:01")
 ```
@@ -154,7 +154,7 @@ df = ms.predict_proteins_dataframe({"TP53": "MEEPQ..."})
 
 ### Measurement kinds
 
-Each `Pred` has a `kind` string describing what it measures:
+Each `Prediction` has a `kind` string describing what it measures:
 
 | Kind | Meaning |
 |---|---|
@@ -167,14 +167,14 @@ Each `Pred` has a `kind` string describing what it measures:
 | `tap_transport` | TAP transport score (reserved, not yet used) |
 | `erap_trimming` | ERAP trimming score (reserved, not yet used) |
 
-### The Pred object
+### The Prediction object
 
-Every prediction is a frozen, self-contained `Pred` dataclass:
+Every prediction is a frozen, self-contained `Prediction` dataclass:
 
 ```python
-from mhctools import Pred
+from mhctools import Prediction
 
-pred = Pred(
+pred = Prediction(
     kind="pMHC_affinity",
     score=0.85,           # ~0-1, higher = better
     peptide="SIINFEKL",
@@ -257,6 +257,6 @@ for bp in collection:
 To convert legacy results to the new types:
 
 ```python
-preds = collection.to_preds()           # list of Pred
+preds = collection.to_preds()           # list of Prediction
 pp_list = collection.to_peptide_preds() # list of PeptideResult
 ```

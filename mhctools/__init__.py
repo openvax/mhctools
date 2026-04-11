@@ -1,6 +1,6 @@
 from .binding_prediction import BindingPrediction
 from .binding_prediction_collection import BindingPredictionCollection
-from .pred import Pred, PeptideResult, PeptidePreds, Kind, preds_from_rows
+from .pred import Prediction, Pred, PeptideResult, PeptidePreds, Kind, preds_from_rows
 from .sample import MultiSample
 from .iedb import (
     IedbNetMHCcons,
@@ -41,10 +41,11 @@ from .netmhcstabpan import NetMHCstabpan
 from .bigmhc import BigMHC, BigMHC_EL, BigMHC_IM
 from .unsupported_allele import UnsupportedAllele
 
-__version__ = "3.8.2"
+__version__ = "3.9.0"
 
 __all__ = [
-    "Pred",
+    "Prediction",
+    "Pred",  # backward compat alias
     "PeptideResult",
     "PeptidePreds",  # backward compat alias
     "Kind",

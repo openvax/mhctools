@@ -10,17 +10,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from mhctools.pred import Pred, PeptideResult, Kind, preds_from_rows, COLUMNS
+from mhctools.pred import Prediction, PeptideResult, Kind, preds_from_rows, COLUMNS
 from mhctools.sample import MultiSample
 from mhctools.binding_prediction import BindingPrediction
 from mhctools.binding_prediction_collection import BindingPredictionCollection
 from mhctools.random_predictor import RandomBindingPredictor
 
 
-# -- Pred --
+# -- Prediction --
 
 def test_pred_basic():
-    p = Pred(
+    p = Prediction(
         kind=Kind.pMHC_affinity,
         score=0.85,
         peptide="SIINFEKL",
@@ -36,7 +36,7 @@ def test_pred_basic():
 
 
 def test_pred_frozen():
-    p = Pred(kind=Kind.pMHC_affinity, score=0.5)
+    p = Prediction(kind=Kind.pMHC_affinity, score=0.5)
     try:
         p.score = 0.9
         assert False, "should be frozen"
@@ -45,7 +45,7 @@ def test_pred_frozen():
 
 
 def test_pred_to_row():
-    p = Pred(
+    p = Prediction(
         kind=Kind.pMHC_affinity,
         score=0.85,
         peptide="SIINFEKL",
@@ -59,7 +59,7 @@ def test_pred_to_row():
 
 
 def test_pred_defaults():
-    p = Pred(kind=Kind.antigen_processing, score=0.7)
+    p = Prediction(kind=Kind.antigen_processing, score=0.7)
     assert p.peptide == ""
     assert p.allele == ""
     assert p.n_flank == ""
@@ -69,7 +69,7 @@ def test_pred_defaults():
 
 
 def test_pred_repr():
-    p = Pred(kind=Kind.pMHC_affinity, score=0.85, peptide="SIINFEKL",
+    p = Prediction(kind=Kind.pMHC_affinity, score=0.85, peptide="SIINFEKL",
              allele="HLA-A*02:01", value=120.5, percentile_rank=0.8,
              predictor_name="netMHCpan")
     r = repr(p)
@@ -84,7 +84,7 @@ def test_pred_repr():
 
 
 def test_pred_repr_minimal():
-    p = Pred(kind=Kind.proteasome_cleavage, score=0.5)
+    p = Prediction(kind=Kind.proteasome_cleavage, score=0.5)
     r = repr(p)
     assert "score=0.5" in r
     assert "value" not in r
@@ -92,27 +92,27 @@ def test_pred_repr_minimal():
 
 
 def test_pred_to_dict_round_trip():
-    p = Pred(kind=Kind.pMHC_affinity, score=0.85, peptide="SIINFEKL",
+    p = Prediction(kind=Kind.pMHC_affinity, score=0.85, peptide="SIINFEKL",
              allele="HLA-A*02:01", value=120.5, percentile_rank=0.8)
     d = p.to_dict()
     assert d["kind"] == "pMHC_affinity"
     assert d["score"] == 0.85
-    p2 = Pred.from_dict(d)
+    p2 = Prediction.from_dict(d)
     assert p == p2
 
 
 def test_pred_to_dict_json_serializable():
     import json
-    p = Pred(kind=Kind.pMHC_affinity, score=0.85, peptide="SIINFEKL")
+    p = Prediction(kind=Kind.pMHC_affinity, score=0.85, peptide="SIINFEKL")
     s = json.dumps(p.to_dict())
-    p2 = Pred.from_dict(json.loads(s))
+    p2 = Prediction.from_dict(json.loads(s))
     assert p == p2
 
 
 def test_pred_eq():
-    p1 = Pred(kind=Kind.pMHC_affinity, score=0.85, peptide="SIINFEKL")
-    p2 = Pred(kind=Kind.pMHC_affinity, score=0.85, peptide="SIINFEKL")
-    p3 = Pred(kind=Kind.pMHC_affinity, score=0.50, peptide="SIINFEKL")
+    p1 = Prediction(kind=Kind.pMHC_affinity, score=0.85, peptide="SIINFEKL")
+    p2 = Prediction(kind=Kind.pMHC_affinity, score=0.85, peptide="SIINFEKL")
+    p3 = Prediction(kind=Kind.pMHC_affinity, score=0.50, peptide="SIINFEKL")
     assert p1 == p2
     assert p1 != p3
 
@@ -410,7 +410,7 @@ def test_binding_prediction_to_pred():
 
 
 def test_binding_prediction_from_pred():
-    pred = Pred(
+    pred = Prediction(
         kind=Kind.pMHC_affinity,
         score=0.85,
         peptide="SIINFEKL",
@@ -435,7 +435,7 @@ def test_collection_to_preds():
     ])
     preds = bps.to_preds()
     assert len(preds) == 2
-    assert all(isinstance(p, Pred) for p in preds)
+    assert all(isinstance(p, Prediction) for p in preds)
 
 
 def test_collection_to_peptide_preds():

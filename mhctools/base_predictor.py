@@ -18,7 +18,7 @@ from .allele_normalization import normalize_allele_name
 
 from .unsupported_allele import UnsupportedAllele
 from .binding_prediction_collection import BindingPredictionCollection
-from .pred import Pred, Kind, PeptideResult
+from .pred import Prediction, Kind, PeptideResult
 
 logger = logging.getLogger(__name__)
 
@@ -153,7 +153,7 @@ class BasePredictor(object):
             peptide = pp.preds[0].peptide
             for name, offset in peptide_to_name_offset_pairs.get(peptide, []):
                 relocated = PeptideResult(preds=tuple(
-                    Pred(
+                    Prediction(
                         kind=p.kind,
                         score=p.score,
                         peptide=p.peptide,

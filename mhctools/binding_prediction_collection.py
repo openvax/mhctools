@@ -30,9 +30,9 @@ class BindingPredictionCollection(Collection):
             columns=columns)
 
     def to_preds(self, kind=Kind.pMHC_affinity):
-        """Convert all BindingPredictions to Pred objects.
+        """Convert all BindingPredictions to Prediction objects.
 
-        Returns a list of Pred (not grouped into PeptideResult, since
+        Returns a list of Prediction (not grouped into PeptideResult, since
         BindingPredictionCollection has no peptide-position grouping).
         """
         return [bp.to_pred(kind=kind) for bp in self]

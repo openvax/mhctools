@@ -18,7 +18,7 @@ import numpy as np
 from .allele_normalization import normalize_allele_name
 
 from .binding_prediction import BindingPrediction
-from .pred import Pred, Kind
+from .pred import Prediction, Kind
 
 logger = logging.getLogger(__name__)
 
@@ -556,13 +556,13 @@ def parse_netmhcpan_to_preds(
         predictor_version="",
         sequence_key_mapping=None):
     """
-    Auto-detecting parser for NetMHCpan output. Returns list[Pred].
+    Auto-detecting parser for NetMHCpan output. Returns list[Prediction].
 
     Reads the header line between dash separators to determine column
     positions. Supports NetMHCpan 2.8, 3.0, 4.0, and 4.1.
 
     For NetMHCpan 4.1 (which has both EL and BA columns), emits both
-    a pMHC_affinity Pred and a pMHC_presentation Pred per data row.
+    a pMHC_affinity Prediction and a pMHC_presentation Prediction per data row.
 
     Parameters
     ----------
@@ -577,7 +577,7 @@ def parse_netmhcpan_to_preds(
 
     Returns
     -------
-    list of Pred
+    list of Prediction
     """
     check_stdout_error(stdout, "NetMHCpan")
 
@@ -659,13 +659,13 @@ def parse_netmhcpan_to_preds(
             ba_rank = _safe_float(fields, field_index.get('%Rank_BA'))
             ic50 = _safe_float(fields, field_index.get('Aff(nM)'))
 
-            preds.append(Pred(
+            preds.append(Prediction(
                 kind=Kind.pMHC_affinity,
                 score=_affinity_score(ic50, ba_score),
                 value=ic50,
                 percentile_rank=ba_rank,
                 **shared))
-            preds.append(Pred(
+            preds.append(Prediction(
                 kind=Kind.pMHC_presentation,
                 score=el_score if el_score is not None else 0.0,
                 percentile_rank=el_rank,
@@ -675,7 +675,7 @@ def parse_netmhcpan_to_preds(
             # NetMHCpan 4.1 EL-only (no -BA flag) or 4.0 EL mode
             el_score = _safe_float(fields, field_index.get('Score_EL', field_index.get('Score')))
             el_rank = _safe_float(fields, field_index.get('%Rank_EL', field_index.get('%Rank')))
-            preds.append(Pred(
+            preds.append(Prediction(
                 kind=Kind.pMHC_presentation,
                 score=el_score if el_score is not None else 0.0,
                 percentile_rank=el_rank,
@@ -686,7 +686,7 @@ def parse_netmhcpan_to_preds(
             raw_score = _safe_float(fields, field_index['1-log50k(aff)'])
             ic50 = _safe_float(fields, field_index.get('Affinity(nM)'))
             rank = _safe_float(fields, field_index.get('%Rank'))
-            preds.append(Pred(
+            preds.append(Prediction(
                 kind=Kind.pMHC_affinity,
                 score=_affinity_score(ic50, raw_score),
                 value=ic50,
@@ -701,7 +701,7 @@ def parse_netmhcpan_to_preds(
 
             if ic50 is not None:
                 # BA mode — has affinity
-                preds.append(Pred(
+                preds.append(Prediction(
                     kind=Kind.pMHC_affinity,
                     score=_affinity_score(ic50, raw_score),
                     value=ic50,
@@ -709,7 +709,7 @@ def parse_netmhcpan_to_preds(
                     **shared))
             else:
                 # 4.0 EL mode — Score and %Rank only, no Aff(nM)
-                preds.append(Pred(
+                preds.append(Prediction(
                     kind=Kind.pMHC_presentation,
                     score=raw_score if raw_score is not None else 0.0,
                     percentile_rank=rank,
@@ -737,7 +737,7 @@ def parse_netmhcpan_stdout(
         predictor_name=prediction_method_name,
         sequence_key_mapping=sequence_key_mapping)
 
-    # For compat, pick one Pred per data row based on mode
+    # For compat, pick one Prediction per data row based on mode
     if mode == "elution_score":
         keep_kind = Kind.pMHC_presentation
     else:
@@ -910,7 +910,7 @@ def parse_netmhcstabpan(
     # Rank Threshold for Strong binding peptides   0.500
     # Rank Threshold for Weak binding peptides   2.000
     -----------------------------------------------------------------------------------------------------
-     pos      HLA         peptide         Identity       Pred     Thalf(h) %Rank_Stab BindLevel
+     pos      HLA         peptide         Identity       Prediction     Thalf(h) %Rank_Stab BindLevel
     -----------------------------------------------------------------------------------------------------
         0  HLA-A*02:01   AAAAAAAAAA         PEPLIST      0.075       0.27      19.00
     -----------------------------------------------------------------------------------------------------

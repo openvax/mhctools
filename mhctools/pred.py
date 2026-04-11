@@ -52,7 +52,7 @@ COLUMNS = (
 
 
 @dataclass(frozen=True, repr=False)
-class Pred:
+class Prediction:
     """Single prediction from one model on one peptide. Self-contained."""
     kind: str
     score: float
@@ -78,7 +78,7 @@ class Pred:
             parts.append("rank=%.2f%%" % self.percentile_rank)
         if self.predictor_name:
             parts.append(self.predictor_name)
-        return "Pred(%s)" % " | ".join(parts)
+        return "Prediction(%s)" % " | ".join(parts)
 
     def __str__(self):
         return repr(self)
@@ -113,8 +113,8 @@ class Pred:
 
 @dataclass(repr=False)
 class PeptideResult:
-    """All predictions for one peptide. Contains a tuple of Pred objects."""
-    preds: tuple[Pred, ...] = ()
+    """All predictions for one peptide. Contains a tuple of Prediction objects."""
+    preds: tuple[Prediction, ...] = ()
 
     def __repr__(self):
         if not self.preds:
@@ -156,55 +156,55 @@ class PeptideResult:
     # --- kind accessors (best by score, wrapped for safe field access) ---
 
     @property
-    def affinity(self) -> Optional[Pred]:
+    def affinity(self) -> Optional[Prediction]:
         """Best affinity prediction, or None."""
         return self._best_by_score(Kind.pMHC_affinity)
 
     @property
-    def presentation(self) -> Optional[Pred]:
+    def presentation(self) -> Optional[Prediction]:
         """Best presentation prediction, or None."""
         return self._best_by_score(Kind.pMHC_presentation)
 
     @property
-    def stability(self) -> Optional[Pred]:
+    def stability(self) -> Optional[Prediction]:
         """Best stability prediction, or None."""
         return self._best_by_score(Kind.pMHC_stability)
 
     @property
-    def immunogenicity(self) -> Optional[Pred]:
+    def immunogenicity(self) -> Optional[Prediction]:
         """Best immunogenicity prediction, or None."""
         return self._best_by_score(Kind.immunogenicity)
 
     @property
-    def cleavage(self) -> Optional[Pred]:
+    def cleavage(self) -> Optional[Prediction]:
         """Best proteasomal cleavage prediction, or None."""
         return self._best_by_score(Kind.proteasome_cleavage)
 
     # backward compat aliases
     @property
-    def best_affinity(self) -> Optional[Pred]:
+    def best_affinity(self) -> Optional[Prediction]:
         return self.affinity
 
     @property
-    def best_presentation(self) -> Optional[Pred]:
+    def best_presentation(self) -> Optional[Prediction]:
         return self.presentation
 
     @property
-    def best_stability(self) -> Optional[Pred]:
+    def best_stability(self) -> Optional[Prediction]:
         return self.stability
 
-    # --- best by rank (return raw Pred) ---
+    # --- best by rank (return raw Prediction) ---
 
     @property
-    def best_affinity_by_rank(self) -> Optional[Pred]:
+    def best_affinity_by_rank(self) -> Optional[Prediction]:
         return self._best_by_rank(Kind.pMHC_affinity)
 
     @property
-    def best_presentation_by_rank(self) -> Optional[Pred]:
+    def best_presentation_by_rank(self) -> Optional[Prediction]:
         return self._best_by_rank(Kind.pMHC_presentation)
 
     @property
-    def best_stability_by_rank(self) -> Optional[Pred]:
+    def best_stability_by_rank(self) -> Optional[Prediction]:
         return self._best_by_rank(Kind.pMHC_stability)
 
     # --- filtering ---
@@ -224,7 +224,7 @@ class PeptideResult:
     @classmethod
     def from_dict(cls, d):
         """Deserialize from a dict (as produced by :meth:`to_dict`)."""
-        return cls(preds=tuple(Pred.from_dict(p) for p in d["preds"]))
+        return cls(preds=tuple(Prediction.from_dict(p) for p in d["preds"]))
 
     # --- dataframe ---
 
@@ -236,14 +236,14 @@ class PeptideResult:
 
     # --- internals ---
 
-    def _best_by_score(self, kind) -> Optional[Pred]:
+    def _best_by_score(self, kind) -> Optional[Prediction]:
         candidates = [p for p in self.preds if p.kind == kind and p.allele]
         if not candidates:
             # Fall back to preds without allele (e.g. processing predictors)
             candidates = [p for p in self.preds if p.kind == kind]
         return max(candidates, key=lambda p: p.score) if candidates else None
 
-    def _best_by_rank(self, kind) -> Optional[Pred]:
+    def _best_by_rank(self, kind) -> Optional[Prediction]:
         candidates = [p for p in self.preds
                       if p.kind == kind and p.allele
                       and p.percentile_rank is not None]
@@ -268,9 +268,10 @@ def preds_from_rows(rows, **shared):
         )
     """
     return PeptideResult(preds=tuple(
-        Pred(**{**shared, **row}) for row in rows
+        Prediction(**{**shared, **row}) for row in rows
     ))
 
 
 # Backward compatibility
+Pred = Prediction
 PeptidePreds = PeptideResult

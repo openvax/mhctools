@@ -34,7 +34,7 @@ cleavage profile into a single peptide-level score::
 
 from collections import defaultdict
 
-from .pred import Pred, Kind, PeptideResult
+from .pred import Prediction, Kind, PeptideResult
 
 
 # ------------------------------------------------------------------
@@ -243,7 +243,7 @@ class ProcessingPredictor:
         return self.scoring(c, n, internal)
 
     def _pred_kind(self):
-        """Kind value for Pred objects.  Override in subclasses."""
+        """Kind value for Prediction objects.  Override in subclasses."""
         return Kind.antigen_processing
 
     def _predictor_name(self):
@@ -283,7 +283,7 @@ class ProcessingPredictor:
 
             offset = len(n_flank)
             score = self._peptide_score(probs, offset, len(peptide))
-            pred = Pred(
+            pred = Prediction(
                 kind=self._pred_kind(),
                 score=score,
                 peptide=peptide,
@@ -322,7 +322,7 @@ class ProcessingPredictor:
 
         flank_length : int
             How many residues of flanking context to record in each
-            :class:`Pred`'s ``n_flank`` / ``c_flank`` fields (default 0).
+            :class:`Prediction`'s ``n_flank`` / ``c_flank`` fields (default 0).
             This does **not** affect the cleavage model — it always sees
             the full protein.
 
@@ -350,7 +350,7 @@ class ProcessingPredictor:
                     else:
                         n_flank = ""
                         c_flank = ""
-                    pred = Pred(
+                    pred = Prediction(
                         kind=self._pred_kind(),
                         score=score,
                         peptide=peptide,
