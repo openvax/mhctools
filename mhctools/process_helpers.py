@@ -10,6 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import errno
 import logging
 import os
 from subprocess import Popen, CalledProcessError
@@ -20,6 +21,10 @@ from multiprocessing import cpu_count
 from queue import Queue
 
 logger = logging.getLogger(__name__)
+
+# Retry settings for Popen when the OS is out of process slots.
+_POPEN_MAX_RETRIES = 5
+_POPEN_BASE_DELAY = 1.0  # seconds, doubled each retry
 
 class AsyncProcess(object):
     """
@@ -45,7 +50,25 @@ class AsyncProcess(object):
                 self.redirect_stdout_file if self.redirect_stdout_file
                 else devnull)
             stderr = devnull if self.suppress_stderr else None
-            self.process = Popen(self.args, stdout=stdout, stderr=stderr)
+            delay = _POPEN_BASE_DELAY
+            for attempt in range(_POPEN_MAX_RETRIES):
+                try:
+                    self.process = Popen(
+                        self.args, stdout=stdout, stderr=stderr)
+                    return
+                except OSError as e:
+                    if e.errno != errno.EAGAIN and not isinstance(
+                            e, BlockingIOError):
+                        raise
+                    if attempt == _POPEN_MAX_RETRIES - 1:
+                        raise
+                    logger.warning(
+                        "Resource temporarily unavailable starting "
+                        "%s (attempt %d/%d), retrying in %.1fs",
+                        self.cmd, attempt + 1, _POPEN_MAX_RETRIES,
+                        delay)
+                    time.sleep(delay)
+                    delay *= 2
 
     def poll(self):
         """
