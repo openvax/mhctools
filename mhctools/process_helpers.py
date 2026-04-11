@@ -17,9 +17,6 @@ from subprocess import Popen, CalledProcessError
 import time
 from multiprocessing import cpu_count
 
-# pylint: disable=import-error
-from queue import Queue
-
 logger = logging.getLogger(__name__)
 
 # Retry settings for Popen when the OS is out of process slots.
@@ -127,57 +124,53 @@ def run_multiple_commands_redirect_stdout(
         Limit the number of concurrent processes to this number. 0
         if there is no limit, -1 to use max number of processors
 
-    polling_freq : int
-        Number of seconds between checking for done processes, if
-        we have a process limit
+    polling_freq : float
+        Number of seconds between checking for done processes when
+        at the concurrency limit.
     """
     assert len(multiple_args_dict) > 0
     assert all(len(args) > 0 for args in multiple_args_dict.values())
     assert all(hasattr(f, 'name') for f in multiple_args_dict.keys())
     if process_limit < 0:
-        logger.debug("Using %d processes" % cpu_count())
         process_limit = cpu_count()
+        logger.debug("Using %d processes", process_limit)
 
     start_time = time.time()
-    processes = Queue(maxsize=process_limit)
+    active = []
 
-    def add_to_queue(process):
-        process.start()
-        if print_commands:
-            handler = logging.FileHandler(process.redirect_stdout_file.name)
-            handler.setLevel(logging.DEBUG)
-            logger.addHandler(handler)
-            logger.debug(" ".join(process.args))
-            logger.removeHandler(handler)
-        processes.put(process)
+    def _reap_finished():
+        """Remove and wait() on completed processes."""
+        still_running = []
+        for p in active:
+            if p.poll() is not None:
+                p.wait()
+            else:
+                still_running.append(p)
+        active[:] = still_running
 
     for f, args in multiple_args_dict.items():
-        p = AsyncProcess(
-                args,
-                redirect_stdout_file=f,
-                **kwargs)
-        if not processes.full():
-            add_to_queue(p)
-        else:
-            while processes.full():
-                # Are there any done processes?
-                to_remove = []
-                for possibly_done in processes.queue:
-                    if possibly_done.poll() is not None:
-                        possibly_done.wait()
-                        to_remove.append(possibly_done)
-                # Remove them from the queue and stop checking
-                if to_remove:
-                    for process_to_remove in to_remove:
-                        processes.queue.remove(process_to_remove)
-                    break
-                # Check again in a second if there weren't
+        # Wait until we're below the limit before starting a new process
+        while process_limit and len(active) >= process_limit:
+            _reap_finished()
+            if len(active) >= process_limit:
                 time.sleep(polling_freq)
-            add_to_queue(p)
 
-    # Wait for all the rest of the processes
-    while not processes.empty():
-        processes.get().wait()
+        p = AsyncProcess(
+            args,
+            redirect_stdout_file=f,
+            **kwargs)
+        p.start()
+        if print_commands:
+            handler = logging.FileHandler(p.redirect_stdout_file.name)
+            handler.setLevel(logging.DEBUG)
+            logger.addHandler(handler)
+            logger.debug(" ".join(p.args))
+            logger.removeHandler(handler)
+        active.append(p)
+
+    # Wait for remaining processes
+    for p in active:
+        p.wait()
 
     elapsed_time = time.time() - start_time
     logger.info(

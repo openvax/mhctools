@@ -96,6 +96,50 @@ def test_run_multiple_with_low_process_limit():
     os.rmdir(tmpdir)
 
 
+def test_concurrency_never_exceeds_limit():
+    """At no point should more than process_limit processes be running."""
+    process_limit = 2
+    n_commands = 6
+    tmpdir = tempfile.mkdtemp()
+    commands = {}
+    for i in range(n_commands):
+        path = os.path.join(tmpdir, "out_%d.txt" % i)
+        f = open(path, "w")
+        # sleep 0.1s so processes overlap
+        commands[f] = ["sleep", "0.1"]
+
+    max_concurrent = {"value": 0}
+    current_concurrent = {"value": 0}
+    original_popen = __import__("subprocess").Popen
+
+    def tracking_popen(*args, **kwargs):
+        current_concurrent["value"] += 1
+        if current_concurrent["value"] > max_concurrent["value"]:
+            max_concurrent["value"] = current_concurrent["value"]
+        proc = original_popen(*args, **kwargs)
+        original_wait = proc.wait
+
+        def patched_wait(*a, **kw):
+            result = original_wait(*a, **kw)
+            current_concurrent["value"] -= 1
+            return result
+        proc.wait = patched_wait
+        return proc
+
+    with patch("mhctools.process_helpers.Popen", side_effect=tracking_popen):
+        run_multiple_commands_redirect_stdout(
+            commands, print_commands=False, process_limit=process_limit,
+            polling_freq=0.02)
+
+    assert max_concurrent["value"] <= process_limit, (
+        "Had %d concurrent processes, limit was %d"
+        % (max_concurrent["value"], process_limit))
+    for f in commands:
+        f.close()
+        os.remove(f.name)
+    os.rmdir(tmpdir)
+
+
 def test_run_multiple_with_eagain_and_low_limit():
     """Simulate EAGAIN during a multi-command run with process_limit=2."""
     n_commands = 4
