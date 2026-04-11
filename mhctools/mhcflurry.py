@@ -23,6 +23,9 @@ from .unsupported_allele import UnsupportedAllele
 
 logger = logging.getLogger(__name__)
 
+# Module-level cache for loaded models. Keyed by (class_name, models_path).
+_model_cache = {}
+
 
 class MHCflurry(BasePredictor):
     """
@@ -54,7 +57,6 @@ class MHCflurry(BasePredictor):
         models_path : string
             Models dir to use if predictor argument is None
         """
-        # Lazy import to avoid importing Keras/TF at module load time
         from mhcflurry import Class1PresentationPredictor
         BasePredictor.__init__(
             self,
@@ -64,11 +66,18 @@ class MHCflurry(BasePredictor):
             max_peptide_length=15)
         if predictor:
             self.predictor = predictor
-        elif models_path:
-            logging.info("Loading MHCflurry models from %s" % models_path)
-            self.predictor = Class1PresentationPredictor.load(models_path)
         else:
-            self.predictor = Class1PresentationPredictor.load()
+            cache_key = ("presentation", models_path)
+            if cache_key not in _model_cache:
+                if models_path:
+                    logging.info(
+                        "Loading MHCflurry models from %s", models_path)
+                    _model_cache[cache_key] = \
+                        Class1PresentationPredictor.load(models_path)
+                else:
+                    _model_cache[cache_key] = \
+                        Class1PresentationPredictor.load()
+            self.predictor = _model_cache[cache_key]
 
         for allele in self.alleles:
             if allele not in self.predictor.supported_alleles:
@@ -81,24 +90,28 @@ class MHCflurry(BasePredictor):
         Returns a BindingPredictionCollection (legacy API) using affinity
         values for backward compatibility.
         """
+        peptide_list = list(peptides)
+        allele_list = list(self.alleles)
+
+        # Build cross product for batch prediction
+        batch_peptides = peptide_list * len(allele_list)
+        batch_alleles = [a for a in allele_list for _ in peptide_list]
+
+        df = self.predictor.affinity_predictor.predict_to_dataframe(
+            peptides=batch_peptides,
+            alleles=batch_alleles,
+        )
         binding_predictions = []
-        for allele in self.alleles:
-            df = self.predictor.predict(
-                peptides=list(peptides),
-                alleles=[allele],
-                include_affinity_percentile=True,
-                verbose=0,
-            )
-            for row in df.itertuples(index=False):
-                binding_predictions.append(BindingPrediction(
-                    allele=allele,
-                    peptide=row.peptide,
-                    affinity=row.affinity,
-                    percentile_rank=(
-                        row.affinity_percentile
-                        if hasattr(row, 'affinity_percentile') else nan),
-                    prediction_method_name="mhcflurry",
-                ))
+        for row in df.itertuples(index=False):
+            binding_predictions.append(BindingPrediction(
+                allele=row.allele,
+                peptide=row.peptide,
+                affinity=row.prediction,
+                percentile_rank=(
+                    row.prediction_percentile
+                    if hasattr(row, 'prediction_percentile') else nan),
+                prediction_method_name="mhcflurry",
+            ))
         return BindingPredictionCollection(binding_predictions)
 
     def predict(self, peptides):
@@ -107,47 +120,75 @@ class MHCflurry(BasePredictor):
 
         Returns a list of PeptideResult, each containing both
         pMHC_affinity and pMHC_presentation Prediction objects per allele.
+
+        Uses batch prediction across all alleles in a single call for
+        both affinity and presentation scores.
         """
         from collections import defaultdict
         from .pred import PeptideResult
 
-        groups = defaultdict(list)
-        for allele in self.alleles:
+        peptide_list = list(peptides)
+        allele_list = list(self.alleles)
+
+        # Build cross product
+        batch_peptides = peptide_list * len(allele_list)
+        batch_alleles = [a for a in allele_list for _ in peptide_list]
+
+        # Single batched call for affinity
+        aff_df = self.predictor.affinity_predictor.predict_to_dataframe(
+            peptides=batch_peptides,
+            alleles=batch_alleles,
+        )
+
+        # Per-allele presentation calls (presentation predictor does
+        # deconvolution across alleles, so we call per-allele to get
+        # per-allele presentation scores)
+        pres_by_pep_allele = {}
+        for allele in allele_list:
             df = self.predictor.predict(
-                peptides=list(peptides),
+                peptides=peptide_list,
                 alleles=[allele],
-                include_affinity_percentile=True,
+                include_affinity_percentile=False,
                 verbose=0,
             )
             for row in df.itertuples(index=False):
-                pep = row.peptide
-                affinity_nM = row.affinity
-                affinity_pct = (
-                    row.affinity_percentile
-                    if hasattr(row, 'affinity_percentile') else None)
-                presentation_score = row.presentation_score
-                presentation_pct = row.presentation_percentile
+                pres_by_pep_allele[(row.peptide, allele)] = (
+                    row.presentation_score,
+                    row.presentation_percentile,
+                )
 
-                aff_score = max(0.0, min(1.0,
-                    1.0 - math.log(max(affinity_nM, 1e-6)) / math.log(50000)))
+        groups = defaultdict(list)
+        for row in aff_df.itertuples(index=False):
+            pep = row.peptide
+            allele = row.allele
+            affinity_nM = row.prediction
+            affinity_pct = (
+                row.prediction_percentile
+                if hasattr(row, 'prediction_percentile') else None)
 
-                groups[pep].append(Prediction(
-                    kind=Kind.pMHC_affinity,
-                    score=aff_score,
-                    peptide=pep,
-                    allele=allele,
-                    value=affinity_nM,
-                    percentile_rank=affinity_pct,
-                    predictor_name="mhcflurry",
-                ))
-                groups[pep].append(Prediction(
-                    kind=Kind.pMHC_presentation,
-                    score=presentation_score,
-                    peptide=pep,
-                    allele=allele,
-                    percentile_rank=presentation_pct,
-                    predictor_name="mhcflurry",
-                ))
+            aff_score = max(0.0, min(1.0,
+                1.0 - math.log(max(affinity_nM, 1e-6)) / math.log(50000)))
+
+            groups[pep].append(Prediction(
+                kind=Kind.pMHC_affinity,
+                score=aff_score,
+                peptide=pep,
+                allele=allele,
+                value=affinity_nM,
+                percentile_rank=affinity_pct,
+                predictor_name="mhcflurry",
+            ))
+
+            pres_score, pres_pct = pres_by_pep_allele.get(
+                (pep, allele), (0.0, None))
+            groups[pep].append(Prediction(
+                kind=Kind.pMHC_presentation,
+                score=pres_score,
+                peptide=pep,
+                allele=allele,
+                percentile_rank=pres_pct,
+                predictor_name="mhcflurry",
+            ))
 
         return [PeptideResult(preds=tuple(preds)) for preds in groups.values()]
 
@@ -193,11 +234,18 @@ class MHCflurry_Affinity(BasePredictor):
             max_peptide_length=15)
         if predictor:
             self.predictor = predictor
-        elif models_path:
-            logging.info("Loading MHCflurry models from %s" % models_path)
-            self.predictor = Class1AffinityPredictor.load(models_path)
         else:
-            self.predictor = Class1AffinityPredictor.load()
+            cache_key = ("affinity", models_path)
+            if cache_key not in _model_cache:
+                if models_path:
+                    logging.info(
+                        "Loading MHCflurry models from %s", models_path)
+                    _model_cache[cache_key] = \
+                        Class1AffinityPredictor.load(models_path)
+                else:
+                    _model_cache[cache_key] = \
+                        Class1AffinityPredictor.load()
+            self.predictor = _model_cache[cache_key]
 
         for allele in self.alleles:
             if allele not in self.predictor.supported_alleles:
@@ -207,21 +255,25 @@ class MHCflurry_Affinity(BasePredictor):
         """
         Predict MHC affinity for peptides.
         """
-        from mhcflurry.encodable_sequences import EncodableSequences
+        peptide_list = list(peptides)
+        allele_list = list(self.alleles)
 
+        batch_peptides = peptide_list * len(allele_list)
+        batch_alleles = [a for a in allele_list for _ in peptide_list]
+
+        df = self.predictor.predict_to_dataframe(
+            peptides=batch_peptides,
+            alleles=batch_alleles,
+        )
         binding_predictions = []
-        encodable_sequences = EncodableSequences.create(peptides)
-        for allele in self.alleles:
-            predictions_df = self.predictor.predict_to_dataframe(
-                encodable_sequences, allele=allele)
-            for row in predictions_df.itertuples(index=False):
-                binding_predictions.append(BindingPrediction(
-                    allele=allele,
-                    peptide=row.peptide,
-                    affinity=row.prediction,
-                    percentile_rank=(
-                        row.prediction_percentile
-                        if hasattr(row, 'prediction_percentile') else nan),
-                    prediction_method_name="mhcflurry",
-                ))
+        for row in df.itertuples(index=False):
+            binding_predictions.append(BindingPrediction(
+                allele=row.allele,
+                peptide=row.peptide,
+                affinity=row.prediction,
+                percentile_rank=(
+                    row.prediction_percentile
+                    if hasattr(row, 'prediction_percentile') else nan),
+                prediction_method_name="mhcflurry",
+            ))
         return BindingPredictionCollection(binding_predictions)

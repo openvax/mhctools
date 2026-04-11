@@ -12,6 +12,9 @@
 
 from .proteasome_predictor import ProteasomePredictor
 
+# Module-level cache for loaded pepsickle models. Keyed by human_only.
+_model_cache = {}
+
 
 class Pepsickle(ProteasomePredictor):
     """
@@ -63,9 +66,12 @@ class Pepsickle(ProteasomePredictor):
 
     def _load_model(self):
         if self._model is None:
-            from pepsickle.model_functions import initialize_epitope_model
-            self._model = initialize_epitope_model(
-                human_only=self.human_only)
+            cache_key = self.human_only
+            if cache_key not in _model_cache:
+                from pepsickle.model_functions import initialize_epitope_model
+                _model_cache[cache_key] = initialize_epitope_model(
+                    human_only=self.human_only)
+            self._model = _model_cache[cache_key]
         return self._model
 
     def cleavage_probs(self, sequence):
