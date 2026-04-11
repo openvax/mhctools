@@ -62,6 +62,7 @@ from .. import (
     IedbSMM_PMBEC,
     IedbNetMHCIIpan,
     MHCflurry,
+    MHCflurry_Affinity,
     MixMHCpred,
 )
 
@@ -111,6 +112,7 @@ mhc_predictors = {
     # Class II MHC binding prediction using NetMHCIIpan via IEDB
     "netmhciipan-iedb": IedbNetMHCIIpan,
     "mhcflurry": MHCflurry,
+    "mhcflurry-affinity": MHCflurry_Affinity,
     "mixmhcpred": MixMHCpred,
 }
 

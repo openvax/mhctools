@@ -206,6 +206,7 @@ affinity, hours for stability). `percentile_rank` is always optional,
 | `NetMHCcons` | affinity | [NetMHCcons](https://services.healthtech.dtu.dk/services/NetMHCcons-1.1/) |
 | `NetMHCstabpan` | stability | [NetMHCstabpan](https://services.healthtech.dtu.dk/services/NetMHCstabpan-1.0/) |
 | `MHCflurry` | affinity + presentation | `pip install mhcflurry` + `mhcflurry-downloads fetch` |
+| `MHCflurry_Affinity` | affinity | `pip install mhcflurry` + `mhcflurry-downloads fetch` |
 | `BigMHC` | presentation or immunogenicity | [BigMHC](https://github.com/KarchinLab/bigmhc) clone (set `BIGMHC_DIR`) |
 | `MixMHCpred` | presentation | [MixMHCpred](https://github.com/GfellerLab/MixMHCpred) |
 | `IedbNetMHCpan` / `IedbSMM` / `IedbNetMHCIIpan` | affinity | IEDB web API |
