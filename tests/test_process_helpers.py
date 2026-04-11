@@ -13,11 +13,16 @@
 """Tests for process_helpers retry logic."""
 
 import errno
+import os
+import tempfile
 from unittest.mock import patch, MagicMock
 
 import pytest
 
-from mhctools.process_helpers import AsyncProcess
+from mhctools.process_helpers import (
+    AsyncProcess,
+    run_multiple_commands_redirect_stdout,
+)
 
 
 def test_start_retries_on_blocking_io_error():
@@ -69,3 +74,56 @@ def test_start_succeeds_first_try():
     with patch("mhctools.process_helpers.Popen", mock_popen):
         proc.start()
     assert mock_popen.call_count == 1
+
+
+def test_run_multiple_with_low_process_limit():
+    """Run several commands with process_limit=1 to exercise queuing."""
+    n_commands = 5
+    tmpdir = tempfile.mkdtemp()
+    commands = {}
+    for i in range(n_commands):
+        path = os.path.join(tmpdir, "out_%d.txt" % i)
+        f = open(path, "w")
+        commands[f] = ["echo", "hello_%d" % i]
+    run_multiple_commands_redirect_stdout(
+        commands, print_commands=False, process_limit=1)
+    for f in commands:
+        f.close()
+        with open(f.name) as r:
+            content = r.read().strip()
+        assert content.startswith("hello_")
+        os.remove(f.name)
+    os.rmdir(tmpdir)
+
+
+def test_run_multiple_with_eagain_and_low_limit():
+    """Simulate EAGAIN during a multi-command run with process_limit=2."""
+    n_commands = 4
+    tmpdir = tempfile.mkdtemp()
+    commands = {}
+    for i in range(n_commands):
+        path = os.path.join(tmpdir, "out_%d.txt" % i)
+        f = open(path, "w")
+        commands[f] = ["echo", "hello_%d" % i]
+
+    original_popen = __import__("subprocess").Popen
+    call_count = {"n": 0}
+
+    def flaky_popen(*args, **kwargs):
+        call_count["n"] += 1
+        # Fail on the 3rd call, then succeed on retry
+        if call_count["n"] == 3:
+            raise BlockingIOError(
+                errno.EAGAIN, "Resource temporarily unavailable")
+        return original_popen(*args, **kwargs)
+
+    with patch("mhctools.process_helpers.Popen", side_effect=flaky_popen), \
+         patch("mhctools.process_helpers._POPEN_BASE_DELAY", 0.01):
+        run_multiple_commands_redirect_stdout(
+            commands, print_commands=False, process_limit=2)
+    # The 3rd call failed, so we expect n_commands + 1 total Popen calls
+    assert call_count["n"] == n_commands + 1
+    for f in commands:
+        f.close()
+        os.remove(f.name)
+    os.rmdir(tmpdir)
