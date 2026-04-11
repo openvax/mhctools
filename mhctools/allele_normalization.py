@@ -198,8 +198,10 @@ def parse_classi_or_classii_allele_name(name, infer_pair=True):
     if not isinstance(name, str):
         raise TypeError("Expected allele name string but got %s" % (type(name),))
 
-    # Match legacy mhcnames behavior for separators.
-    normalized_name = name.strip().replace("/", "-").replace("_", "*")
+    # Normalize separators: semicolons are used as pair separators in some
+    # publications (e.g. "DQA1*01:02;DRB1*15:01"), convert to "/" which
+    # mhcgnomes understands. Underscores stand in for "*" in some formats.
+    normalized_name = name.strip().replace(";", "/").replace("_", "*")
 
     try:
         parsed = parse(
