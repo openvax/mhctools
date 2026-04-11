@@ -10,7 +10,7 @@ from .iedb import (
     IedbNetMHCIIpan,
 )
 from .mixmhcpred import MixMHCpred
-from .mhcflurry import MHCflurry
+from .mhcflurry import MHCflurry, MHCflurry_Affinity
 from .processing_predictor import (
     ProcessingPredictor,
     SCORING_MODES,
@@ -60,6 +60,7 @@ __all__ = [
     "IedbNetMHCIIpan",
     "MixMHCpred",
     "MHCflurry",
+    "MHCflurry_Affinity",
     "ProcessingPredictor",
     "ProteasomePredictor",
     "SCORING_MODES",
