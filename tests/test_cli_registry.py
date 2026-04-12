@@ -55,15 +55,15 @@ def test_all_registry_values_are_callable():
 # ── BigMHC_EL / BigMHC_IM subclass registry entries ───────────────
 
 def test_bigmhc_el_maps_to_subclass():
-    assert mhc_predictors["bigmhc-el"] is BigMHC_EL
+    assert mhc_predictors["bigmhc-el"] == BigMHC_EL
 
 
 def test_bigmhc_im_maps_to_subclass():
-    assert mhc_predictors["bigmhc-im"] is BigMHC_IM
+    assert mhc_predictors["bigmhc-im"] == BigMHC_IM
 
 
 def test_bigmhc_maps_to_base():
-    assert mhc_predictors["bigmhc"] is BigMHC
+    assert mhc_predictors["bigmhc"] == BigMHC
 
 
 def test_bigmhc_el_is_subclass():

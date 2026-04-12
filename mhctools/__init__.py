@@ -10,7 +10,6 @@ from .iedb import (
     IedbNetMHCIIpan,
 )
 from .mixmhcpred import MixMHCpred
-from .mhcflurry import MHCflurry, MHCflurry_Affinity
 from .processing_predictor import (
     ProcessingPredictor,
     SCORING_MODES,
@@ -38,10 +37,33 @@ from .netmhc_pan42 import NetMHCpan42, NetMHCpan42_BA, NetMHCpan42_EL
 from .netmhcii_pan import NetMHCIIpan, NetMHCIIpan3, NetMHCIIpan4, NetMHCIIpan4_BA, NetMHCIIpan4_EL, NetMHCIIpan43, NetMHCIIpan43_BA, NetMHCIIpan43_EL
 from .random_predictor import RandomBindingPredictor
 from .netmhcstabpan import NetMHCstabpan
-from .bigmhc import BigMHC, BigMHC_EL, BigMHC_IM
 from .unsupported_allele import UnsupportedAllele
 
-__version__ = "3.11.0"
+
+# Lazy-load predictors that pull in heavy optional dependencies (torch, Keras/TF).
+# Accessing mhctools.BigMHC or mhctools.MHCflurry triggers the import on first use.
+_LAZY_IMPORTS = {
+    "BigMHC": (".bigmhc", "BigMHC"),
+    "BigMHC_EL": (".bigmhc", "BigMHC_EL"),
+    "BigMHC_IM": (".bigmhc", "BigMHC_IM"),
+    "MHCflurry": (".mhcflurry", "MHCflurry"),
+    "MHCflurry_Affinity": (".mhcflurry", "MHCflurry_Affinity"),
+}
+
+
+def __getattr__(name):
+    """PEP 562: lazy-load heavy predictor modules on first access."""
+    if name in _LAZY_IMPORTS:
+        from importlib import import_module
+        module_name, attr = _LAZY_IMPORTS[name]
+        module = import_module(module_name, package=__name__)
+        value = getattr(module, attr)
+        globals()[name] = value
+        return value
+    raise AttributeError(
+        "module %r has no attribute %r" % (__name__, name))
+
+__version__ = "3.12.0"
 
 __all__ = [
     "Prediction",

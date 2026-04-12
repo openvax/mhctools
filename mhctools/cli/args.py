@@ -50,9 +50,6 @@ from .. import (
     NetMHCIIpan43_BA,
     NetMHCcons,
     NetMHCstabpan,
-    BigMHC,
-    BigMHC_EL,
-    BigMHC_IM,
     NetChop,
     Pepsickle,
     RandomBindingPredictor,
@@ -61,10 +58,50 @@ from .. import (
     IedbSMM,
     IedbSMM_PMBEC,
     IedbNetMHCIIpan,
-    MHCflurry,
-    MHCflurry_Affinity,
     MixMHCpred,
 )
+
+
+class _LazyPredictor:
+    """Lazy-import wrapper for heavy predictors (BigMHC, MHCflurry).
+
+    Behaves like the class itself: calling it instantiates, subclass
+    checks work, and __name__ is preserved for introspection.
+    """
+    def __init__(self, module_name, class_name):
+        self._module_name = module_name
+        self._class_name = class_name
+        self._cls = None
+        self.__name__ = class_name
+
+    def _resolve(self):
+        if self._cls is None:
+            from importlib import import_module
+            module = import_module(self._module_name, package="mhctools")
+            self._cls = getattr(module, self._class_name)
+        return self._cls
+
+    def __call__(self, *args, **kwargs):
+        return self._resolve()(*args, **kwargs)
+
+    def __getattr__(self, item):
+        return getattr(self._resolve(), item)
+
+    def __eq__(self, other):
+        if isinstance(other, _LazyPredictor):
+            return (self._module_name, self._class_name) == (
+                other._module_name, other._class_name)
+        return self._resolve() is other
+
+    def __hash__(self):
+        return hash((self._module_name, self._class_name))
+
+
+BigMHC = _LazyPredictor(".bigmhc", "BigMHC")
+BigMHC_EL = _LazyPredictor(".bigmhc", "BigMHC_EL")
+BigMHC_IM = _LazyPredictor(".bigmhc", "BigMHC_IM")
+MHCflurry = _LazyPredictor(".mhcflurry", "MHCflurry")
+MHCflurry_Affinity = _LazyPredictor(".mhcflurry", "MHCflurry_Affinity")
 
 
 logger = logging.getLogger(__name__)
@@ -119,6 +156,9 @@ mhc_predictors = {
 
 def _cls_accepts(cls, param_name):
     """Check whether a predictor class/factory accepts a given __init__ parameter."""
+    # Unwrap lazy predictors so inspect sees the real class.
+    if isinstance(cls, _LazyPredictor):
+        cls = cls._resolve()
     sig = inspect.signature(cls)
     if any(p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()):
         return True
