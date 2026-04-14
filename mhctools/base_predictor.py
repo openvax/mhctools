@@ -233,35 +233,28 @@ class BasePredictor(object):
         return peptide_lengths
 
     def _check_results(self, binding_predictions, peptides, alleles):
-        # For large inputs the Cartesian product set is very expensive;
-        # skip the detailed check when the expected size exceeds a threshold.
-        n_expected = len(alleles) * len(peptides)
-        if n_expected > 100_000:
-            if len(binding_predictions) != n_expected:
-                logger.warning(
-                    "Expected %d predictions but got %d (skipping "
-                    "detailed check for large inputs)",
-                    n_expected, len(binding_predictions))
-            return
-
-        expected = {(a, p) for a in alleles for p in peptides}
-        observed = {(bp.allele, bp.peptide) for bp in binding_predictions}
-        if len(expected.intersection(observed)) < len(expected):
-            missing = expected.difference(observed)
-            example_allele, example_peptide = list(missing)[0]
-            raise ValueError(
-                "Missing %d predictions, example peptide='%s' allele='%s'. "
-                "Result set had %d predictions." % (
-                    len(missing),
-                    example_peptide,
-                    example_allele,
-                    len(binding_predictions)))
-        elif len(observed.intersection(expected)) < len(observed):
-            extra = observed.difference(expected)
-            example_allele, example_peptide = list(extra)[0]
-            raise ValueError(
-                "Unexpected %d binding predictions, example peptide='%s' allele='%s'" % (
-                    len(extra), example_peptide, example_allele))
+        # Avoid materializing the Cartesian product: scan observed pairs once,
+        # checking membership against the allele/peptide sets, then compare
+        # unique-pair count to the expected total.
+        alleles_set = set(alleles)
+        peptides_set = set(peptides)
+        n_expected = len(alleles_set) * len(peptides_set)
+        observed = set()
+        for bp in binding_predictions:
+            pair = (bp.allele, bp.peptide)
+            if bp.allele not in alleles_set or bp.peptide not in peptides_set:
+                raise ValueError(
+                    "Unexpected binding prediction peptide='%s' allele='%s'" % (
+                        bp.peptide, bp.allele))
+            observed.add(pair)
+        if len(observed) != n_expected:
+            for a in alleles_set:
+                for p in peptides_set:
+                    if (a, p) not in observed:
+                        raise ValueError(
+                            "Missing predictions, example peptide='%s' allele='%s'. "
+                            "Expected %d unique pairs, got %d." % (
+                                p, a, n_expected, len(observed)))
 
     def _check_peptide_inputs(self, peptides):
         """

@@ -24,6 +24,9 @@ import logging
 from ..allele_normalization import normalize_allele_name
 
 from .parsing_helpers import parse_int_list
+# Heavy predictors (BigMHC, MHCflurry) are NOT imported here: pulling them in
+# would trigger torch/TF imports just by loading this CLI module. They are
+# wrapped in _LazyPredictor below and resolved on first use.
 from .. import (
     NetMHC,
     NetMHC3,
@@ -63,10 +66,13 @@ from .. import (
 
 
 class _LazyPredictor:
-    """Lazy-import wrapper for heavy predictors (BigMHC, MHCflurry).
+    """Lazy-import factory for heavy predictors (BigMHC, MHCflurry).
 
-    Behaves like the class itself: calling it instantiates, subclass
-    checks work, and __name__ is preserved for introspection.
+    NOTE: this is an instance, not a class. `isinstance(x, _LazyPredictor(...))`
+    and `issubclass(cls, _LazyPredictor(...))` will NOT work against these
+    factories. For type checks, either import the real class directly from
+    its module (e.g. `from mhctools.bigmhc import BigMHC`) or call
+    `_resolve()` to get the underlying class.
     """
     def __init__(self, module_name, class_name):
         self._module_name = module_name
@@ -97,11 +103,11 @@ class _LazyPredictor:
         return hash((self._module_name, self._class_name))
 
 
-BigMHC = _LazyPredictor(".bigmhc", "BigMHC")
-BigMHC_EL = _LazyPredictor(".bigmhc", "BigMHC_EL")
-BigMHC_IM = _LazyPredictor(".bigmhc", "BigMHC_IM")
-MHCflurry = _LazyPredictor(".mhcflurry", "MHCflurry")
-MHCflurry_Affinity = _LazyPredictor(".mhcflurry", "MHCflurry_Affinity")
+_BigMHC = _LazyPredictor(".bigmhc", "BigMHC")
+_BigMHC_EL = _LazyPredictor(".bigmhc", "BigMHC_EL")
+_BigMHC_IM = _LazyPredictor(".bigmhc", "BigMHC_IM")
+_MHCflurry = _LazyPredictor(".mhcflurry", "MHCflurry")
+_MHCflurry_Affinity = _LazyPredictor(".mhcflurry", "MHCflurry_Affinity")
 
 
 logger = logging.getLogger(__name__)
@@ -132,9 +138,9 @@ mhc_predictors = {
     "netmhciipan43-el": NetMHCIIpan43_EL,
     "netmhccons": NetMHCcons,
     "netmhcstabpan": NetMHCstabpan,
-    "bigmhc": BigMHC,
-    "bigmhc-el": BigMHC_EL,
-    "bigmhc-im": BigMHC_IM,
+    "bigmhc": _BigMHC,
+    "bigmhc-el": _BigMHC_EL,
+    "bigmhc-im": _BigMHC_IM,
     "netchop": NetChop,
     "pepsickle": Pepsickle,
     "random": RandomBindingPredictor,
@@ -148,8 +154,8 @@ mhc_predictors = {
     "smm-pmbec-iedb": IedbSMM_PMBEC,
     # Class II MHC binding prediction using NetMHCIIpan via IEDB
     "netmhciipan-iedb": IedbNetMHCIIpan,
-    "mhcflurry": MHCflurry,
-    "mhcflurry-affinity": MHCflurry_Affinity,
+    "mhcflurry": _MHCflurry,
+    "mhcflurry-affinity": _MHCflurry_Affinity,
     "mixmhcpred": MixMHCpred,
 }
 
