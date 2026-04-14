@@ -247,7 +247,10 @@ class BasePredictor(object):
                     "Unexpected binding prediction peptide='%s' allele='%s'" % (
                         bp.peptide, bp.allele))
             observed.add(pair)
-        if len(observed) != n_expected:
+        # Every observed pair is in alleles_set x peptides_set, so
+        # len(observed) <= n_expected; a strict inequality means at least
+        # one expected pair is missing.
+        if len(observed) < n_expected:
             # Iterate the original lists for a deterministic example pair.
             for a in alleles:
                 for p in peptides:

@@ -271,10 +271,7 @@ class BaseCommandlinePredictor(BasePredictor):
                 print_commands=True,
                 process_limit=self.process_limit)
             for output_file, command in commands.items():
-                # Subprocess writes go through its own fd; no flush/fsync
-                # needed on the Python handle. The subprocess has already
-                # exited (run_multiple_commands_redirect_stdout waited), so
-                # its writes are visible to this read.
+                # subprocess wrote via its own fd; no flush/fsync needed
                 output_file.seek(0)
                 file_contents = output_file.read()
                 output_file.close()
@@ -309,10 +306,7 @@ class BaseCommandlinePredictor(BasePredictor):
                 print_commands=True,
                 process_limit=self.process_limit)
             for output_file, command in commands.items():
-                # Subprocess writes go through its own fd; no flush/fsync
-                # needed on the Python handle. The subprocess has already
-                # exited (run_multiple_commands_redirect_stdout waited), so
-                # its writes are visible to this read.
+                # subprocess wrote via its own fd; no flush/fsync needed
                 output_file.seek(0)
                 file_contents = output_file.read()
                 output_file.close()

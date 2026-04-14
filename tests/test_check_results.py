@@ -76,25 +76,20 @@ def test_check_results_error_example_is_deterministic():
     assert "allele='HLA-B*07:02'" in str(exc_info.value)
 
 
-def test_check_results_detects_duplicate_and_missing_at_large_scale():
-    """At sizes >100k the previous fast path only warned on count mismatch
-    and silently accepted duplicates that masked missing pairs. This test
-    ensures the correct behavior: duplicate-plus-missing raises."""
-    # 500 alleles * 500 peptides = 250,000 expected pairs (>100k threshold)
-    alleles = ["A%04d" % i for i in range(500)]
-    peptides = ["PEPT%05d" % i for i in range(500)]
+def test_check_results_detects_duplicate_masking_missing_pair():
+    """Regression: the previous >100k fast path only warned on count
+    mismatch, silently accepting duplicates that masked missing pairs.
+    A duplicate replacing a missing pair now raises."""
+    alleles = ["A%03d" % i for i in range(50)]
+    peptides = ["PEPT%04d" % i for i in range(50)]
     preds = [_bp(a, pep) for a in alleles for pep in peptides]
-    # Replace one prediction with a duplicate of another — count still
-    # matches n_expected but one (allele, peptide) is missing.
+    # Replace the last prediction with a duplicate of the first: count
+    # still matches n_expected but one (allele, peptide) pair is missing.
     preds[-1] = _bp(alleles[0], peptides[0])
-    p = RandomBindingPredictor(alleles=alleles[:1])  # alleles arg doesn't matter here
     with pytest.raises(ValueError, match="Missing"):
-        p._check_results(preds, peptides, alleles)
+        _predictor()._check_results(preds, peptides, alleles)
 
 
-def test_check_results_accepts_complete_at_large_scale():
-    alleles = ["A%04d" % i for i in range(400)]
-    peptides = ["PEPT%05d" % i for i in range(300)]  # 120k pairs
-    preds = [_bp(a, pep) for a in alleles for pep in peptides]
-    p = RandomBindingPredictor(alleles=alleles[:1])
-    p._check_results(preds, peptides, alleles)
+def test_check_results_accepts_empty_inputs():
+    """n_expected = 0 with no predictions is trivially valid."""
+    _predictor()._check_results([], [], [])

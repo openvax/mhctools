@@ -70,9 +70,11 @@ class _LazyPredictor:
 
     NOTE: this is an instance, not a class. `isinstance(x, _LazyPredictor(...))`
     and `issubclass(cls, _LazyPredictor(...))` will NOT work against these
-    factories. For type checks, either import the real class directly from
-    its module (e.g. `from mhctools.bigmhc import BigMHC`) or call
-    `_resolve()` to get the underlying class.
+    factories. For type checks use `from mhctools import BigMHC` (or
+    `from mhctools.bigmhc import BigMHC` / `_resolve()`). Any of those
+    paths will eagerly load the underlying heavy dependency (torch/TF),
+    which is unavoidable when you need the real class object — the whole
+    point of `_LazyPredictor` is to avoid that load until it's needed.
     """
     def __init__(self, module_name, class_name):
         self._module_name = module_name
