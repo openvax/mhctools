@@ -57,6 +57,25 @@ def test_check_results_detects_unexpected_allele():
         p._check_results(preds, PEPTIDES, ALLELES)
 
 
+def test_check_results_error_example_is_deterministic():
+    """The 'example' missing pair in the error message should follow the
+    caller's input order, not set iteration order."""
+    alleles = ["HLA-A*02:01", "HLA-B*07:02", "HLA-C*07:01"]
+    peptides = ["PEP1AAAAA", "PEP2BBBBB", "PEP3CCCCC"]
+    # Drop exactly one pair: (alleles[1], peptides[2])
+    preds = [
+        _bp(a, pep)
+        for a in alleles for pep in peptides
+        if not (a == alleles[1] and pep == peptides[2])
+    ]
+    p = RandomBindingPredictor(alleles=alleles)
+    with pytest.raises(ValueError) as exc_info:
+        p._check_results(preds, peptides, alleles)
+    # Must name the exact missing pair, not an arbitrary one
+    assert "peptide='PEP3CCCCC'" in str(exc_info.value)
+    assert "allele='HLA-B*07:02'" in str(exc_info.value)
+
+
 def test_check_results_detects_duplicate_and_missing_at_large_scale():
     """At sizes >100k the previous fast path only warned on count mismatch
     and silently accepted duplicates that masked missing pairs. This test

@@ -248,8 +248,9 @@ class BasePredictor(object):
                         bp.peptide, bp.allele))
             observed.add(pair)
         if len(observed) != n_expected:
-            for a in alleles_set:
-                for p in peptides_set:
+            # Iterate the original lists for a deterministic example pair.
+            for a in alleles:
+                for p in peptides:
                     if (a, p) not in observed:
                         raise ValueError(
                             "Missing predictions, example peptide='%s' allele='%s'. "
