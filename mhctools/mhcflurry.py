@@ -142,17 +142,19 @@ class MHCflurry(BasePredictor):
 
         # Per-allele presentation calls (presentation predictor does
         # deconvolution across alleles, so we call per-allele to get
-        # per-allele presentation scores)
+        # per-allele presentation scores). Key by mhcflurry's output
+        # allele string so lookups with aff_df.allele always match.
         pres_by_pep_allele = {}
-        for allele in allele_list:
+        for input_allele in allele_list:
             df = self.predictor.predict(
                 peptides=peptide_list,
-                alleles=[allele],
+                alleles=[input_allele],
                 include_affinity_percentile=False,
                 verbose=0,
             )
             for row in df.itertuples(index=False):
-                pres_by_pep_allele[(row.peptide, allele)] = (
+                output_allele = getattr(row, 'allele', input_allele)
+                pres_by_pep_allele[(row.peptide, output_allele)] = (
                     row.presentation_score,
                     row.presentation_percentile,
                 )
@@ -179,8 +181,14 @@ class MHCflurry(BasePredictor):
                 predictor_name="mhcflurry",
             ))
 
-            pres_score, pres_pct = pres_by_pep_allele.get(
-                (pep, allele), (0.0, None))
+            key = (pep, allele)
+            if key not in pres_by_pep_allele:
+                raise ValueError(
+                    "MHCflurry: missing presentation score for "
+                    "peptide='%s' allele='%s' (this indicates an allele or "
+                    "peptide string mismatch between the affinity and "
+                    "presentation predictor outputs)" % (pep, allele))
+            pres_score, pres_pct = pres_by_pep_allele[key]
             groups[pep].append(Prediction(
                 kind=Kind.pMHC_presentation,
                 score=pres_score,

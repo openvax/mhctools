@@ -14,7 +14,6 @@
 
 from collections import defaultdict
 import logging
-import os
 from subprocess import check_output
 import tempfile
 
@@ -272,8 +271,7 @@ class BaseCommandlinePredictor(BasePredictor):
                 print_commands=True,
                 process_limit=self.process_limit)
             for output_file, command in commands.items():
-                output_file.flush()
-                os.fsync(output_file.fileno())
+                # subprocess wrote via its own fd; no flush/fsync needed
                 output_file.seek(0)
                 file_contents = output_file.read()
                 output_file.close()
@@ -308,8 +306,7 @@ class BaseCommandlinePredictor(BasePredictor):
                 print_commands=True,
                 process_limit=self.process_limit)
             for output_file, command in commands.items():
-                output_file.flush()
-                os.fsync(output_file.fileno())
+                # subprocess wrote via its own fd; no flush/fsync needed
                 output_file.seek(0)
                 file_contents = output_file.read()
                 output_file.close()
