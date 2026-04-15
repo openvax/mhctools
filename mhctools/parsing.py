@@ -68,7 +68,15 @@ def split_stdout_lines(stdout):
         # beginning of headers in NetMHC
         if any(line.startswith(word) for word in NETMHC_TOKENS):
             continue
-        yield line.split()
+        fields = line.split()
+        # Data rows always start with an integer position. Anything else is
+        # a header or summary line interleaved with the result blocks —
+        # e.g. "HLA-A24:02 : Distance to training data ..." in multi-allele
+        # NetMHCpan output, which appears after the first `---` separator
+        # and would otherwise be misparsed.
+        if not fields or not fields[0].lstrip("-").isdigit():
+            continue
+        yield fields
 
 
 def clean_fields(fields, ignored_value_indices, transforms):

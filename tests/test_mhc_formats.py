@@ -527,3 +527,49 @@ def test_netmhciipan4_with_bind_level():
     results = parse_netmhciipan4_stdout(output, mode="elution_score")
     assert len(results) == 2
     assert abs(results[1].score - 0.800000) < 0.0001
+
+
+# ---------- Multi-allele runs (openvax/mhctools#195) ----------
+
+def test_multi_allele_netmhcpan41_skips_interblock_headers():
+    """Regression for #195: NetMHCpan 4.1 with multiple alleles in one
+    invocation emits a "Distance to training data" header line between
+    per-allele result blocks (after the first `---` separator). The
+    parser must skip these non-data rows, not crash on them."""
+    output = """
+# NetMHCpan version 4.1b
+
+# Input is in PEPTIDE format
+
+# Make both EL and BA predictions
+
+HLA-A02:01 : Distance to training data  0.000 (using nearest neighbor HLA-A02:01)
+
+# Rank Threshold for Strong binding peptides   0.500
+# Rank Threshold for Weak binding peptides   2.000
+---------------------------------------------------------------------------------------------------------------------------
+ Pos         MHC        Peptide      Core Of Gp Gl Ip Il        Icore        Identity  Score_EL %Rank_EL Score_BA %Rank_BA  Aff(nM) BindLevel
+---------------------------------------------------------------------------------------------------------------------------
+   1 HLA-A*02:01       SIINFEKL SII-NFEKL  0  0  0  3  1     SIINFEKL         PEPLIST 0.0100620    6.723 0.110414   20.171 15140.42
+---------------------------------------------------------------------------------------------------------------------------
+
+Protein PEPLIST. Allele HLA-A*02:01. Number of high binders 0. Number of weak binders 0. Number of peptides 1
+
+HLA-A24:02 : Distance to training data  0.000 (using nearest neighbor HLA-A24:02)
+
+# Rank Threshold for Strong binding peptides   0.500
+# Rank Threshold for Weak binding peptides   2.000
+---------------------------------------------------------------------------------------------------------------------------
+ Pos         MHC        Peptide      Core Of Gp Gl Ip Il        Icore        Identity  Score_EL %Rank_EL Score_BA %Rank_BA  Aff(nM) BindLevel
+---------------------------------------------------------------------------------------------------------------------------
+   1 HLA-A*24:02       SIINFEKL SII-NFEKL  0  0  0  3  1     SIINFEKL         PEPLIST 0.0200000    5.000 0.220000   10.000  8000.00
+---------------------------------------------------------------------------------------------------------------------------
+
+Protein PEPLIST. Allele HLA-A*24:02. Number of high binders 0. Number of weak binders 0. Number of peptides 1
+"""
+    results = parse_netmhcpan_stdout(output, mode="binding_affinity")
+    assert len(results) == 2, (
+        "Expected one row per allele after skipping inter-block header lines"
+    )
+    alleles = {r.allele for r in results}
+    assert alleles == {"HLA-A*02:01", "HLA-A*24:02"}
