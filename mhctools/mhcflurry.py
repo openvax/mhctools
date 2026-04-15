@@ -12,6 +12,7 @@
 
 import logging
 import math
+import os
 
 from numpy import nan
 
@@ -23,8 +24,21 @@ from .unsupported_allele import UnsupportedAllele
 
 logger = logging.getLogger(__name__)
 
-# Module-level cache for loaded models. Keyed by (class_name, models_path).
+# Module-level cache for loaded models. Keyed by (kind, normalized_path).
 _model_cache = {}
+
+
+def _normalize_models_path(models_path):
+    """Normalize a models directory path for cache-key deduplication.
+
+    Different strings pointing at the same directory (relative vs.
+    absolute, with ``~``, via a symlink) should share a single cache
+    entry. ``None`` stays ``None`` — mhcflurry resolves that to the
+    package-default path internally, and we treat it as its own key.
+    """
+    if models_path is None:
+        return None
+    return os.path.realpath(os.path.abspath(os.path.expanduser(models_path)))
 
 
 class MHCflurry(BasePredictor):
@@ -67,7 +81,7 @@ class MHCflurry(BasePredictor):
         if predictor:
             self.predictor = predictor
         else:
-            cache_key = ("presentation", models_path)
+            cache_key = ("presentation", _normalize_models_path(models_path))
             if cache_key not in _model_cache:
                 if models_path:
                     logging.info(
@@ -243,7 +257,7 @@ class MHCflurry_Affinity(BasePredictor):
         if predictor:
             self.predictor = predictor
         else:
-            cache_key = ("affinity", models_path)
+            cache_key = ("affinity", _normalize_models_path(models_path))
             if cache_key not in _model_cache:
                 if models_path:
                     logging.info(
