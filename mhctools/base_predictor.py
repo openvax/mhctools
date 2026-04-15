@@ -197,8 +197,17 @@ class BasePredictor(object):
             "%s must implement predict_peptides" % (self.__class__.__name__,))
 
     def predict_peptides_dataframe(self, peptides):
-        """Deprecated: use predict_dataframe() instead."""
-        return self.predict_peptides(peptides).to_dataframe()
+        """Deprecated: use predict_dataframe() instead.
+
+        Emits the canonical prediction schema (see ``mhctools.pred.COLUMNS``)
+        for parity with ``predict_proteins_dataframe`` / ``predict_dataframe``.
+        Previously this returned the legacy BindingPrediction schema
+        (``source_sequence_name, offset, peptide, allele, score, affinity,
+        percentile_rank, prediction_method_name, length``). That schema lacked
+        ``predictor_version``, ``kind``, ``value`` and used
+        ``prediction_method_name`` instead of ``predictor_name`` — see #193.
+        """
+        return self.predict_dataframe(peptides)
 
     def _check_peptide_lengths(self, peptide_lengths=None):
         """
