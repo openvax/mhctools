@@ -11,6 +11,7 @@
 # limitations under the License.
 
 import logging
+import warnings
 from collections import defaultdict
 
 from typechecks import require_iterable_of
@@ -207,6 +208,10 @@ class BasePredictor(object):
         ``predictor_version``, ``kind``, ``value`` and used
         ``prediction_method_name`` instead of ``predictor_name`` — see #193.
         """
+        warnings.warn(
+            "predict_peptides_dataframe is deprecated; use predict_dataframe()",
+            DeprecationWarning,
+            stacklevel=2)
         return self.predict_dataframe(peptides)
 
     def _check_peptide_lengths(self, peptide_lengths=None):
