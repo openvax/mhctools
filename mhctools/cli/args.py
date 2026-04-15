@@ -96,9 +96,15 @@ class _LazyPredictor:
         return getattr(self._resolve(), item)
 
     def __eq__(self, other):
+        if other is self:
+            return True
         if isinstance(other, _LazyPredictor):
             return (self._module_name, self._class_name) == (
                 other._module_name, other._class_name)
+        # Only classes can meaningfully equal a lazy-loaded class reference.
+        # Bail out without triggering the import for anything else.
+        if not isinstance(other, type):
+            return NotImplemented
         return self._resolve() is other
 
     def __hash__(self):

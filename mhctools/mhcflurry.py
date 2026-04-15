@@ -38,7 +38,7 @@ def _normalize_models_path(models_path):
     """
     if models_path is None:
         return None
-    return os.path.realpath(os.path.abspath(os.path.expanduser(models_path)))
+    return os.path.realpath(os.path.expanduser(models_path))
 
 
 class MHCflurry(BasePredictor):
@@ -84,7 +84,7 @@ class MHCflurry(BasePredictor):
             cache_key = ("presentation", _normalize_models_path(models_path))
             if cache_key not in _model_cache:
                 if models_path:
-                    logging.info(
+                    logger.info(
                         "Loading MHCflurry models from %s", models_path)
                     _model_cache[cache_key] = \
                         Class1PresentationPredictor.load(models_path)
@@ -260,7 +260,7 @@ class MHCflurry_Affinity(BasePredictor):
             cache_key = ("affinity", _normalize_models_path(models_path))
             if cache_key not in _model_cache:
                 if models_path:
-                    logging.info(
+                    logger.info(
                         "Loading MHCflurry models from %s", models_path)
                     _model_cache[cache_key] = \
                         Class1AffinityPredictor.load(models_path)

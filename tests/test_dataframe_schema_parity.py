@@ -11,15 +11,27 @@ predict_peptides_dataframe (legacy/deprecated) and predict_proteins_dataframe
 treat rows from either path uniformly.
 """
 
+import warnings
+
+import pytest
+
 from mhctools import RandomBindingPredictor
 from mhctools.pred import COLUMNS
+
+
+def _peptides_df(p, peptides):
+    # predict_peptides_dataframe emits DeprecationWarning; silence here so
+    # the fixture doesn't pollute every assertion.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+        return p.predict_peptides_dataframe(peptides)
 
 
 def test_peptides_and_proteins_dataframes_share_schema():
     p = RandomBindingPredictor(
         alleles=["HLA-A*02:01"], default_peptide_lengths=[9],
     )
-    df_peptides = p.predict_peptides_dataframe(["SIINFEKLA"])
+    df_peptides = _peptides_df(p, ["SIINFEKLA"])
     df_proteins = p.predict_proteins_dataframe({"src": "MASIINFEKLA"})
 
     assert list(df_peptides.columns) == list(COLUMNS), (
@@ -35,7 +47,7 @@ def test_peptides_dataframe_has_predictor_identity_columns():
     """Downstream (e.g. topiary CachedPredictor) needs a stable
     (predictor_name, predictor_version) identity on every row."""
     p = RandomBindingPredictor(alleles=["HLA-A*02:01"], default_peptide_lengths=[9])
-    df = p.predict_peptides_dataframe(["SIINFEKLA"])
+    df = _peptides_df(p, ["SIINFEKLA"])
     assert "predictor_name" in df.columns
     assert "predictor_version" in df.columns
     assert "kind" in df.columns
@@ -44,3 +56,11 @@ def test_peptides_dataframe_has_predictor_identity_columns():
     assert "prediction_method_name" not in df.columns
     # canonical name is populated (RandomBindingPredictor sets it)
     assert df["predictor_name"].iloc[0] != ""
+
+
+def test_peptides_dataframe_emits_deprecation_warning():
+    """Callers on the legacy path should get a runtime signal to migrate
+    to predict_dataframe()."""
+    p = RandomBindingPredictor(alleles=["HLA-A*02:01"], default_peptide_lengths=[9])
+    with pytest.warns(DeprecationWarning, match="predict_peptides_dataframe"):
+        p.predict_peptides_dataframe(["SIINFEKLA"])
