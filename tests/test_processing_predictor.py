@@ -66,6 +66,24 @@ class StubProteasome(ProteasomePredictor):
         return [0.5] * len(sequence)
 
 
+class BatchStubPredictor(ProcessingPredictor):
+    """ProcessingPredictor that only supports batched cleavage calls."""
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.batches = []
+
+    def cleavage_probs(self, sequence):
+        raise AssertionError("predict APIs should use cleavage_probs_many")
+
+    def cleavage_probs_many(self, sequences):
+        self.batches.append(list(sequences))
+        return {
+            sequence: [0.5] * len(sequence)
+            for sequence in dict.fromkeys(sequences)
+        }
+
+
 # A 12-residue "protein" with known cleavage probs
 PROTEIN = "ABCDEFGHIJKL"
 #          0    1    2    3    4    5    6    7    8    9   10   11
@@ -608,6 +626,19 @@ class TestPredict:
         # max_internal = 0.4, score = 0.5 * (1 - 0.4) = 0.3
         assert pred.score == pytest.approx(0.3)
 
+    def test_uses_cleavage_probs_many(self):
+        stub = BatchStubPredictor(scoring=score_cterm)
+        results = stub.predict(["ABCD", "EF"], c_flanks=["X", "YZ"])
+        assert len(results) == 2
+        assert stub.batches == [["ABCDX", "EFYZ"]]
+
+    def test_generator_peptides(self):
+        stub = BatchStubPredictor(scoring=score_cterm)
+        peptides = (peptide for peptide in ["ABCD", "EF"])
+        results = stub.predict(peptides, c_flanks=["X", "YZ"])
+        assert [pp.preds[0].peptide for pp in results] == ["ABCD", "EF"]
+        assert stub.batches == [["ABCDX", "EFYZ"]]
+
 
 # ======================================================================
 # predict_dataframe()
@@ -765,6 +796,13 @@ class TestPredictProteins:
         for a, b in zip(scores_a, scores_b):
             assert a == pytest.approx(b)
 
+    def test_uses_cleavage_probs_many(self):
+        stub = BatchStubPredictor(default_peptide_lengths=[3])
+        result = stub.predict_proteins({"a": PROTEIN, "b": PROTEIN2})
+        assert len(result["a"]) == len(PROTEIN) - 2
+        assert len(result["b"]) == len(PROTEIN2) - 2
+        assert stub.batches == [[PROTEIN, PROTEIN2]]
+
 
 # ======================================================================
 # predict_proteins_dataframe()
@@ -817,6 +855,13 @@ class TestPredictCleavageSites:
         result = stub.predict_cleavage_sites({"a": PROTEIN, "b": PROTEIN2})
         assert result["a"] == PROBS
         assert result["b"] == PROBS2
+
+    def test_uses_cleavage_probs_many(self):
+        stub = BatchStubPredictor()
+        result = stub.predict_cleavage_sites({"a": PROTEIN, "b": PROTEIN2})
+        assert result["a"] == [0.5] * len(PROTEIN)
+        assert result["b"] == [0.5] * len(PROTEIN2)
+        assert stub.batches == [[PROTEIN, PROTEIN2]]
 
 
 # ======================================================================
