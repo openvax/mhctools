@@ -199,6 +199,18 @@ class ProcessingPredictor:
         raise NotImplementedError(
             "%s must implement cleavage_probs" % self.__class__.__name__)
 
+    def cleavage_probs_many(self, sequences):
+        """
+        Return per-position cleavage probabilities for multiple sequences.
+
+        Subclasses can override this to batch expensive setup. The default
+        implementation preserves the existing one-sequence-at-a-time behavior.
+        """
+        return {
+            sequence: self.cleavage_probs(sequence)
+            for sequence in dict.fromkeys(sequences)
+        }
+
     # ------------------------------------------------------------------
     # Component helpers
     # ------------------------------------------------------------------
@@ -273,13 +285,19 @@ class ProcessingPredictor:
         -------
         list of PeptideResult
         """
+        full_sequences = []
+        for i, peptide in enumerate(peptides):
+            n_flank = n_flanks[i] if n_flanks else ""
+            c_flank = c_flanks[i] if c_flanks else ""
+            full_sequences.append(n_flank + peptide + c_flank)
+        probs_by_sequence = self.cleavage_probs_many(full_sequences)
+
         results = []
         for i, peptide in enumerate(peptides):
             n_flank = n_flanks[i] if n_flanks else ""
             c_flank = c_flanks[i] if c_flanks else ""
-
             full_seq = n_flank + peptide + c_flank
-            probs = self.cleavage_probs(full_seq)
+            probs = probs_by_sequence[full_seq]
 
             offset = len(n_flank)
             score = self._peptide_score(probs, offset, len(peptide))
@@ -336,10 +354,11 @@ class ProcessingPredictor:
             sequence_dict = {seq: seq for seq in sequence_dict}
 
         peptide_lengths = self._resolve_peptide_lengths(peptide_lengths)
+        probs_by_sequence = self.cleavage_probs_many(sequence_dict.values())
 
         results = defaultdict(list)
         for name, sequence in sequence_dict.items():
-            probs = self.cleavage_probs(sequence)
+            probs = probs_by_sequence[sequence]
             for plen in peptide_lengths:
                 for i in range(len(sequence) - plen + 1):
                     peptide = sequence[i:i + plen]
@@ -388,8 +407,9 @@ class ProcessingPredictor:
         """
         if isinstance(sequence_dict, str):
             sequence_dict = {"seq": sequence_dict}
+        probs_by_sequence = self.cleavage_probs_many(sequence_dict.values())
         return {
-            name: self.cleavage_probs(seq)
+            name: probs_by_sequence[seq]
             for name, seq in sequence_dict.items()
         }
 
