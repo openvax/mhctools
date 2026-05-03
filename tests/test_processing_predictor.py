@@ -632,6 +632,13 @@ class TestPredict:
         assert len(results) == 2
         assert stub.batches == [["ABCDX", "EFYZ"]]
 
+    def test_generator_peptides(self):
+        stub = BatchStubPredictor(scoring=score_cterm)
+        peptides = (peptide for peptide in ["ABCD", "EF"])
+        results = stub.predict(peptides, c_flanks=["X", "YZ"])
+        assert [pp.preds[0].peptide for pp in results] == ["ABCD", "EF"]
+        assert stub.batches == [["ABCDX", "EFYZ"]]
+
 
 # ======================================================================
 # predict_dataframe()

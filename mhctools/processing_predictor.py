@@ -285,18 +285,17 @@ class ProcessingPredictor:
         -------
         list of PeptideResult
         """
-        full_sequences = []
-        for i, peptide in enumerate(peptides):
-            n_flank = n_flanks[i] if n_flanks else ""
-            c_flank = c_flanks[i] if c_flanks else ""
-            full_sequences.append(n_flank + peptide + c_flank)
-        probs_by_sequence = self.cleavage_probs_many(full_sequences)
-
-        results = []
+        prediction_inputs = []
         for i, peptide in enumerate(peptides):
             n_flank = n_flanks[i] if n_flanks else ""
             c_flank = c_flanks[i] if c_flanks else ""
             full_seq = n_flank + peptide + c_flank
+            prediction_inputs.append((peptide, n_flank, c_flank, full_seq))
+        full_sequences = [item[3] for item in prediction_inputs]
+        probs_by_sequence = self.cleavage_probs_many(full_sequences)
+
+        results = []
+        for peptide, n_flank, c_flank, full_seq in prediction_inputs:
             probs = probs_by_sequence[full_seq]
 
             offset = len(n_flank)
