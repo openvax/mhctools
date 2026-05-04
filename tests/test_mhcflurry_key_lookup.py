@@ -17,7 +17,7 @@ import types
 import pandas as pd
 import pytest
 
-from mhctools import MHCflurry
+from mhctools import MHCflurry, MHCflurry_Affinity
 
 
 def _make_fake_predictor(
@@ -129,3 +129,30 @@ def test_can_disable_missing_affinity_percentile_ranks():
         include_affinity_percentile_ranks=False)
     results = predictor.predict(["SIINFEKLA"])
     assert results[0].affinity.percentile_rank is None
+
+
+def test_affinity_only_disabled_percentile_ranks_convert_to_none():
+    def predict_to_dataframe(
+            peptides, alleles, include_percentile_ranks=True):
+        data = {
+            "peptide": list(peptides),
+            "allele": list(alleles),
+            "prediction": [500.0] * len(peptides),
+        }
+        if include_percentile_ranks:
+            data["prediction_percentile"] = [1.5] * len(peptides)
+        return pd.DataFrame(data)
+
+    fake = types.SimpleNamespace(
+        predict_to_dataframe=predict_to_dataframe,
+        supported_alleles=["HLA-A*02:232"],
+    )
+    predictor = MHCflurry_Affinity(
+        alleles=["HLA-A*02:232"],
+        predictor=fake,
+        include_affinity_percentile_ranks=False)
+
+    result = predictor.predict(["SIINFEKLA"])[0]
+
+    assert result.affinity.percentile_rank is None
+    assert result.best_affinity_by_rank is None

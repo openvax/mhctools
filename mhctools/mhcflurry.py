@@ -14,8 +14,6 @@ import logging
 import math
 import os
 
-from numpy import nan
-
 from .base_predictor import BasePredictor
 from .binding_prediction import BindingPrediction
 from .binding_prediction_collection import BindingPredictionCollection
@@ -192,7 +190,7 @@ class MHCflurry(BasePredictor):
                 affinity=row.prediction,
                 percentile_rank=(
                     row.prediction_percentile
-                    if hasattr(row, 'prediction_percentile') else nan),
+                    if hasattr(row, 'prediction_percentile') else None),
                 prediction_method_name="mhcflurry",
             ))
         return BindingPredictionCollection(binding_predictions)
@@ -378,7 +376,7 @@ class MHCflurry_Affinity(BasePredictor):
                 affinity=row.prediction,
                 percentile_rank=(
                     row.prediction_percentile
-                    if hasattr(row, 'prediction_percentile') else nan),
+                    if hasattr(row, 'prediction_percentile') else None),
                 prediction_method_name="mhcflurry",
             ))
         return BindingPredictionCollection(binding_predictions)
