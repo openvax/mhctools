@@ -20,18 +20,36 @@ import pytest
 from mhctools import MHCflurry
 
 
-def _make_fake_predictor(aff_allele_str, pres_allele_str, supported):
+def _make_fake_predictor(
+        aff_allele_str,
+        pres_allele_str,
+        supported,
+        percent_rank_transforms=None,
+        allele_to_sequence=None):
     """Build a fake mhcflurry Class1PresentationPredictor with configurable
     allele string in the affinity and presentation outputs."""
-    affinity_predictor = types.SimpleNamespace(
-        predict_to_dataframe=lambda peptides, alleles: pd.DataFrame({
+    def predict_to_dataframe(
+            peptides, alleles, include_percentile_ranks=True):
+        data = {
             "peptide": peptides,
             "allele": [aff_allele_str] * len(peptides),
             "prediction": [500.0] * len(peptides),
-            "prediction_percentile": [1.5] * len(peptides),
-        }),
+        }
+        if include_percentile_ranks:
+            data["prediction_percentile"] = [1.5] * len(peptides)
+        return pd.DataFrame(data)
+
+    affinity_predictor = types.SimpleNamespace(
+        predict_to_dataframe=predict_to_dataframe,
         supported_alleles=supported,
     )
+    if percent_rank_transforms is not None:
+        affinity_predictor.allele_to_percent_rank_transform = \
+            percent_rank_transforms
+    if allele_to_sequence is not None:
+        affinity_predictor.allele_to_sequence = allele_to_sequence
+        affinity_predictor.canonicalize_allele_name = lambda allele: allele
+
     def predict(peptides, alleles, include_affinity_percentile=False, verbose=0):
         return pd.DataFrame({
             "peptide": list(peptides),
@@ -70,3 +88,44 @@ def test_inconsistent_allele_strings_raise_instead_of_silently_returning_zero():
     p = MHCflurry(alleles=["HLA-A*02:01"], predictor=fake)
     with pytest.raises(ValueError, match="missing presentation score"):
         p.predict(["SIINFEKLA"])
+
+
+def test_accepts_affinity_percentile_calibration_from_same_pseudosequence():
+    fake = _make_fake_predictor(
+        aff_allele_str="HLA-C*15:05",
+        pres_allele_str="HLA-C*15:05",
+        supported=["HLA-C*15:05"],
+        percent_rank_transforms={"HLA-C*15:99": object()},
+        allele_to_sequence={
+            "HLA-C*15:05": "PSEUDOSEQ",
+            "HLA-C*15:99": "PSEUDOSEQ",
+        })
+    predictor = MHCflurry(alleles=["HLA-C*15:05"], predictor=fake)
+    results = predictor.predict(["SIINFEKLA"])
+    assert results[0].affinity.percentile_rank == 1.5
+
+
+def test_missing_affinity_percentile_calibration_raises_early():
+    fake = _make_fake_predictor(
+        aff_allele_str="HLA-C*15:05",
+        pres_allele_str="HLA-C*15:05",
+        supported=["HLA-C*15:05"],
+        percent_rank_transforms={},
+        allele_to_sequence={"HLA-C*15:05": "PSEUDOSEQ"})
+    with pytest.raises(ValueError, match="affinity percentile ranks"):
+        MHCflurry(alleles=["HLA-C*15:05"], predictor=fake)
+
+
+def test_can_disable_missing_affinity_percentile_ranks():
+    fake = _make_fake_predictor(
+        aff_allele_str="HLA-C*15:05",
+        pres_allele_str="HLA-C*15:05",
+        supported=["HLA-C*15:05"],
+        percent_rank_transforms={},
+        allele_to_sequence={"HLA-C*15:05": "PSEUDOSEQ"})
+    predictor = MHCflurry(
+        alleles=["HLA-C*15:05"],
+        predictor=fake,
+        include_affinity_percentile_ranks=False)
+    results = predictor.predict(["SIINFEKLA"])
+    assert results[0].affinity.percentile_rank is None

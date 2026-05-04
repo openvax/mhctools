@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 
 # Module-level cache for loaded models. Keyed by (kind, normalized_path).
 _model_cache = {}
+_PERCENT_RANK_SUPPORT_UNKNOWN = object()
 
 
 def _normalize_models_path(models_path):
@@ -39,6 +40,60 @@ def _normalize_models_path(models_path):
     if models_path is None:
         return None
     return os.path.realpath(os.path.expanduser(models_path))
+
+
+def _affinity_percent_rank_calibrated_allele(affinity_predictor, allele):
+    """Return the allele whose affinity percentile calibration can be used."""
+    helper = getattr(
+        affinity_predictor, "percent_rank_calibrated_allele", None)
+    if callable(helper):
+        return helper(allele)
+
+    transforms = getattr(
+        affinity_predictor, "allele_to_percent_rank_transform", None)
+    if transforms is None:
+        return _PERCENT_RANK_SUPPORT_UNKNOWN
+
+    canonicalize = getattr(
+        affinity_predictor, "canonicalize_allele_name", None)
+    normalized_allele = (
+        canonicalize(allele) if callable(canonicalize) else allele)
+    if normalized_allele in transforms:
+        return normalized_allele
+
+    allele_to_sequence = getattr(affinity_predictor, "allele_to_sequence", None)
+    if (
+            not allele_to_sequence
+            or normalized_allele not in allele_to_sequence):
+        return None
+
+    sequence = allele_to_sequence[normalized_allele]
+    for other_allele in sorted(allele_to_sequence):
+        if (
+                allele_to_sequence[other_allele] == sequence
+                and other_allele in transforms):
+            return other_allele
+    return None
+
+
+def _check_affinity_percent_rank_support(affinity_predictor, alleles):
+    """Raise if requested alleles cannot get affinity percentile ranks."""
+    missing_alleles = []
+    for allele in alleles:
+        calibrated = _affinity_percent_rank_calibrated_allele(
+            affinity_predictor, allele)
+        if calibrated is _PERCENT_RANK_SUPPORT_UNKNOWN:
+            return
+        if calibrated is None:
+            missing_alleles.append(allele)
+    if missing_alleles:
+        raise ValueError(
+            "MHCflurry affinity percentile ranks are unavailable for "
+            "allele(s): %s. Raw affinity prediction may still be supported. "
+            "Pass include_affinity_percentile_ranks=False to omit affinity "
+            "percentile ranks, or calibrate MHCflurry percentile ranks for "
+            "these alleles."
+            % ", ".join(sorted(missing_alleles)))
 
 
 class MHCflurry(BasePredictor):
@@ -57,7 +112,8 @@ class MHCflurry(BasePredictor):
             alleles,
             default_peptide_lengths=[9],
             predictor=None,
-            models_path=None):
+            models_path=None,
+            include_affinity_percentile_ranks=True):
         """
         Parameters
         -----------
@@ -70,6 +126,12 @@ class MHCflurry(BasePredictor):
 
         models_path : string
             Models dir to use if predictor argument is None
+
+        include_affinity_percentile_ranks : bool
+            Whether to request affinity percentile ranks. Enabled by default.
+            If enabled, requested alleles must have MHCflurry affinity
+            percentile-rank calibration, either directly or through an allele
+            with the same pseudosequence.
         """
         from mhcflurry import Class1PresentationPredictor
         BasePredictor.__init__(
@@ -93,9 +155,15 @@ class MHCflurry(BasePredictor):
                         Class1PresentationPredictor.load()
             self.predictor = _model_cache[cache_key]
 
+        self.include_affinity_percentile_ranks = \
+            include_affinity_percentile_ranks
+
         for allele in self.alleles:
             if allele not in self.predictor.supported_alleles:
                 raise UnsupportedAllele(allele)
+        if self.include_affinity_percentile_ranks:
+            _check_affinity_percent_rank_support(
+                self.predictor.affinity_predictor, self.alleles)
 
     def predict_peptides(self, peptides):
         """
@@ -114,6 +182,7 @@ class MHCflurry(BasePredictor):
         df = self.predictor.affinity_predictor.predict_to_dataframe(
             peptides=batch_peptides,
             alleles=batch_alleles,
+            include_percentile_ranks=self.include_affinity_percentile_ranks,
         )
         binding_predictions = []
         for row in df.itertuples(index=False):
@@ -152,6 +221,7 @@ class MHCflurry(BasePredictor):
         aff_df = self.predictor.affinity_predictor.predict_to_dataframe(
             peptides=batch_peptides,
             alleles=batch_alleles,
+            include_percentile_ranks=self.include_affinity_percentile_ranks,
         )
 
         # Per-allele presentation calls (presentation predictor does
@@ -233,7 +303,8 @@ class MHCflurry_Affinity(BasePredictor):
             alleles,
             default_peptide_lengths=[9],
             predictor=None,
-            models_path=None):
+            models_path=None,
+            include_affinity_percentile_ranks=True):
         """
         Parameters
         -----------
@@ -246,6 +317,12 @@ class MHCflurry_Affinity(BasePredictor):
 
         models_path : string
             Models dir to use if predictor argument is None
+
+        include_affinity_percentile_ranks : bool
+            Whether to request affinity percentile ranks. Enabled by default.
+            If enabled, requested alleles must have MHCflurry affinity
+            percentile-rank calibration, either directly or through an allele
+            with the same pseudosequence.
         """
         from mhcflurry import Class1AffinityPredictor
         BasePredictor.__init__(
@@ -269,9 +346,14 @@ class MHCflurry_Affinity(BasePredictor):
                         Class1AffinityPredictor.load()
             self.predictor = _model_cache[cache_key]
 
+        self.include_affinity_percentile_ranks = \
+            include_affinity_percentile_ranks
+
         for allele in self.alleles:
             if allele not in self.predictor.supported_alleles:
                 raise UnsupportedAllele(allele)
+        if self.include_affinity_percentile_ranks:
+            _check_affinity_percent_rank_support(self.predictor, self.alleles)
 
     def predict_peptides(self, peptides):
         """
@@ -286,6 +368,7 @@ class MHCflurry_Affinity(BasePredictor):
         df = self.predictor.predict_to_dataframe(
             peptides=batch_peptides,
             alleles=batch_alleles,
+            include_percentile_ranks=self.include_affinity_percentile_ranks,
         )
         binding_predictions = []
         for row in df.itertuples(index=False):
