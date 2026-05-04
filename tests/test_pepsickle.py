@@ -10,6 +10,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
+import subprocess
+
 import pytest
 
 from mhctools.pepsickle import Pepsickle
@@ -39,6 +42,7 @@ def test_init_defaults():
     p = Pepsickle()
     assert p.threshold == 0.5
     assert p.human_only is False
+    assert p.isolate_subprocess is False
     assert p.default_peptide_lengths == [9]
     assert p.scoring is score_cterm_anti_max_internal
     assert not hasattr(p, "alleles")
@@ -69,6 +73,57 @@ def test_cleavage_probs(predictor):
     probs = predictor.cleavage_probs(PROTEIN)
     assert len(probs) == len(PROTEIN)
     assert all(0.0 <= p <= 1.0 for p in probs)
+
+
+def test_isolated_cleavage_probs_matches_in_process():
+    in_process = Pepsickle().cleavage_probs(PROTEIN)
+    isolated = Pepsickle(isolate_subprocess=True).cleavage_probs(PROTEIN)
+    assert isolated == pytest.approx(in_process)
+
+
+def test_isolated_cleavage_probs_batches_unique_sequences(monkeypatch):
+    calls = []
+
+    def fake_run(args, input, text, capture_output, timeout):
+        calls.append({
+            "args": args,
+            "request": json.loads(input),
+            "text": text,
+            "capture_output": capture_output,
+            "timeout": timeout,
+        })
+        results = {
+            sequence: [0.25] * len(sequence)
+            for sequence in calls[-1]["request"]["sequences"]
+        }
+        return subprocess.CompletedProcess(
+            args=args,
+            returncode=0,
+            stdout=json.dumps({"results": results}),
+            stderr="",
+        )
+
+    monkeypatch.setattr("mhctools.pepsickle.subprocess.run", fake_run)
+
+    predictor = Pepsickle(
+        threshold=0.25,
+        human_only=True,
+        isolate_subprocess=True,
+        subprocess_timeout=7,
+    )
+    result = predictor.cleavage_probs_many([PROTEIN, PROTEIN, "AC"])
+
+    assert result[PROTEIN] == [0.25] * len(PROTEIN)
+    assert result["AC"] == [0.25, 0.25]
+    assert len(calls) == 1
+    assert calls[0]["request"] == {
+        "human_only": True,
+        "threshold": 0.25,
+        "sequences": [PROTEIN, "AC"],
+    }
+    assert calls[0]["text"] is True
+    assert calls[0]["capture_output"] is True
+    assert calls[0]["timeout"] == 7
 
 
 # -- predict --
@@ -190,5 +245,4 @@ def test_scoring_methods_produce_different_scores():
     unique = set(
         tuple(round(s, 6) for s in v) for v in scores_by_fn.values())
     assert len(unique) > 1
-
 
