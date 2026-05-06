@@ -34,6 +34,11 @@ cleavage profile into a single peptide-level score::
 
 from collections import defaultdict
 
+from .base_predictor import (
+    _check_flank_inputs,
+    _normalize_sequence_dict,
+    _peptide_contexts,
+)
 from .pred import Prediction, Kind, PeptideResult
 
 
@@ -285,10 +290,13 @@ class ProcessingPredictor:
         -------
         list of PeptideResult
         """
+        peptide_list, n_flank_list, c_flank_list = _check_flank_inputs(
+            peptides, n_flanks, c_flanks)
+
         prediction_inputs = []
-        for i, peptide in enumerate(peptides):
-            n_flank = n_flanks[i] if n_flanks else ""
-            c_flank = c_flanks[i] if c_flanks else ""
+        for i, peptide in enumerate(peptide_list):
+            n_flank = n_flank_list[i] if n_flank_list is not None else ""
+            c_flank = c_flank_list[i] if c_flank_list is not None else ""
             full_seq = n_flank + peptide + c_flank
             prediction_inputs.append((peptide, n_flank, c_flank, full_seq))
         full_sequences = [item[3] for item in prediction_inputs]
@@ -347,38 +355,30 @@ class ProcessingPredictor:
         -------
         dict mapping sequence_name -> list of PeptideResult
         """
-        if isinstance(sequence_dict, str):
-            sequence_dict = {"seq": sequence_dict}
-        elif isinstance(sequence_dict, (list, tuple)):
-            sequence_dict = {seq: seq for seq in sequence_dict}
+        sequence_dict = _normalize_sequence_dict(sequence_dict)
 
         peptide_lengths = self._resolve_peptide_lengths(peptide_lengths)
         probs_by_sequence = self.cleavage_probs_many(sequence_dict.values())
 
         results = defaultdict(list)
-        for name, sequence in sequence_dict.items():
+        for context in _peptide_contexts(
+                sequence_dict, peptide_lengths, flank_length):
+            sequence = sequence_dict[context.source_sequence_name]
             probs = probs_by_sequence[sequence]
-            for plen in peptide_lengths:
-                for i in range(len(sequence) - plen + 1):
-                    peptide = sequence[i:i + plen]
-                    score = self._peptide_score(probs, offset=i, length=plen)
-                    if flank_length:
-                        n_flank = sequence[max(0, i - flank_length):i]
-                        c_flank = sequence[i + plen:i + plen + flank_length]
-                    else:
-                        n_flank = ""
-                        c_flank = ""
-                    pred = Prediction(
-                        kind=self._pred_kind(),
-                        score=score,
-                        peptide=peptide,
-                        n_flank=n_flank,
-                        c_flank=c_flank,
-                        source_sequence_name=name,
-                        offset=i,
-                        predictor_name=self._predictor_name(),
-                    )
-                    results[name].append(PeptideResult(preds=(pred,)))
+            score = self._peptide_score(
+                probs, offset=context.offset, length=len(context.peptide))
+            pred = Prediction(
+                kind=self._pred_kind(),
+                score=score,
+                peptide=context.peptide,
+                n_flank=context.n_flank,
+                c_flank=context.c_flank,
+                source_sequence_name=context.source_sequence_name,
+                offset=context.offset,
+                predictor_name=self._predictor_name(),
+            )
+            results[context.source_sequence_name].append(
+                PeptideResult(preds=(pred,)))
         return dict(results)
 
     def predict_proteins_dataframe(
@@ -404,8 +404,7 @@ class ProcessingPredictor:
         -------
         dict mapping sequence_name -> list of float
         """
-        if isinstance(sequence_dict, str):
-            sequence_dict = {"seq": sequence_dict}
+        sequence_dict = _normalize_sequence_dict(sequence_dict)
         probs_by_sequence = self.cleavage_probs_many(sequence_dict.values())
         return {
             name: probs_by_sequence[seq]

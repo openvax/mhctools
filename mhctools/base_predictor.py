@@ -12,7 +12,7 @@
 
 import logging
 import warnings
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 
 from typechecks import require_iterable_of
 from .allele_normalization import normalize_allele_name
@@ -23,10 +23,85 @@ from .pred import Prediction, Kind, PeptideResult
 
 logger = logging.getLogger(__name__)
 
+PeptideContext = namedtuple(
+    "PeptideContext",
+    ["source_sequence_name", "offset", "peptide", "n_flank", "c_flank"])
+
+
+def _normalize_sequence_dict(sequence_dict):
+    if isinstance(sequence_dict, str):
+        return {"seq": sequence_dict}
+    if isinstance(sequence_dict, (list, tuple)):
+        return {seq: seq for seq in sequence_dict}
+    return sequence_dict
+
+
+def _check_flank_inputs(peptides, n_flanks=None, c_flanks=None):
+    peptide_list = list(peptides)
+
+    def _check_flanks(name, flanks):
+        if flanks is None:
+            return None
+        if isinstance(flanks, str):
+            raise TypeError("%s must be a sequence of strings, not a string" % name)
+        flank_list = list(flanks)
+        require_iterable_of(flank_list, str, name)
+        if len(flank_list) != len(peptide_list):
+            raise ValueError(
+                "%s must have one entry per peptide, got %d flank(s) for "
+                "%d peptide(s)" % (name, len(flank_list), len(peptide_list)))
+        return flank_list
+
+    return (
+        peptide_list,
+        _check_flanks("n_flanks", n_flanks),
+        _check_flanks("c_flanks", c_flanks),
+    )
+
+
+def _peptide_contexts(
+        sequence_dict,
+        peptide_lengths,
+        flank_length=0,
+        n_flank_length=None,
+        c_flank_length=None):
+    if n_flank_length is None:
+        n_flank_length = flank_length
+    if c_flank_length is None:
+        c_flank_length = flank_length
+
+    contexts = []
+    for name, sequence in sequence_dict.items():
+        for peptide_length in peptide_lengths:
+            for i in range(len(sequence) - peptide_length + 1):
+                peptide = sequence[i:i + peptide_length]
+                if n_flank_length or c_flank_length:
+                    n_flank = sequence[max(0, i - n_flank_length):i]
+                    c_flank = sequence[
+                        i + peptide_length:
+                        i + peptide_length + c_flank_length]
+                else:
+                    n_flank = ""
+                    c_flank = ""
+                contexts.append(PeptideContext(
+                    source_sequence_name=name,
+                    offset=i,
+                    peptide=peptide,
+                    n_flank=n_flank,
+                    c_flank=c_flank,
+                ))
+    return contexts
+
+
 class BasePredictor(object):
     """
     Base class for all MHC binding predictors.
     """
+    uses_flanking_sequences = False
+    flank_length = 15
+    n_flank_length = None
+    c_flank_length = None
+
     def __init__(
             self,
             alleles,
@@ -90,25 +165,84 @@ class BasePredictor(object):
 
     # --- new API ---
 
-    def predict(self, peptides):
+    def predict(self, peptides, n_flanks=None, c_flanks=None):
         """
         Predict for a list of peptide sequences.
+
+        n_flanks and c_flanks are accepted for a uniform flank-aware API.
+        The default BindingPrediction-based implementation validates but
+        ignores them; subclasses that use flanking context should override
+        this method and set ``uses_flanking_sequences = True``.
 
         Returns
         -------
         list of PeptideResult
         """
-        collection = self.predict_peptides(peptides)
+        peptide_list, _, _ = _check_flank_inputs(
+            peptides, n_flanks, c_flanks)
+        collection = self.predict_peptides(peptide_list)
         return collection.to_peptide_preds(kind=self._default_pred_kind())
 
-    def predict_dataframe(self, peptides, sample_name=""):
+    def predict_with_flanks(self, peptides, n_flanks, c_flanks):
+        """
+        Optional flank-aware prediction path.
+
+        The default implementation validates aligned flank lists and falls
+        back to ``predict(peptides)`` so predictors that do not use flanking
+        context retain their existing behavior. Subclasses whose models use
+        flanks should override this method and forward the flanks to the
+        underlying predictor.
+        """
+        peptide_list, _, _ = _check_flank_inputs(peptides, n_flanks, c_flanks)
+        return self.predict(peptide_list)
+
+    def predict_dataframe(
+            self, peptides, sample_name="", n_flanks=None, c_flanks=None):
         """predict() flattened to a DataFrame."""
         import pandas as pd
-        dfs = [pp.to_dataframe(sample_name) for pp in self.predict(peptides)]
+        dfs = [
+            pp.to_dataframe(sample_name)
+            for pp in self.predict(
+                peptides, n_flanks=n_flanks, c_flanks=c_flanks)
+        ]
         if not dfs:
             from .pred import COLUMNS
             return pd.DataFrame(columns=COLUMNS)
         return pd.concat(dfs, ignore_index=True)
+
+    def _predict_protein_flank_length(self):
+        return max(self._predict_protein_flank_lengths())
+
+    def _predict_protein_flank_lengths(self):
+        if not self.uses_flanking_sequences:
+            return (0, 0)
+        n_flank_length = (
+            self.flank_length
+            if self.n_flank_length is None else self.n_flank_length)
+        c_flank_length = (
+            self.flank_length
+            if self.c_flank_length is None else self.c_flank_length)
+        return (n_flank_length, c_flank_length)
+
+    def _check_flank_inputs(self, peptides, n_flanks=None, c_flanks=None):
+        return _check_flank_inputs(peptides, n_flanks, c_flanks)
+
+    @staticmethod
+    def _with_protein_location(pred, context):
+        return Prediction(
+            kind=pred.kind,
+            score=pred.score,
+            peptide=pred.peptide,
+            allele=pred.allele,
+            n_flank=context.n_flank,
+            c_flank=context.c_flank,
+            value=pred.value,
+            percentile_rank=pred.percentile_rank,
+            source_sequence_name=context.source_sequence_name,
+            offset=context.offset,
+            predictor_name=pred.predictor_name,
+            predictor_version=pred.predictor_version,
+        )
 
     def predict_proteins(self, sequence_dict, peptide_lengths=None):
         """
@@ -126,23 +260,44 @@ class BasePredictor(object):
         -------
         dict mapping sequence_name -> list of PeptideResult
         """
-        if isinstance(sequence_dict, str):
-            sequence_dict = {"seq": sequence_dict}
-        elif isinstance(sequence_dict, (list, tuple)):
-            sequence_dict = {seq: seq for seq in sequence_dict}
+        sequence_dict = _normalize_sequence_dict(sequence_dict)
 
         peptide_lengths = self._check_peptide_lengths(peptide_lengths)
 
-        peptide_set = set()
-        peptide_to_name_offset_pairs = defaultdict(list)
+        n_flank_length, c_flank_length = self._predict_protein_flank_lengths()
+        contexts = _peptide_contexts(
+            sequence_dict,
+            peptide_lengths,
+            n_flank_length=n_flank_length,
+            c_flank_length=c_flank_length)
 
-        for name, sequence in sequence_dict.items():
-            for peptide_length in peptide_lengths:
-                for i in range(len(sequence) - peptide_length + 1):
-                    peptide = sequence[i:i + peptide_length]
-                    peptide_set.add(peptide)
-                    peptide_to_name_offset_pairs[peptide].append((name, i))
+        if self.uses_flanking_sequences:
+            peptide_list = [context.peptide for context in contexts]
+            n_flanks = [context.n_flank for context in contexts]
+            c_flanks = [context.c_flank for context in contexts]
+            flat_preds = self.predict_with_flanks(
+                peptide_list,
+                n_flanks=n_flanks,
+                c_flanks=c_flanks)
+            if len(flat_preds) != len(contexts):
+                raise ValueError(
+                    "%s.predict returned %d result(s) for %d flanked "
+                    "peptide occurrence(s)" % (
+                        self.__class__.__name__, len(flat_preds),
+                        len(contexts)))
+            results = defaultdict(list)
+            for context, pp in zip(contexts, flat_preds):
+                relocated = PeptideResult(preds=tuple(
+                    self._with_protein_location(p, context)
+                    for p in pp.preds
+                ))
+                results[context.source_sequence_name].append(relocated)
+            return dict(results)
 
+        peptide_set = {context.peptide for context in contexts}
+        peptide_to_contexts = defaultdict(list)
+        for context in contexts:
+            peptide_to_contexts[context.peptide].append(context)
         peptide_list = sorted(peptide_set)
         flat_preds = self.predict(peptide_list)
 
@@ -152,22 +307,12 @@ class BasePredictor(object):
             if not pp.preds:
                 continue
             peptide = pp.preds[0].peptide
-            for name, offset in peptide_to_name_offset_pairs.get(peptide, []):
+            for context in peptide_to_contexts.get(peptide, []):
                 relocated = PeptideResult(preds=tuple(
-                    Prediction(
-                        kind=p.kind,
-                        score=p.score,
-                        peptide=p.peptide,
-                        allele=p.allele,
-                        value=p.value,
-                        percentile_rank=p.percentile_rank,
-                        source_sequence_name=name,
-                        offset=offset,
-                        predictor_name=p.predictor_name,
-                        predictor_version=p.predictor_version,
-                    ) for p in pp.preds
+                    self._with_protein_location(p, context)
+                    for p in pp.preds
                 ))
-                results[name].append(relocated)
+                results[context.source_sequence_name].append(relocated)
         return dict(results)
 
     def predict_proteins_dataframe(self, sequence_dict, peptide_lengths=None, sample_name=""):
@@ -312,25 +457,15 @@ class BasePredictor(object):
         and an optional list of peptide lengths, returns a
         BindingPredictionCollection.
         """
-        if isinstance(sequence_dict, str):
-            sequence_dict = {"seq": sequence_dict}
-        elif isinstance(sequence_dict, (list, tuple)):
-            sequence_dict = {seq: seq for seq in sequence_dict}
+        sequence_dict = _normalize_sequence_dict(sequence_dict)
 
         peptide_lengths = self._check_peptide_lengths(peptide_lengths)
 
-        # convert long protein sequences to set of peptides and
-        # associated sequence name / offsets that each peptide may have come
-        # from
-        peptide_set = set([])
-        peptide_to_name_offset_pairs = defaultdict(list)
-
-        for name, sequence in sequence_dict.items():
-            for peptide_length in peptide_lengths:
-                for i in range(len(sequence) - peptide_length + 1):
-                    peptide = sequence[i:i + peptide_length]
-                    peptide_set.add(peptide)
-                    peptide_to_name_offset_pairs[peptide].append((name, i))
+        contexts = _peptide_contexts(sequence_dict, peptide_lengths)
+        peptide_set = {context.peptide for context in contexts}
+        peptide_to_contexts = defaultdict(list)
+        for context in contexts:
+            peptide_to_contexts[context.peptide].append(context)
         peptide_list = sorted(peptide_set)
 
         binding_predictions = self.predict_peptides(peptide_list)
@@ -339,10 +474,10 @@ class BasePredictor(object):
         results = []
         for binding_prediction in binding_predictions:
             peptide = binding_prediction.peptide
-            for name, offset in peptide_to_name_offset_pairs[peptide]:
+            for context in peptide_to_contexts[peptide]:
                 results.append(binding_prediction.clone_with_updates(
-                    source_sequence_name=name,
-                    offset=offset))
+                    source_sequence_name=context.source_sequence_name,
+                    offset=context.offset))
         self._check_results(
             results,
             peptides=peptide_set,

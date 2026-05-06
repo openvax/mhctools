@@ -15,6 +15,7 @@ import math
 import os
 
 from .base_predictor import BasePredictor
+from .base_predictor import _check_flank_inputs
 from .binding_prediction import BindingPrediction
 from .binding_prediction_collection import BindingPredictionCollection
 from .pred import Prediction, Kind
@@ -104,6 +105,8 @@ class MHCflurry(BasePredictor):
 
     See https://github.com/openvax/mhcflurry
     """
+    uses_flanking_sequences = True
+    flank_length = 15
 
     def __init__(
             self,
@@ -163,6 +166,18 @@ class MHCflurry(BasePredictor):
             _check_affinity_percent_rank_support(
                 self.predictor.affinity_predictor, self.alleles)
 
+    def _predict_protein_flank_lengths(self):
+        processing_predictor = getattr(
+            self.predictor, "processing_predictor_with_flanks", None)
+        sequence_lengths = getattr(
+            processing_predictor, "sequence_lengths", None)
+        if sequence_lengths:
+            return (
+                int(sequence_lengths.get("n_flank", self.flank_length)),
+                int(sequence_lengths.get("c_flank", self.flank_length)),
+            )
+        return super()._predict_protein_flank_lengths()
+
     def predict_peptides(self, peptides):
         """
         Predict MHC binding affinity and presentation for peptides.
@@ -195,7 +210,7 @@ class MHCflurry(BasePredictor):
             ))
         return BindingPredictionCollection(binding_predictions)
 
-    def predict(self, peptides):
+    def predict(self, peptides, n_flanks=None, c_flanks=None):
         """
         Predict for a list of peptide sequences.
 
@@ -205,15 +220,21 @@ class MHCflurry(BasePredictor):
         Uses batch prediction across all alleles in a single call for
         both affinity and presentation scores.
         """
-        from collections import defaultdict
         from .pred import PeptideResult
 
-        peptide_list = list(peptides)
+        peptide_list, n_flank_list, c_flank_list = _check_flank_inputs(
+            peptides, n_flanks, c_flanks)
+        if n_flank_list is not None or c_flank_list is not None:
+            if n_flank_list is None:
+                n_flank_list = [""] * len(peptide_list)
+            if c_flank_list is None:
+                c_flank_list = [""] * len(peptide_list)
         allele_list = list(self.alleles)
 
         # Build cross product
         batch_peptides = peptide_list * len(allele_list)
         batch_alleles = [a for a in allele_list for _ in peptide_list]
+        batch_indices = list(range(len(peptide_list))) * len(allele_list)
 
         # Single batched call for affinity
         aff_df = self.predictor.affinity_predictor.predict_to_dataframe(
@@ -228,21 +249,31 @@ class MHCflurry(BasePredictor):
         # allele string so lookups with aff_df.allele always match.
         pres_by_pep_allele = {}
         for input_allele in allele_list:
-            df = self.predictor.predict(
-                peptides=peptide_list,
-                alleles=[input_allele],
-                include_affinity_percentile=False,
-                verbose=0,
-            )
-            for row in df.itertuples(index=False):
+            kwargs = {
+                "peptides": peptide_list,
+                "alleles": [input_allele],
+                "include_affinity_percentile": False,
+                "verbose": 0,
+            }
+            if n_flank_list is not None:
+                kwargs["n_flanks"] = n_flank_list
+            if c_flank_list is not None:
+                kwargs["c_flanks"] = c_flank_list
+            df = self.predictor.predict(**kwargs)
+            if len(df) != len(peptide_list):
+                raise ValueError(
+                    "MHCflurry returned %d presentation row(s) for %d "
+                    "peptide input(s) and allele '%s'" % (
+                        len(df), len(peptide_list), input_allele))
+            for row_index, row in enumerate(df.itertuples(index=False)):
                 output_allele = getattr(row, 'allele', input_allele)
-                pres_by_pep_allele[(row.peptide, output_allele)] = (
+                pres_by_pep_allele[(row_index, output_allele)] = (
                     row.presentation_score,
                     row.presentation_percentile,
                 )
 
-        groups = defaultdict(list)
-        for row in aff_df.itertuples(index=False):
+        groups = [list() for _ in peptide_list]
+        for row_index, row in zip(batch_indices, aff_df.itertuples(index=False)):
             pep = row.peptide
             allele = row.allele
             affinity_nM = row.prediction
@@ -253,17 +284,24 @@ class MHCflurry(BasePredictor):
             aff_score = max(0.0, min(1.0,
                 1.0 - math.log(max(affinity_nM, 1e-6)) / math.log(50000)))
 
-            groups[pep].append(Prediction(
+            n_flank = (
+                n_flank_list[row_index] if n_flank_list is not None else "")
+            c_flank = (
+                c_flank_list[row_index] if c_flank_list is not None else "")
+
+            groups[row_index].append(Prediction(
                 kind=Kind.pMHC_affinity,
                 score=aff_score,
                 peptide=pep,
                 allele=allele,
+                n_flank=n_flank,
+                c_flank=c_flank,
                 value=affinity_nM,
                 percentile_rank=affinity_pct,
                 predictor_name="mhcflurry",
             ))
 
-            key = (pep, allele)
+            key = (row_index, allele)
             if key not in pres_by_pep_allele:
                 raise ValueError(
                     "MHCflurry: missing presentation score for "
@@ -271,16 +309,24 @@ class MHCflurry(BasePredictor):
                     "peptide string mismatch between the affinity and "
                     "presentation predictor outputs)" % (pep, allele))
             pres_score, pres_pct = pres_by_pep_allele[key]
-            groups[pep].append(Prediction(
+            groups[row_index].append(Prediction(
                 kind=Kind.pMHC_presentation,
                 score=pres_score,
                 peptide=pep,
                 allele=allele,
+                n_flank=n_flank,
+                c_flank=c_flank,
                 percentile_rank=pres_pct,
                 predictor_name="mhcflurry",
             ))
 
-        return [PeptideResult(preds=tuple(preds)) for preds in groups.values()]
+        return [PeptideResult(preds=tuple(preds)) for preds in groups]
+
+    def predict_with_flanks(self, peptides, n_flanks, c_flanks):
+        return self.predict(
+            peptides,
+            n_flanks=n_flanks,
+            c_flanks=c_flanks)
 
     def _default_pred_kind(self):
         return Kind.pMHC_affinity

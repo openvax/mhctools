@@ -28,6 +28,8 @@ def _make_fake_predictor(
         allele_to_sequence=None):
     """Build a fake mhcflurry Class1PresentationPredictor with configurable
     allele string in the affinity and presentation outputs."""
+    predict_calls = []
+
     def predict_to_dataframe(
             peptides, alleles, include_percentile_ranks=True):
         data = {
@@ -50,7 +52,23 @@ def _make_fake_predictor(
         affinity_predictor.allele_to_sequence = allele_to_sequence
         affinity_predictor.canonicalize_allele_name = lambda allele: allele
 
-    def predict(peptides, alleles, include_affinity_percentile=False, verbose=0):
+    def predict(
+            peptides,
+            alleles,
+            sample_names=None,
+            n_flanks=None,
+            c_flanks=None,
+            include_affinity_percentile=False,
+            verbose=0,
+            throw=True,
+            affinity_model_kwargs=None,
+            processing_batch_size="auto"):
+        predict_calls.append({
+            "peptides": list(peptides),
+            "alleles": list(alleles),
+            "n_flanks": None if n_flanks is None else list(n_flanks),
+            "c_flanks": None if c_flanks is None else list(c_flanks),
+        })
         return pd.DataFrame({
             "peptide": list(peptides),
             "allele": [pres_allele_str] * len(peptides),
@@ -60,6 +78,7 @@ def _make_fake_predictor(
     return types.SimpleNamespace(
         affinity_predictor=affinity_predictor,
         predict=predict,
+        predict_calls=predict_calls,
         supported_alleles=supported,
     )
 
@@ -129,6 +148,49 @@ def test_can_disable_missing_affinity_percentile_ranks():
         include_affinity_percentile_ranks=False)
     results = predictor.predict(["SIINFEKLA"])
     assert results[0].affinity.percentile_rank is None
+
+
+def test_mhcflurry_forwards_flanks_to_presentation_predictor():
+    fake = _make_fake_predictor(
+        aff_allele_str="HLA-A*02:01",
+        pres_allele_str="HLA-A*02:01",
+        supported=["HLA-A*02:01"])
+    predictor = MHCflurry(alleles=["HLA-A*02:01"], predictor=fake)
+
+    results = predictor.predict(
+        ["SIINFEKLA", "SIINFEKLA"],
+        n_flanks=["NN", "XX"],
+        c_flanks=["CC", "YY"])
+
+    assert fake.predict_calls[0]["n_flanks"] == ["NN", "XX"]
+    assert fake.predict_calls[0]["c_flanks"] == ["CC", "YY"]
+    assert len(results) == 2
+    assert results[0].presentation.n_flank == "NN"
+    assert results[0].presentation.c_flank == "CC"
+    assert results[1].presentation.n_flank == "XX"
+    assert results[1].presentation.c_flank == "YY"
+
+
+def test_mhcflurry_predict_proteins_threads_flanking_context():
+    fake = _make_fake_predictor(
+        aff_allele_str="HLA-A*02:01",
+        pres_allele_str="HLA-A*02:01",
+        supported=["HLA-A*02:01"])
+    predictor = MHCflurry(alleles=["HLA-A*02:01"], predictor=fake)
+
+    result = predictor.predict_proteins({"protein": "MSIINFEKLAC"})
+
+    assert fake.predict_calls[0]["peptides"] == [
+        "MSIINFEKL",
+        "SIINFEKLA",
+        "IINFEKLAC",
+    ]
+    assert fake.predict_calls[0]["n_flanks"] == ["", "M", "MS"]
+    assert fake.predict_calls[0]["c_flanks"] == ["AC", "C", ""]
+    middle = result["protein"][1]
+    assert middle.peptide == "SIINFEKLA"
+    assert middle.presentation.n_flank == "M"
+    assert middle.presentation.c_flank == "C"
 
 
 def test_affinity_only_disabled_percentile_ranks_convert_to_none():
