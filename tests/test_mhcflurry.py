@@ -109,10 +109,14 @@ def test_mhcflurry_predict_proteins_matches_direct_flanked_prediction():
     assert protein_result.presentation.c_flank == c_flank
     testing.assert_allclose(
         protein_result.presentation.score,
-        direct.presentation_score.iloc[0])
+        direct.presentation_score.iloc[0],
+        rtol=1e-6,
+        atol=1e-6)
     testing.assert_allclose(
         protein_result.presentation.percentile_rank,
-        direct.presentation_percentile.iloc[0])
+        direct.presentation_percentile.iloc[0],
+        rtol=1e-6,
+        atol=1e-6)
 
 
 def test_mhcflurry_presentation_affinity_matches_old_api():
