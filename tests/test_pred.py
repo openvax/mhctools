@@ -12,6 +12,7 @@
 
 from mhctools.pred import Prediction, PeptideResult, Kind, preds_from_rows, COLUMNS
 from mhctools.sample import MultiSample
+from mhctools.base_predictor import BasePredictor
 from mhctools.binding_prediction import BindingPrediction
 from mhctools.binding_prediction_collection import BindingPredictionCollection
 from mhctools.random_predictor import RandomBindingPredictor
@@ -344,6 +345,61 @@ def test_predict_proteins():
     for pp in result["TP53"]:
         for pred in pp.preds:
             assert pred.source_sequence_name == "TP53"
+
+
+class FlankEchoPredictor(BasePredictor):
+    uses_flanking_sequences = True
+    flank_length = 2
+
+    def __init__(self):
+        BasePredictor.__init__(
+            self,
+            alleles=["HLA-A*02:01"],
+            default_peptide_lengths=[3],
+            min_peptide_length=3)
+        self.calls = []
+
+    def predict(self, peptides, n_flanks=None, c_flanks=None):
+        peptide_list, n_flank_list, c_flank_list = self._check_flank_inputs(
+            peptides, n_flanks, c_flanks)
+        self.calls.append((peptide_list, n_flank_list, c_flank_list))
+        results = []
+        for i, peptide in enumerate(peptide_list):
+            n_flank = n_flank_list[i] if n_flank_list is not None else ""
+            c_flank = c_flank_list[i] if c_flank_list is not None else ""
+            results.append(PeptideResult(preds=(Prediction(
+                kind=Kind.pMHC_presentation,
+                score=float(i),
+                peptide=peptide,
+                allele="HLA-A*02:01",
+                n_flank=n_flank,
+                c_flank=c_flank,
+                predictor_name="flank_echo",
+            ),)))
+        return results
+
+    def predict_with_flanks(self, peptides, n_flanks, c_flanks):
+        return self.predict(peptides, n_flanks=n_flanks, c_flanks=c_flanks)
+
+
+def test_predict_proteins_preserves_distinct_flanking_contexts():
+    predictor = FlankEchoPredictor()
+    result = predictor.predict_proteins({"protein": "XABCYABCZ"})
+
+    peptides, n_flanks, c_flanks = predictor.calls[0]
+    assert peptides.count("ABC") == 2
+
+    abc_results = [pp for pp in result["protein"] if pp.peptide == "ABC"]
+    assert len(abc_results) == 2
+    assert [(pp.offset, pp.presentation.n_flank, pp.presentation.c_flank)
+            for pp in abc_results] == [
+                (1, "X", "YA"),
+                (5, "CY", "Z"),
+            ]
+    assert n_flanks[1] == "X"
+    assert c_flanks[1] == "YA"
+    assert n_flanks[5] == "CY"
+    assert c_flanks[5] == "Z"
 
 
 def test_predict_proteins_dataframe():

@@ -326,7 +326,7 @@ class BaseCommandlinePredictor(BasePredictor):
             groups[key].append(pred)
         return [PeptideResult(preds=tuple(preds)) for preds in groups.values()]
 
-    def predict(self, peptides):
+    def predict(self, peptides, n_flanks=None, c_flanks=None):
         """
         Predict for a list of peptide sequences.
 
@@ -334,8 +334,11 @@ class BaseCommandlinePredictor(BasePredictor):
         available, parses directly to Pred objects. Otherwise falls back
         to converting from BindingPrediction.
         """
+        peptides, n_flank_list, c_flank_list = self._check_flank_inputs(
+            peptides, n_flanks, c_flanks)
         if self.parse_to_preds_fn is None:
-            return super().predict(peptides)
+            return super().predict(
+                peptides, n_flanks=n_flank_list, c_flanks=c_flank_list)
 
         self._check_peptide_inputs(peptides)
         input_filenames = create_input_peptides_files(

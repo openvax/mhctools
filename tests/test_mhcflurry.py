@@ -79,6 +79,46 @@ def test_mhcflurry_presentation_predict():
         assert Kind.pMHC_presentation in r.kinds
 
 
+def test_mhcflurry_predict_proteins_matches_direct_flanked_prediction():
+    """Protein scanning should forward the same flanks as direct MHCflurry."""
+    predictor = MHCflurry(alleles=[DEFAULT_ALLELE])
+    peptide = "SIINFEKL"
+    protein = "MDSKG%sGSRLL" % peptide
+    offset = protein.index(peptide)
+    n_flank_length, c_flank_length = predictor._predict_protein_flank_lengths()
+    n_flank = protein[max(0, offset - n_flank_length):offset]
+    c_flank = protein[offset + len(peptide):
+                      offset + len(peptide) + c_flank_length]
+
+    protein_results = predictor.predict_proteins(
+        {"protein": protein},
+        peptide_lengths=[len(peptide)])
+    protein_result = [
+        pp for pp in protein_results["protein"] if pp.offset == offset
+    ][0]
+
+    direct = predictor.predictor.predict(
+        peptides=[peptide],
+        alleles=[DEFAULT_ALLELE],
+        n_flanks=[n_flank],
+        c_flanks=[c_flank],
+        include_affinity_percentile=False,
+        verbose=0)
+
+    assert protein_result.presentation.n_flank == n_flank
+    assert protein_result.presentation.c_flank == c_flank
+    testing.assert_allclose(
+        protein_result.presentation.score,
+        direct.presentation_score.iloc[0],
+        rtol=1e-6,
+        atol=1e-6)
+    testing.assert_allclose(
+        protein_result.presentation.percentile_rank,
+        direct.presentation_percentile.iloc[0],
+        rtol=1e-6,
+        atol=1e-6)
+
+
 def test_mhcflurry_presentation_affinity_matches_old_api():
     """Affinity values from the presentation predictor should be close to the
     old Class1AffinityPredictor values."""
