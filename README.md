@@ -152,9 +152,11 @@ df = ms.predict_dataframe(["SIINFEKL"])
 df = ms.predict_proteins_dataframe({"TP53": "MEEPQ..."})
 ```
 
-### Measurement kinds
+### Measurement kinds and MHC context
 
 Each `Prediction` has a `kind` string describing what it measures:
+
+The canonical prediction kind strings are defined in `mhctools.pred.Kind`.
 
 | Kind | Meaning |
 |---|---|
@@ -166,6 +168,49 @@ Each `Prediction` has a `kind` string describing what it measures:
 | `proteasome_cleavage` | Proteasomal cleavage score |
 | `tap_transport` | TAP transport score (reserved, not yet used) |
 | `erap_trimming` | ERAP trimming score (reserved, not yet used) |
+
+Predictors also expose `kind_support()` so downstream code can tell what MHC
+context is meaningful for each emitted kind:
+
+```python
+support = predictor.kind_support()
+support["pMHC_affinity"]
+# {"mhc_dependence": "single_allele", "mhc_class": "I"}
+```
+
+`mhc_dependence` is one of:
+
+| Value | Meaning |
+|---|---|
+| `none` | The prediction is MHC-independent; `Prediction.allele` is empty. |
+| `single_allele` | The prediction is for one peptide/MHC allele pair; `Prediction.allele` is part of the key. |
+| `haplotype` | The prediction uses the requested MHC repertoire jointly; `Prediction.allele` may carry best-allele attribution but is not the prediction key. |
+
+`mhc_class` is one of `none`, `I`, `II`, or `both`.
+
+The allowed metadata values are defined in `mhctools.pred` as
+`MHC_DEPENDENCE_VALUES` and `MHC_CLASS_VALUES`.
+
+Examples:
+
+| Predictor | Kind | `mhc_dependence` | `mhc_class` |
+|---|---|---|---|
+| `NetMHCpan41` | `pMHC_affinity` | `single_allele` | `I` |
+| `NetMHCpan41` | `pMHC_presentation` | `single_allele` | `I` |
+| `NetMHCIIpan4_EL` | `pMHC_presentation` | `single_allele` | `II` |
+| `NetMHCstabpan` | `pMHC_stability` | `single_allele` | `I` |
+| `MHCflurry` | `pMHC_affinity` | `single_allele` | `I` |
+| `MHCflurry` haplotype mode | `pMHC_presentation` | `haplotype` | `I` |
+| `MHCflurry` per-allele panel mode | `pMHC_presentation` | `single_allele` | `I` |
+| `Pepsickle` | `proteasome_cleavage` | `none` | `none` |
+
+For MHCflurry presentation, `presentation_allele_mode="haplotype"` treats the
+requested alleles as one sample genotype and emits one `pMHC_presentation`
+record per peptide. The `allele` field carries MHCflurry's `best_allele`
+attribution when available. `presentation_allele_mode="per_allele"` treats each
+allele as a separate one-allele synthetic sample and emits one presentation
+record per peptide/allele pair. The default `"auto"` mode uses haplotype mode
+for up to six alleles and per-allele mode for larger allele panels.
 
 ### The Prediction object
 

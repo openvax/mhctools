@@ -19,11 +19,14 @@ from .allele_normalization import parse_classi_or_classii_allele_name
 
 from .base_commandline_predictor import BaseCommandlinePredictor
 from .parsing import parse_netmhciipan_stdout, parse_netmhciipan4_stdout, parse_netmhciipan43_stdout
+from .pred import Kind
 
 logger = logging.getLogger(__name__)
 
 
 class NetMHCIIpanBase(BaseCommandlinePredictor):
+    mhc_class = "II"
+
     def __init__(
             self,
             alleles,
@@ -132,6 +135,7 @@ class NetMHCIIpan4(NetMHCIIpanBase):
 
         if mode not in ['binding_affinity', 'elution_score']:
             raise ValueError("Unsupported mode", mode)
+        self.mode = mode
 
         # Always include binding affinity data (-BA flag), though the main score and %rank will
         # still be EL-based. This gives us access to the BA-based score and %rank columns.
@@ -144,6 +148,11 @@ class NetMHCIIpan4(NetMHCIIpanBase):
             parse_output_fn=partial(parse_netmhciipan4_stdout, mode=mode),
             default_peptide_lengths=default_peptide_lengths,
             extra_flags=['-BA'] + extra_flags)
+
+    def _default_pred_kind(self):
+        if self.mode == "binding_affinity":
+            return Kind.pMHC_affinity
+        return Kind.pMHC_presentation
 
 
 class NetMHCIIpan4_EL(NetMHCIIpan4):
@@ -236,6 +245,7 @@ class NetMHCIIpan43(NetMHCIIpanBase):
 
         if mode not in ['binding_affinity', 'elution_score']:
             raise ValueError("Unsupported mode", mode)
+        self.mode = mode
 
         # Always include binding affinity data (-BA flag), though the main score and %rank will
         # still be EL-based. This gives us access to the BA-based score and %rank columns.
@@ -248,6 +258,11 @@ class NetMHCIIpan43(NetMHCIIpanBase):
             parse_output_fn=partial(parse_netmhciipan43_stdout, mode=mode),
             default_peptide_lengths=default_peptide_lengths,
             extra_flags=['-BA'] + extra_flags)
+
+    def _default_pred_kind(self):
+        if self.mode == "binding_affinity":
+            return Kind.pMHC_affinity
+        return Kind.pMHC_presentation
 
 class NetMHCIIpan43_EL(NetMHCIIpan43):
     """

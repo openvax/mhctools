@@ -18,7 +18,7 @@ from .base_predictor import BasePredictor
 from .base_predictor import _check_flank_inputs
 from .binding_prediction import BindingPrediction
 from .binding_prediction_collection import BindingPredictionCollection
-from .pred import Prediction, Kind
+from .pred import Kind, Prediction
 from .unsupported_allele import UnsupportedAllele
 
 logger = logging.getLogger(__name__)
@@ -99,14 +99,22 @@ class MHCflurry(BasePredictor):
     """
     MHCflurry predictor using the modern Class1PresentationPredictor API.
 
-    Produces both ``pMHC_affinity`` and ``pMHC_presentation`` predictions
-    per peptide-allele pair. The legacy ``predict_peptides`` method returns
-    BindingPrediction objects based on affinity values for backward compat.
+    Produces per-allele ``pMHC_affinity`` predictions. For presentation,
+    ``presentation_allele_mode`` controls whether mhctools treats the allele
+    set as one class-I haplotype or as a panel of independent one-allele
+    samples. The legacy ``predict_peptides`` method returns BindingPrediction
+    objects based on affinity values for backward compat.
 
     See https://github.com/openvax/mhcflurry
     """
     uses_flanking_sequences = True
     flank_length = 15
+    max_haplotype_alleles = 6
+    presentation_allele_modes = frozenset((
+        "auto",
+        "haplotype",
+        "per_allele",
+    ))
 
     def __init__(
             self,
@@ -114,7 +122,8 @@ class MHCflurry(BasePredictor):
             default_peptide_lengths=[9],
             predictor=None,
             models_path=None,
-            include_affinity_percentile_ranks=True):
+            include_affinity_percentile_ranks=True,
+            presentation_allele_mode="auto"):
         """
         Parameters
         -----------
@@ -133,6 +142,15 @@ class MHCflurry(BasePredictor):
             If enabled, requested alleles must have MHCflurry affinity
             percentile-rank calibration, either directly or through an allele
             with the same pseudosequence.
+
+        presentation_allele_mode : {"auto", "haplotype", "per_allele"}
+            How to interpret the requested alleles for presentation scoring.
+            ``"haplotype"`` treats the alleles as one sample genotype and
+            emits one presentation prediction per peptide. ``"per_allele"``
+            treats each allele as a separate one-allele synthetic sample and
+            emits one presentation prediction per peptide/allele pair.
+            ``"auto"`` uses haplotype mode for up to six alleles and
+            per-allele mode for larger allele panels.
         """
         from mhcflurry import Class1PresentationPredictor
         BasePredictor.__init__(
@@ -158,6 +176,8 @@ class MHCflurry(BasePredictor):
 
         self.include_affinity_percentile_ranks = \
             include_affinity_percentile_ranks
+        self.presentation_allele_mode = self._resolve_presentation_allele_mode(
+            presentation_allele_mode)
 
         for allele in self.alleles:
             if allele not in self.predictor.supported_alleles:
@@ -165,6 +185,27 @@ class MHCflurry(BasePredictor):
         if self.include_affinity_percentile_ranks:
             _check_affinity_percent_rank_support(
                 self.predictor.affinity_predictor, self.alleles)
+
+    def _resolve_presentation_allele_mode(self, presentation_allele_mode):
+        if presentation_allele_mode not in self.presentation_allele_modes:
+            raise ValueError(
+                "presentation_allele_mode must be one of %s, got %r" % (
+                    sorted(self.presentation_allele_modes),
+                    presentation_allele_mode))
+        if presentation_allele_mode == "auto":
+            if len(self.alleles) <= self.max_haplotype_alleles:
+                return "haplotype"
+            return "per_allele"
+        if (
+                presentation_allele_mode == "haplotype" and
+                len(self.alleles) > self.max_haplotype_alleles):
+            raise ValueError(
+                "MHCflurry presentation haplotype mode accepts at most %d "
+                "alleles, got %d. Use presentation_allele_mode='per_allele' "
+                "for allele panels." % (
+                    self.max_haplotype_alleles,
+                    len(self.alleles)))
+        return presentation_allele_mode
 
     def _predict_protein_flank_lengths(self):
         processing_predictor = getattr(
@@ -214,11 +255,14 @@ class MHCflurry(BasePredictor):
         """
         Predict for a list of peptide sequences.
 
-        Returns a list of PeptideResult, each containing both
-        pMHC_affinity and pMHC_presentation Prediction objects per allele.
+        Returns a list of PeptideResult, each containing one pMHC_affinity
+        Prediction per allele. Presentation predictions are haplotype-level
+        when ``presentation_allele_mode`` is ``"haplotype"`` and per-allele
+        when it is ``"per_allele"``.
 
-        Uses batch prediction across all alleles in a single call for
-        both affinity and presentation scores.
+        Uses batch prediction across alleles for affinity. For presentation,
+        haplotype mode passes the allele list as one MHCflurry sample genotype;
+        per-allele mode passes a sample-to-one-allele dict.
         """
         from .pred import PeptideResult
 
@@ -243,34 +287,58 @@ class MHCflurry(BasePredictor):
             include_percentile_ranks=self.include_affinity_percentile_ranks,
         )
 
-        # Per-allele presentation calls (presentation predictor does
-        # deconvolution across alleles, so we call per-allele to get
-        # per-allele presentation scores). Key by mhcflurry's output
-        # allele string so lookups with aff_df.allele always match.
-        pres_by_pep_allele = {}
-        for input_allele in allele_list:
-            kwargs = {
-                "peptides": peptide_list,
-                "alleles": [input_allele],
-                "include_affinity_percentile": False,
-                "verbose": 0,
+        if self.presentation_allele_mode == "haplotype":
+            presentation_alleles = allele_list
+        else:
+            presentation_alleles = {
+                allele: [allele]
+                for allele in allele_list
             }
-            if n_flank_list is not None:
-                kwargs["n_flanks"] = n_flank_list
-            if c_flank_list is not None:
-                kwargs["c_flanks"] = c_flank_list
-            df = self.predictor.predict(**kwargs)
-            if len(df) != len(peptide_list):
+
+        kwargs = {
+            "peptides": peptide_list,
+            "alleles": presentation_alleles,
+            "include_affinity_percentile": False,
+            "verbose": 0,
+        }
+        if n_flank_list is not None:
+            kwargs["n_flanks"] = n_flank_list
+        if c_flank_list is not None:
+            kwargs["c_flanks"] = c_flank_list
+        pres_df = self.predictor.predict(**kwargs)
+        expected_presentation_rows = len(peptide_list)
+        if self.presentation_allele_mode == "per_allele":
+            expected_presentation_rows *= len(allele_list)
+        if len(pres_df) != expected_presentation_rows:
+            raise ValueError(
+                "MHCflurry returned %d presentation row(s) for %d "
+                "expected peptide/context row(s)" % (
+                    len(pres_df),
+                    expected_presentation_rows))
+
+        pres_by_peptide_index = {i: [] for i in range(len(peptide_list))}
+        seen_presentation_keys = set()
+        for row_position, row in enumerate(pres_df.itertuples(index=False)):
+            row_index = int(getattr(row, "peptide_num", row_position))
+            if self.presentation_allele_mode == "haplotype":
+                allele = getattr(row, "best_allele", getattr(row, "allele", ""))
+                key = (row_index, "")
+            else:
+                allele = getattr(
+                    row,
+                    "sample_name",
+                    getattr(row, "best_allele", getattr(row, "allele", "")))
+                key = (row_index, allele)
+            if key in seen_presentation_keys:
                 raise ValueError(
-                    "MHCflurry returned %d presentation row(s) for %d "
-                    "peptide input(s) and allele '%s'" % (
-                        len(df), len(peptide_list), input_allele))
-            for row_index, row in enumerate(df.itertuples(index=False)):
-                output_allele = getattr(row, 'allele', input_allele)
-                pres_by_pep_allele[(row_index, output_allele)] = (
-                    row.presentation_score,
-                    row.presentation_percentile,
-                )
+                    "MHCflurry returned duplicate presentation row for "
+                    "peptide index %d and allele '%s'" % (row_index, allele))
+            seen_presentation_keys.add(key)
+            pres_by_peptide_index[row_index].append((
+                row.presentation_score,
+                row.presentation_percentile,
+                allele,
+            ))
 
         groups = [list() for _ in peptide_list]
         for row_index, row in zip(batch_indices, aff_df.itertuples(index=False)):
@@ -301,24 +369,27 @@ class MHCflurry(BasePredictor):
                 predictor_name="mhcflurry",
             ))
 
-            key = (row_index, allele)
-            if key not in pres_by_pep_allele:
+        for row_index, pep in enumerate(peptide_list):
+            if not pres_by_peptide_index[row_index]:
                 raise ValueError(
                     "MHCflurry: missing presentation score for "
-                    "peptide='%s' allele='%s' (this indicates an allele or "
-                    "peptide string mismatch between the affinity and "
-                    "presentation predictor outputs)" % (pep, allele))
-            pres_score, pres_pct = pres_by_pep_allele[key]
-            groups[row_index].append(Prediction(
-                kind=Kind.pMHC_presentation,
-                score=pres_score,
-                peptide=pep,
-                allele=allele,
-                n_flank=n_flank,
-                c_flank=c_flank,
-                percentile_rank=pres_pct,
-                predictor_name="mhcflurry",
-            ))
+                    "peptide index %d, peptide='%s'" % (row_index, pep))
+            n_flank = (
+                n_flank_list[row_index] if n_flank_list is not None else "")
+            c_flank = (
+                c_flank_list[row_index] if c_flank_list is not None else "")
+            for pres_score, pres_pct, presentation_allele in (
+                    pres_by_peptide_index[row_index]):
+                groups[row_index].append(Prediction(
+                    kind=Kind.pMHC_presentation,
+                    score=pres_score,
+                    peptide=pep,
+                    allele=presentation_allele or "",
+                    n_flank=n_flank,
+                    c_flank=c_flank,
+                    percentile_rank=pres_pct,
+                    predictor_name="mhcflurry",
+                ))
 
         return [PeptideResult(preds=tuple(preds)) for preds in groups]
 
@@ -330,6 +401,22 @@ class MHCflurry(BasePredictor):
 
     def _default_pred_kind(self):
         return Kind.pMHC_affinity
+
+    def kind_support(self):
+        presentation_dependence = (
+            "haplotype"
+            if self.presentation_allele_mode == "haplotype"
+            else "single_allele")
+        return {
+            Kind.pMHC_affinity: {
+                "mhc_dependence": "single_allele",
+                "mhc_class": "I",
+            },
+            Kind.pMHC_presentation: {
+                "mhc_dependence": presentation_dependence,
+                "mhc_class": "I",
+            },
+        }
 
 
 class MHCflurry_Affinity(BasePredictor):

@@ -4,20 +4,20 @@
 #
 #       http://www.apache.org/licenses/LICENSE-2.0
 
-"""Tests for the MHCflurry wrapper's presentation-score lookup.
-
-Verifies that when the presentation predictor's output allele string differs
-from the affinity predictor's output allele string (e.g. different
-normalization), the wrapper fails loudly instead of silently returning
-score=0.0 for all presentations.
-"""
+"""Tests for the MHCflurry wrapper's presentation and affinity bookkeeping."""
 
 import types
 
 import pandas as pd
 import pytest
 
-from mhctools import MHCflurry, MHCflurry_Affinity
+from mhctools import (
+    MHC_CLASS_VALUES,
+    MHC_DEPENDENCE_VALUES,
+    MHCflurry,
+    MHCflurry_Affinity,
+)
+from mhctools.pred import Kind
 
 
 def _make_fake_predictor(
@@ -32,9 +32,12 @@ def _make_fake_predictor(
 
     def predict_to_dataframe(
             peptides, alleles, include_percentile_ranks=True):
+        output_alleles = (
+            [aff_allele_str] * len(peptides)
+            if aff_allele_str is not None else list(alleles))
         data = {
             "peptide": peptides,
-            "allele": [aff_allele_str] * len(peptides),
+            "allele": output_alleles,
             "prediction": [500.0] * len(peptides),
         }
         if include_percentile_ranks:
@@ -63,18 +66,38 @@ def _make_fake_predictor(
             throw=True,
             affinity_model_kwargs=None,
             processing_batch_size="auto"):
+        allele_arg = {
+            k: list(v)
+            for (k, v) in alleles.items()
+        } if isinstance(alleles, dict) else list(alleles)
         predict_calls.append({
             "peptides": list(peptides),
-            "alleles": list(alleles),
+            "alleles": allele_arg,
             "n_flanks": None if n_flanks is None else list(n_flanks),
             "c_flanks": None if c_flanks is None else list(c_flanks),
         })
-        return pd.DataFrame({
-            "peptide": list(peptides),
-            "allele": [pres_allele_str] * len(peptides),
-            "presentation_score": [0.75] * len(peptides),
-            "presentation_percentile": [2.0] * len(peptides),
-        })
+        rows = []
+        if isinstance(alleles, dict):
+            for sample_name in alleles:
+                for i, peptide in enumerate(peptides):
+                    rows.append({
+                        "peptide": peptide,
+                        "peptide_num": i,
+                        "sample_name": sample_name,
+                        "best_allele": sample_name,
+                        "presentation_score": 0.75,
+                        "presentation_percentile": 2.0,
+                    })
+        else:
+            for i, peptide in enumerate(peptides):
+                rows.append({
+                    "peptide": peptide,
+                    "peptide_num": i,
+                    "best_allele": pres_allele_str,
+                    "presentation_score": 0.75,
+                    "presentation_percentile": 2.0,
+                })
+        return pd.DataFrame(rows)
     return types.SimpleNamespace(
         affinity_predictor=affinity_predictor,
         predict=predict,
@@ -96,17 +119,15 @@ def test_consistent_allele_strings_produce_correct_scores():
     assert r.presentation.allele == "HLA-A*02:01"
 
 
-def test_inconsistent_allele_strings_raise_instead_of_silently_returning_zero():
-    """Regression: previously the wrapper silently returned (0.0, None) for
-    presentation when the allele string in aff_df didn't match the key in
-    pres_by_pep_allele. Now it raises."""
+def test_presentation_best_allele_is_attribution_not_affinity_lookup_key():
     fake = _make_fake_predictor(
         aff_allele_str="HLA-A*02:01",    # affinity output
-        pres_allele_str="HLA-A0201",     # presentation output (different!)
+        pres_allele_str="HLA-A0201",     # presentation attribution
         supported=["HLA-A*02:01"])
     p = MHCflurry(alleles=["HLA-A*02:01"], predictor=fake)
-    with pytest.raises(ValueError, match="missing presentation score"):
-        p.predict(["SIINFEKLA"])
+    result = p.predict(["SIINFEKLA"])[0]
+    assert result.presentation.allele == "HLA-A0201"
+    assert result.presentation.score == 0.75
 
 
 def test_accepts_affinity_percentile_calibration_from_same_pseudosequence():
@@ -150,6 +171,23 @@ def test_can_disable_missing_affinity_percentile_ranks():
     assert results[0].affinity.percentile_rank is None
 
 
+def test_mhcflurry_kind_support_marks_presentation_as_haplotype_level():
+    fake = _make_fake_predictor(
+        aff_allele_str="HLA-A*02:01",
+        pres_allele_str="HLA-A*02:01",
+        supported=["HLA-A*02:01"])
+    predictor = MHCflurry(alleles=["HLA-A*02:01"], predictor=fake)
+
+    support = predictor.kind_support()
+
+    assert support[Kind.pMHC_affinity]["mhc_dependence"] == "single_allele"
+    assert support[Kind.pMHC_presentation]["mhc_dependence"] == "haplotype"
+    assert support[Kind.pMHC_presentation]["mhc_class"] == "I"
+    assert support[Kind.pMHC_presentation]["mhc_dependence"] in (
+        MHC_DEPENDENCE_VALUES)
+    assert support[Kind.pMHC_presentation]["mhc_class"] in MHC_CLASS_VALUES
+
+
 def test_mhcflurry_forwards_flanks_to_presentation_predictor():
     fake = _make_fake_predictor(
         aff_allele_str="HLA-A*02:01",
@@ -169,6 +207,80 @@ def test_mhcflurry_forwards_flanks_to_presentation_predictor():
     assert results[0].presentation.c_flank == "CC"
     assert results[1].presentation.n_flank == "XX"
     assert results[1].presentation.c_flank == "YY"
+
+
+def test_mhcflurry_presentation_uses_full_haplotype_once():
+    fake = _make_fake_predictor(
+        aff_allele_str=None,
+        pres_allele_str="HLA-B*07:02",
+        supported=["HLA-A*02:01", "HLA-B*07:02"])
+    predictor = MHCflurry(
+        alleles=["HLA-A*02:01", "HLA-B*07:02"],
+        predictor=fake)
+
+    result = predictor.predict(["SIINFEKLA"])[0]
+
+    assert len(fake.predict_calls) == 1
+    assert set(fake.predict_calls[0]["alleles"]) == {
+        "HLA-A*02:01",
+        "HLA-B*07:02",
+    }
+    assert len(result.filter(kind=Kind.pMHC_affinity)) == 2
+    assert len(result.filter(kind=Kind.pMHC_presentation)) == 1
+    assert result.presentation.allele == "HLA-B*07:02"
+
+
+def test_mhcflurry_large_panel_uses_one_sample_per_allele():
+    alleles = [
+        "HLA-A*01:01",
+        "HLA-A*02:01",
+        "HLA-A*03:01",
+        "HLA-B*07:02",
+        "HLA-B*08:01",
+        "HLA-C*07:01",
+        "HLA-C*07:02",
+    ]
+    fake = _make_fake_predictor(
+        aff_allele_str=None,
+        pres_allele_str="unused",
+        supported=alleles)
+    predictor = MHCflurry(alleles=alleles, predictor=fake)
+
+    result = predictor.predict(["SIINFEKLA"])[0]
+
+    assert predictor.presentation_allele_mode == "per_allele"
+    assert predictor.kind_support()[Kind.pMHC_presentation][
+        "mhc_dependence"] == "single_allele"
+    assert len(fake.predict_calls) == 1
+    presentation_alleles = fake.predict_calls[0]["alleles"]
+    assert set(presentation_alleles) == set(alleles)
+    assert all(v == [k] for k, v in presentation_alleles.items())
+    assert len(result.filter(kind=Kind.pMHC_affinity)) == len(alleles)
+    presentations = result.filter(kind=Kind.pMHC_presentation)
+    assert len(presentations) == len(alleles)
+    assert {p.allele for p in presentations} == set(alleles)
+
+
+def test_mhcflurry_rejects_large_explicit_haplotype():
+    alleles = [
+        "HLA-A*01:01",
+        "HLA-A*02:01",
+        "HLA-A*03:01",
+        "HLA-B*07:02",
+        "HLA-B*08:01",
+        "HLA-C*07:01",
+        "HLA-C*07:02",
+    ]
+    fake = _make_fake_predictor(
+        aff_allele_str=None,
+        pres_allele_str="unused",
+        supported=alleles)
+
+    with pytest.raises(ValueError, match="haplotype mode accepts at most"):
+        MHCflurry(
+            alleles=alleles,
+            predictor=fake,
+            presentation_allele_mode="haplotype")
 
 
 def test_mhcflurry_predict_proteins_threads_flanking_context():

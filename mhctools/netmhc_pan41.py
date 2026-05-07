@@ -10,9 +10,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from functools import partial
+
 from .base_commandline_predictor import BaseCommandlinePredictor
 from .parsing import parse_netmhc41_stdout, parse_netmhcpan_to_preds
-from functools import partial
+from .pred import Kind
 
 
 class NetMHCpan41(BaseCommandlinePredictor):
@@ -38,6 +40,7 @@ class NetMHCpan41(BaseCommandlinePredictor):
             flags = []
         else:
             raise ValueError("Unsupported mode", mode)
+        self.mode = mode
 
         BaseCommandlinePredictor.__init__(
             self,
@@ -52,6 +55,20 @@ class NetMHCpan41(BaseCommandlinePredictor):
             allele_flag="-a",
             extra_flags=flags + extra_flags,
             process_limit=process_limit)
+
+    def kind_support(self):
+        if self.mode == "binding_affinity":
+            kinds = (Kind.pMHC_affinity, Kind.pMHC_presentation)
+        else:
+            kinds = (Kind.pMHC_presentation,)
+        return {
+            kind: {
+                "mhc_dependence": "single_allele",
+                "mhc_class": "I",
+            }
+            for kind in kinds
+        }
+
 
 class NetMHCpan41_EL(NetMHCpan41):
     """

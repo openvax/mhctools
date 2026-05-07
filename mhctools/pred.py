@@ -18,11 +18,30 @@ from typing import Optional
 import pandas as pd
 
 
+MHC_DEPENDENCE_VALUES = frozenset((
+    "none",
+    "single_allele",
+    "haplotype",
+))
+"""Allowed ``kind_support()[kind]["mhc_dependence"]`` values."""
+
+
+MHC_CLASS_VALUES = frozenset((
+    "none",
+    "I",
+    "II",
+    "both",
+))
+"""Allowed ``kind_support()[kind]["mhc_class"]`` values."""
+
+
 class Kind:
     """String constants for prediction kinds.
 
     You can use ``Kind.pMHC_affinity`` or just ``"pMHC_affinity"`` —
-    they're the same string.
+    they're the same string. These constants name what is measured, but
+    predictor instances define the MHC context required for their supported
+    kinds through ``kind_support()``.
     """
     pMHC_affinity = "pMHC_affinity"
     pMHC_presentation = "pMHC_presentation"

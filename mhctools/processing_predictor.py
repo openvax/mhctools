@@ -39,7 +39,11 @@ from .base_predictor import (
     _normalize_sequence_dict,
     _peptide_contexts,
 )
-from .pred import Prediction, Kind, PeptideResult
+from .pred import (
+    Kind,
+    PeptideResult,
+    Prediction,
+)
 
 
 # ------------------------------------------------------------------
@@ -262,6 +266,20 @@ class ProcessingPredictor:
     def _pred_kind(self):
         """Kind value for Prediction objects.  Override in subclasses."""
         return Kind.antigen_processing
+
+    def kind_support(self):
+        """Predictor-specific MHC context for supported prediction kinds."""
+        return {
+            self._pred_kind(): {
+                "mhc_dependence": "none",
+                "mhc_class": "none",
+            }
+        }
+
+    @property
+    def supported_kinds(self):
+        """Prediction kind strings this predictor can emit."""
+        return tuple(self.kind_support())
 
     def _predictor_name(self):
         return self.__class__.__name__.lower()

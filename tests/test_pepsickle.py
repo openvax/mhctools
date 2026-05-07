@@ -22,7 +22,7 @@ from mhctools.processing_predictor import (
     score_nterm_cterm_anti_max_internal,
 )
 from mhctools.proteasome_predictor import ProteasomePredictor
-from mhctools.pred import Kind, PeptideResult, COLUMNS
+from mhctools.pred import COLUMNS, Kind, PeptideResult
 
 pepsickle = pytest.importorskip("pepsickle")
 
@@ -65,6 +65,14 @@ def test_init_custom_scoring_string():
 def test_str():
     s = str(Pepsickle())
     assert "Pepsickle" in s
+
+
+def test_kind_support_is_mhc_independent():
+    support = Pepsickle().kind_support()
+
+    assert set(support) == {Kind.proteasome_cleavage}
+    assert support[Kind.proteasome_cleavage]["mhc_dependence"] == "none"
+    assert support[Kind.proteasome_cleavage]["mhc_class"] == "none"
 
 
 # -- cleavage_probs --
@@ -245,4 +253,3 @@ def test_scoring_methods_produce_different_scores():
     unique = set(
         tuple(round(s, 6) for s in v) for v in scores_by_fn.values())
     assert len(unique) > 1
-

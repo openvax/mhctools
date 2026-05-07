@@ -157,7 +157,7 @@ def test_mhcflurry_affinity_only():
 
 
 def test_mhcflurry_multiple_alleles():
-    """MHCflurry with multiple alleles produces predictions for each allele."""
+    """MHCflurry affinity is per-allele; presentation is haplotype-level."""
     alleles = ["HLA-A*02:01", "HLA-B*07:02"]
     predictor = MHCflurry(alleles=alleles)
     results = predictor.predict(["SIINFEKL"])
@@ -165,10 +165,13 @@ def test_mhcflurry_multiple_alleles():
     eq_(1, len(results), "Expected one PeptideResult")
     r = results[0]
 
-    # Should have 2 alleles x 2 kinds = 4 predictions total
-    eq_(4, len(r.preds), "Expected 4 predictions (2 alleles x 2 kinds)")
+    # Two per-allele affinity predictions plus one haplotype-level
+    # presentation prediction with best_allele attribution.
+    eq_(3, len(r.preds), "Expected 3 predictions")
+    eq_(2, len(r.filter(kind=Kind.pMHC_affinity)))
+    eq_(1, len(r.filter(kind=Kind.pMHC_presentation)))
 
-    # Both alleles should be present
+    # Both alleles should be present through affinity predictions.
     assert r.alleles == set(alleles)
 
     # Both kinds should be present

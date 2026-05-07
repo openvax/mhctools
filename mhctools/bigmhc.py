@@ -31,7 +31,12 @@ import sys
 import pandas as pd
 import torch
 
-from .pred import Kind, Prediction, PeptideResult, COLUMNS
+from .pred import (
+    COLUMNS,
+    Kind,
+    PeptideResult,
+    Prediction,
+)
 
 
 def _find_bigmhc_dir(bigmhc_path=None):
@@ -132,6 +137,18 @@ class BigMHC:
         if self.mode == "im":
             return Kind.immunogenicity
         return Kind.pMHC_presentation
+
+    def kind_support(self):
+        return {
+            self._pred_kind(): {
+                "mhc_dependence": "single_allele",
+                "mhc_class": "I",
+            }
+        }
+
+    @property
+    def supported_kinds(self):
+        return tuple(self.kind_support())
 
     def _predictor_name(self):
         return "bigmhc_%s" % self.mode

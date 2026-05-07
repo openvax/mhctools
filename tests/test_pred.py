@@ -10,11 +10,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from mhctools.pred import Prediction, PeptideResult, Kind, preds_from_rows, COLUMNS
+from mhctools.pred import (
+    COLUMNS,
+    Kind,
+    MHC_CLASS_VALUES,
+    MHC_DEPENDENCE_VALUES,
+    PeptideResult,
+    Prediction,
+    preds_from_rows,
+)
 from mhctools.sample import MultiSample
 from mhctools.base_predictor import BasePredictor
 from mhctools.binding_prediction import BindingPrediction
 from mhctools.binding_prediction_collection import BindingPredictionCollection
+from mhctools.netmhc_pan41 import NetMHCpan41
+from mhctools.netmhcstabpan import NetMHCstabpan
+from mhctools.netmhcii_pan import NetMHCIIpan4, NetMHCIIpan43
 from mhctools.random_predictor import RandomBindingPredictor
 
 
@@ -345,6 +356,63 @@ def test_predict_proteins():
     for pp in result["TP53"]:
         for pred in pp.preds:
             assert pred.source_sequence_name == "TP53"
+
+
+def test_binding_predictor_kind_support_defaults_to_single_allele_class_i():
+    predictor = RandomBindingPredictor(
+        alleles=["HLA-A*02:01"],
+        default_peptide_lengths=[9])
+    support = predictor.kind_support()
+    assert predictor.supported_kinds == (Kind.pMHC_affinity,)
+    assert support[Kind.pMHC_affinity]["mhc_dependence"] == "single_allele"
+    assert support[Kind.pMHC_affinity]["mhc_class"] == "I"
+    assert support[Kind.pMHC_affinity]["mhc_dependence"] in (
+        MHC_DEPENDENCE_VALUES)
+    assert support[Kind.pMHC_affinity]["mhc_class"] in MHC_CLASS_VALUES
+
+
+def test_netmhcpan41_kind_support_includes_affinity_and_presentation():
+    predictor = NetMHCpan41.__new__(NetMHCpan41)
+    predictor.mode = "binding_affinity"
+
+    support = predictor.kind_support()
+
+    assert set(support) == {Kind.pMHC_affinity, Kind.pMHC_presentation}
+    assert support[Kind.pMHC_affinity]["mhc_dependence"] == "single_allele"
+    assert support[Kind.pMHC_presentation]["mhc_dependence"] == "single_allele"
+    assert support[Kind.pMHC_affinity]["mhc_class"] == "I"
+
+
+def test_netmhciipan4_el_kind_support_is_class_ii_presentation():
+    predictor = NetMHCIIpan4.__new__(NetMHCIIpan4)
+    predictor.mode = "elution_score"
+
+    support = predictor.kind_support()
+
+    assert set(support) == {Kind.pMHC_presentation}
+    assert support[Kind.pMHC_presentation]["mhc_dependence"] == "single_allele"
+    assert support[Kind.pMHC_presentation]["mhc_class"] == "II"
+
+
+def test_netmhciipan43_ba_kind_support_is_class_ii_affinity():
+    predictor = NetMHCIIpan43.__new__(NetMHCIIpan43)
+    predictor.mode = "binding_affinity"
+
+    support = predictor.kind_support()
+
+    assert set(support) == {Kind.pMHC_affinity}
+    assert support[Kind.pMHC_affinity]["mhc_dependence"] == "single_allele"
+    assert support[Kind.pMHC_affinity]["mhc_class"] == "II"
+
+
+def test_netmhcstabpan_kind_support_is_stability():
+    predictor = NetMHCstabpan.__new__(NetMHCstabpan)
+
+    support = predictor.kind_support()
+
+    assert set(support) == {Kind.pMHC_stability}
+    assert support[Kind.pMHC_stability]["mhc_dependence"] == "single_allele"
+    assert support[Kind.pMHC_stability]["mhc_class"] == "I"
 
 
 class FlankEchoPredictor(BasePredictor):
