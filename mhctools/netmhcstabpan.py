@@ -12,6 +12,7 @@
 
 from .base_commandline_predictor import BaseCommandlinePredictor
 from .parsing import parse_netmhcstabpan
+from .pred import Kind
 
 class NetMHCstabpan(BaseCommandlinePredictor):
     def __init__(
@@ -42,4 +43,7 @@ class NetMHCstabpan(BaseCommandlinePredictor):
         if len(peptide_lengths) > 1:
             raise ValueError("All peptides must be the same length")
         return super().predict_peptides(peptides)
+
+    def _default_pred_kind(self):
+        return Kind.pMHC_stability
     

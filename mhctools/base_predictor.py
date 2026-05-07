@@ -19,7 +19,11 @@ from .allele_normalization import normalize_allele_name
 
 from .unsupported_allele import UnsupportedAllele
 from .binding_prediction_collection import BindingPredictionCollection
-from .pred import Prediction, Kind, PeptideResult
+from .pred import (
+    Kind,
+    PeptideResult,
+    Prediction,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -101,6 +105,7 @@ class BasePredictor(object):
     flank_length = 15
     n_flank_length = None
     c_flank_length = None
+    mhc_class = "I"
 
     def __init__(
             self,
@@ -330,6 +335,20 @@ class BasePredictor(object):
     def _default_pred_kind(self):
         """Override in subclasses to set the Kind for compat conversion."""
         return Kind.pMHC_affinity
+
+    def kind_support(self):
+        """Predictor-specific MHC context for supported prediction kinds."""
+        return {
+            self._default_pred_kind(): {
+                "mhc_dependence": "single_allele",
+                "mhc_class": self.mhc_class,
+            }
+        }
+
+    @property
+    def supported_kinds(self):
+        """Prediction kind strings this predictor can emit."""
+        return tuple(self.kind_support())
 
     # --- deprecated API (still works) ---
 

@@ -1,6 +1,15 @@
 from .binding_prediction import BindingPrediction
 from .binding_prediction_collection import BindingPredictionCollection
-from .pred import Prediction, Pred, PeptideResult, PeptidePreds, Kind, preds_from_rows
+from .pred import (
+    Kind,
+    MHC_CLASS_VALUES,
+    MHC_DEPENDENCE_VALUES,
+    PeptidePreds,
+    PeptideResult,
+    Pred,
+    Prediction,
+    preds_from_rows,
+)
 from .sample import MultiSample
 from .iedb import (
     IedbNetMHCcons,
@@ -63,7 +72,7 @@ def __getattr__(name):
     raise AttributeError(
         "module %r has no attribute %r" % (__name__, name))
 
-__version__ = "3.13.6"
+__version__ = "3.13.7"
 
 __all__ = [
     "Prediction",
@@ -71,6 +80,8 @@ __all__ = [
     "PeptideResult",
     "PeptidePreds",  # backward compat alias
     "Kind",
+    "MHC_CLASS_VALUES",
+    "MHC_DEPENDENCE_VALUES",
     "preds_from_rows",
     "MultiSample",
     "BindingPrediction",

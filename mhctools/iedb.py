@@ -325,6 +325,8 @@ class IedbSMM_PMBEC(IedbBasePredictor):
 IEDB_MHC_CLASS_II_URL = "http://tools-cluster-interface.iedb.org/tools_api/mhcii/"
 
 class IedbNetMHCIIpan(IedbBasePredictor):
+    mhc_class = "II"
+
     def __init__(
             self,
             alleles,
