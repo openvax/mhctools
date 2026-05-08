@@ -10,13 +10,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import pytest
+
 from mhctools.pred import (
     COLUMNS,
+    FIELD_BEST_DIRECTIONS,
     Kind,
     MHC_CLASS_VALUES,
     MHC_DEPENDENCE_VALUES,
     PeptideResult,
     Prediction,
+    VALUE_BEST_DIRECTIONS,
+    best_direction,
     preds_from_rows,
 )
 from mhctools.sample import MultiSample
@@ -572,3 +577,149 @@ def test_collection_to_peptide_preds():
     assert len(pp_list) == 2  # two distinct peptide positions
     sizes = sorted(len(pp.preds) for pp in pp_list)
     assert sizes == [1, 2]
+
+
+# -- best_direction --
+
+
+def test_field_best_directions_constants():
+    """score is max-better, percentile_rank is min-better — uniform across kinds."""
+    assert FIELD_BEST_DIRECTIONS["score"] == "max"
+    assert FIELD_BEST_DIRECTIONS["percentile_rank"] == "min"
+
+
+def test_value_best_directions_kind_specific():
+    """value direction is kind-dependent; affinity uses IC50 (min-better)."""
+    assert VALUE_BEST_DIRECTIONS[Kind.pMHC_affinity] == "min"
+    assert VALUE_BEST_DIRECTIONS[Kind.pMHC_stability] == "max"
+
+
+def test_best_direction_field_defaults():
+    # score is max for any kind that uses it
+    assert best_direction(Kind.pMHC_affinity, "score") == "max"
+    assert best_direction(Kind.pMHC_presentation, "score") == "max"
+    assert best_direction(Kind.proteasome_cleavage, "score") == "max"
+    # percentile_rank is min for any kind that uses it
+    assert best_direction(Kind.pMHC_affinity, "percentile_rank") == "min"
+    assert best_direction(Kind.pMHC_presentation, "percentile_rank") == "min"
+
+
+def test_best_direction_value_kind_specific():
+    assert best_direction(Kind.pMHC_affinity, "value") == "min"   # IC50
+    assert best_direction(Kind.pMHC_stability, "value") == "max"  # half-life
+
+
+def test_best_direction_value_unregistered_raises():
+    """`value` for a kind without a registered direction must raise —
+    we refuse to guess the unit semantics."""
+    with pytest.raises(ValueError, match="best_direction undefined"):
+        best_direction(Kind.pMHC_presentation, "value")
+    with pytest.raises(ValueError, match="best_direction undefined"):
+        best_direction(Kind.proteasome_cleavage, "value")
+
+
+def test_best_direction_unknown_field_raises():
+    with pytest.raises(ValueError, match="best_direction undefined for field"):
+        best_direction(Kind.pMHC_affinity, "made_up_field")
+
+
+def test_best_direction_accepts_string_kind():
+    # Kind constants are plain strings, so callers can pass either form.
+    assert best_direction("pMHC_affinity", "value") == "min"
+    assert best_direction("pMHC_affinity", "score") == "max"
+
+
+# -- best_by (public, direction-aware) --
+
+
+def test_best_by_score_picks_max():
+    ps = _make_pred_set()
+    best = ps.best_by_score(Kind.pMHC_affinity)
+    assert best.allele == "HLA-A*02:01"
+    assert best.score == 0.85
+
+
+def test_best_by_rank_picks_min():
+    ps = _make_pred_set()
+    best = ps.best_by_rank(Kind.pMHC_affinity)
+    assert best.allele == "HLA-A*02:01"
+    assert best.percentile_rank == 0.8
+
+
+def test_best_by_value_affinity_picks_min_ic50():
+    ps = _make_pred_set()
+    best = ps.best_by_value(Kind.pMHC_affinity)
+    assert best.allele == "HLA-A*02:01"
+    assert best.value == 120.5
+
+
+def test_best_by_value_stability_picks_max_half_life():
+    ps = preds_from_rows(
+        [
+            dict(kind=Kind.pMHC_stability, allele="HLA-A*02:01",
+                 score=0.6, value=4.0),
+            dict(kind=Kind.pMHC_stability, allele="HLA-B*07:02",
+                 score=0.9, value=12.0),
+        ],
+        peptide="SIINFEKL",
+    )
+    best = ps.best_by_value(Kind.pMHC_stability)
+    assert best.allele == "HLA-B*07:02"
+    assert best.value == 12.0
+
+
+def test_best_by_value_unregistered_kind_raises():
+    ps = _make_pred_set()
+    with pytest.raises(ValueError, match="best_direction undefined"):
+        ps.best_by_value(Kind.pMHC_presentation)
+
+
+def test_best_by_skips_none_field():
+    # antigen_processing pred has score but None for percentile_rank
+    ps = _make_pred_set()
+    assert ps.best_by_rank(Kind.antigen_processing) is None
+    assert ps.best_by_score(Kind.antigen_processing) is not None
+
+
+def test_best_by_falls_back_to_allele_less():
+    ps = preds_from_rows(
+        [dict(kind=Kind.proteasome_cleavage, score=0.7),
+         dict(kind=Kind.proteasome_cleavage, score=0.9)],
+        peptide="SIINFEKL",
+    )
+    best = ps.best_by_score(Kind.proteasome_cleavage)
+    assert best is not None
+    assert best.score == 0.9
+    assert best.allele == ""
+
+
+def test_best_by_missing_kind_returns_none():
+    ps = _make_pred_set()
+    assert ps.best_by_score(Kind.immunogenicity) is None
+    assert ps.best_by_rank(Kind.pMHC_stability) is None
+
+
+def test_best_by_accepts_string_kind():
+    # Kind constants are plain strings, so callers can pass either form.
+    ps = _make_pred_set()
+    by_kind = ps.best_by_score(Kind.pMHC_affinity)
+    by_str = ps.best_by_score("pMHC_affinity")
+    assert by_kind == by_str
+    assert ps.best_by("pMHC_affinity", "value") == ps.best_by_value(Kind.pMHC_affinity)
+
+
+def test_best_by_rank_falls_back_to_allele_less():
+    # Behavior change vs the old _best_by_rank: rank predictions without an
+    # allele are now considered when no allele-bearing rank pred exists. Pin
+    # the new contract so it can't silently regress.
+    ps = preds_from_rows(
+        [
+            dict(kind=Kind.pMHC_presentation, score=0.5, percentile_rank=10.0),
+            dict(kind=Kind.pMHC_presentation, score=0.8, percentile_rank=2.0),
+        ],
+        peptide="SIINFEKL",
+    )
+    best = ps.best_presentation_by_rank
+    assert best is not None
+    assert best.allele == ""
+    assert best.percentile_rank == 2.0
