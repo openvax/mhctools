@@ -697,3 +697,29 @@ def test_best_by_missing_kind_returns_none():
     ps = _make_pred_set()
     assert ps.best_by_score(Kind.immunogenicity) is None
     assert ps.best_by_rank(Kind.pMHC_stability) is None
+
+
+def test_best_by_accepts_string_kind():
+    # Kind constants are plain strings, so callers can pass either form.
+    ps = _make_pred_set()
+    by_kind = ps.best_by_score(Kind.pMHC_affinity)
+    by_str = ps.best_by_score("pMHC_affinity")
+    assert by_kind == by_str
+    assert ps.best_by("pMHC_affinity", "value") == ps.best_by_value(Kind.pMHC_affinity)
+
+
+def test_best_by_rank_falls_back_to_allele_less():
+    # Behavior change vs the old _best_by_rank: rank predictions without an
+    # allele are now considered when no allele-bearing rank pred exists. Pin
+    # the new contract so it can't silently regress.
+    ps = preds_from_rows(
+        [
+            dict(kind=Kind.pMHC_presentation, score=0.5, percentile_rank=10.0),
+            dict(kind=Kind.pMHC_presentation, score=0.8, percentile_rank=2.0),
+        ],
+        peptide="SIINFEKL",
+    )
+    best = ps.best_presentation_by_rank
+    assert best is not None
+    assert best.allele == ""
+    assert best.percentile_rank == 2.0
