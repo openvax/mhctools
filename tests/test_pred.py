@@ -627,3 +627,73 @@ def test_best_direction_accepts_string_kind():
     # Kind constants are plain strings, so callers can pass either form.
     assert best_direction("pMHC_affinity", "value") == "min"
     assert best_direction("pMHC_affinity", "score") == "max"
+
+
+# -- best_by (public, direction-aware) --
+
+
+def test_best_by_score_picks_max():
+    ps = _make_pred_set()
+    best = ps.best_by_score(Kind.pMHC_affinity)
+    assert best.allele == "HLA-A*02:01"
+    assert best.score == 0.85
+
+
+def test_best_by_rank_picks_min():
+    ps = _make_pred_set()
+    best = ps.best_by_rank(Kind.pMHC_affinity)
+    assert best.allele == "HLA-A*02:01"
+    assert best.percentile_rank == 0.8
+
+
+def test_best_by_value_affinity_picks_min_ic50():
+    ps = _make_pred_set()
+    best = ps.best_by_value(Kind.pMHC_affinity)
+    assert best.allele == "HLA-A*02:01"
+    assert best.value == 120.5
+
+
+def test_best_by_value_stability_picks_max_half_life():
+    ps = preds_from_rows(
+        [
+            dict(kind=Kind.pMHC_stability, allele="HLA-A*02:01",
+                 score=0.6, value=4.0),
+            dict(kind=Kind.pMHC_stability, allele="HLA-B*07:02",
+                 score=0.9, value=12.0),
+        ],
+        peptide="SIINFEKL",
+    )
+    best = ps.best_by_value(Kind.pMHC_stability)
+    assert best.allele == "HLA-B*07:02"
+    assert best.value == 12.0
+
+
+def test_best_by_value_unregistered_kind_raises():
+    ps = _make_pred_set()
+    with pytest.raises(ValueError, match="best_direction undefined"):
+        ps.best_by_value(Kind.pMHC_presentation)
+
+
+def test_best_by_skips_none_field():
+    # antigen_processing pred has score but None for percentile_rank
+    ps = _make_pred_set()
+    assert ps.best_by_rank(Kind.antigen_processing) is None
+    assert ps.best_by_score(Kind.antigen_processing) is not None
+
+
+def test_best_by_falls_back_to_allele_less():
+    ps = preds_from_rows(
+        [dict(kind=Kind.proteasome_cleavage, score=0.7),
+         dict(kind=Kind.proteasome_cleavage, score=0.9)],
+        peptide="SIINFEKL",
+    )
+    best = ps.best_by_score(Kind.proteasome_cleavage)
+    assert best is not None
+    assert best.score == 0.9
+    assert best.allele == ""
+
+
+def test_best_by_missing_kind_returns_none():
+    ps = _make_pred_set()
+    assert ps.best_by_score(Kind.immunogenicity) is None
+    assert ps.best_by_rank(Kind.pMHC_stability) is None

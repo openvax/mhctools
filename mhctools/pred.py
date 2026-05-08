@@ -243,27 +243,27 @@ class PeptideResult:
     @property
     def affinity(self) -> Optional[Prediction]:
         """Best affinity prediction, or None."""
-        return self._best_by_score(Kind.pMHC_affinity)
+        return self.best_by_score(Kind.pMHC_affinity)
 
     @property
     def presentation(self) -> Optional[Prediction]:
         """Best presentation prediction, or None."""
-        return self._best_by_score(Kind.pMHC_presentation)
+        return self.best_by_score(Kind.pMHC_presentation)
 
     @property
     def stability(self) -> Optional[Prediction]:
         """Best stability prediction, or None."""
-        return self._best_by_score(Kind.pMHC_stability)
+        return self.best_by_score(Kind.pMHC_stability)
 
     @property
     def immunogenicity(self) -> Optional[Prediction]:
         """Best immunogenicity prediction, or None."""
-        return self._best_by_score(Kind.immunogenicity)
+        return self.best_by_score(Kind.immunogenicity)
 
     @property
     def cleavage(self) -> Optional[Prediction]:
         """Best proteasomal cleavage prediction, or None."""
-        return self._best_by_score(Kind.proteasome_cleavage)
+        return self.best_by_score(Kind.proteasome_cleavage)
 
     # backward compat aliases
     @property
@@ -282,15 +282,15 @@ class PeptideResult:
 
     @property
     def best_affinity_by_rank(self) -> Optional[Prediction]:
-        return self._best_by_rank(Kind.pMHC_affinity)
+        return self.best_by_rank(Kind.pMHC_affinity)
 
     @property
     def best_presentation_by_rank(self) -> Optional[Prediction]:
-        return self._best_by_rank(Kind.pMHC_presentation)
+        return self.best_by_rank(Kind.pMHC_presentation)
 
     @property
     def best_stability_by_rank(self) -> Optional[Prediction]:
-        return self._best_by_rank(Kind.pMHC_stability)
+        return self.best_by_rank(Kind.pMHC_stability)
 
     # --- filtering ---
 
@@ -319,20 +319,49 @@ class PeptideResult:
             return pd.DataFrame(columns=COLUMNS)
         return pd.DataFrame(rows, columns=COLUMNS)
 
-    # --- internals ---
+    # --- best_by (public, direction-aware) ---
 
-    def _best_by_score(self, kind) -> Optional[Prediction]:
-        candidates = [p for p in self.preds if p.kind == kind and p.allele]
-        if not candidates:
-            # Fall back to preds without allele (e.g. processing predictors)
-            candidates = [p for p in self.preds if p.kind == kind]
-        return max(candidates, key=lambda p: p.score) if candidates else None
+    def best_by(self, kind, field) -> Optional[Prediction]:
+        """Return the prediction of ``kind`` with the best ``field``, or None.
 
-    def _best_by_rank(self, kind) -> Optional[Prediction]:
-        candidates = [p for p in self.preds
-                      if p.kind == kind and p.allele
-                      and p.percentile_rank is not None]
-        return min(candidates, key=lambda p: p.percentile_rank) if candidates else None
+        "Best" direction comes from :func:`best_direction` —
+        ``score`` is max-better, ``percentile_rank`` is min-better, and
+        ``value`` is kind-dependent (IC50 lower-better, half-life higher-better).
+
+        Predictions with ``None`` for ``field`` are skipped. Predictions
+        with an allele are preferred; if none of the matching kind have an
+        allele, falls back to allele-less predictions (e.g. processing
+        predictors that emit allele-independent scores).
+        """
+        direction = best_direction(kind, field)
+        op = max if direction == "max" else min
+
+        def has_value(p):
+            return getattr(p, field) is not None
+
+        with_allele = [p for p in self.preds
+                       if p.kind == kind and p.allele and has_value(p)]
+        if with_allele:
+            return op(with_allele, key=lambda p: getattr(p, field))
+        without_allele = [p for p in self.preds
+                          if p.kind == kind and has_value(p)]
+        if without_allele:
+            return op(without_allele, key=lambda p: getattr(p, field))
+        return None
+
+    def best_by_score(self, kind) -> Optional[Prediction]:
+        """Best prediction of ``kind`` by ``score`` (max-better)."""
+        return self.best_by(kind, "score")
+
+    def best_by_rank(self, kind) -> Optional[Prediction]:
+        """Best prediction of ``kind`` by ``percentile_rank`` (min-better)."""
+        return self.best_by(kind, "percentile_rank")
+
+    def best_by_value(self, kind) -> Optional[Prediction]:
+        """Best prediction of ``kind`` by ``value``. Direction is kind-specific
+        (see :data:`VALUE_BEST_DIRECTIONS`). Raises ``ValueError`` for kinds
+        without a registered ``value`` direction."""
+        return self.best_by(kind, "value")
 
 
 def preds_from_rows(rows, **shared):
