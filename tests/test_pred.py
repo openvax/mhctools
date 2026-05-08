@@ -10,13 +10,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import pytest
+
 from mhctools.pred import (
     COLUMNS,
+    FIELD_BEST_DIRECTIONS,
     Kind,
     MHC_CLASS_VALUES,
     MHC_DEPENDENCE_VALUES,
     PeptideResult,
     Prediction,
+    VALUE_BEST_DIRECTIONS,
+    best_direction,
     preds_from_rows,
 )
 from mhctools.sample import MultiSample
@@ -572,3 +577,53 @@ def test_collection_to_peptide_preds():
     assert len(pp_list) == 2  # two distinct peptide positions
     sizes = sorted(len(pp.preds) for pp in pp_list)
     assert sizes == [1, 2]
+
+
+# -- best_direction --
+
+
+def test_field_best_directions_constants():
+    """score is max-better, percentile_rank is min-better — uniform across kinds."""
+    assert FIELD_BEST_DIRECTIONS["score"] == "max"
+    assert FIELD_BEST_DIRECTIONS["percentile_rank"] == "min"
+
+
+def test_value_best_directions_kind_specific():
+    """value direction is kind-dependent; affinity uses IC50 (min-better)."""
+    assert VALUE_BEST_DIRECTIONS[Kind.pMHC_affinity] == "min"
+    assert VALUE_BEST_DIRECTIONS[Kind.pMHC_stability] == "max"
+
+
+def test_best_direction_field_defaults():
+    # score is max for any kind that uses it
+    assert best_direction(Kind.pMHC_affinity, "score") == "max"
+    assert best_direction(Kind.pMHC_presentation, "score") == "max"
+    assert best_direction(Kind.proteasome_cleavage, "score") == "max"
+    # percentile_rank is min for any kind that uses it
+    assert best_direction(Kind.pMHC_affinity, "percentile_rank") == "min"
+    assert best_direction(Kind.pMHC_presentation, "percentile_rank") == "min"
+
+
+def test_best_direction_value_kind_specific():
+    assert best_direction(Kind.pMHC_affinity, "value") == "min"   # IC50
+    assert best_direction(Kind.pMHC_stability, "value") == "max"  # half-life
+
+
+def test_best_direction_value_unregistered_raises():
+    """`value` for a kind without a registered direction must raise —
+    we refuse to guess the unit semantics."""
+    with pytest.raises(ValueError, match="best_direction undefined"):
+        best_direction(Kind.pMHC_presentation, "value")
+    with pytest.raises(ValueError, match="best_direction undefined"):
+        best_direction(Kind.proteasome_cleavage, "value")
+
+
+def test_best_direction_unknown_field_raises():
+    with pytest.raises(ValueError, match="best_direction undefined for field"):
+        best_direction(Kind.pMHC_affinity, "made_up_field")
+
+
+def test_best_direction_accepts_string_kind():
+    # Kind constants are plain strings, so callers can pass either form.
+    assert best_direction("pMHC_affinity", "value") == "min"
+    assert best_direction("pMHC_affinity", "score") == "max"

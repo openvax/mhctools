@@ -1,6 +1,7 @@
 from .binding_prediction import BindingPrediction
 from .binding_prediction_collection import BindingPredictionCollection
 from .pred import (
+    FIELD_BEST_DIRECTIONS,
     Kind,
     MHC_CLASS_VALUES,
     MHC_DEPENDENCE_VALUES,
@@ -8,6 +9,8 @@ from .pred import (
     PeptideResult,
     Pred,
     Prediction,
+    VALUE_BEST_DIRECTIONS,
+    best_direction,
     preds_from_rows,
 )
 from .sample import MultiSample
@@ -72,7 +75,7 @@ def __getattr__(name):
     raise AttributeError(
         "module %r has no attribute %r" % (__name__, name))
 
-__version__ = "3.13.7"
+__version__ = "3.14.0"
 
 __all__ = [
     "Prediction",
@@ -82,6 +85,9 @@ __all__ = [
     "Kind",
     "MHC_CLASS_VALUES",
     "MHC_DEPENDENCE_VALUES",
+    "FIELD_BEST_DIRECTIONS",
+    "VALUE_BEST_DIRECTIONS",
+    "best_direction",
     "preds_from_rows",
     "MultiSample",
     "BindingPrediction",

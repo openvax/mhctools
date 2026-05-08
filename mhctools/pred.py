@@ -53,6 +53,72 @@ class Kind:
     erap_trimming = "erap_trimming"
 
 
+# Canonical "best direction" for each prediction field. Used by
+# downstream aggregators (e.g. "best across alleles" or "best across
+# methods") and by the :class:`PeptideResult` ``.best_*`` accessors.
+#
+# - ``score``: every kind that uses score normalizes higher = better
+#   (binding strength, presentation likelihood, immunogenicity, ...).
+# - ``percentile_rank``: 0 means best, smaller is better, every kind.
+# - ``value``: kind-dependent — see :data:`VALUE_BEST_DIRECTIONS`.
+FIELD_BEST_DIRECTIONS = {
+    "score": "max",
+    "percentile_rank": "min",
+}
+
+# Per-kind direction for ``value``. ``value`` carries the predictor's
+# raw output unit (IC50 nM for affinity, half-life for stability, ...);
+# whether higher or lower is "better" depends on what the unit means.
+# Add an entry when introducing a new ``value``-bearing kind.
+VALUE_BEST_DIRECTIONS = {
+    Kind.pMHC_affinity: "min",   # IC50 nM
+    Kind.pMHC_stability: "max",  # half-life
+}
+
+
+def best_direction(kind, field) -> str:
+    """Canonical "best" direction for a ``(kind, field)`` pair.
+
+    Returns ``"max"`` or ``"min"``.
+
+    Parameters
+    ----------
+    kind : str or Kind
+        Prediction kind (e.g. ``Kind.pMHC_affinity``).
+    field : str
+        Column name within the kind's predictions —
+        ``"score"``, ``"percentile_rank"``, or ``"value"``.
+
+    Raises
+    ------
+    ValueError
+        If ``field`` is unknown, or if ``field == "value"`` for a kind
+        without a registered direction in :data:`VALUE_BEST_DIRECTIONS`.
+
+    Notes
+    -----
+    ``score`` and ``percentile_rank`` directions are uniform across all
+    kinds. ``value`` is kind-dependent: e.g. ``pMHC_affinity`` reports
+    IC50 in nM (lower better) while ``pMHC_stability`` reports half-life
+    (higher better).
+    """
+    direction = FIELD_BEST_DIRECTIONS.get(field)
+    if direction is not None:
+        return direction
+    if field == "value":
+        if kind not in VALUE_BEST_DIRECTIONS:
+            raise ValueError(
+                f"best_direction undefined for ({kind!r}, 'value') — "
+                f"`value` semantics depend on the kind. Add an entry "
+                f"to mhctools.pred.VALUE_BEST_DIRECTIONS."
+            )
+        return VALUE_BEST_DIRECTIONS[kind]
+    known = sorted(FIELD_BEST_DIRECTIONS) + ["value"]
+    raise ValueError(
+        f"best_direction undefined for field {field!r}. Known: {known}."
+    )
+
+
 COLUMNS = (
     "sample_name",
     "peptide",
