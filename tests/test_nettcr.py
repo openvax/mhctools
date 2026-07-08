@@ -16,8 +16,8 @@ import numpy as np
 import pytest
 
 from mhctools import TCR
-from mhctools.nettcr import _BLOSUM50, _encode_feature
-from mhctools.pred import COLUMNS, Kind, PeptideResult
+from mhctools.nettcr import NetTCR, _BLOSUM50, _encode_feature
+from mhctools.pred import COLUMNS, Kind
 
 
 # ---------------------------------------------------------------------------
@@ -65,6 +65,21 @@ def test_encode_batch():
 
 
 # ---------------------------------------------------------------------------
+# Constructor error paths — no NetTCR install required.
+# ---------------------------------------------------------------------------
+
+def test_init_missing_path_raises():
+    with pytest.raises(FileNotFoundError, match="does not exist"):
+        NetTCR(nettcr_path="/nonexistent/nettcr")
+
+
+def test_init_no_models_raises(tmp_path):
+    # Directory exists but contains no *.tflite ensemble.
+    with pytest.raises(FileNotFoundError, match="No NetTCR"):
+        NetTCR(nettcr_path=str(tmp_path))
+
+
+# ---------------------------------------------------------------------------
 # Model tests — require a cloned NetTCR-2.2 (weights) and a TFLite runtime.
 # ---------------------------------------------------------------------------
 
@@ -79,72 +94,91 @@ for candidate in [
         NETTCR_DIR = candidate
         break
 
-pytestmark = pytest.mark.skipif(
+requires_nettcr = pytest.mark.skipif(
     NETTCR_DIR is None,
     reason="NetTCR-2.2 not installed (set NETTCR_DIR or clone to ~/NetTCR-2.2)")
 
 
-# Three peptides paired with their cognate-ish TCRs. LLWNGPMAV is a strong
-# recognised pair; RAKFKQLL here is a mismatch (should score low).
-PAIRS = [
-    ("RAKFKQLL", TCR(cdr1a="NSAFQY", cdr2a="TYSSGN", cdr3a="AMSGDGGSQGNLI",
-                     cdr1b="LNHDA", cdr2b="SQIVND", cdr3b="ASSIRAAYEQY")),
-    ("GILGFVFTL", TCR(cdr1a="TSGFYG", cdr2a="NALDGL", cdr3a="AVRPTSGGSYIPT",
-                      cdr1b="SGHRS", cdr2b="YFSETQ", cdr3b="ASSIRSSYEQY")),
-    ("LLWNGPMAV", TCR(cdr1a="NSASQS", cdr2a="VYSSG", cdr3a="VVEGDKVI",
-                      cdr1b="MGHRA", cdr2b="YSYEKL", cdr3b="ASSHSGYEQF")),
+# Reference ensemble predictions produced by running NetTCR-2.2's OWN
+# `src/predict.py` over all 20 pan-model checkpoints and averaging the
+# outputs -- the canonical ensemble defined in `src/make_webserver_prediction.py`
+# (`avg_prediction / 20`). These come from upstream code, not this wrapper, so
+# the test is not circular. Inputs are real TCRs from NetTCR's own
+# `data/nettcr_2_2_limited_dataset.csv`. Fields: (peptide, A1, A2, A3, B1, B2, B3).
+PUBLISHED_ENSEMBLE = [
+    (("SPRWYFYYL", "KALYS", "LLKGGEQ", "GTEIGGGTSYGKLT", "MNHEY", "SMNVEV", "ASGTETQY"), 0.060078),
+    (("KSKRTPMGF", "DSAIYN", "IQSSQRE", "AVRNYGGATNKLI", "PRHDT", "FYEKMQ", "ASSLTTGGRNEQF"), 0.062686),
+    (("AVFDRKSDAK", "VGISA", "LSSGK", "AVFNTGNQFY", "SGDLS", "YYNGEE", "ASTPWGRGTDTQY"), 0.566735),
+    (("RPPIFIRRL", "TTLSN", "LVKSGEV", "AGADAGNNRKLI", "SGHRS", "YFSETQ", "ASSLDQGAYEQY"), 0.011056),
+    (("KLGGALQAK", "DSAIYN", "IQSSQRE", "AVRPHSGGGADGLT", "SGHDY", "FNNNVP", "ASSPGDYGYT"), 0.410461),
+    (("GILGFVFTL", "VSGLRG", "LYSAGEE", "AVPTILTGGGNKLT", "LNHNV", "YYDKDF", "ATSRVQETQY"), 0.024195),
 ]
+# AVFDRKSDAK is the one true binder (binder=1) in this sample.
+PUBLISHED_BINDER = "AVFDRKSDAK"
+
+
+def _row_to_pair(row):
+    peptide, a1, a2, a3, b1, b2, b3 = row
+    return peptide, TCR(cdr1a=a1, cdr2a=a2, cdr3a=a3,
+                        cdr1b=b1, cdr2b=b2, cdr3b=b3)
 
 
 @pytest.fixture(scope="module")
 def predictor():
-    from mhctools import NetTCR
     return NetTCR(nettcr_path=NETTCR_DIR)
 
 
+@requires_nettcr
 def test_init_lazy(predictor):
     assert predictor._interpreters is None
     assert len(predictor._model_paths) > 0
     assert "not loaded" in str(predictor)
 
 
-def test_predict_pairs_shape(predictor):
-    results = predictor.predict_pairs(PAIRS)
-    assert len(results) == len(PAIRS)
-    for pp in results:
-        assert isinstance(pp, PeptideResult)
-        assert len(pp.preds) == 1
+@requires_nettcr
+def test_reproduces_published_ensemble(predictor):
+    """The wrapper must reproduce NetTCR's own 20-model ensemble output."""
+    pairs = [_row_to_pair(row) for row, _ in PUBLISHED_ENSEMBLE]
+    results = predictor.predict_pairs(pairs)
+    for (row, expected), pp in zip(PUBLISHED_ENSEMBLE, results):
+        got = pp.preds[0].score
+        assert got == pytest.approx(expected, abs=1e-3), (
+            "%s: expected %.6f (upstream ensemble), got %.6f"
+            % (row[0], expected, got))
 
 
+@requires_nettcr
+def test_published_binder_ranks_top(predictor):
+    """The labeled binder should outscore every non-binder in the sample."""
+    pairs = [_row_to_pair(row) for row, _ in PUBLISHED_ENSEMBLE]
+    scores = {row[0]: pp.preds[0].score
+              for (row, _), pp in zip(PUBLISHED_ENSEMBLE,
+                                      predictor.predict_pairs(pairs))}
+    binder = scores[PUBLISHED_BINDER]
+    others = [s for pep, s in scores.items() if pep != PUBLISHED_BINDER]
+    assert binder > max(others)
+
+
+@requires_nettcr
 def test_predict_pairs_kind_and_fields(predictor):
-    results = predictor.predict_pairs(PAIRS)
-    for (pep, tcr), pp in zip(PAIRS, results):
+    pairs = [_row_to_pair(row) for row, _ in PUBLISHED_ENSEMBLE]
+    for (row, _), pp in zip(PUBLISHED_ENSEMBLE, predictor.predict_pairs(pairs)):
+        pep, tcr = _row_to_pair(row)
         pred = pp.preds[0]
         assert pred.kind == Kind.pMHC_TCR_binding
         assert pred.peptide == pep
         assert pred.tcr == tcr.identifier
         assert pred.allele == ""
         assert pred.predictor_name == "nettcr"
+        assert pred.value is None          # no native units for TCR binding
+        assert 0.0 <= pred.score <= 1.0
 
 
-def test_predict_pairs_scores_are_probabilities(predictor):
-    results = predictor.predict_pairs(PAIRS)
-    for pp in results:
-        assert 0.0 <= pp.preds[0].score <= 1.0
-
-
-def test_predict_recovers_binding_signal(predictor):
-    """The cognate LLWNGPMAV pair should score well above the RAKFKQLL
-    mismatch — a coarse check that encoding + ensemble are wired correctly."""
-    scores = {pep: pp.preds[0].score
-              for (pep, _), pp in zip(PAIRS, predictor.predict_pairs(PAIRS))}
-    assert scores["LLWNGPMAV"] > 0.5
-    assert scores["LLWNGPMAV"] > scores["RAKFKQLL"]
-
-
+@requires_nettcr
 def test_predict_cross_product(predictor):
-    peptides = ["LLWNGPMAV", "GILGFVFTL"]
-    tcrs = [PAIRS[0][1], PAIRS[2][1]]
+    peptides = ["AVFDRKSDAK", "GILGFVFTL"]
+    tcrs = [_row_to_pair(PUBLISHED_ENSEMBLE[2][0])[1],
+            _row_to_pair(PUBLISHED_ENSEMBLE[5][0])[1]]
     results = predictor.predict(peptides, tcrs)
     assert len(results) == len(peptides)
     for pp in results:
@@ -152,32 +186,57 @@ def test_predict_cross_product(predictor):
         assert pp.tcrs == {t.identifier for t in tcrs}
 
 
+@requires_nettcr
 def test_predict_single_peptide_single_tcr(predictor):
-    results = predictor.predict("LLWNGPMAV", PAIRS[2][1])
+    _, tcr = _row_to_pair(PUBLISHED_ENSEMBLE[2][0])
+    results = predictor.predict("AVFDRKSDAK", tcr)
     assert len(results) == 1
     assert len(results[0].preds) == 1
 
 
+@requires_nettcr
+def test_batch_matches_single(predictor):
+    """A batched call and per-pair calls must give identical scores
+    (guards the allocation-caching path against batch-size bugs)."""
+    pairs = [_row_to_pair(row) for row, _ in PUBLISHED_ENSEMBLE]
+    batched = [pp.preds[0].score for pp in predictor.predict_pairs(pairs)]
+    singly = [predictor.predict_pairs([p])[0].preds[0].score for p in pairs]
+    np.testing.assert_allclose(batched, singly, atol=1e-6)
+
+
+@requires_nettcr
 def test_predict_models_stay_loaded(predictor):
-    predictor.predict_pairs(PAIRS[:1])
+    predictor.predict_pairs([_row_to_pair(PUBLISHED_ENSEMBLE[0][0])])
     assert predictor._interpreters is not None
     assert "loaded" in str(predictor)
 
 
+@requires_nettcr
 def test_predict_repeated_calls_consistent(predictor):
-    r1 = predictor.predict_pairs(PAIRS)
-    r2 = predictor.predict_pairs(PAIRS)
+    pairs = [_row_to_pair(row) for row, _ in PUBLISHED_ENSEMBLE]
+    r1 = predictor.predict_pairs(pairs)
+    r2 = predictor.predict_pairs(pairs)
     for a, b in zip(r1, r2):
         assert a.preds[0].score == b.preds[0].score
 
 
+@requires_nettcr
+def test_predict_empty_tcrs(predictor):
+    results = predictor.predict(["GILGFVFTL"], [])
+    assert len(results) == 1
+    assert results[0].preds == ()
+
+
+@requires_nettcr
 def test_predict_dataframe_schema(predictor):
-    df = predictor.predict_dataframe(["LLWNGPMAV"], [PAIRS[2][1]])
+    _, tcr = _row_to_pair(PUBLISHED_ENSEMBLE[2][0])
+    df = predictor.predict_dataframe(["AVFDRKSDAK"], [tcr])
     assert list(df.columns) == list(COLUMNS)
-    assert df["tcr"].iloc[0] == PAIRS[2][1].identifier
+    assert df["tcr"].iloc[0] == tcr.identifier
     assert df["kind"].iloc[0] == Kind.pMHC_TCR_binding
 
 
+@requires_nettcr
 def test_bad_tcr_type_raises(predictor):
     with pytest.raises(TypeError, match="TCR"):
         predictor.predict_pairs([("SIINFEKL", "not-a-tcr")])

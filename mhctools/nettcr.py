@@ -37,6 +37,7 @@ import glob
 import os
 
 import numpy as np
+import pandas as pd
 
 from .pred import COLUMNS, Kind, PeptideResult, Prediction
 from .tcr import TCR
@@ -120,12 +121,21 @@ def _find_nettcr_dir(nettcr_path=None):
     1. The *nettcr_path* argument
     2. The ``NETTCR_DIR`` environment variable
     3. ``~/NetTCR-2.2`` and ``~/code/NetTCR-2.2``
+
+    An explicitly-provided path (argument or ``NETTCR_DIR``) is validated up
+    front so a typo fails with a clear message rather than later when no
+    models are found.
     """
-    if nettcr_path:
-        return nettcr_path
-    env = os.environ.get("NETTCR_DIR")
-    if env:
-        return env
+    clone_hint = "Clone from https://github.com/mnielLab/NetTCR-2.2"
+    for source, path in (
+            ("nettcr_path argument", nettcr_path),
+            ("NETTCR_DIR", os.environ.get("NETTCR_DIR"))):
+        if path:
+            if not os.path.isdir(path):
+                raise FileNotFoundError(
+                    "NetTCR-2.2 directory from %s does not exist: %s. %s"
+                    % (source, path, clone_hint))
+            return path
     home = os.path.expanduser("~")
     for candidate in (
             os.path.join(home, "NetTCR-2.2"),
@@ -134,7 +144,7 @@ def _find_nettcr_dir(nettcr_path=None):
             return candidate
     raise FileNotFoundError(
         "NetTCR-2.2 not found. Set NETTCR_DIR or pass nettcr_path= to the "
-        "constructor. Clone from https://github.com/mnielLab/NetTCR-2.2")
+        "constructor. %s" % clone_hint)
 
 
 def _encode_feature(sequences, feature):
@@ -186,6 +196,10 @@ class NetTCR(object):
     -----
     NetTCR-2.2 is distributed under an academic software license; this
     wrapper only *runs* a user-provided installation and vendors none of it.
+
+    The cached ensemble interpreters are stateful, so a single ``NetTCR``
+    instance is not safe to call from multiple threads concurrently; use one
+    instance per thread.
     """
 
     def __init__(self, nettcr_path=None, checkpoint_dir=None):
@@ -199,8 +213,11 @@ class NetTCR(object):
         if not self._model_paths:
             raise FileNotFoundError(
                 "No NetTCR *.tflite models found in %s" % self.checkpoint_dir)
-        # Lazy-loaded ensemble of interpreters.
+        # Lazy-loaded ensemble of interpreters, and the batch size the
+        # interpreters are currently allocated for (so repeated same-size
+        # calls skip re-resizing/re-allocating tensors).
         self._interpreters = None
+        self._allocated_n = None
 
     def __str__(self):
         loaded = "loaded" if self._interpreters is not None else "not loaded"
@@ -244,33 +261,45 @@ class NetTCR(object):
 
         Returns a 1-D numpy array of ensemble-mean scores, one per pair.
         """
-        self._ensure_loaded()
         n = len(peptides)
         if n == 0:
             return np.zeros(0, dtype=np.float32)
+        self._ensure_loaded()
 
         encoded = {"pep": _encode_feature(peptides, "pep")}
         for key in ("a1", "a2", "a3", "b1", "b2", "b3"):
             encoded[key] = _encode_feature(
                 [t.cdr_dict()[key] for t in tcrs], key)
 
+        # Resize + allocate only when the batch size changed since last call.
+        reallocate = self._allocated_n != n
+
         total = np.zeros(n, dtype=np.float64)
         for interpreter in self._interpreters:
             inputs = interpreter.get_input_details()
             output = interpreter.get_output_details()[0]
-            for det in inputs:
+            if reallocate:
+                for det in inputs:
+                    interpreter.resize_tensor_input(
+                        det["index"], [n, det["shape"][1], det["shape"][2]])
                 interpreter.resize_tensor_input(
-                    det["index"], [n, det["shape"][1], det["shape"][2]])
-            interpreter.resize_tensor_input(
-                output["index"], [n, output["shape"][1]])
-            interpreter.allocate_tensors()
+                    output["index"], [n, output["shape"][1]])
+                interpreter.allocate_tensors()
             for det in inputs:
                 # NetTCR names inputs "serving_default_<feature>:0"; match by
                 # the trailing feature token rather than by tensor order.
                 key = det["name"].split(":")[0].split("_")[-1]
-                interpreter.set_tensor(det["index"], encoded[key])
+                try:
+                    tensor = encoded[key]
+                except KeyError:
+                    raise ValueError(
+                        "NetTCR model has an unexpected input tensor %r "
+                        "(parsed feature %r); expected one of %s"
+                        % (det["name"], key, sorted(encoded)))
+                interpreter.set_tensor(det["index"], tensor)
             interpreter.invoke()
             total += interpreter.get_tensor(output["index"]).reshape(n)
+        self._allocated_n = n
         return (total / len(self._interpreters)).astype(np.float32)
 
     # ------------------------------------------------------------------
@@ -351,7 +380,6 @@ class NetTCR(object):
 
     def predict_dataframe(self, peptides, tcrs, sample_name=""):
         """``predict()`` flattened to a DataFrame."""
-        import pandas as pd
         dfs = [pp.to_dataframe(sample_name)
                for pp in self.predict(peptides, tcrs)]
         if not dfs:
