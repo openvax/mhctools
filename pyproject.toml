@@ -36,6 +36,12 @@ dependencies = [
 pepsickle = [
   "pepsickle",
 ]
+nettcr = [
+  # A TFLite runtime for NetTCR's bundled models. ai-edge-litert is the
+  # lightweight option; tensorflow also works. The NetTCR-2.2 repository
+  # itself (weights) must be cloned separately.
+  "ai-edge-litert",
+]
 dev = [
   "build",
   "ruff",

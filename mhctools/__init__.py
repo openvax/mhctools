@@ -14,6 +14,7 @@ from .pred import (
     preds_from_rows,
 )
 from .sample import MultiSample
+from .tcr import TCR
 from .iedb import (
     IedbNetMHCcons,
     IedbNetMHCpan,
@@ -60,6 +61,7 @@ _LAZY_IMPORTS = {
     "BigMHC_IM": (".bigmhc", "BigMHC_IM"),
     "MHCflurry": (".mhcflurry", "MHCflurry"),
     "MHCflurry_Affinity": (".mhcflurry", "MHCflurry_Affinity"),
+    "NetTCR": (".nettcr", "NetTCR"),
 }
 
 
@@ -75,7 +77,7 @@ def __getattr__(name):
     raise AttributeError(
         "module %r has no attribute %r" % (__name__, name))
 
-__version__ = "3.14.1"
+__version__ = "3.15.0"
 
 __all__ = [
     "Prediction",
@@ -90,6 +92,7 @@ __all__ = [
     "best_direction",
     "preds_from_rows",
     "MultiSample",
+    "TCR",
     "BindingPrediction",
     "BindingPredictionCollection",
     "IedbNetMHCcons",
@@ -140,6 +143,7 @@ __all__ = [
     "BigMHC",
     "BigMHC_EL",
     "BigMHC_IM",
+    "NetTCR",
     "RandomBindingPredictor",
     "UnsupportedAllele",
 ]

@@ -46,6 +46,7 @@ class Kind:
     pMHC_affinity = "pMHC_affinity"
     pMHC_presentation = "pMHC_presentation"
     pMHC_stability = "pMHC_stability"
+    pMHC_TCR_binding = "pMHC_TCR_binding"
     immunogenicity = "immunogenicity"
     antigen_processing = "antigen_processing"
     proteasome_cleavage = "proteasome_cleavage"
@@ -129,6 +130,7 @@ COLUMNS = (
     "predictor_name",
     "predictor_version",
     "allele",
+    "tcr",
     "kind",
     "score",
     "value",
@@ -143,6 +145,7 @@ class Prediction:
     score: float
     peptide: str = ""
     allele: str = ""
+    tcr: str = ""
     n_flank: str = ""
     c_flank: str = ""
     value: Optional[float] = None
@@ -156,6 +159,8 @@ class Prediction:
         parts = [self.peptide or "?", self.kind]
         if self.allele:
             parts.insert(1, self.allele)
+        if self.tcr:
+            parts.insert(1, self.tcr)
         parts.append("score=%.4g" % self.score)
         if self.value is not None:
             parts.append("value=%.4g" % self.value)
@@ -179,6 +184,7 @@ class Prediction:
             "predictor_name": self.predictor_name,
             "predictor_version": self.predictor_version,
             "allele": self.allele,
+            "tcr": self.tcr,
             "kind": self.kind,
             "score": self.score,
             "value": self.value,
@@ -238,6 +244,11 @@ class PeptideResult:
         """Set of allele strings present in this result."""
         return {p.allele for p in self.preds if p.allele}
 
+    @property
+    def tcrs(self) -> set:
+        """Set of TCR identifiers present in this result."""
+        return {p.tcr for p in self.preds if p.tcr}
+
     # --- kind accessors (best by score, wrapped for safe field access) ---
 
     @property
@@ -264,6 +275,11 @@ class PeptideResult:
     def cleavage(self) -> Optional[Prediction]:
         """Best proteasomal cleavage prediction, or None."""
         return self.best_by_score(Kind.proteasome_cleavage)
+
+    @property
+    def tcr_binding(self) -> Optional[Prediction]:
+        """Best pMHC:TCR binding prediction, or None."""
+        return self.best_by_score(Kind.pMHC_TCR_binding)
 
     # backward compat aliases
     @property

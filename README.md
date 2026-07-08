@@ -163,6 +163,7 @@ The canonical prediction kind strings are defined in `mhctools.pred.Kind`.
 | `pMHC_affinity` | Peptide-MHC binding affinity |
 | `pMHC_presentation` | Likelihood of surface presentation (EL/processing) |
 | `pMHC_stability` | Peptide-MHC complex stability |
+| `pMHC_TCR_binding` | TCR recognition of a peptide-MHC (pMHC:TCR binding) |
 | `immunogenicity` | T-cell immunogenicity |
 | `antigen_processing` | Combined processing score |
 | `proteasome_cleavage` | Proteasomal cleavage score |
@@ -203,6 +204,7 @@ Examples:
 | `MHCflurry` haplotype mode | `pMHC_presentation` | `haplotype` | `I` |
 | `MHCflurry` per-allele panel mode | `pMHC_presentation` | `single_allele` | `I` |
 | `Pepsickle` | `proteasome_cleavage` | `none` | `none` |
+| `NetTCR` | `pMHC_TCR_binding` | `none` | `I` |
 
 For MHCflurry presentation, `presentation_allele_mode="haplotype"` treats the
 requested alleles as one sample genotype and emits one `pMHC_presentation`
@@ -267,6 +269,35 @@ affinity, hours for stability). `percentile_rank` is always optional,
 Processing predictors use configurable scoring to aggregate per-position
 cleavage probabilities into peptide-level scores. See `ProcessingPredictor`
 and `ProteasomePredictor` for details.
+
+### TCR specificity
+
+| Predictor | Kinds produced | Requires |
+|---|---|---|
+| `NetTCR` | pMHC:TCR binding | [NetTCR-2.2](https://github.com/mnielLab/NetTCR-2.2) clone (set `NETTCR_DIR`) + a TFLite runtime (`pip install mhctools[nettcr]`) |
+
+`NetTCR` predicts whether a paired αβ T-cell receptor recognises a
+(class-I) peptide. Unlike the MHC-ligand predictors, its input is a peptide
+plus a `TCR` (the six CDR loops), not an allele, and it emits the
+`pMHC_TCR_binding` kind. NetTCR ships its pretrained weights in its git
+repository as small TFLite models; this wrapper runs the pan cross-validation
+ensemble in-process and does not need NetTCR's conda environment.
+
+```python
+from mhctools import NetTCR, TCR
+
+predictor = NetTCR()   # resolves NETTCR_DIR / ~/NetTCR-2.2
+tcr = TCR(
+    cdr1a="NSASQS", cdr2a="VYSSG", cdr3a="VVEGDKVI",
+    cdr1b="MGHRA", cdr2b="YSYEKL", cdr3b="ASSHSGYEQF", name="clone1")
+
+# Score explicit (peptide, TCR) pairs...
+results = predictor.predict_pairs([("LLWNGPMAV", tcr)])
+results[0].tcr_binding.score        # ensemble-mean recognition probability
+
+# ...or every peptide x TCR combination.
+results = predictor.predict(["LLWNGPMAV", "GILGFVFTL"], [tcr])
+```
 
 ## Commandline examples
 
