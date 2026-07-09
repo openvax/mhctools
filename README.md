@@ -166,7 +166,8 @@ The canonical prediction kind strings are defined in `mhctools.pred.Kind`.
 | `pMHC_TCR_binding` | TCR recognition of a peptide-MHC (pMHC:TCR binding) |
 | `immunogenicity` | T-cell immunogenicity |
 | `antigen_processing` | Combined processing score |
-| `proteasome_cleavage` | Proteasomal cleavage score |
+| `proteasome_cleavage` | Proteasomal (MHC-I, cytosolic) C-terminal cleavage score |
+| `endolysosomal_cleavage` | Endolysosomal (MHC-II, cathepsin) C-terminal cleavage score |
 | `tap_transport` | TAP transport score (reserved, not yet used) |
 | `erap_trimming` | ERAP trimming score (reserved, not yet used) |
 
@@ -204,6 +205,8 @@ Examples:
 | `MHCflurry` haplotype mode | `pMHC_presentation` | `haplotype` | `I` |
 | `MHCflurry` per-allele panel mode | `pMHC_presentation` | `single_allele` | `I` |
 | `Pepsickle` | `proteasome_cleavage` | `none` | `none` |
+| `NetCleave_I` | `proteasome_cleavage` | `none` | `I` |
+| `NetCleave_II` | `endolysosomal_cleavage` | `none` | `II` |
 | `NetTCR` | `pMHC_TCR_binding` | `none` | `I` |
 
 For MHCflurry presentation, `presentation_allele_mode="haplotype"` treats the
@@ -265,10 +268,36 @@ affinity, hours for stability). `percentile_rank` is always optional,
 |---|---|---|
 | `Pepsickle` | proteasome cleavage | `pip install pepsickle` ([paper](https://doi.org/10.1093/bioinformatics/btab628)) |
 | `NetChop` | proteasome cleavage | [NetChop](https://services.healthtech.dtu.dk/services/NetChop-3.1/) |
+| `NetCleave_I` / `NetCleave_II` | proteasomal (I) / endolysosomal (II) C-terminal cleavage | [NetCleave](https://github.com/BSC-CNS-EAPM/NetCleave) clone (set `NETCLEAVE_DIR`) |
 
-Processing predictors use configurable scoring to aggregate per-position
-cleavage probabilities into peptide-level scores. See `ProcessingPredictor`
-and `ProteasomePredictor` for details.
+`Pepsickle` and `NetChop` use configurable scoring to aggregate per-position
+cleavage probabilities into peptide-level scores (see `ProcessingPredictor`
+and `ProteasomePredictor`).
+
+`NetCleave` is different: it emits a **single C-terminal cleavage score per
+peptide** and covers **both** the MHC-I proteasomal (`NetCleave_I` →
+`proteasome_cleavage`) and MHC-II endolysosomal (`NetCleave_II` →
+`endolysosomal_cleavage`) pathways — MHC-II processing is otherwise a gap in
+the predictor set. It needs the residues downstream of the peptide to build
+the cleavage site, so pass `c_flanks` (or scan proteins). Its weights ship in
+the git repo; the R dependency in NetCleave's README is only for its training
+pipeline, not prediction.
+
+```python
+from mhctools import NetCleave_II
+
+predictor = NetCleave_II()                 # resolves NETCLEAVE_DIR / ~/NetCleave
+# score peptides with their C-terminal flanking residues (>= 3)
+results = predictor.predict(["SIINFEKL"], c_flanks=["DGH"])
+results[0].endolysosomal_cleavage.score
+
+# or scan a protein so each peptide is scored in real context
+by_protein = predictor.predict_proteins({"TP53": "MEEPQ..."}, peptide_lengths=[15])
+```
+
+> ⚠️ NetCleave's own paper reports class-II C-terminal cleavage is a much
+> weaker signal than class I (AUC ~0.66 vs ~0.91). Treat
+> `endolysosomal_cleavage` scores accordingly.
 
 ### TCR specificity
 
