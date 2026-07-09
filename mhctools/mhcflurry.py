@@ -102,8 +102,11 @@ class MHCflurry(BasePredictor):
     Produces per-allele ``pMHC_affinity`` predictions. For presentation,
     ``presentation_allele_mode`` controls whether mhctools treats the allele
     set as one class-I haplotype or as a panel of independent one-allele
-    samples. The legacy ``predict_peptides`` method returns BindingPrediction
-    objects based on affinity values for backward compat.
+    samples. It also surfaces MHCflurry's ``antigen_processing`` (cleavage)
+    score — computed by the presentation model from the peptide + flanks and
+    allele-independent — as one allele-less prediction per peptide. The legacy
+    ``predict_peptides`` method returns BindingPrediction objects based on
+    affinity values for backward compat.
 
     See https://github.com/openvax/mhcflurry
     """
@@ -317,6 +320,11 @@ class MHCflurry(BasePredictor):
                     expected_presentation_rows))
 
         pres_by_peptide_index = {i: [] for i in range(len(peptide_list))}
+        # MHCflurry's presentation predict() also returns a processing_score
+        # (its antigen-processing / cleavage head). It depends only on the
+        # peptide + flanks, not the allele, so it's identical across the
+        # per-allele rows of a peptide; we keep the first seen per peptide.
+        processing_by_peptide_index = {}
         seen_presentation_keys = set()
         for row_position, row in enumerate(pres_df.itertuples(index=False)):
             row_index = int(getattr(row, "peptide_num", row_position))
@@ -339,6 +347,8 @@ class MHCflurry(BasePredictor):
                 row.presentation_percentile,
                 allele,
             ))
+            processing_by_peptide_index.setdefault(
+                row_index, getattr(row, "processing_score", None))
 
         groups = [list() for _ in peptide_list]
         for row_index, row in zip(batch_indices, aff_df.itertuples(index=False)):
@@ -391,6 +401,21 @@ class MHCflurry(BasePredictor):
                     predictor_name="mhcflurry",
                 ))
 
+            # Surface MHCflurry's antigen-processing (cleavage) score, which
+            # its presentation predictor already computes from the peptide +
+            # flanks. Allele-independent, so emit once per peptide, allele-less.
+            processing_score = processing_by_peptide_index.get(row_index)
+            if processing_score is not None:
+                groups[row_index].append(Prediction(
+                    kind=Kind.antigen_processing,
+                    score=processing_score,
+                    peptide=pep,
+                    allele="",
+                    n_flank=n_flank,
+                    c_flank=c_flank,
+                    predictor_name="mhcflurry",
+                ))
+
         return [PeptideResult(preds=tuple(preds)) for preds in groups]
 
     def predict_with_flanks(self, peptides, n_flanks, c_flanks):
@@ -415,6 +440,10 @@ class MHCflurry(BasePredictor):
             Kind.pMHC_presentation: {
                 "mhc_dependence": presentation_dependence,
                 "mhc_class": "I",
+            },
+            Kind.antigen_processing: {
+                "mhc_dependence": "none",
+                "mhc_class": "none",
             },
         }
 

@@ -204,6 +204,7 @@ Examples:
 | `MHCflurry` | `pMHC_affinity` | `single_allele` | `I` |
 | `MHCflurry` haplotype mode | `pMHC_presentation` | `haplotype` | `I` |
 | `MHCflurry` per-allele panel mode | `pMHC_presentation` | `single_allele` | `I` |
+| `MHCflurry` | `antigen_processing` | `none` | `none` |
 | `Pepsickle` | `proteasome_cleavage` | `none` | `none` |
 | `NetCleave_I` | `proteasome_cleavage` | `none` | `I` |
 | `NetCleave_II` | `endolysosomal_cleavage` | `none` | `II` |
@@ -285,7 +286,7 @@ affinity, hours for stability). `percentile_rank` is always optional,
 | `NetMHCIIpan` / `NetMHCIIpan43` | affinity or presentation | [NetMHCIIpan](https://services.healthtech.dtu.dk/services/NetMHCIIpan-4.3/) |
 | `NetMHCcons` | affinity | [NetMHCcons](https://services.healthtech.dtu.dk/services/NetMHCcons-1.1/) |
 | `NetMHCstabpan` | stability | [NetMHCstabpan](https://services.healthtech.dtu.dk/services/NetMHCstabpan-1.0/) |
-| `MHCflurry` | affinity + presentation | `pip install mhcflurry` + `mhcflurry-downloads fetch` |
+| `MHCflurry` | affinity + presentation + processing | `pip install mhcflurry` + `mhcflurry-downloads fetch` |
 | `MHCflurry_Affinity` | affinity | `pip install mhcflurry` + `mhcflurry-downloads fetch` |
 | `BigMHC` | presentation or immunogenicity | [BigMHC](https://github.com/KarchinLab/bigmhc) clone (set `BIGMHC_DIR`) |
 | `MixMHCpred` | presentation | [MixMHCpred](https://github.com/GfellerLab/MixMHCpred) |
