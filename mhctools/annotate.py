@@ -35,7 +35,8 @@ Design notes
 * Row alleles are normalized with
   :func:`mhctools.allele_normalization.normalize_allele_name_or_raw` so a
   cell written ``A0201`` matches a prediction emitted as ``HLA-A*02:01``, and
-  exotic un-normalizable alleles still round-trip (see #220).
+  exotic un-normalizable alleles still round-trip (see #220). Peptides are
+  upper-cased and stripped on both sides of the join for the same reason.
 """
 
 from __future__ import annotations
@@ -179,6 +180,19 @@ def parse_annotation_spec(token):
         predictor=factory, output_column=output_column, field=field)
 
 
+def _normalize_peptide(peptide):
+    """Canonicalize a peptide for matching: strip whitespace, uppercase.
+
+    Predictions are joined back to rows by exact peptide string, and some
+    predictors uppercase/strip the peptides they echo. Normalizing both the
+    values sent to the predictor and the per-row lookup key the same way keeps
+    a table written ``siinfekl`` (or with stray whitespace) from silently
+    missing every prediction. Amino-acid sequences are canonically uppercase,
+    so this never loses information.
+    """
+    return str(peptide).strip().upper()
+
+
 def _split_alleles(cell, allele_sep):
     """Split one table cell into a list of normalized allele names."""
     if cell is None or (isinstance(cell, float) and pd.isna(cell)):
@@ -271,7 +285,11 @@ def annotate_table(
             % (allele_column, list(df.columns)))
 
     specs = list(specs)
-    # Fail fast on any output-column collision before running predictors.
+    # Fail fast on any output-column collision before running predictors:
+    # against existing input columns (unless overwrite), and against columns
+    # any other spec plans to write (always — two specs writing the same
+    # column would silently clobber each other, which overwrite can't fix).
+    planned_columns = set()
     for spec in specs:
         new_columns = [spec.output_column]
         if spec.add_best_allele and allele_column is not None:
@@ -281,8 +299,12 @@ def annotate_table(
                 raise ValueError(
                     "output column %r already exists; pass overwrite=True to "
                     "replace it" % column)
+            if column in planned_columns:
+                raise ValueError(
+                    "output column %r is produced by more than one spec" % column)
+            planned_columns.add(column)
 
-    peptides = df[peptide_column].astype(str).tolist()
+    peptides = [_normalize_peptide(p) for p in df[peptide_column]]
     if allele_column is not None:
         row_alleles = [_split_alleles(cell, allele_sep) for cell in df[allele_column]]
     else:
@@ -303,7 +325,11 @@ def annotate_table(
         for peptide, alleles in zip(peptides, row_alleles):
             candidates = [by_pair[(peptide, a)] for a in alleles
                           if (peptide, a) in by_pair]
-            if not candidates and not alleles:
+            if not candidates:
+                # Allele-free predictors (e.g. processing) emit allele-less
+                # predictions indexed by peptide only. Only such predictors
+                # populate ``by_peptide``, so this fallback never masks a
+                # genuine unsupported-allele miss from a binding predictor.
                 allele_free = by_peptide.get(peptide)
                 if allele_free is not None:
                     candidates = [allele_free]

@@ -81,6 +81,36 @@ def _factory(alleles):
     return _FixturePredictor(alleles)
 
 
+# A fixed peptide -> processing score table for the allele-free path.
+_PROCESSING = {"SIINFEKL": 0.80, "GILGFVFTL": 0.30}
+
+
+class _ProcessingFixturePredictor:
+    """Deterministic allele-free predictor (like a processing predictor).
+
+    Emits antigen_processing predictions with no allele, so annotate_table
+    routes them through the by-peptide lookup rather than the (peptide,
+    allele) lookup.
+    """
+
+    def __init__(self, alleles=None):
+        pass
+
+    def predict(self, peptides):
+        results = []
+        for peptide in peptides:
+            preds = []
+            if peptide in _PROCESSING:
+                preds.append(Prediction(
+                    kind=Kind.antigen_processing,
+                    peptide=peptide,
+                    allele="",
+                    score=_PROCESSING[peptide],
+                    predictor_name="processing-fixture"))
+            results.append(PeptideResult(preds=tuple(preds)))
+        return results
+
+
 def _table():
     return pd.DataFrame({
         "sample_id": ["s1", "s2"],
@@ -245,6 +275,115 @@ def test_prebuilt_predictor_instance_used_directly():
         _table(), [AnnotationSpec(predictor, "aff", field="affinity")],
         allele_column="hla")
     assert out[out.peptide == "SIINFEKL"].iloc[0]["aff"] == 100.0
+
+
+# --- duplicate output-column guard (cross-spec) -----------------------------
+
+def test_duplicate_output_column_across_specs_raises():
+    with pytest.raises(ValueError, match="more than one spec"):
+        annotate_table(
+            _table(),
+            [AnnotationSpec(_factory, "dup", field="affinity"),
+             AnnotationSpec(_factory, "dup", field="score")],
+            allele_column="hla")
+
+
+def test_duplicate_output_column_across_specs_raises_even_with_overwrite():
+    # overwrite lets you replace an *existing* column, but two specs writing
+    # the same new column would still clobber each other -> always an error.
+    with pytest.raises(ValueError, match="more than one spec"):
+        annotate_table(
+            _table(),
+            [AnnotationSpec(_factory, "dup", field="affinity"),
+             AnnotationSpec(_factory, "dup", field="score")],
+            allele_column="hla", overwrite=True)
+
+
+def test_duplicate_best_allele_column_across_specs_raises():
+    # distinct score columns, but the same explicit provenance column
+    with pytest.raises(ValueError, match="more than one spec"):
+        annotate_table(
+            _table(),
+            [AnnotationSpec(_factory, "a", field="affinity",
+                            best_allele_column="prov"),
+             AnnotationSpec(_factory, "b", field="score",
+                            best_allele_column="prov")],
+            allele_column="hla")
+
+
+def test_output_column_collides_with_other_spec_best_allele_raises():
+    # spec A's score column name equals spec B's provenance column name
+    with pytest.raises(ValueError, match="more than one spec"):
+        annotate_table(
+            _table(),
+            [AnnotationSpec(_factory, "b_best_allele", field="affinity"),
+             AnnotationSpec(_factory, "b", field="score")],
+            allele_column="hla")
+
+
+# --- peptide normalization (case / whitespace insensitive matching) ---------
+
+def test_peptide_matched_case_insensitively():
+    df = pd.DataFrame({"peptide": ["siinfekl"], "hla": ["HLA-A*02:01"]})
+    out = annotate_table(
+        df, [AnnotationSpec(_factory, "aff", field="affinity")],
+        allele_column="hla")
+    # matched the fixture (keyed uppercase) despite the lowercase cell
+    assert out.iloc[0]["aff"] == 100.0
+    # the input peptide column is preserved verbatim, not uppercased
+    assert out.iloc[0]["peptide"] == "siinfekl"
+
+
+def test_peptide_matched_ignoring_surrounding_whitespace():
+    df = pd.DataFrame({"peptide": [" SIINFEKL "], "hla": ["HLA-A*02:01"]})
+    out = annotate_table(
+        df, [AnnotationSpec(_factory, "aff", field="affinity")],
+        allele_column="hla")
+    assert out.iloc[0]["aff"] == 100.0
+    assert out.iloc[0]["peptide"] == " SIINFEKL "
+
+
+# --- allele-free predictor path (by-peptide lookup) -------------------------
+
+def test_allele_free_predictor_uses_by_peptide_lookup():
+    df = pd.DataFrame({"peptide": ["SIINFEKL", "GILGFVFTL", "WWWWWWWWW"]})
+    out = annotate_table(
+        df,
+        [AnnotationSpec(lambda alleles: _ProcessingFixturePredictor(),
+                        "proc", field="score")])
+    # no allele column -> no provenance column
+    assert "proc" in out.columns
+    assert "proc_best_allele" not in out.columns
+    assert out.iloc[0]["proc"] == 0.80
+    assert out.iloc[1]["proc"] == 0.30
+    # peptide absent from the fixture -> NaN
+    assert math.isnan(out.iloc[2]["proc"])
+
+
+def test_allele_free_predictor_works_even_with_allele_column_present():
+    # An allele-free predictor emits allele-less predictions; when a (peptide,
+    # allele) lookup finds nothing, we fall back to the by-peptide prediction,
+    # so the score is still filled in rather than silently NaN.
+    df = pd.DataFrame({"peptide": ["SIINFEKL"], "hla": ["HLA-A*02:01"]})
+    out = annotate_table(
+        df,
+        [AnnotationSpec(lambda alleles: _ProcessingFixturePredictor(),
+                        "proc", field="score")],
+        allele_column="hla")
+    assert out.iloc[0]["proc"] == 0.80
+    # the winning prediction had no allele -> provenance is None
+    assert out.iloc[0]["proc_best_allele"] is None
+
+
+def test_binding_predictor_unsupported_allele_still_nan():
+    # Regression guard: the by-peptide fallback must NOT rescue a binding
+    # predictor's unsupported-allele miss (it never populates by_peptide).
+    df = pd.DataFrame({"peptide": ["SIINFEKL"], "hla": ["HLA-C*07:01"]})
+    out = annotate_table(
+        df, [AnnotationSpec(_factory, "aff", field="affinity")],
+        allele_column="hla")
+    assert math.isnan(out.iloc[0]["aff"])
+    assert out.iloc[0]["aff_best_allele"] is None
 
 
 # --- spec parsing -----------------------------------------------------------
