@@ -184,6 +184,51 @@ def test_predict_proteins(predictor_I):
 
 
 @requires_netcleave
+def test_predict_proteins_repeated_peptide(predictor_I):
+    """Regression: a peptide occurring more than once in the protein must not
+    crash (NetCleave emits one row per occurrence). Each occurrence is scored
+    in its own downstream context."""
+    # SIINFEKL appears at offset 2 (downstream DGH) and offset 16 (downstream QRS)
+    protein = "MASIINFEKLDGHKQRSIINFEKLQRSTTT"
+    results = predictor_I.predict_proteins({"p": protein}, peptide_lengths=[8])
+    hits = [pp.cleavage for pp in results["p"]
+            if pp.cleavage and pp.cleavage.peptide == "SIINFEKL"]
+    assert len(hits) == 2
+    by_offset = {h.offset: h for h in hits}
+    assert by_offset[2].c_flank == "DGH"
+    assert by_offset[16].c_flank == "QRS"
+    # Each occurrence matches predict() with the same downstream flank, and
+    # the differing downstream context gives differing scores.
+    assert by_offset[2].score == pytest.approx(
+        predictor_I.predict(["SIINFEKL"], c_flanks=["DGH"])[0].cleavage.score,
+        abs=1e-6)
+    assert by_offset[16].score == pytest.approx(
+        predictor_I.predict(["SIINFEKL"], c_flanks=["QRS"])[0].cleavage.score,
+        abs=1e-6)
+    assert by_offset[2].score != by_offset[16].score
+
+
+@requires_netcleave
+def test_predict_recurring_peptide_in_flank(predictor_I):
+    """Regression: a peptide that recurs within peptide+flank must not crash."""
+    pp = predictor_I.predict(["AAAAAAAA"], c_flanks=["AAA"])[0]
+    assert pp.cleavage is not None
+    assert 0.0 <= pp.cleavage.score <= 1.0
+
+
+@requires_netcleave
+def test_two_instances_do_not_interfere(predictor_I, predictor_II):
+    """Regression: distinct instances must not collide on the shared output
+    dir — each keeps its own class-correct score and Kind."""
+    a = predictor_I.predict(["SIINFEKL"], c_flanks=["DGH"])[0].cleavage
+    b = predictor_II.predict(["SIINFEKL"], c_flanks=["DGH"])[0].endolysosomal_cleavage
+    assert a.kind == Kind.proteasome_cleavage
+    assert b.kind == Kind.endolysosomal_cleavage
+    assert a.score == pytest.approx(CLASS_I_REF[("SIINFEKL", "DGH")], abs=1e-3)
+    assert b.score == pytest.approx(CLASS_II_REF[("SIINFEKL", "DGH")], abs=1e-3)
+
+
+@requires_netcleave
 def test_predict_dataframe_schema(predictor_II):
     df = predictor_II.predict_dataframe(["SIINFEKL"], c_flanks=["DGH"])
     assert list(df.columns) == list(COLUMNS)
@@ -196,6 +241,12 @@ def test_repeated_calls_consistent(predictor_I):
     a = predictor_I.predict(["SIINFEKL"], c_flanks=["DGH"])[0].cleavage.score
     b = predictor_I.predict(["SIINFEKL"], c_flanks=["DGH"])[0].cleavage.score
     assert a == b
+
+
+@requires_netcleave
+def test_predict_empty_returns_empty(predictor_I):
+    assert predictor_I.predict([], c_flanks=[]) == []
+    assert predictor_I.predict([]) == []   # no c_flanks needed for empty input
 
 
 @requires_netcleave

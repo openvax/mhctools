@@ -45,6 +45,8 @@ import os
 import subprocess
 import sys
 import tempfile
+import uuid
+from collections import defaultdict
 
 import pandas as pd
 
@@ -121,6 +123,10 @@ class NetCleave(object):
     -----
     NetCleave is distributed under GPL-v2; this wrapper only *runs* a
     user-provided installation and vendors none of it.
+
+    A ``NetCleave`` instance is not safe to call from multiple threads
+    concurrently (each call shells out via a per-call temp file); use one
+    instance per thread.
     """
 
     VALID_CLASSES = ("I", "II")
@@ -188,26 +194,37 @@ class NetCleave(object):
     # Subprocess
     # ------------------------------------------------------------------
 
-    def _run_netcleave(self, epitopes, protein_seqs):
-        """Run NetCleave (pred_input 3) on parallel epitope/protein lists.
+    def _run_netcleave(self, requests):
+        """Run NetCleave (pred_input 3) on a list of scoring requests.
 
-        Returns a list of scores (float or None) aligned to the inputs;
-        None means NetCleave could not build a cleavage site (e.g. missing
-        downstream context).
+        Each request is ``(epitope, protein_seq, expected_site)``: the
+        peptide, the sequence to search it in, and the expected 7-residue
+        cleavage site (the peptide's C-terminal 4 residues + 3 downstream).
+
+        NetCleave emits **one output row per regex occurrence** of the
+        epitope in ``protein_seq`` (and drops occurrences without 3
+        downstream residues), so results are matched back to requests by
+        input-row id and cleavage site — never by row position.
+
+        Returns a list of scores (float or None) aligned to *requests*;
+        None means no matching valid cleavage site was produced.
         """
+        if not requests:
+            return []
         self._call_counter += 1
-        # Basename must contain no '.' before the extension — NetCleave
+        # Basename must be unique (a shared NetCleave output/ dir is used by
+        # every instance) and contain no '.' before the extension — NetCleave
         # derives the output filename via ``basename.split('.')[0]``.
-        basename = "mhctools_netcleave_%d_%d" % (os.getpid(), self._call_counter)
+        basename = "mhctools_netcleave_%d_%s" % (os.getpid(), uuid.uuid4().hex)
         tmp_dir = tempfile.mkdtemp(prefix="mhctools_netcleave_")
         input_csv = os.path.join(tmp_dir, basename + ".csv")
         output_csv = os.path.join(
             self.netcleave_dir, "output", basename + "_NetCleave.csv")
 
         pd.DataFrame({
-            "epitope": [e.upper() for e in epitopes],
-            "protein_seq": [s.upper() for s in protein_seqs],
-            "protein_name": [str(i) for i in range(len(epitopes))],
+            "epitope": [r[0].upper() for r in requests],
+            "protein_seq": [r[1].upper() for r in requests],
+            "protein_name": [str(i) for i in range(len(requests))],
         }).to_csv(input_csv, index=False)
 
         try:
@@ -224,7 +241,7 @@ class NetCleave(object):
             except subprocess.TimeoutExpired as e:
                 raise RuntimeError(
                     "NetCleave timed out after %d seconds on %d epitopes"
-                    % (self.subprocess_timeout, len(epitopes))) from e
+                    % (self.subprocess_timeout, len(requests))) from e
             except OSError as e:
                 raise RuntimeError(
                     "Could not run NetCleave with %r: %s"
@@ -243,14 +260,23 @@ class NetCleave(object):
                     % (output_csv, stderr_text))
 
             out = pd.read_csv(output_csv)
-            if len(out) != len(epitopes):
-                raise RuntimeError(
-                    "NetCleave returned %d rows for %d epitopes"
-                    % (len(out), len(epitopes)))
+            # Map input-row id -> {cleavage_site (upper): score}. NetCleave
+            # carries our per-row protein_name through as ``uniprot_id`` and
+            # the 4+3 site as ``cleavage_site``; invalid sites read as NaN.
+            by_row = defaultdict(dict)
+            for rid, site, value in zip(
+                    out["uniprot_id"], out["cleavage_site"], out["prediction"]):
+                try:
+                    score = float(value)
+                except (TypeError, ValueError):
+                    score = None
+                if score is not None and score != score:  # NaN
+                    score = None
+                by_row[str(rid)][str(site).upper()] = score
+
             scores = []
-            for value in out["prediction"].tolist():
-                # NaN (no cleavage site) is not equal to itself.
-                scores.append(None if value != value else float(value))
+            for i, (_epitope, _protein_seq, expected_site) in enumerate(requests):
+                scores.append(by_row.get(str(i), {}).get(expected_site.upper()))
             return scores
         finally:
             for path in (input_csv, output_csv):
@@ -262,6 +288,14 @@ class NetCleave(object):
                 os.rmdir(tmp_dir)
             except OSError:
                 pass
+
+    @staticmethod
+    def _expected_site(peptide, c_flank):
+        """The 7-residue cleavage site NetCleave scores: peptide C-terminal
+        4 residues + 3 downstream. Empty if there isn't enough context."""
+        if len(peptide) < 4 or len(c_flank) < _C_FLANK_REQUIRED:
+            return ""
+        return (peptide[-4:] + c_flank[:_C_FLANK_REQUIRED]).upper()
 
     # ------------------------------------------------------------------
     # Public API
@@ -290,6 +324,8 @@ class NetCleave(object):
         """
         peptide_list, n_flank_list, c_flank_list = _check_flank_inputs(
             peptides, n_flanks, c_flanks)
+        if not peptide_list:
+            return []
         if c_flank_list is None:
             raise ValueError(
                 "NetCleave.predict requires c_flanks (>= %d residues per "
@@ -297,31 +333,28 @@ class NetCleave(object):
                 "peptides in a protein context, use predict_proteins()."
                 % _C_FLANK_REQUIRED)
 
-        epitopes, proteins, meta = [], [], []
+        requests, meta = [], []
         for i, peptide in enumerate(peptide_list):
             n_flank = n_flank_list[i] if n_flank_list is not None else ""
             c_flank = c_flank_list[i]
-            if len(c_flank) < _C_FLANK_REQUIRED:
+            expected_site = self._expected_site(peptide, c_flank)
+            if not expected_site:
                 logger.warning(
                     "NetCleave: peptide %r has c_flank %r shorter than %d "
                     "residues; cannot score its cleavage site",
                     peptide, c_flank, _C_FLANK_REQUIRED)
-                meta.append(None)
+                meta.append((peptide, n_flank, c_flank, None))
                 continue
-            meta.append((peptide, n_flank, c_flank))
-            epitopes.append(peptide)
-            proteins.append(n_flank + peptide + c_flank)
+            # Score each peptide in its own surrogate protein so its cleavage
+            # site is well-defined regardless of repeats elsewhere.
+            meta.append((peptide, n_flank, c_flank, len(requests)))
+            requests.append((peptide, peptide + c_flank, expected_site))
 
-        scores = self._run_netcleave(epitopes, proteins) if epitopes else []
+        scores = self._run_netcleave(requests)
 
-        results, score_idx = [], 0
-        for entry in meta:
-            if entry is None:
-                results.append(PeptideResult(preds=()))
-                continue
-            peptide, n_flank, c_flank = entry
-            score = scores[score_idx]
-            score_idx += 1
+        results = []
+        for peptide, n_flank, c_flank, req_idx in meta:
+            score = None if req_idx is None else scores[req_idx]
             results.append(self._make_result(
                 peptide, score, n_flank=n_flank, c_flank=c_flank))
         return results
@@ -351,15 +384,34 @@ class NetCleave(object):
         if isinstance(peptide_lengths, int):
             peptide_lengths = [peptide_lengths]
 
+        # Ensure at least 3 downstream residues are captured for the cleavage
+        # site, even if the caller asks for a shorter recorded flank.
         contexts = _peptide_contexts(
-            sequence_dict, peptide_lengths, flank_length)
-        epitopes = [c.peptide for c in contexts]
-        proteins = [sequence_dict[c.source_sequence_name] for c in contexts]
-        scores = self._run_netcleave(epitopes, proteins) if epitopes else []
+            sequence_dict, peptide_lengths, flank_length,
+            n_flank_length=flank_length,
+            c_flank_length=max(flank_length, _C_FLANK_REQUIRED))
 
-        from collections import defaultdict
+        # Score each peptide in a surrogate protein (peptide + its downstream
+        # flank). The cleavage site depends only on those residues, so this
+        # matches the full-protein score while keeping each peptide unique in
+        # its row (NetCleave emits one row per regex occurrence).
+        requests, meta = [], []
+        for context in contexts:
+            expected_site = self._expected_site(context.peptide, context.c_flank)
+            if not expected_site:
+                meta.append((context, None))
+                continue
+            meta.append((context, len(requests)))
+            requests.append((
+                context.peptide,
+                context.peptide + context.c_flank,
+                expected_site))
+
+        scores = self._run_netcleave(requests)
+
         results = defaultdict(list)
-        for context, score in zip(contexts, scores):
+        for context, req_idx in meta:
+            score = None if req_idx is None else scores[req_idx]
             results[context.source_sequence_name].append(self._make_result(
                 context.peptide, score,
                 n_flank=context.n_flank, c_flank=context.c_flank,
