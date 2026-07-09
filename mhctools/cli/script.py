@@ -152,7 +152,17 @@ def main(args_list=None):
             --mhc-alleles HLA-A0201 H2-Db \
             --mhc-predictor netmhc \
             --output-csv epitope.csv
+
+    The ``predict-table`` subcommand annotates an existing CSV of peptides
+    (and optional alleles) with predictor score columns; see
+    ``mhctools predict-table --help``.
     """
+    if args_list is None:
+        args_list = sys.argv[1:]
+    if args_list and args_list[0] == "predict-table":
+        from .annotate_table import main as annotate_table_main
+        return annotate_table_main(args_list[1:])
+
     args = parse_args(args_list)
     binding_predictions = run_predictor(args)
     df = binding_predictions.to_dataframe()

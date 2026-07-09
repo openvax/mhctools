@@ -372,6 +372,48 @@ mhctools --sequence SIINFEKL SIINFEKLQ --mhc-predictor netmhc --mhc-alleles A020
 mhctools --sequence AAAQQQSIINFEKL --extract-subsequences --mhc-peptide-lengths 8-10 --mhc-predictor mhcflurry --mhc-alleles A0201
 ```
 
+### Annotate an existing table with predictor scores (`predict-table`)
+
+Downstream evaluation workflows often start from an annotated benchmark table
+(with columns like `sample_id`, `hit`, `peptide`, and per-row genotype/allele
+info) and just need external predictor scores appended. `mhctools
+predict-table` reads a CSV, runs each requested predictor once, and appends one
+score column per predictor — choosing the best allele per row — while
+preserving every input column:
+
+```sh
+mhctools predict-table \
+    --input benchmark.csv.bz2 \
+    --peptide-column peptide \
+    --alleles-column hla \
+    --predictor netmhcpan42-ba:netmhcpan4.2.ba:affinity \
+    --predictor netmhcpan42-el:netmhcpan4.2.el:score \
+    --out benchmark.with_scores.csv.bz2
+```
+
+Each `--predictor` spec is `NAME[:OUTPUT_COLUMN[:FIELD]]`, where `FIELD` is
+`affinity`, `score`, or `percentile_rank` (lower is better for `affinity` and
+`percentile_rank`; higher for `score`). Rows may hold several alleles per cell
+(whitespace-, comma-, or semicolon-separated); the best one per peptide is
+chosen and recorded in a `<OUTPUT_COLUMN>_best_allele` provenance column.
+Pass `--predictor-info info.csv` to also write a sidecar describing each
+column's `score_field` and `higher_is_better`.
+
+The same thing from Python (I/O-free, works on any `DataFrame`):
+
+```python
+from mhctools import annotate_table, AnnotationSpec, NetMHCpan42_BA
+
+annotated = annotate_table(
+    df,
+    [AnnotationSpec(
+        predictor=lambda alleles: NetMHCpan42_BA(alleles=alleles),
+        output_column="netmhcpan4.2.ba",
+        field="affinity")],
+    peptide_column="peptide",
+    allele_column="hla")
+```
+
 ## Legacy API
 
 The old `predict_peptides()` and `predict_subsequences()` methods still work
