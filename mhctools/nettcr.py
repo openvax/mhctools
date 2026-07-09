@@ -33,14 +33,39 @@ pan cross-validation ensemble, matching the published usage.
 
 from __future__ import annotations
 
+import contextlib
 import glob
 import os
+import sys
 
 import numpy as np
 import pandas as pd
 
 from .pred import COLUMNS, Kind, PeptideResult, Prediction
 from .tcr import TCR
+
+
+@contextlib.contextmanager
+def _suppress_native_stderr():
+    """Silence C-level stderr for the duration of the block.
+
+    The TFLite runtimes print ``INFO: Created TensorFlow Lite XNNPACK delegate
+    for CPU.`` from native code straight to file descriptor 2 (during
+    ``allocate_tensors``), bypassing Python's ``logging``. Redirect fd 2 to
+    ``os.devnull`` so that chatter is dropped; Python-level exceptions still
+    propagate normally (only native writes to stderr are hidden). Restores the
+    original fd afterward, so ordinary stderr keeps working.
+    """
+    sys.stderr.flush()
+    saved_fd = os.dup(2)
+    devnull_fd = os.open(os.devnull, os.O_WRONLY)
+    try:
+        os.dup2(devnull_fd, 2)
+        yield
+    finally:
+        os.dup2(saved_fd, 2)
+        os.close(devnull_fd)
+        os.close(saved_fd)
 
 
 # BLOSUM50, restricted to the 20 standard amino acids, in NetTCR's column
@@ -284,7 +309,11 @@ class NetTCR(object):
                         det["index"], [n, det["shape"][1], det["shape"][2]])
                 interpreter.resize_tensor_input(
                     output["index"], [n, output["shape"][1]])
-                interpreter.allocate_tensors()
+                # allocate_tensors() is where the TFLite runtime prints its
+                # one-time "Created ... XNNPACK delegate for CPU." INFO line to
+                # native stderr; keep that out of callers' output.
+                with _suppress_native_stderr():
+                    interpreter.allocate_tensors()
             for det in inputs:
                 # NetTCR names inputs "serving_default_<feature>:0"; match by
                 # the trailing feature token rather than by tensor order.

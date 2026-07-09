@@ -21,7 +21,7 @@ from argparse import ArgumentParser
 import inspect
 import logging
 
-from ..allele_normalization import normalize_allele_name
+from ..allele_normalization import normalize_allele_name_or_raw
 
 from .parsing_helpers import parse_int_list
 # Heavy predictors (BigMHC, MHCflurry) are NOT imported here: pulling them in
@@ -256,8 +256,11 @@ def make_mhc_arg_parser(**kwargs):
     return parser
 
 def mhc_alleles_from_args(args):
+    # normalize_allele_name_or_raw keeps exotic / non-human alleles that
+    # mhcgnomes can't parse (e.g. BoLA-amani.1, H-2-Qa1) instead of raising,
+    # matching the commandline predictors' keep-unparseable behavior (#220).
     alleles = [
-        normalize_allele_name(allele.strip())
+        normalize_allele_name_or_raw(allele.strip())
         for comma_group in args.mhc_alleles.split(",")
         for allele in comma_group.split(" ")
         if allele.strip()
@@ -267,7 +270,7 @@ def mhc_alleles_from_args(args):
             for line in f:
                 line = line.strip()
                 if line:
-                    alleles.append(normalize_allele_name(line))
+                    alleles.append(normalize_allele_name_or_raw(line))
     if len(alleles) == 0:
         raise ValueError(
             "MHC alleles required (use --mhc-alleles or --mhc-alleles-file)")

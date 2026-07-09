@@ -107,6 +107,21 @@ def test_check_hla_alleles_dedupes_star_variants_of_unparseable():
 
 
 # ---------------------------------------------------------------------------
+# CLI --mhc-alleles must keep exotic alleles too, not crash on them (#220).
+# ---------------------------------------------------------------------------
+
+def test_cli_mhc_alleles_keep_exotic():
+    from mhctools.cli.args import make_mhc_arg_parser, mhc_alleles_from_args
+    args = make_mhc_arg_parser().parse_args([
+        "--mhc-predictor", "netmhcpan",
+        "--mhc-alleles", "BoLA-amani.1,HLA-A*02:01 H-2-Qa1"])
+    # Parseable allele is canonicalized; exotic ones are kept verbatim rather
+    # than raising an AlleleParseError at the CLI layer.
+    assert mhc_alleles_from_args(args) == [
+        "BoLA-amani.1", "HLA-A*02:01", "H-2-Qa1"]
+
+
+# ---------------------------------------------------------------------------
 # Output parser falls back to the raw name instead of raising (binary-free).
 # ---------------------------------------------------------------------------
 

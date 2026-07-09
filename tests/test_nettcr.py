@@ -16,7 +16,12 @@ import numpy as np
 import pytest
 
 from mhctools import TCR
-from mhctools.nettcr import NetTCR, _BLOSUM50, _encode_feature
+from mhctools.nettcr import (
+    NetTCR,
+    _BLOSUM50,
+    _encode_feature,
+    _suppress_native_stderr,
+)
 from mhctools.pred import COLUMNS, Kind
 
 
@@ -24,6 +29,25 @@ from mhctools.pred import COLUMNS, Kind
 # Encoding unit tests — no NetTCR install or TFLite runtime required.
 # These pin the exact encoding reproduced from NetTCR-2.2 src/predict.py.
 # ---------------------------------------------------------------------------
+
+def test_suppress_native_stderr_hides_fd2_writes_and_restores(capfd):
+    # Emulate a native library writing to fd 2 (like TFLite's XNNPACK line):
+    # writes inside the block are dropped, and stderr works again afterward.
+    with _suppress_native_stderr():
+        os.write(2, b"NATIVE-XNNPACK-NOISE\n")
+    os.write(2, b"real-stderr-after\n")
+    err = capfd.readouterr().err
+    assert "NATIVE-XNNPACK-NOISE" not in err
+    assert "real-stderr-after" in err
+
+
+def test_suppress_native_stderr_restores_on_exception():
+    # fd 2 must be restored even if the body raises.
+    with pytest.raises(ValueError):
+        with _suppress_native_stderr():
+            raise ValueError("boom")
+    os.write(2, b"still-works\n")  # would raise if fd 2 were left closed
+
 
 def test_encode_shape():
     arr = _encode_feature(["SIINFEKL"], "pep")
