@@ -266,3 +266,27 @@ def normalize_allele_name(raw_allele, omit_dra1=False, infer_class2_pair=True):
     normalized = "-".join(normalized_parts)
     _normalized_allele_cache[cache_key] = normalized
     return normalized
+
+
+def normalize_allele_name_or_raw(name):
+    """
+    Normalize an allele name via mhcgnomes, or fall back to a canonical "raw"
+    spelling for names it can't parse.
+
+    Some alleles appear in a predictor's own supported list (e.g. netMHCpan's
+    ``-listMHC``) yet are rejected by mhcgnomes: exotic non-human alleles such
+    as ``H-2-Qa1`` or ``BoLA-amani.1``, and HLA low/null-expression variants
+    such as ``HLA-A30:14L``. For these we key on the predictor's own spelling
+    so that a requested allele and the same allele echoed back in the
+    predictor's output resolve to a single identity.
+
+    The raw fallback strips surrounding whitespace and the ``*`` gene/allele
+    separator (which a predictor may add or omit — netMHCpan prints
+    ``HLA-A*30:14L`` for a requested ``HLA-A30:14L``), preserving case to match
+    the predictor's ``-listMHC`` / output spelling.
+    """
+    stripped = str(name).strip()
+    try:
+        return normalize_allele_name(stripped.upper())
+    except AlleleParseError:
+        return stripped.replace("*", "")

@@ -257,7 +257,10 @@ class BaseCommandlinePredictor(BasePredictor):
             valid_alleles=None,
             default_peptide_lengths=default_peptide_lengths,
             min_peptide_length=min_peptide_length,
-            max_peptide_length=max_peptide_length)
+            max_peptide_length=max_peptide_length,
+            # Non-human alleles the normalizer can't parse (e.g. H-2-Qa1) are
+            # kept verbatim and validated against the tool's raw -listMHC list.
+            keep_unparseable_alleles=True)
 
         self._resolve_supported_alleles()
 

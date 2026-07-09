@@ -94,6 +94,32 @@ def test_netmhc_pan_multiple_alleles():
         "Expected both alleles, got %s" % (observed_alleles,)
 
 
+def test_netmhc_pan_exotic_unnormalizable_alleles():
+    """netMHCpan lists non-human alleles (H-2-Qa1, BoLA-amani.1) and HLA
+    low/null-expression variants (HLA-A30:14L) that mhcgnomes can't normalize
+    (issue #220). They must round-trip: request them, run, and get predictions
+    back keyed by the requested identity. netMHCpan echoes HLA-A30:14L back
+    with a '*' (HLA-A*30:14L), so both spellings must resolve to one identity.
+    """
+    cases = [
+        ("H-2-Qa1", "H-2-Qa1"),
+        ("BoLA-amani.1", "BoLA-amani.1"),
+        ("HLA-A30:14L", "HLA-A30:14L"),   # requested without '*'
+        ("HLA-A*30:14L", "HLA-A30:14L"),  # requested with '*', same identity
+    ]
+    peptides = ["SIINFEKLL", "GILGFVFTL"]
+    for requested, expected_identity in cases:
+        predictor = NetMHCpan(alleles=[requested])
+        binding_predictions = predictor.predict_peptides(peptides)
+        assert len(binding_predictions) == len(peptides), \
+            "Expected %d predictions for %s, got %s" % (
+                len(peptides), requested, binding_predictions)
+        observed = {bp.allele for bp in binding_predictions}
+        assert observed == {expected_identity}, \
+            "Expected identity %r for requested %r, got %s" % (
+                expected_identity, requested, observed)
+
+
 def test_netmhc_pan_batched_matches_per_allele():
     """Batching alleles into one `-a A,B,C` invocation must produce exactly
     the same scores as running one process per allele. Uses the real binary's
