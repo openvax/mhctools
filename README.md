@@ -208,6 +208,36 @@ Examples:
 | `NetCleave_I` | `proteasome_cleavage` | `none` | `I` |
 | `NetCleave_II` | `endolysosomal_cleavage` | `none` | `II` |
 | `NetTCR` | `pMHC_TCR_binding` | `none` | `I` |
+| `Tulip` | `pMHC_TCR_binding` | `single_allele` | `I` |
+
+### TCR predictors (`NetTCR`, `Tulip`)
+
+`NetTCR` and `Tulip` predict pMHC:TCR binding — whether a paired αβ T-cell
+receptor (an `mhctools.TCR`, described by its CDR loops) recognises a peptide.
+Both take `(peptide, TCR)` inputs; `Tulip` additionally takes the presenting
+MHC allele.
+
+```python
+from mhctools import Tulip, TCR
+
+tcr = TCR(cdr3a="CAGASGNTGKLIF", cdr3b="CASSIRASYEQYF", name="clone1")
+predictor = Tulip()                       # needs TULIP_HOME + TULIP_PYTHON
+results = predictor.predict(["GILGFVFTL"], [tcr], mhc="HLA-A*02:01")
+results[0].preds[0].score                 # higher = more likely binding
+```
+
+[TULIP-TCR](https://github.com/barthelemymp/TULIP-TCR) is **GPLv3** and pinned to
+`transformers==4.32.1`; mhctools is Apache-2.0 and depends on neither torch nor
+transformers. The `Tulip` wrapper therefore vendors none of TULIP — it runs a
+user-provided checkout out-of-process, in an isolated interpreter, via TULIP's
+own `predict.py`. Set two things up first (see `scripts/setup_tulip_env.sh`,
+which does both):
+
+- `TULIP_HOME` — a clone of TULIP-TCR (provides `predict.py`, `src/`, tokenizers,
+  and the released `model_weights/`);
+- `TULIP_PYTHON` — an isolated **Python 3.11** interpreter with `torch` and
+  `transformers==4.32.1` (3.11 so `tokenizers` installs from a prebuilt wheel and
+  needs no Rust toolchain).
 
 For MHCflurry presentation, `presentation_allele_mode="haplotype"` treats the
 requested alleles as one sample genotype and emits one `pMHC_presentation`
