@@ -51,7 +51,9 @@ def NetMHCpan(
         program_name="netMHCpan",
         process_limit=-1,
         default_peptide_lengths=[9],
-        extra_flags=[]):
+        extra_flags=[],
+        max_peptides_per_file=10 ** 4,
+        max_alleles_per_command="auto"):
     """
     Auto-detecting wrapper for any installed version of NetMHCpan.
 
@@ -79,6 +81,8 @@ def NetMHCpan(
         "program_name": program_name,
         "process_limit": process_limit,
         "extra_flags": extra_flags,
+        "max_peptides_per_file": max_peptides_per_file,
+        "max_alleles_per_command": max_alleles_per_command,
     }
 
     # Exact match

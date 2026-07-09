@@ -86,4 +86,9 @@ def test_netmhc_pan_multiple_alleles():
     binding_predictions = predictor.predict_subsequences(
         sequence_dict=sequence_dict)
     assert len(binding_predictions) == 8, \
-        "Expected 4 binding predictions from %s" % (binding_predictions,)
+        "Expected 8 binding predictions from %s" % (binding_predictions,)
+    # With allele batching both alleles are produced by a single netMHCpan
+    # invocation (-a A02:01,B35:02); make sure both are attributed correctly.
+    observed_alleles = {bp.allele for bp in binding_predictions}
+    assert observed_alleles == {"HLA-A*02:01", "HLA-B*35:02"}, \
+        "Expected both alleles, got %s" % (observed_alleles,)
