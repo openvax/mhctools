@@ -62,6 +62,7 @@ from .. import (
     IedbSMM_PMBEC,
     IedbNetMHCIIpan,
     MixMHCpred,
+    PRIME,
 )
 
 
@@ -165,6 +166,7 @@ mhc_predictors = {
     "mhcflurry": _MHCflurry,
     "mhcflurry-affinity": _MHCflurry_Affinity,
     "mixmhcpred": MixMHCpred,
+    "prime": PRIME,
 }
 
 
