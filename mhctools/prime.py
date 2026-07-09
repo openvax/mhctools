@@ -30,7 +30,10 @@ presentation and TCR recognition with MixMHCpred2.2 and PRIME2.0".
 Note on interpretation: like every current CD8 immunogenicity predictor, PRIME
 is useful for ranking in the well-characterized regime but generalizes poorly
 to truly novel neoepitopes (independent benchmarks put the field near
-AUC 0.5-0.65). Treat scores as a prioritization aid, not ground truth.
+AUC 0.5-0.65). PRIME's training positives are dominated by viral / cancer-testis
+antigens, so it does relatively better on infectious-disease epitopes and, in
+the one neutral head-to-head (NeoaPred, Bioinformatics 2024), trails BigMHC_IM
+on cancer neoepitopes. Treat scores as a prioritization aid, not ground truth.
 """
 
 from os import remove

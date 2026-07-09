@@ -360,9 +360,15 @@ results[0].immunogenicity.score
 > ⚠️ Every current CD8 immunogenicity predictor — `PRIME` and `BigMHC_IM`
 > included — ranks well in the characterized regime but generalizes poorly to
 > truly novel neoepitopes; independent benchmarks put the field near AUC
-> 0.5–0.65, with most of the usable signal coming from expression / agretopicity
-> features rather than the peptide alone. Use these scores to prioritize, not as
-> ground truth.
+> 0.5–0.65 on unseen tumor neoepitopes (ITSNdb ~0.52–0.60, ICERFIRE ~0.56,
+> IMPROVE ~0.60). In the one neutral head-to-head that scored both (NeoaPred,
+> *Bioinformatics* 2024), **`BigMHC_IM` edged `PRIME` on cancer neoepitopes**,
+> while PRIME tends to do better on viral / infectious-disease epitopes — its
+> training positives are mostly viral and cancer-testis antigens, with only
+> ~129 (v1) / ~596 (v2) true immunogenic neoepitopes. PRIME's higher
+> self-reported numbers are partly attributable to documented train/test
+> overlap (IMPROVE flagged ~70% overlap with its evaluation set). Use these
+> scores to prioritize, not as ground truth.
 
 ### TCR specificity
 
