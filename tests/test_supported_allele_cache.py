@@ -60,13 +60,20 @@ def _clean_caches():
 
 
 class _StubResolve(BaseCommandlinePredictor):
-    """Exercises _resolve_supported_alleles without a real binary: sets the
-    attributes it reads and bypasses __init__."""
+    """Exercises _resolve_supported_alleles / _build_command without a real
+    binary: sets the attributes they read and bypasses __init__."""
     def __init__(self, alleles, supported_names, prepare=None):
         self.program_name, self.supported_alleles_flag = _KEY
         self.alleles = list(alleles)              # already normalized
         self._supported_allele_names = set(supported_names)
         self._prepare = prepare
+        # attributes _build_command needs
+        self.peptide_mode_flags = ["-p"]
+        self.allele_flag = "-a"
+        self.length_flag = "-l"
+        self.input_file_flag = "-f"
+        self.tempdir_flag = None
+        self.extra_flags = []
 
     def prepare_allele_name(self, allele_name):
         if self._prepare is not None:
@@ -96,15 +103,32 @@ def test_supported_alleles_are_raw_and_cached(monkeypatch):
         "BoLA-amani.1", "BoLA-1:00901", "BoLA-100901"}
 
 
-def test_determine_does_not_run_mhcgnomes(monkeypatch):
+def test_determine_only_probes_for_a_parseable_allele(monkeypatch):
+    # It must not normalize the whole list up front — only probe until the
+    # first parseable name (the wrong-executable sanity check).
+    calls = {"n": 0}
+    real = bcp.normalize_allele_name
+
+    def counting(name, *a, **k):
+        calls["n"] += 1
+        return real(name, *a, **k)
+
     monkeypatch.setattr(bcp, "check_output", lambda args: _CANNED_LISTMHC)
-
-    def explode(*a, **k):
-        raise AssertionError("normalize_allele_name should not run here")
-
-    monkeypatch.setattr(bcp, "normalize_allele_name", explode)
-    # Must not normalize the list — proves the up-front parse is gone.
+    monkeypatch.setattr(bcp, "normalize_allele_name", counting)
     BaseCommandlinePredictor._determine_supported_alleles(*_KEY)
+    # 5 names; probe stops at the first that parses, so far fewer than 5.
+    assert calls["n"] < 5
+
+
+def test_garbage_output_raises_system_error(monkeypatch):
+    # A mismatched executable's usage/error text has no parseable alleles and
+    # must raise SystemError (the "incorrect executable version?" signal),
+    # not silently pass through as a set of raw names.
+    monkeypatch.setattr(
+        bcp, "check_output",
+        lambda args: b"usage: netMHC [-options]\nnot_an_allele_here\n")
+    with pytest.raises(SystemError):
+        BaseCommandlinePredictor._determine_supported_alleles(*_KEY)
 
 
 # ---------------------------------------------------------------------------
@@ -139,6 +163,40 @@ def test_collision_prefers_colon_spelling():
     mapping = BaseCommandlinePredictor._normalized_supported_alleles(
         *_KEY, raw_names={"BoLA-100901", "BoLA-1:00901"})
     assert mapping["BoLA-1*09:01"] == "BoLA-1:00901"
+
+
+def test_collision_tie_break_is_deterministic():
+    # Two colon spellings for one Mamu allele: pick the one whose colon sits
+    # right after the gene, deterministically regardless of set order.
+    raw = {"Mamu-A1001:01", "Mamu-A1:00101"}
+    a = BaseCommandlinePredictor._normalized_supported_alleles(*_KEY, raw_names=raw)
+    _clear()
+    b = BaseCommandlinePredictor._normalized_supported_alleles(
+        *_KEY, raw_names=set(reversed(list(raw))))
+    assert a == b == {"Mamu-A1*01:01": "Mamu-A1:00101"}
+
+
+def test_resolved_spelling_used_in_command():
+    # The predictor's own -listMHC spelling (not the mangled prepared form)
+    # must reach the -a argument.
+    p = _StubResolve(["BoLA-1*09:01"], {"BoLA-1:00901", "BoLA-100901"})
+    p._resolve_supported_alleles()
+    cmd = p._build_command(
+        input_filename="pep.txt", alleles=["BoLA-1*09:01"], peptide_mode=True)
+    i = cmd.index("-a")
+    assert cmd[i + 1] == "BoLA-1:00901"
+    assert "BoLA-109:01" not in cmd            # not the rewritten form
+
+
+def test_prepare_failure_falls_back_to_slow_path():
+    # prepare_allele_name that raises (as netMHCIIpan can on unexpected genes)
+    # must not crash resolution — it falls through to the -listMHC spelling.
+    def boom(allele):
+        raise ValueError("prepare rejects %s" % allele)
+
+    p = _StubResolve(["BoLA-1*09:01"], {"BoLA-1:00901"}, prepare=boom)
+    p._resolve_supported_alleles()
+    assert p._allele_cli_names == {"BoLA-1*09:01": "BoLA-1:00901"}
 
 
 def test_unsupported_allele_raises():

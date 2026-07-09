@@ -61,6 +61,29 @@ _supported_alleles_cache = {}
 _normalized_supported_cache = {}
 
 
+def _prefer_allele_spelling(new, existing):
+    """
+    When several raw -listMHC spellings normalize to the same allele, pick the
+    one most likely accepted on `-a`, deterministically (independent of set
+    iteration order):
+
+      1. a colon-containing spelling (e.g. BoLA-1:00901, which netMHCpan
+         accepts, over BoLA-100901, which it rejects);
+      2. among those, the spelling whose colon sits earliest — i.e. right
+         after the gene (Mamu-A1:00101 over Mamu-A1001:01);
+      3. the lexicographically smaller string as a final stable tie-break.
+    """
+    def rank(name):
+        colon = name.find(":")
+        # higher is preferred: has-colon first, then earliest colon
+        return (colon >= 0, -colon if colon >= 0 else 1)
+
+    rank_new, rank_existing = rank(new), rank(existing)
+    if rank_new != rank_existing:
+        return new if rank_new > rank_existing else existing
+    return min(new, existing)
+
+
 class BaseCommandlinePredictor(BasePredictor):
     """
     Base class for MHC binding predictors that run a local external
@@ -268,6 +291,25 @@ class BaseCommandlinePredictor(BasePredictor):
             }
             if len(supported_alleles) == 0:
                 raise ValueError("Unable to determine supported alleles")
+
+            # Sanity check that this really is an allele list and not, e.g., a
+            # mismatched executable's usage/error text (which would otherwise
+            # sail through as a set of "raw" names and only fail later as an
+            # UnsupportedAllele). At least one name must parse as an allele.
+            # Probe lazily and stop at the first success — O(1) for a real
+            # list, so this does not reintroduce the up-front full parse.
+            def parses(name):
+                try:
+                    normalize_allele_name(name)
+                    return True
+                except AlleleParseError:
+                    return False
+            if not any(parses(name) for name in supported_alleles):
+                raise ValueError(
+                    "No parseable alleles in output of %s %s "
+                    "(possibly an incorrect executable version?)" % (
+                        command, supported_allele_flag))
+
             _supported_alleles_cache[cache_key] = supported_alleles
             return supported_alleles
         except Exception as e:
@@ -286,10 +328,10 @@ class BaseCommandlinePredictor(BasePredictor):
         HLA) case never pays for it.
 
         raw_name is the predictor's own spelling, which is what round-trips on
-        the command line. When several raw spellings normalize to the same
-        name (netMHCpan lists e.g. both `BoLA-1:00901` and `BoLA-100901`),
-        prefer a colon-containing spelling, which matches the form these
-        predictors actually accept on `-a`.
+        the command line. When several raw spellings normalize to the same name
+        (netMHCpan lists e.g. both `BoLA-1:00901` and `BoLA-100901`, or two
+        colon forms for one Mamu allele), _prefer_allele_spelling picks one
+        deterministically.
         """
         cache_key = (command, supported_allele_flag)
         cached = _normalized_supported_cache.get(cache_key)
@@ -307,8 +349,10 @@ class BaseCommandlinePredictor(BasePredictor):
                 skipped += 1
                 continue
             existing = mapping.get(key)
-            if existing is None or (":" in name and ":" not in existing):
+            if existing is None:
                 mapping[key] = name
+            else:
+                mapping[key] = _prefer_allele_spelling(name, existing)
         if skipped:
             logger.debug(
                 "%s %s: %d of %d supported allele names could not be normalized",
@@ -336,8 +380,16 @@ class BaseCommandlinePredictor(BasePredictor):
         unsupported = []
         normalized_map = None
         for allele in self.alleles:
-            cli_name = self.prepare_allele_name(allele)
-            if cli_name in raw_names:
+            # Fast path: the predictor's expected spelling is printed verbatim.
+            # prepare_allele_name can itself reject an allele (e.g. netMHCIIpan
+            # re-parses and raises on unexpected genes); if so, fall through to
+            # the slow path, which resolves via the predictor's own -listMHC
+            # spelling and never needs prepare_allele_name.
+            try:
+                cli_name = self.prepare_allele_name(allele)
+            except Exception:
+                cli_name = None
+            if cli_name is not None and cli_name in raw_names:
                 self._allele_cli_names[allele] = cli_name
                 continue
             if normalized_map is None:
