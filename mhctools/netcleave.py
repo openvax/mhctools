@@ -264,8 +264,10 @@ class NetCleave(object):
             # carries our per-row protein_name through as ``uniprot_id`` and
             # the 4+3 site as ``cleavage_site``; invalid sites read as NaN.
             by_row = defaultdict(dict)
-            for rid, site, value in zip(
-                    out["uniprot_id"], out["cleavage_site"], out["prediction"]):
+            row_epitope = {}
+            for rid, epi, site, value in zip(
+                    out["uniprot_id"], out["epitope"],
+                    out["cleavage_site"], out["prediction"]):
                 try:
                     score = float(value)
                 except (TypeError, ValueError):
@@ -273,10 +275,19 @@ class NetCleave(object):
                 if score is not None and score != score:  # NaN
                     score = None
                 by_row[str(rid)][str(site).upper()] = score
+                row_epitope.setdefault(str(rid), str(epi).upper())
 
             scores = []
-            for i, (_epitope, _protein_seq, expected_site) in enumerate(requests):
-                scores.append(by_row.get(str(i), {}).get(expected_site.upper()))
+            for i, (epitope, _protein_seq, expected_site) in enumerate(requests):
+                key = str(i)
+                # Guard against a NetCleave contract change silently
+                # misaligning rows: rows for this id must be our epitope.
+                seen = row_epitope.get(key)
+                if seen is not None and seen != epitope.upper():
+                    raise RuntimeError(
+                        "NetCleave row %s epitope %r does not match the "
+                        "requested peptide %r" % (key, seen, epitope))
+                scores.append(by_row.get(key, {}).get(expected_site.upper()))
             return scores
         finally:
             for path in (input_csv, output_csv):
