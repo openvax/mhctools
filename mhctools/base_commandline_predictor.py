@@ -14,6 +14,7 @@
 
 from collections import defaultdict
 import logging
+from multiprocessing import cpu_count
 from subprocess import check_output
 import tempfile
 
@@ -30,6 +31,17 @@ from .binding_prediction_collection import BindingPredictionCollection
 from .pred import PeptideResult
 
 logger = logging.getLogger(__name__)
+
+# Upper bound on how many alleles the "auto" policy will pack into one
+# predictor invocation. Batching amortizes the per-process startup cost
+# (~100ms for netMHCpan) across alleles, but the marginal cost of an extra
+# allele in a running process is small (~15ms), so the benefit saturates
+# quickly. Past this point, larger batches mostly add downside: a single
+# failing allele takes out the whole batch, one process holds more output in
+# memory, and there are fewer processes to spread across cores. 20 keeps
+# ~85% of the amortization while bounding those risks.
+AUTO_MAX_ALLELES_PER_COMMAND = 20
+
 
 class BaseCommandlinePredictor(BasePredictor):
     """
@@ -49,6 +61,7 @@ class BaseCommandlinePredictor(BasePredictor):
             tempdir_flag=None,
             extra_flags=[],
             max_peptides_per_file=10 ** 4,
+            max_alleles_per_command=1,
             process_limit=-1,
             default_peptide_lengths=[9],
             group_peptides_by_length=False,
@@ -94,6 +107,24 @@ class BaseCommandlinePredictor(BasePredictor):
 
         max_peptides_per_file : int, optional
             Maximum number of lines per file when predicting peptides directly.
+
+        max_alleles_per_command : int, "auto", or None, optional
+            How many alleles to pass to a single invocation of the predictor
+            via a comma-separated allele flag (e.g. ``-a A0201,B3502``). Only
+            predictors whose allele flag accepts a comma-separated list (e.g.
+            the netMHCpan family) should batch more than one allele.
+
+              - ``1`` (default): one allele per command, i.e. one process per
+                (input file, allele). Preserves the historical behavior.
+              - ``"auto"``: batch alleles to amortize the per-process startup
+                cost, while keeping enough parallel processes (input files x
+                allele groups) to use the available cores and capping the
+                group size at AUTO_MAX_ALLELES_PER_COMMAND. Speeds up
+                many-allele runs without pessimizing small runs on
+                otherwise-idle cores or over-batching into fragile mega-calls.
+              - ``None`` or ``<= 0``: all alleles in a single command
+                (unbounded batching).
+              - ``k > 1``: at most ``k`` alleles per command.
 
         process_limit : int, optional
             Maximum number of parallel processes to start
@@ -142,6 +173,12 @@ class BaseCommandlinePredictor(BasePredictor):
             max_peptides_per_file,
             "Maximum number of lines in a peptides input file")
         self.max_peptides_per_file = max_peptides_per_file
+
+        if max_alleles_per_command not in (None, "auto"):
+            require_integer(
+                max_alleles_per_command,
+                "Maximum number of alleles per command")
+        self.max_alleles_per_command = max_alleles_per_command
 
         require_integer(process_limit, "Maximum number of processes")
         self.process_limit = process_limit
@@ -227,17 +264,64 @@ class BaseCommandlinePredictor(BasePredictor):
         """
         return allele_name.replace("*", "")
 
+    def _auto_allele_group_size(self, n_alleles, n_input_files):
+        """
+        Group size for max_alleles_per_command="auto": batch alleles to
+        amortize the per-process startup cost, but (a) keep enough parallel
+        processes (n_input_files * groups_per_file) to occupy the cores the
+        command runner will use, and (b) never exceed
+        AUTO_MAX_ALLELES_PER_COMMAND, past which batching stops paying off.
+        """
+        if self.process_limit and self.process_limit > 0:
+            target = self.process_limit
+        else:
+            target = cpu_count()
+        n_input_files = max(1, n_input_files)
+        # allele groups per file needed to reach `target` processes (ceil div)
+        groups_per_file = max(1, -(-target // n_input_files))
+        groups_per_file = min(groups_per_file, n_alleles)
+        # group size = ceil(n_alleles / groups_per_file), capped
+        group_size = max(1, -(-n_alleles // groups_per_file))
+        return min(group_size, AUTO_MAX_ALLELES_PER_COMMAND)
+
+    def _allele_groups(self, n_input_files=1):
+        """
+        Partition self.alleles into groups, one command (one predictor
+        process) per group per input file. Group size is controlled by
+        max_alleles_per_command (see __init__).
+
+        Returns a list of lists of allele names. Empty if there are no
+        alleles.
+        """
+        alleles = list(self.alleles)
+        if not alleles:
+            return []
+        n = self.max_alleles_per_command
+        if n == "auto":
+            group_size = self._auto_allele_group_size(len(alleles), n_input_files)
+        elif n is None or n <= 0 or n >= len(alleles):
+            group_size = len(alleles)
+        else:
+            group_size = n
+        return [alleles[i:i + group_size]
+                for i in range(0, len(alleles), group_size)]
+
     def _build_command(
             self,
             input_filename,
-            allele,
+            alleles,
             length=None,
             temp_dirname=None,
             peptide_mode=False):
+        # accept either a single allele name or a list of them
+        if isinstance(alleles, str):
+            alleles = [alleles]
         args = [self.program_name]
         if peptide_mode:
             args.extend(self.peptide_mode_flags)
-        args.extend([self.allele_flag, self.prepare_allele_name(allele)])
+        allele_arg = ",".join(
+            self.prepare_allele_name(allele) for allele in alleles)
+        args.extend([self.allele_flag, allele_arg])
         if length:
             args.extend([self.length_flag, str(length)])
         if self.tempdir_flag and temp_dirname:
@@ -349,7 +433,8 @@ class BaseCommandlinePredictor(BasePredictor):
         dirs = []
 
         for i, input_filename in enumerate(input_filenames):
-            for j, allele in enumerate(self.alleles):
+            for j, allele_group in enumerate(
+                    self._allele_groups(n_input_files=len(input_filenames))):
                 if self.tempdir_flag:
                     temp_dirname = tempfile.mkdtemp(
                         prefix="tmp_%d_%d_%s" % (i, j, self.program_name),
@@ -364,7 +449,7 @@ class BaseCommandlinePredictor(BasePredictor):
                     delete=False)
                 commands[output_file] = self._build_command(
                     input_filename=input_filename,
-                    allele=allele,
+                    alleles=allele_group,
                     peptide_mode=True,
                     temp_dirname=temp_dirname)
         return self._run_commands_and_collect_preds(
@@ -383,7 +468,8 @@ class BaseCommandlinePredictor(BasePredictor):
         dirs = []
 
         for i, input_filename in enumerate(input_filenames):
-            for j, allele in enumerate(self.alleles):
+            for j, allele_group in enumerate(
+                    self._allele_groups(n_input_files=len(input_filenames))):
                 if self.tempdir_flag:
                     temp_dirname = tempfile.mkdtemp(
                         prefix="tmp_%d_%d_%s" % (
@@ -392,9 +478,9 @@ class BaseCommandlinePredictor(BasePredictor):
                             self.program_name),
                     suffix="XXXXXX")
                     logger.debug(
-                        "Created temporary directory %s for allele %s",
+                        "Created temporary directory %s for alleles %s",
                         temp_dirname,
-                        allele)
+                        allele_group)
                     dirs.append(temp_dirname)
                 else:
                     temp_dirname = None
@@ -405,7 +491,7 @@ class BaseCommandlinePredictor(BasePredictor):
                     delete=False)
                 commands[output_file] = self._build_command(
                     input_filename=input_filename,
-                    allele=allele,
+                    alleles=allele_group,
                     peptide_mode=True,
                     temp_dirname=temp_dirname)
         results = self._run_commands_and_collect_predictions(

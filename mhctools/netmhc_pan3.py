@@ -21,7 +21,9 @@ class NetMHCpan3(BaseCommandlinePredictor):
             default_peptide_lengths=[9],
             program_name="netMHCpan",
             process_limit=-1,
-            extra_flags=[]):
+            extra_flags=[],
+            max_peptides_per_file=10 ** 4,
+            max_alleles_per_command="auto"):
         BaseCommandlinePredictor.__init__(
             self,
             program_name=program_name,
@@ -34,4 +36,6 @@ class NetMHCpan3(BaseCommandlinePredictor):
             length_flag="-l",
             allele_flag="-a",
             extra_flags=extra_flags,
+            max_peptides_per_file=max_peptides_per_file,
+            max_alleles_per_command=max_alleles_per_command,
             process_limit=process_limit)

@@ -25,7 +25,9 @@ class NetMHCpan4(BaseCommandlinePredictor):
             program_name="netMHCpan",
             process_limit=-1,
             mode="binding_affinity",
-            extra_flags=[]):
+            extra_flags=[],
+            max_peptides_per_file=10 ** 4,
+            max_alleles_per_command="auto"):
         """
         Wrapper for NetMHCpan4.
 
@@ -54,6 +56,8 @@ class NetMHCpan4(BaseCommandlinePredictor):
             length_flag="-l",
             allele_flag="-a",
             extra_flags=flags + extra_flags,
+            max_peptides_per_file=max_peptides_per_file,
+            max_alleles_per_command=max_alleles_per_command,
             process_limit=process_limit)
 
     def kind_support(self):
