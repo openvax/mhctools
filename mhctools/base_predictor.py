@@ -18,7 +18,6 @@ from typechecks import require_iterable_of
 from .allele_normalization import (
     normalize_allele_name,
     normalize_allele_name_or_raw,
-    AlleleParseError,
 )
 
 from .unsupported_allele import UnsupportedAllele
@@ -541,22 +540,17 @@ class BasePredictor(object):
         """
         require_iterable_of(alleles, str, "HLA alleles")
 
-        # Don't run the MHC predictor twice for homozygous alleles,
-        # only run it for unique alleles
-        normalized = set()
-        for allele in alleles:
-            try:
-                normalized.add(normalize_allele_name(allele.strip().upper()))
-            except AlleleParseError:
-                if not keep_unparseable:
-                    raise
-                # Keep the predictor's own spelling; the tool lists (and
-                # outputs) these names as-is and validation happens against its
-                # raw supported-allele list. normalize_allele_name_or_raw
-                # applies the same canonical fallback the output parser uses so
-                # a requested allele and its echoed form share one identity.
-                normalized.add(normalize_allele_name_or_raw(allele))
-        alleles = normalized
+        # Keep only unique alleles (don't run the predictor twice for a
+        # homozygous genotype). When keep_unparseable is set (command-line
+        # predictors, which validate against the tool's own -listMHC list),
+        # normalize_allele_name_or_raw retains names mhcgnomes can't parse
+        # using the same canonical fallback the output parser applies, so a
+        # requested allele and its echoed form share one identity. Otherwise
+        # normalize_allele_name raises on an unparseable name, as before.
+        if keep_unparseable:
+            alleles = {normalize_allele_name_or_raw(a) for a in alleles}
+        else:
+            alleles = {normalize_allele_name(a.strip().upper()) for a in alleles}
         if valid_alleles:
             # For some reason netMHCpan drops the '*' in names, so
             # 'HLA-A*03:01' becomes 'HLA-A03:01'

@@ -31,6 +31,7 @@ from mhctools.allele_normalization import (
     AlleleParseError,
 )
 from mhctools.base_predictor import BasePredictor
+from mhctools.parsing import parse_netmhc4_stdout
 
 
 # ---------------------------------------------------------------------------
@@ -103,3 +104,28 @@ def test_check_hla_alleles_dedupes_star_variants_of_unparseable():
     result = BasePredictor._check_hla_alleles(
         ["HLA-A30:14L", "HLA-A*30:14L"], keep_unparseable=True)
     assert result == ["HLA-A30:14L"]
+
+
+# ---------------------------------------------------------------------------
+# Output parser falls back to the raw name instead of raising (binary-free).
+# ---------------------------------------------------------------------------
+
+def test_parser_keeps_unparseable_output_allele():
+    # A netMHCpan/netMHC-style table whose allele column is an exotic name
+    # mhcgnomes can't parse. Before the fallback this raised in the parser;
+    # now the raw name is carried through verbatim.
+    stdout = """
+# NetMHC version 4.0
+-----------------------------------------------------------------------------------
+  pos          HLA      peptide         Core Offset  I_pos  I_len  D_pos  D_len        iCore        Identity 1-log50k(aff) Affinity(nM)    %Rank  BindLevel
+-----------------------------------------------------------------------------------
+    0      H-2-Qa1    SIINFEKLL    SIINFEKLL      0      0      0      0      0    SIINFEKLL         SEQ_A           0.349      1147.39     4.50
+-----------------------------------------------------------------------------------
+
+Protein PEPLIST. Allele H-2-Qa1. Number of high binders 0. Number of weak binders 0. Number of peptides 1
+-----------------------------------------------------------------------------------
+"""
+    preds = parse_netmhc4_stdout(stdout)
+    assert len(preds) == 1
+    assert preds[0].allele == "H-2-Qa1"       # raw name, not raised on
+    assert preds[0].peptide == "SIINFEKLL"
