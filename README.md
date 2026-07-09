@@ -210,6 +210,8 @@ Examples:
 | `NetCleave_II` | `endolysosomal_cleavage` | `none` | `II` |
 | `NetTCR` | `pMHC_TCR_binding` | `none` | `I` |
 | `Tulip` | `pMHC_TCR_binding` | `single_allele` | `I` |
+| `BigMHC_IM` | `immunogenicity` | `single_allele` | `I` |
+| `PRIME` | `immunogenicity` | `single_allele` | `I` |
 
 ### TCR predictors (`NetTCR`, `Tulip`)
 
@@ -329,6 +331,44 @@ by_protein = predictor.predict_proteins({"TP53": "MEEPQ..."}, peptide_lengths=[1
 > ⚠️ NetCleave's own paper reports class-II C-terminal cleavage is a much
 > weaker signal than class I (AUC ~0.66 vs ~0.91). Treat
 > `endolysosomal_cleavage` scores accordingly.
+
+### Immunogenicity
+
+| Predictor | Kinds produced | Requires |
+|---|---|---|
+| `BigMHC_IM` | immunogenicity | [BigMHC](https://github.com/KarchinLab/bigmhc) clone (set `BIGMHC_DIR`) |
+| `PRIME` | immunogenicity | [PRIME](https://github.com/GfellerLab/PRIME) clone + MixMHCpred |
+
+`PRIME` predicts CD8+ T-cell immunogenicity of class-I peptides by combining
+MHC-I binding (via MixMHCpred, which it calls internally) with a TCR-recognition
+propensity model. It emits one `immunogenicity` prediction per (peptide, allele):
+`score` is the PRIME score (higher = more immunogenic) and `percentile_rank` is
+the PRIME %Rank (lower = better). PRIME is academic / non-commercial licensed, so
+mhctools shells out to a user-provided install rather than vendoring it.
+
+```python
+from mhctools import PRIME
+
+predictor = PRIME(
+    alleles=["HLA-A*02:01", "HLA-B*07:02"],
+    program_name="PRIME",                    # or an absolute path
+    mixmhcpred_path="/path/to/MixMHCpred")    # optional if MixMHCpred is on PATH
+results = predictor.predict(["GILGFVFTL", "NLVPMVATV"])
+results[0].immunogenicity.score
+```
+
+> ⚠️ Every current CD8 immunogenicity predictor — `PRIME` and `BigMHC_IM`
+> included — ranks well in the characterized regime but generalizes poorly to
+> truly novel neoepitopes; independent benchmarks put the field near AUC
+> 0.5–0.65 on unseen tumor neoepitopes (ITSNdb ~0.52–0.60, ICERFIRE ~0.56,
+> IMPROVE ~0.60). In the one neutral head-to-head that scored both (NeoaPred,
+> *Bioinformatics* 2024), **`BigMHC_IM` edged `PRIME` on cancer neoepitopes**,
+> while PRIME tends to do better on viral / infectious-disease epitopes — its
+> training positives are mostly viral and cancer-testis antigens, with only
+> ~129 (v1) / ~596 (v2) true immunogenic neoepitopes. PRIME's higher
+> self-reported numbers are partly attributable to documented train/test
+> overlap (IMPROVE flagged ~70% overlap with its evaluation set). Use these
+> scores to prioritize, not as ground truth.
 
 ### TCR specificity
 

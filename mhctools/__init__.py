@@ -24,6 +24,7 @@ from .iedb import (
     IedbNetMHCIIpan,
 )
 from .mixmhcpred import MixMHCpred
+from .prime import PRIME
 from .processing_predictor import (
     ProcessingPredictor,
     SCORING_MODES,
@@ -80,7 +81,7 @@ def __getattr__(name):
     raise AttributeError(
         "module %r has no attribute %r" % (__name__, name))
 
-__version__ = "3.22.0"
+__version__ = "3.23.0"
 
 __all__ = [
     "Prediction",
@@ -107,6 +108,7 @@ __all__ = [
     "IedbSMM_PMBEC",
     "IedbNetMHCIIpan",
     "MixMHCpred",
+    "PRIME",
     "MHCflurry",
     "MHCflurry_Affinity",
     "ProcessingPredictor",
