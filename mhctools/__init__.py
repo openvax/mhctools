@@ -63,6 +63,7 @@ _LAZY_IMPORTS = {
     "MHCflurry": (".mhcflurry", "MHCflurry"),
     "MHCflurry_Affinity": (".mhcflurry", "MHCflurry_Affinity"),
     "NetTCR": (".nettcr", "NetTCR"),
+    "Tulip": (".tulip", "Tulip"),
 }
 
 
@@ -78,7 +79,7 @@ def __getattr__(name):
     raise AttributeError(
         "module %r has no attribute %r" % (__name__, name))
 
-__version__ = "3.19.0"
+__version__ = "3.20.0"
 
 __all__ = [
     "Prediction",
@@ -148,6 +149,7 @@ __all__ = [
     "BigMHC_EL",
     "BigMHC_IM",
     "NetTCR",
+    "Tulip",
     "RandomBindingPredictor",
     "UnsupportedAllele",
 ]
