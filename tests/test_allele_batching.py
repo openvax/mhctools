@@ -190,6 +190,35 @@ def test_auto_partial_batching_with_few_files():
         ["A1", "A2"], ["A3", "A4"], ["A5", "A6"], ["A7", "A8"]]
 
 
+def test_auto_caps_group_size():
+    # Many files would let "auto" batch every allele into one call; the cap
+    # keeps groups bounded so a single call never grows unbounded.
+    from mhctools.base_commandline_predictor import (
+        AUTO_MAX_ALLELES_PER_COMMAND as CAP)
+    n_alleles = CAP * 3 + 5
+    p = _StubPredictor(
+        ["A%d" % i for i in range(n_alleles)],
+        max_alleles_per_command="auto",
+        process_limit=2)
+    # 100 input files easily saturate the 2-process target, so absent a cap
+    # auto would put all alleles in one group.
+    groups = p._allele_groups(n_input_files=100)
+    assert max(len(g) for g in groups) <= CAP
+    assert sum(len(g) for g in groups) == n_alleles
+
+
+def test_none_still_batches_all_without_cap():
+    # The explicit "unbounded" escape hatch is not subject to the auto cap.
+    from mhctools.base_commandline_predictor import (
+        AUTO_MAX_ALLELES_PER_COMMAND as CAP)
+    n_alleles = CAP * 3
+    p = _StubPredictor(
+        ["A%d" % i for i in range(n_alleles)], max_alleles_per_command=None)
+    groups = p._allele_groups(n_input_files=100)
+    assert len(groups) == 1
+    assert len(groups[0]) == n_alleles
+
+
 # ---------------------------------------------------------------------------
 # _build_command(): a group becomes one comma-separated -a argument
 # ---------------------------------------------------------------------------
