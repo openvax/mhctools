@@ -54,6 +54,7 @@ jobs:
             tests/test_pred.py \
             tests/test_annotate_table.py \
             tests/test_prime.py \
+            tests/test_mixmhc2pred2.py \
             tests/test_processing_predictor.py \
             tests/test_pepsickle.py \
             tests/test_bigmhc.py \

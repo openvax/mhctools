@@ -200,6 +200,7 @@ Examples:
 | `NetMHCpan41` | `pMHC_affinity` | `single_allele` | `I` |
 | `NetMHCpan41` | `pMHC_presentation` | `single_allele` | `I` |
 | `NetMHCIIpan4_EL` | `pMHC_presentation` | `single_allele` | `II` |
+| `MixMHC2pred` | `pMHC_presentation` | `single_allele` | `II` |
 | `NetMHCstabpan` | `pMHC_stability` | `single_allele` | `I` |
 | `MHCflurry` | `pMHC_affinity` | `single_allele` | `I` |
 | `MHCflurry` haplotype mode | `pMHC_presentation` | `haplotype` | `I` |
@@ -291,9 +292,31 @@ affinity, hours for stability). `percentile_rank` is always optional,
 | `MHCflurry` | affinity + presentation + processing | `pip install mhcflurry` + `mhcflurry-downloads fetch` |
 | `MHCflurry_Affinity` | affinity | `pip install mhcflurry` + `mhcflurry-downloads fetch` |
 | `BigMHC` | presentation or immunogenicity | [BigMHC](https://github.com/KarchinLab/bigmhc) clone (set `BIGMHC_DIR`) |
-| `MixMHCpred` | presentation | [MixMHCpred](https://github.com/GfellerLab/MixMHCpred) |
+| `MixMHCpred` | presentation (class I) | [MixMHCpred](https://github.com/GfellerLab/MixMHCpred) |
+| `MixMHC2pred` | presentation (class II) | [MixMHC2pred](https://github.com/GfellerLab/MixMHC2pred) release (has `PWMdef/`) |
 | `IedbNetMHCpan` / `IedbSMM` / `IedbNetMHCIIpan` | affinity | IEDB web API |
 | `RandomBindingPredictor` | affinity | (built-in) |
+
+`MixMHC2pred` is a pan-allele **class-II** presentation predictor and a strong
+complement to `NetMHCIIpan` (independently co-best in the Frontiers in
+Immunology 2024 class-II benchmark). It emits one `pMHC_presentation`
+prediction per (peptide, allele): `score` is the raw MixMHC2pred score (higher
+= better), `percentile_rank` is its %Rank (lower = better). It's academic /
+non-commercial licensed, so mhctools shells out to a user-provided install
+(download a **release**, not a bare clone — the release ships the `PWMdef/`
+allele definitions). Alleles may be given in the usual spellings
+(`HLA-DRB1*15:01`) or MixMHC2pred's own (`DRB1_15_01`,
+`DQA1_01_02__DQB1_06_02`).
+
+```python
+from mhctools import MixMHC2pred
+
+predictor = MixMHC2pred(
+    alleles=["HLA-DRB1*15:01", "HLA-DQA1*01:02-DQB1*06:02"],
+    program_name="/path/to/MixMHC2pred_unix")   # MixMHC2pred on macOS
+results = predictor.predict(["GELIGTLNAAKVPAD"])   # class-II length peptides
+results[0].presentation.score
+```
 
 ### Antigen processing
 
