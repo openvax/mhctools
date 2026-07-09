@@ -71,6 +71,7 @@ _OUTPUT_FIELDS = {
     "processing": (Kind.antigen_processing, "score"),
     "stability": (Kind.pMHC_stability, "value"),
     "immunogenicity": (Kind.immunogenicity, "score"),
+    "tap_transport": (Kind.tap_transport, "score"),
 }
 
 

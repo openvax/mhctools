@@ -168,7 +168,7 @@ The canonical prediction kind strings are defined in `mhctools.pred.Kind`.
 | `antigen_processing` | Combined processing score |
 | `proteasome_cleavage` | Proteasomal (MHC-I, cytosolic) C-terminal cleavage score |
 | `endolysosomal_cleavage` | Endolysosomal (MHC-II, cathepsin) C-terminal cleavage score |
-| `tap_transport` | TAP transport score (reserved, not yet used) |
+| `tap_transport` | TAP transport / binding score |
 | `erap_trimming` | ERAP trimming score (reserved, not yet used) |
 
 Predictors also expose `kind_support()` so downstream code can tell what MHC
@@ -209,6 +209,7 @@ Examples:
 | `Pepsickle` | `proteasome_cleavage` | `none` | `none` |
 | `NetCleave_I` | `proteasome_cleavage` | `none` | `I` |
 | `NetCleave_II` | `endolysosomal_cleavage` | `none` | `II` |
+| `DeepTAP` | `tap_transport` | `none` | `none` |
 | `NetTCR` | `pMHC_TCR_binding` | `none` | `I` |
 | `Tulip` | `pMHC_TCR_binding` | `single_allele` | `I` |
 | `BigMHC_IM` | `immunogenicity` | `single_allele` | `I` |
@@ -354,6 +355,39 @@ by_protein = predictor.predict_proteins({"TP53": "MEEPQ..."}, peptide_lengths=[1
 > ⚠️ NetCleave's own paper reports class-II C-terminal cleavage is a much
 > weaker signal than class I (AUC ~0.66 vs ~0.91). Treat
 > `endolysosomal_cleavage` scores accordingly.
+
+### TAP transport
+
+| Predictor | Kinds produced | Requires |
+|---|---|---|
+| `DeepTAP` | TAP transport (`tap_transport`) | [DeepTAP](https://github.com/zjupgx/DeepTAP) clone (set `DEEPTAP_HOME`) |
+
+TAP (transporter associated with antigen processing) is the step that shuttles
+cytosolic peptides into the ER for MHC-I loading — a distinct part of the
+processing pathway from proteasomal cleavage, and otherwise a gap in the
+predictor set. `DeepTAP` is a BiGRU that scores each peptide once
+(**allele-independent**, like the cleavage predictors), emitting one
+`tap_transport` prediction per peptide with an empty `allele`. `score` is in
+0-1 (higher = stronger TAP binding); in `task_type="reg"` mode the predicted
+affinity in nM is also surfaced as `value` (lower = stronger).
+
+DeepTAP ships its weights in-repo and is Apache-2.0, but pins an old
+`pytorch-lightning`, so mhctools shells out to DeepTAP's own CLI in a
+user-provided checkout, run by a user-provided interpreter (the checkpoints load
+fine under modern Lightning too). Set `DEEPTAP_HOME` to the clone and, if the
+current interpreter lacks torch, `DEEPTAP_PYTHON` to one that has it.
+
+```python
+from mhctools import DeepTAP
+
+predictor = DeepTAP(task_type="cla")       # resolves DEEPTAP_HOME / ~/DeepTAP
+results = predictor.predict(["SIINFEKL", "AEASAAAAY"])
+results[1].tap_transport.score             # 0-1, higher = stronger TAP binding
+```
+
+> ⚠️ DeepTAP's evaluation is self-reported, and no independent TAP benchmark
+> exists for any tool (true of the whole TAP field). Treat the score as a useful
+> pathway signal for prioritization, not a validated oracle.
 
 ### Immunogenicity
 

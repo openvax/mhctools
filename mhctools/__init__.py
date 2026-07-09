@@ -26,6 +26,7 @@ from .iedb import (
 from .mixmhcpred import MixMHCpred
 from .mixmhc2pred import MixMHC2pred
 from .prime import PRIME
+from .deeptap import DeepTAP
 from .processing_predictor import (
     ProcessingPredictor,
     SCORING_MODES,
@@ -82,7 +83,7 @@ def __getattr__(name):
     raise AttributeError(
         "module %r has no attribute %r" % (__name__, name))
 
-__version__ = "3.24.0"
+__version__ = "3.25.0"
 
 __all__ = [
     "Prediction",
@@ -111,6 +112,7 @@ __all__ = [
     "MixMHCpred",
     "MixMHC2pred",
     "PRIME",
+    "DeepTAP",
     "MHCflurry",
     "MHCflurry_Affinity",
     "ProcessingPredictor",
