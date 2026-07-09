@@ -15,7 +15,7 @@ import re
 
 import numpy as np
 
-from .allele_normalization import normalize_allele_name
+from .allele_normalization import normalize_allele_name_or_raw
 
 from .binding_prediction import BindingPrediction
 from .pred import Prediction, Kind
@@ -223,7 +223,7 @@ def parse_stdout(
             source_sequence_name=original_key,
             offset=offset,
             peptide=peptide,
-            allele=normalize_allele_name(allele),
+            allele=normalize_allele_name_or_raw(allele),
             score=score,
             affinity=ic50,
             percentile_rank=rank,
@@ -644,7 +644,7 @@ def parse_netmhcpan_to_preds(
             offset -= 1
 
         peptide = str(fields[peptide_index])
-        allele = normalize_allele_name(str(fields[allele_index]))
+        allele = normalize_allele_name_or_raw(str(fields[allele_index]))
 
         key = str(fields[key_index])
         if sequence_key_mapping:

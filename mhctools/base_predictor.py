@@ -15,7 +15,10 @@ import warnings
 from collections import defaultdict, namedtuple
 
 from typechecks import require_iterable_of
-from .allele_normalization import normalize_allele_name
+from .allele_normalization import (
+    normalize_allele_name,
+    normalize_allele_name_or_raw,
+)
 
 from .unsupported_allele import UnsupportedAllele
 from .binding_prediction_collection import BindingPredictionCollection
@@ -115,7 +118,8 @@ class BasePredictor(object):
             min_peptide_length=8,
             max_peptide_length=None,
             allow_X_in_peptides=False,
-            allow_lowercase_in_peptides=False):
+            allow_lowercase_in_peptides=False,
+            keep_unparseable_alleles=False):
         """
         Parameters
         ----------
@@ -143,12 +147,19 @@ class BasePredictor(object):
 
         allow_lowercase_in_peptides : bool
             Allow lowercase letters in peptide sequences
+
+        keep_unparseable_alleles : bool
+            If True, keep allele names our normalizer can't parse verbatim
+            instead of raising (used by command-line predictors that validate
+            against the tool's own supported-allele list, so that non-human
+            alleles like H-2-Qa1 or BoLA-amani.1 can still be requested).
         """
         # I find myself often constructing a predictor with just one allele
         # so as a convenience, allow user to not wrap that allele as a list
         if type(alleles) is str:
             alleles = alleles.split(',')
-        self.alleles = self._check_hla_alleles(alleles, valid_alleles)
+        self.alleles = self._check_hla_alleles(
+            alleles, valid_alleles, keep_unparseable=keep_unparseable_alleles)
 
         if type(default_peptide_lengths) is int:
             default_peptide_lengths = [default_peptide_lengths]
@@ -515,20 +526,31 @@ class BasePredictor(object):
     @staticmethod
     def _check_hla_alleles(
             alleles,
-            valid_alleles=None):
+            valid_alleles=None,
+            keep_unparseable=False):
         """
         Given a list of HLA alleles and an optional list of valid
         HLA alleles, return a set of alleles that we will pass into
         the MHC binding predictor.
+
+        When keep_unparseable is True, allele names the normalizer can't
+        parse are kept verbatim (original case) rather than raising, so a
+        caller that validates against the tool's own supported list can still
+        accept non-human alleles like H-2-Qa1 or BoLA-amani.1.
         """
         require_iterable_of(alleles, str, "HLA alleles")
 
-        # Don't run the MHC predictor twice for homozygous alleles,
-        # only run it for unique alleles
-        alleles = {
-            normalize_allele_name(allele.strip().upper())
-            for allele in alleles
-        }
+        # Keep only unique alleles (don't run the predictor twice for a
+        # homozygous genotype). When keep_unparseable is set (command-line
+        # predictors, which validate against the tool's own -listMHC list),
+        # normalize_allele_name_or_raw retains names mhcgnomes can't parse
+        # using the same canonical fallback the output parser applies, so a
+        # requested allele and its echoed form share one identity. Otherwise
+        # normalize_allele_name raises on an unparseable name, as before.
+        if keep_unparseable:
+            alleles = {normalize_allele_name_or_raw(a) for a in alleles}
+        else:
+            alleles = {normalize_allele_name(a.strip().upper()) for a in alleles}
         if valid_alleles:
             # For some reason netMHCpan drops the '*' in names, so
             # 'HLA-A*03:01' becomes 'HLA-A03:01'

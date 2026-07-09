@@ -55,6 +55,7 @@ jobs:
             tests/test_processing_predictor.py \
             tests/test_pepsickle.py \
             tests/test_bigmhc.py \
+            tests/test_unparseable_alleles.py \
             tests/test_random.py
 
   integration-netmhc:
