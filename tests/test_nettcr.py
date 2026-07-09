@@ -41,12 +41,13 @@ def test_suppress_native_stderr_hides_fd2_writes_and_restores(capfd):
     assert "real-stderr-after" in err
 
 
-def test_suppress_native_stderr_restores_on_exception():
+def test_suppress_native_stderr_restores_on_exception(capfd):
     # fd 2 must be restored even if the body raises.
     with pytest.raises(ValueError):
         with _suppress_native_stderr():
             raise ValueError("boom")
     os.write(2, b"still-works\n")  # would raise if fd 2 were left closed
+    assert "still-works" in capfd.readouterr().err
 
 
 def test_encode_shape():

@@ -55,6 +55,11 @@ def _suppress_native_stderr():
     ``os.devnull`` so that chatter is dropped; Python-level exceptions still
     propagate normally (only native writes to stderr are hidden). Restores the
     original fd afterward, so ordinary stderr keeps working.
+
+    Note: fd 2 is process-global, so for the (brief) duration of the block a
+    concurrent thread's stderr and any non-fatal native warning are also
+    dropped. It wraps only interpreter setup (construction / allocation), never
+    the prediction loop, so the window is small.
     """
     sys.stderr.flush()
     saved_fd = os.dup(2)
@@ -118,25 +123,37 @@ def _load_interpreter(model_path):
 
     Prefers the lightweight LiteRT/tflite runtimes, falling back to the
     ``tensorflow.lite`` interpreter. All expose the same interface.
+
+    Construction is wrapped in :func:`_suppress_native_stderr` as well as
+    ``allocate_tensors`` because different runtimes apply (and log) the XNNPACK
+    delegate at different points — ``tensorflow`` does it in
+    ``allocate_tensors`` (verified), while the LiteRT runtimes may do it at
+    construction. The import itself stays outside the suppression so a genuine
+    ImportError still surfaces normally.
     """
     try:
         from ai_edge_litert.interpreter import Interpreter
-        return Interpreter(model_path=model_path)
     except ImportError:
         pass
+    else:
+        with _suppress_native_stderr():
+            return Interpreter(model_path=model_path)
     try:
         from tflite_runtime.interpreter import Interpreter
-        return Interpreter(model_path=model_path)
     except ImportError:
         pass
+    else:
+        with _suppress_native_stderr():
+            return Interpreter(model_path=model_path)
     try:
         import tensorflow as tf
-        return tf.lite.Interpreter(model_path=model_path)
     except ImportError as e:
         raise ImportError(
             "NetTCR needs a TFLite runtime. Install one of: "
             "`ai-edge-litert` (recommended, lightweight), `tflite-runtime`, "
             "or `tensorflow`.") from e
+    with _suppress_native_stderr():
+        return tf.lite.Interpreter(model_path=model_path)
 
 
 def _find_nettcr_dir(nettcr_path=None):
