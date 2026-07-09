@@ -58,6 +58,7 @@ jobs:
             tests/test_pepsickle.py \
             tests/test_bigmhc.py \
             tests/test_unparseable_alleles.py \
+            tests/test_nettcr.py \
             tests/test_tulip.py \
             tests/test_random.py
 

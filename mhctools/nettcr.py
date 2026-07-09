@@ -33,14 +33,44 @@ pan cross-validation ensemble, matching the published usage.
 
 from __future__ import annotations
 
+import contextlib
 import glob
 import os
+import sys
 
 import numpy as np
 import pandas as pd
 
 from .pred import COLUMNS, Kind, PeptideResult, Prediction
 from .tcr import TCR
+
+
+@contextlib.contextmanager
+def _suppress_native_stderr():
+    """Silence C-level stderr for the duration of the block.
+
+    The TFLite runtimes print ``INFO: Created TensorFlow Lite XNNPACK delegate
+    for CPU.`` from native code straight to file descriptor 2 (during
+    ``allocate_tensors``), bypassing Python's ``logging``. Redirect fd 2 to
+    ``os.devnull`` so that chatter is dropped; Python-level exceptions still
+    propagate normally (only native writes to stderr are hidden). Restores the
+    original fd afterward, so ordinary stderr keeps working.
+
+    Note: fd 2 is process-global, so for the (brief) duration of the block a
+    concurrent thread's stderr and any non-fatal native warning are also
+    dropped. It wraps only interpreter setup (construction / allocation), never
+    the prediction loop, so the window is small.
+    """
+    sys.stderr.flush()
+    saved_fd = os.dup(2)
+    devnull_fd = os.open(os.devnull, os.O_WRONLY)
+    try:
+        os.dup2(devnull_fd, 2)
+        yield
+    finally:
+        os.dup2(saved_fd, 2)
+        os.close(devnull_fd)
+        os.close(saved_fd)
 
 
 # BLOSUM50, restricted to the 20 standard amino acids, in NetTCR's column
@@ -93,25 +123,37 @@ def _load_interpreter(model_path):
 
     Prefers the lightweight LiteRT/tflite runtimes, falling back to the
     ``tensorflow.lite`` interpreter. All expose the same interface.
+
+    Construction is wrapped in :func:`_suppress_native_stderr` as well as
+    ``allocate_tensors`` because different runtimes apply (and log) the XNNPACK
+    delegate at different points — ``tensorflow`` does it in
+    ``allocate_tensors`` (verified), while the LiteRT runtimes may do it at
+    construction. The import itself stays outside the suppression so a genuine
+    ImportError still surfaces normally.
     """
     try:
         from ai_edge_litert.interpreter import Interpreter
-        return Interpreter(model_path=model_path)
     except ImportError:
         pass
+    else:
+        with _suppress_native_stderr():
+            return Interpreter(model_path=model_path)
     try:
         from tflite_runtime.interpreter import Interpreter
-        return Interpreter(model_path=model_path)
     except ImportError:
         pass
+    else:
+        with _suppress_native_stderr():
+            return Interpreter(model_path=model_path)
     try:
         import tensorflow as tf
-        return tf.lite.Interpreter(model_path=model_path)
     except ImportError as e:
         raise ImportError(
             "NetTCR needs a TFLite runtime. Install one of: "
             "`ai-edge-litert` (recommended, lightweight), `tflite-runtime`, "
             "or `tensorflow`.") from e
+    with _suppress_native_stderr():
+        return tf.lite.Interpreter(model_path=model_path)
 
 
 def _find_nettcr_dir(nettcr_path=None):
@@ -284,7 +326,11 @@ class NetTCR(object):
                         det["index"], [n, det["shape"][1], det["shape"][2]])
                 interpreter.resize_tensor_input(
                     output["index"], [n, output["shape"][1]])
-                interpreter.allocate_tensors()
+                # allocate_tensors() is where the TFLite runtime prints its
+                # one-time "Created ... XNNPACK delegate for CPU." INFO line to
+                # native stderr; keep that out of callers' output.
+                with _suppress_native_stderr():
+                    interpreter.allocate_tensors()
             for det in inputs:
                 # NetTCR names inputs "serving_default_<feature>:0"; match by
                 # the trailing feature token rather than by tensor order.
