@@ -75,6 +75,7 @@ FIELD_BEST_DIRECTIONS = {
 VALUE_BEST_DIRECTIONS = {
     Kind.pMHC_affinity: "min",   # IC50 nM
     Kind.pMHC_stability: "max",  # half-life
+    Kind.tap_transport: "min",   # predicted TAP-binding affinity, nM
 }
 
 
@@ -286,6 +287,11 @@ class PeptideResult:
     def endolysosomal_cleavage(self) -> Optional[Prediction]:
         """Best endolysosomal (MHC-II) cleavage prediction, or None."""
         return self.best_by_score(Kind.endolysosomal_cleavage)
+
+    @property
+    def tap_transport(self) -> Optional[Prediction]:
+        """Best TAP transport prediction, or None."""
+        return self.best_by_score(Kind.tap_transport)
 
     @property
     def tcr_binding(self) -> Optional[Prediction]:

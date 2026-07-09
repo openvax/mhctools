@@ -64,6 +64,7 @@ from .. import (
     MixMHCpred,
     MixMHC2pred,
     PRIME,
+    DeepTAP,
 )
 
 
@@ -169,6 +170,7 @@ mhc_predictors = {
     "mixmhcpred": MixMHCpred,
     "mixmhc2pred": MixMHC2pred,
     "prime": PRIME,
+    "deeptap": DeepTAP,
 }
 
 
