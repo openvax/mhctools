@@ -36,6 +36,7 @@ from .processing_predictor import (
 )
 from .proteasome_predictor import ProteasomePredictor
 from .netchop import NetChop
+from .netcleave import NetCleave, NetCleave_I, NetCleave_II
 from .pepsickle import Pepsickle
 from .netmhc import NetMHC
 from .netmhc3 import NetMHC3
@@ -77,7 +78,7 @@ def __getattr__(name):
     raise AttributeError(
         "module %r has no attribute %r" % (__name__, name))
 
-__version__ = "3.15.0"
+__version__ = "3.16.0"
 
 __all__ = [
     "Prediction",
@@ -114,6 +115,9 @@ __all__ = [
     "score_nterm_cterm_anti_max_internal",
     "score_nterm_cterm_anti_mean_internal",
     "NetChop",
+    "NetCleave",
+    "NetCleave_I",
+    "NetCleave_II",
     "Pepsickle",
     "NetMHC",
     "NetMHC3",

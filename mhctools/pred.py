@@ -50,6 +50,7 @@ class Kind:
     immunogenicity = "immunogenicity"
     antigen_processing = "antigen_processing"
     proteasome_cleavage = "proteasome_cleavage"
+    endolysosomal_cleavage = "endolysosomal_cleavage"
     tap_transport = "tap_transport"
     erap_trimming = "erap_trimming"
 
@@ -275,6 +276,11 @@ class PeptideResult:
     def cleavage(self) -> Optional[Prediction]:
         """Best proteasomal cleavage prediction, or None."""
         return self.best_by_score(Kind.proteasome_cleavage)
+
+    @property
+    def endolysosomal_cleavage(self) -> Optional[Prediction]:
+        """Best endolysosomal (MHC-II) cleavage prediction, or None."""
+        return self.best_by_score(Kind.endolysosomal_cleavage)
 
     @property
     def tcr_binding(self) -> Optional[Prediction]:
