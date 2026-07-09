@@ -92,3 +92,32 @@ def test_netmhc_pan_multiple_alleles():
     observed_alleles = {bp.allele for bp in binding_predictions}
     assert observed_alleles == {"HLA-A*02:01", "HLA-B*35:02"}, \
         "Expected both alleles, got %s" % (observed_alleles,)
+
+
+def test_netmhc_pan_batched_matches_per_allele():
+    """Batching alleles into one `-a A,B,C` invocation must produce exactly
+    the same scores as running one process per allele. Uses the real binary's
+    own output on both paths as non-circular ground truth."""
+    alleles = ["HLA-A*02:01", "HLA-B*07:02", "HLA-C*07:02", "HLA-A*01:01"]
+    peptides = [
+        "SIINFEKLL", "GILGFVFTL", "NLVPMVATV", "LLWNGPMAV", "AAAWYLWEV"]
+
+    def scores(max_alleles_per_command):
+        predictor = NetMHCpan(
+            alleles=alleles,
+            max_alleles_per_command=max_alleles_per_command)
+        return {
+            (bp.allele, bp.peptide): bp.value
+            for bp in predictor.predict_peptides(peptides)
+        }
+
+    batched = scores(None)     # all alleles in a single process
+    per_allele = scores(1)     # one process per allele
+    assert set(batched) == set(per_allele), (
+        "Batched and per-allele runs produced different (allele, peptide) "
+        "pairs")
+    assert len(batched) == len(alleles) * len(peptides)
+    for key, value in per_allele.items():
+        eq_(value, batched[key],
+            "Score mismatch for %s: per-allele=%s batched=%s" % (
+                key, value, batched[key]))
