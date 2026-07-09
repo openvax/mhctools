@@ -62,6 +62,10 @@ jobs:
   integration-netmhc:
     if: github.repository == 'openvax/mhctools'
     runs-on: ubuntu-22.04
+    env:
+      # Deterministic, cacheable location for MHCflurry model weights, shared
+      # by the fetch step and the test run.
+      MHCFLURRY_DATA_DIR: ${{ github.workspace }}/mhcflurry-data
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -91,8 +95,29 @@ jobs:
           python -m pip install -e ".[dev]"
           python -m pip install 'setuptools<81'
 
+      - name: Resolve MHCflurry version for the cache key
+        id: mhcflurry
+        run: |
+          echo "version=$(python -c 'import mhcflurry; print(mhcflurry.__version__)')" >> "$GITHUB_OUTPUT"
+
+      - name: Cache MHCflurry model weights
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/mhcflurry-data
+          key: mhcflurry-${{ runner.os }}-${{ steps.mhcflurry.outputs.version }}
+
       - name: Install MHCflurry data
-        run: mhcflurry-downloads fetch
+        run: |
+          # On a cache hit this is a no-op; on a miss, retry so a transient
+          # download failure (e.g. the HTTP 504 that flaked a prior run)
+          # doesn't fail the whole job.
+          for attempt in 1 2 3; do
+            if mhcflurry-downloads fetch; then exit 0; fi
+            echo "mhcflurry-downloads fetch failed (attempt ${attempt}/3); retrying in 15s" >&2
+            sleep 15
+          done
+          echo "mhcflurry-downloads fetch failed after 3 attempts" >&2
+          exit 1
 
       - name: Configure netMHC tool paths
         env:
@@ -117,6 +142,9 @@ jobs:
     # holding a public TULIP-TCR checkout. TULIP is GPLv3; we clone (not vendor)
     # it here, same as running any user-provided external tool.
     runs-on: ubuntu-22.04
+    env:
+      # Cacheable uv wheel cache (torch/transformers are large downloads).
+      UV_CACHE_DIR: ${{ github.workspace }}/.uv-cache
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -133,6 +161,24 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -e ".[dev]"
+
+      # Cache the uv wheel downloads (torch, transformers==4.32.1, ...). Keyed
+      # on the setup script, which pins the dependency set, so a change there
+      # busts the cache.
+      - name: Cache uv sidecar downloads
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.uv-cache
+          key: uv-${{ runner.os }}-py311-${{ hashFiles('scripts/setup_tulip_env.sh') }}
+
+      # Cache the public TULIP-TCR checkout (~100 MB with weights + data). The
+      # setup script skips cloning when predict.py is already present. Bump the
+      # -v1 suffix to force a fresh clone.
+      - name: Cache TULIP-TCR checkout
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/TULIP-TCR
+          key: tulip-tcr-${{ runner.os }}-v1
 
       - name: Build isolated TULIP sidecar env + clone TULIP-TCR
         env:
