@@ -345,6 +345,21 @@ def test_peptide_matched_ignoring_surrounding_whitespace():
 
 # --- allele-free predictor path (by-peptide lookup) -------------------------
 
+def test_processing_field_token_pins_antigen_processing_kind():
+    # the 'processing' field selects Kind.antigen_processing (higher-better)
+    spec = AnnotationSpec(_factory, "col", field="processing")
+    assert spec.kind == Kind.antigen_processing
+    assert spec.prediction_field == "score"
+    df = pd.DataFrame({"peptide": ["SIINFEKL", "GILGFVFTL", "WWWWWWWWW"]})
+    out = annotate_table(
+        df,
+        [AnnotationSpec(lambda alleles: _ProcessingFixturePredictor(),
+                        "proc", field="processing")])
+    assert out.iloc[0]["proc"] == 0.80
+    assert out.iloc[1]["proc"] == 0.30
+    assert math.isnan(out.iloc[2]["proc"])
+
+
 def test_allele_free_predictor_uses_by_peptide_lookup():
     df = pd.DataFrame({"peptide": ["SIINFEKL", "GILGFVFTL", "WWWWWWWWW"]})
     out = annotate_table(

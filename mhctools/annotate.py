@@ -68,6 +68,7 @@ _OUTPUT_FIELDS = {
     "rank": (None, "percentile_rank"),
     "value": (Kind.pMHC_affinity, "value"),
     "presentation": (Kind.pMHC_presentation, "score"),
+    "processing": (Kind.antigen_processing, "score"),
     "stability": (Kind.pMHC_stability, "value"),
     "immunogenicity": (Kind.immunogenicity, "score"),
 }

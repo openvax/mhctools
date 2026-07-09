@@ -273,6 +273,11 @@ class PeptideResult:
         return self.best_by_score(Kind.immunogenicity)
 
     @property
+    def processing(self) -> Optional[Prediction]:
+        """Best antigen-processing prediction, or None."""
+        return self.best_by_score(Kind.antigen_processing)
+
+    @property
     def cleavage(self) -> Optional[Prediction]:
         """Best proteasomal cleavage prediction, or None."""
         return self.best_by_score(Kind.proteasome_cleavage)

@@ -165,14 +165,66 @@ def test_mhcflurry_multiple_alleles():
     eq_(1, len(results), "Expected one PeptideResult")
     r = results[0]
 
-    # Two per-allele affinity predictions plus one haplotype-level
-    # presentation prediction with best_allele attribution.
-    eq_(3, len(r.preds), "Expected 3 predictions")
+    # Two per-allele affinity predictions, one haplotype-level presentation
+    # prediction with best_allele attribution, and one allele-independent
+    # antigen-processing prediction.
+    eq_(4, len(r.preds), "Expected 4 predictions")
     eq_(2, len(r.filter(kind=Kind.pMHC_affinity)))
     eq_(1, len(r.filter(kind=Kind.pMHC_presentation)))
+    eq_(1, len(r.filter(kind=Kind.antigen_processing)))
 
-    # Both alleles should be present through affinity predictions.
+    # Both alleles should be present through affinity predictions
+    # (the processing prediction is allele-less, so it doesn't add one).
     assert r.alleles == set(alleles)
 
-    # Both kinds should be present
-    assert r.kinds == {Kind.pMHC_affinity, Kind.pMHC_presentation}
+    # All three kinds should be present
+    assert r.kinds == {
+        Kind.pMHC_affinity, Kind.pMHC_presentation, Kind.antigen_processing}
+
+
+def test_mhcflurry_processing_score():
+    """MHCflurry surfaces its antigen-processing (cleavage) score.
+
+    The score is allele-independent (one per peptide, no allele) and matches
+    the ``processing_score`` MHCflurry's presentation predictor computes.
+    """
+    from mhcflurry import Class1PresentationPredictor
+
+    alleles = ["HLA-A*02:01", "HLA-B*07:02"]
+    peptides = ["SIINFEKL", "GILGFVFTL"]
+    n_flanks = ["AAA", "CCC"]
+    c_flanks = ["KKK", "DDD"]
+
+    predictor = MHCflurry(alleles=alleles)
+    results = predictor.predict(peptides, n_flanks=n_flanks, c_flanks=c_flanks)
+
+    # Ground truth straight from MHCflurry.
+    raw = Class1PresentationPredictor.load().predict(
+        peptides=peptides,
+        alleles={a: [a] for a in alleles},
+        n_flanks=n_flanks,
+        c_flanks=c_flanks,
+        include_affinity_percentile=False,
+        verbose=0)
+    expected = dict(zip(raw["peptide"], raw["processing_score"]))
+
+    for r in results:
+        processing = r.filter(kind=Kind.antigen_processing)
+        eq_(1, len(processing),
+            "Expected exactly one processing prediction per peptide")
+        pred = processing[0]
+        assert pred.allele == "", "Processing score is allele-independent"
+        assert pred.predictor_name == "mhcflurry"
+        # flanks are carried through as provenance
+        idx = peptides.index(r.peptide)
+        assert pred.n_flank == n_flanks[idx]
+        assert pred.c_flank == c_flanks[idx]
+        testing.assert_allclose(pred.score, expected[r.peptide], rtol=1e-5)
+        # the convenience accessor resolves to the same prediction
+        assert r.processing is not None
+        assert r.processing.kind == Kind.antigen_processing
+
+    # antigen_processing is advertised as an allele-independent supported kind
+    support = predictor.kind_support()[Kind.antigen_processing]
+    eq_("none", support["mhc_dependence"])
+    eq_("none", support["mhc_class"])
