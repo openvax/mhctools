@@ -228,3 +228,34 @@ def test_mhcflurry_processing_score():
     support = predictor.kind_support()[Kind.antigen_processing]
     eq_("none", support["mhc_dependence"])
     eq_("none", support["mhc_class"])
+
+
+def test_mhcflurry_processing_score_without_flanks():
+    """The processing score is still emitted when no flanks are provided."""
+    predictor = MHCflurry(alleles=["HLA-A*02:01"])
+    r = predictor.predict(["SIINFEKL"])[0]
+    processing = r.filter(kind=Kind.antigen_processing)
+    eq_(1, len(processing), "Expected one processing prediction")
+    pred = processing[0]
+    assert pred.allele == ""
+    assert pred.n_flank == "" and pred.c_flank == ""
+    assert pred.score is not None
+
+
+def test_mhcflurry_legacy_predict_peptides_unchanged():
+    """Surfacing processing on predict() must not change the legacy path.
+
+    The CLI (--output-csv) and predict_peptides go through the affinity-only
+    BindingPredictionCollection path, which should stay one affinity record
+    per (peptide, allele) with no antigen_processing rows.
+    """
+    alleles = ["HLA-A*02:01", "HLA-B*07:02"]
+    peptides = ["SIINFEKL", "GILGFVFTL"]
+    predictor = MHCflurry(alleles=alleles)
+    collection = predictor.predict_peptides(peptides)
+
+    eq_(len(peptides) * len(alleles), len(collection),
+        "Legacy path should emit one affinity record per (peptide, allele)")
+    for bp in collection:
+        assert bp.affinity is not None
+        assert bp.prediction_method_name == "mhcflurry"
