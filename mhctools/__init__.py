@@ -15,6 +15,7 @@ from .pred import (
 )
 from .sample import MultiSample
 from .tcr import TCR
+from .annotate import AnnotationSpec, annotate_table, parse_annotation_spec
 from .iedb import (
     IedbNetMHCcons,
     IedbNetMHCpan,
@@ -79,7 +80,7 @@ def __getattr__(name):
     raise AttributeError(
         "module %r has no attribute %r" % (__name__, name))
 
-__version__ = "3.20.1"
+__version__ = "3.21.0"
 
 __all__ = [
     "Prediction",
@@ -95,6 +96,9 @@ __all__ = [
     "preds_from_rows",
     "MultiSample",
     "TCR",
+    "AnnotationSpec",
+    "annotate_table",
+    "parse_annotation_spec",
     "BindingPrediction",
     "BindingPredictionCollection",
     "IedbNetMHCcons",
