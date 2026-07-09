@@ -42,6 +42,13 @@ logger = logging.getLogger(__name__)
 # ~85% of the amortization while bounding those risks.
 AUTO_MAX_ALLELES_PER_COMMAND = 20
 
+# Cache of supported-allele sets keyed by (command, supported_allele_flag).
+# Determining the supported alleles means running e.g. `netMHCpan -listMHC`
+# and normalizing every line (~3,900 alleles), which is slow and identical
+# for every predictor sharing the same binary. Memoize it per process so it
+# happens once instead of on every predictor construction.
+_supported_alleles_cache = {}
+
 
 class BaseCommandlinePredictor(BasePredictor):
     """
@@ -228,7 +235,15 @@ class BaseCommandlinePredictor(BasePredictor):
         """
         Try asking the commandline predictor (e.g. netMHCpan)
         which alleles it supports.
+
+        The result is memoized per (command, supported_allele_flag) so the
+        `-listMHC` call and the parsing of its thousands of alleles happen
+        once per process rather than on every predictor construction.
         """
+        cache_key = (command, supported_allele_flag)
+        cached = _supported_alleles_cache.get(cache_key)
+        if cached is not None:
+            return cached
         try:
             # convert to str since Python3 returns a `bytes` object
             supported_alleles_output = check_output([
@@ -238,6 +253,7 @@ class BaseCommandlinePredictor(BasePredictor):
             assert len(supported_alleles_str) > 0, \
                 '%s returned empty allele list' % command
             supported_alleles = set([])
+            skipped = []
             for line in supported_alleles_str.split("\n"):
                 line = line.strip()
                 if not line.startswith('#') and len(line) > 0:
@@ -247,10 +263,23 @@ class BaseCommandlinePredictor(BasePredictor):
                         # our own alleles.
                         supported_alleles.add(normalize_allele_name(line))
                     except AlleleParseError as error:
-                        logger.info("Skipping allele %s: %s", line, error)
+                        # Non-human/edge-case alleles the normalizer can't
+                        # handle (e.g. some BoLA/Mamu/H-2 names). Log at debug
+                        # so predictor construction doesn't spam the user; a
+                        # single summary is emitted below.
+                        logger.debug("Skipping allele %s: %s", line, error)
+                        skipped.append(line)
                         continue
             if len(supported_alleles) == 0:
                 raise ValueError("Unable to determine supported alleles")
+            if skipped:
+                logger.debug(
+                    "%s %s: skipped %d of %d alleles that could not be parsed",
+                    command,
+                    supported_allele_flag,
+                    len(skipped),
+                    len(supported_alleles) + len(skipped))
+            _supported_alleles_cache[cache_key] = supported_alleles
             return supported_alleles
         except Exception as e:
             logger.exception(e)
