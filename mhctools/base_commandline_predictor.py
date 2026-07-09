@@ -42,12 +42,23 @@ logger = logging.getLogger(__name__)
 # ~85% of the amortization while bounding those risks.
 AUTO_MAX_ALLELES_PER_COMMAND = 20
 
-# Cache of supported-allele sets keyed by (command, supported_allele_flag).
-# Determining the supported alleles means running e.g. `netMHCpan -listMHC`
-# and normalizing every line (~3,900 alleles), which is slow and identical
-# for every predictor sharing the same binary. Memoize it per process so it
-# happens once instead of on every predictor construction.
+# Caches keyed by (command, supported_allele_flag), memoized per process so a
+# binary's supported-allele list is only read/parsed once no matter how many
+# predictors are constructed.
+#
+# _supported_alleles_cache holds the RAW names exactly as the predictor prints
+# them (e.g. `netMHCpan -listMHC`). Building it is cheap: split lines, no
+# mhcgnomes. User alleles are validated against it with a fast path that only
+# runs mhcgnomes on the user's handful of alleles, so the ~13k-name list is
+# never normalized for the common (human HLA) case.
 _supported_alleles_cache = {}
+
+# _normalized_supported_cache holds the lazily-built {normalized_name: raw_name}
+# mapping, computed only when the fast path misses (a supported allele whose
+# name our normalizer rewrites into a spelling the predictor doesn't accept,
+# e.g. many non-human BoLA/Mamu names). The raw_name is the predictor's own
+# spelling, which is what must be passed back on the command line.
+_normalized_supported_cache = {}
 
 
 class BaseCommandlinePredictor(BasePredictor):
@@ -199,7 +210,9 @@ class BaseCommandlinePredictor(BasePredictor):
         self.group_peptides_by_length = group_peptides_by_length
 
         if self.supported_alleles_flag:
-            valid_alleles = self._determine_supported_alleles(
+            # Raw names exactly as the predictor prints them; validation and
+            # normalization happen lazily in _resolve_supported_alleles().
+            self._supported_allele_names = self._determine_supported_alleles(
                 self.program_name,
                 self.supported_alleles_flag)
         else:
@@ -210,35 +223,31 @@ class BaseCommandlinePredictor(BasePredictor):
                 run_command([self.program_name])
             except Exception:
                 raise SystemError("Failed to run %s" % self.program_name)
-            valid_alleles = None
+            self._supported_allele_names = None
 
-        try:
-            BasePredictor.__init__(
-                self,
-                alleles=alleles,
-                valid_alleles=valid_alleles,
-                default_peptide_lengths=default_peptide_lengths,
-                min_peptide_length=min_peptide_length,
-                max_peptide_length=max_peptide_length)
-        except UnsupportedAllele as e:
-            if self.supported_alleles_flag:
-                additional_message = (
-                    "\nRun command %s %s to see a list of valid alleles" % (
-                        self.program_name,
-                        self.supported_alleles_flag))
-            else:
-                additional_message = ""
-            raise UnsupportedAllele(str(e) + additional_message)
+        # Normalize (and dedupe homozygous) the requested alleles without
+        # validating against the supported list — we validate below against the
+        # raw list so we can hand the predictor back its own spelling.
+        BasePredictor.__init__(
+            self,
+            alleles=alleles,
+            valid_alleles=None,
+            default_peptide_lengths=default_peptide_lengths,
+            min_peptide_length=min_peptide_length,
+            max_peptide_length=max_peptide_length)
+
+        self._resolve_supported_alleles()
 
     @staticmethod
     def _determine_supported_alleles(command, supported_allele_flag):
         """
-        Try asking the commandline predictor (e.g. netMHCpan)
-        which alleles it supports.
+        Ask the commandline predictor (e.g. `netMHCpan -listMHC`) which alleles
+        it supports and return the RAW names it prints, verbatim.
 
-        The result is memoized per (command, supported_allele_flag) so the
-        `-listMHC` call and the parsing of its thousands of alleles happen
-        once per process rather than on every predictor construction.
+        No allele-name normalization happens here: parsing all ~13k names
+        through mhcgnomes is the slow part, and it is deferred to
+        _normalized_supported_alleles() which only runs when the fast
+        validation path misses. Memoized per (command, supported_allele_flag).
         """
         cache_key = (command, supported_allele_flag)
         cached = _supported_alleles_cache.get(cache_key)
@@ -252,33 +261,13 @@ class BaseCommandlinePredictor(BasePredictor):
             supported_alleles_str = supported_alleles_output.decode("ascii", "ignore")
             assert len(supported_alleles_str) > 0, \
                 '%s returned empty allele list' % command
-            supported_alleles = set([])
-            skipped = []
-            for line in supported_alleles_str.split("\n"):
-                line = line.strip()
-                if not line.startswith('#') and len(line) > 0:
-                    try:
-                        # We need to normalize these alleles (the output of the predictor
-                        # when it lists its supported alleles) so that they are comparable with
-                        # our own alleles.
-                        supported_alleles.add(normalize_allele_name(line))
-                    except AlleleParseError as error:
-                        # Non-human/edge-case alleles the normalizer can't
-                        # handle (e.g. some BoLA/Mamu/H-2 names). Log at debug
-                        # so predictor construction doesn't spam the user; a
-                        # single summary is emitted below.
-                        logger.debug("Skipping allele %s: %s", line, error)
-                        skipped.append(line)
-                        continue
+            supported_alleles = {
+                line.strip()
+                for line in supported_alleles_str.split("\n")
+                if line.strip() and not line.strip().startswith("#")
+            }
             if len(supported_alleles) == 0:
                 raise ValueError("Unable to determine supported alleles")
-            if skipped:
-                logger.debug(
-                    "%s %s: skipped %d of %d alleles that could not be parsed",
-                    command,
-                    supported_allele_flag,
-                    len(skipped),
-                    len(supported_alleles) + len(skipped))
             _supported_alleles_cache[cache_key] = supported_alleles
             return supported_alleles
         except Exception as e:
@@ -287,11 +276,108 @@ class BaseCommandlinePredictor(BasePredictor):
                 command,
                 supported_allele_flag))
 
+    @staticmethod
+    def _normalized_supported_alleles(command, supported_allele_flag, raw_names):
+        """
+        Lazily build (and memoize) a {normalized_name: raw_name} mapping over
+        the predictor's supported alleles. This is where the expensive
+        mhcgnomes normalization of the whole list happens; it is only called
+        when a requested allele is not found verbatim, so the common (human
+        HLA) case never pays for it.
+
+        raw_name is the predictor's own spelling, which is what round-trips on
+        the command line. When several raw spellings normalize to the same
+        name (netMHCpan lists e.g. both `BoLA-1:00901` and `BoLA-100901`),
+        prefer a colon-containing spelling, which matches the form these
+        predictors actually accept on `-a`.
+        """
+        cache_key = (command, supported_allele_flag)
+        cached = _normalized_supported_cache.get(cache_key)
+        if cached is not None:
+            return cached
+        mapping = {}
+        skipped = 0
+        for name in raw_names:
+            try:
+                key = normalize_allele_name(name)
+            except AlleleParseError:
+                # Some non-human/edge-case names (e.g. BoLA-amani.1, H-2-Qa1)
+                # can't be normalized; they remain reachable only by verbatim
+                # match on the fast path.
+                skipped += 1
+                continue
+            existing = mapping.get(key)
+            if existing is None or (":" in name and ":" not in existing):
+                mapping[key] = name
+        if skipped:
+            logger.debug(
+                "%s %s: %d of %d supported allele names could not be normalized",
+                command, supported_allele_flag, skipped, len(raw_names))
+        _normalized_supported_cache[cache_key] = mapping
+        return mapping
+
+    def _resolve_supported_alleles(self):
+        """
+        Validate self.alleles against the predictor's supported-allele list and
+        record, for each, the exact spelling to pass on the command line
+        (self._allele_cli_names).
+
+        Fast path: if prepare_allele_name(allele) is printed verbatim by the
+        predictor, use it directly — no full-list normalization needed. Slow
+        path (only on a miss): normalize the whole supported list once and look
+        the allele up by its normalized name, using the predictor's own
+        spelling on the command line so names our normalizer rewrites (many
+        non-human alleles) still round-trip.
+        """
+        raw_names = self._supported_allele_names
+        self._allele_cli_names = {}
+        if raw_names is None:
+            return
+        unsupported = []
+        normalized_map = None
+        for allele in self.alleles:
+            cli_name = self.prepare_allele_name(allele)
+            if cli_name in raw_names:
+                self._allele_cli_names[allele] = cli_name
+                continue
+            if normalized_map is None:
+                normalized_map = self._normalized_supported_alleles(
+                    self.program_name,
+                    self.supported_alleles_flag,
+                    raw_names)
+            original = normalized_map.get(allele)
+            if original is not None:
+                self._allele_cli_names[allele] = original
+            else:
+                unsupported.append(allele)
+        if unsupported:
+            raise UnsupportedAllele(
+                "Unsupported alleles for %s: %s\n"
+                "Run command %s %s to see a list of valid alleles" % (
+                    self.program_name,
+                    unsupported,
+                    self.program_name,
+                    self.supported_alleles_flag))
+
     def prepare_allele_name(self, allele_name):
         """
         How does the predictor expect to see allele names?
         """
         return allele_name.replace("*", "")
+
+    def _cli_allele_name(self, allele_name):
+        """
+        The spelling to pass on the command line for a (normalized) allele.
+
+        Prefers the predictor's own -listMHC spelling recorded during
+        validation (so names like BoLA-1:00901 round-trip instead of being
+        rewritten to a rejected form); falls back to prepare_allele_name for
+        predictors that don't enumerate their supported alleles.
+        """
+        resolved = getattr(self, "_allele_cli_names", {}).get(allele_name)
+        if resolved is not None:
+            return resolved
+        return self.prepare_allele_name(allele_name)
 
     def _auto_allele_group_size(self, n_alleles, n_input_files):
         """
@@ -349,7 +435,7 @@ class BaseCommandlinePredictor(BasePredictor):
         if peptide_mode:
             args.extend(self.peptide_mode_flags)
         allele_arg = ",".join(
-            self.prepare_allele_name(allele) for allele in alleles)
+            self._cli_allele_name(allele) for allele in alleles)
         args.extend([self.allele_flag, allele_arg])
         if length:
             args.extend([self.length_flag, str(length)])
