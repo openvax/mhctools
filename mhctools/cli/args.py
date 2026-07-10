@@ -66,6 +66,7 @@ from .. import (
     PRIME,
     DeepTAP,
     Calis,
+    ERAMER,
 )
 
 
@@ -173,6 +174,7 @@ mhc_predictors = {
     "prime": PRIME,
     "deeptap": DeepTAP,
     "calis": Calis,
+    "eramer": ERAMER,
 }
 
 

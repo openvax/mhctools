@@ -72,6 +72,7 @@ _OUTPUT_FIELDS = {
     "stability": (Kind.pMHC_stability, "value"),
     "immunogenicity": (Kind.immunogenicity, "score"),
     "tap_transport": (Kind.tap_transport, "score"),
+    "erap_trimming": (Kind.erap_trimming, "score"),
 }
 
 
