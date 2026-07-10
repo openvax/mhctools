@@ -13,6 +13,7 @@
 import os
 
 import numpy as np
+import pandas as pd
 import pytest
 
 from mhctools import TCR
@@ -122,6 +123,138 @@ for candidate in [
 requires_nettcr = pytest.mark.skipif(
     NETTCR_DIR is None,
     reason="NetTCR-2.2 not installed (set NETTCR_DIR or clone to ~/NetTCR-2.2)")
+
+
+class _FakeNetTCR(NetTCR):
+    def __init__(self):
+        self.calls = []
+
+    def _predict_raw(self, peptides, tcrs):
+        self.calls.append((
+            list(peptides),
+            [tcr.cdr_dict() for tcr in tcrs],
+        ))
+        return np.array(
+            [0.25 + 0.1 * i for i in range(len(peptides))],
+            dtype=np.float32)
+
+
+def _nettcr_dataframe(column_names=None):
+    values = {
+        "peptide": ["SPRWYFYYL", "AVFDRKSDAK"],
+        "cdr1a": ["KALYS", "VGISA"],
+        "cdr2a": ["LLKGGEQ", "LSSGK"],
+        "cdr3a": ["GTEIGGGTSYGKLT", "AVFNTGNQFY"],
+        "cdr1b": ["MNHEY", "SGDLS"],
+        "cdr2b": ["SMNVEV", "YYNGEE"],
+        "cdr3b": ["ASGTETQY", "ASTPWGRGTDTQY"],
+    }
+    if column_names:
+        values = {column_names.get(key, key): value
+                  for key, value in values.items()}
+    return pd.DataFrame(values)
+
+
+def test_predict_dataframe_builds_tcrs_from_canonical_columns():
+    predictor = _FakeNetTCR()
+    df = _nettcr_dataframe()
+
+    out = predictor.predict_dataframe(df, sample_name="sample1")
+
+    assert predictor.calls == [(
+        ["SPRWYFYYL", "AVFDRKSDAK"],
+        [
+            {
+                "a1": "KALYS",
+                "a2": "LLKGGEQ",
+                "a3": "GTEIGGGTSYGKLT",
+                "b1": "MNHEY",
+                "b2": "SMNVEV",
+                "b3": "ASGTETQY",
+            },
+            {
+                "a1": "VGISA",
+                "a2": "LSSGK",
+                "a3": "AVFNTGNQFY",
+                "b1": "SGDLS",
+                "b2": "YYNGEE",
+                "b3": "ASTPWGRGTDTQY",
+            },
+        ],
+    )]
+    assert list(out.columns) == list(COLUMNS)
+    assert out["sample_name"].tolist() == ["sample1", "sample1"]
+    assert out["peptide"].tolist() == ["SPRWYFYYL", "AVFDRKSDAK"]
+    assert out["tcr"].tolist() == [
+        "GTEIGGGTSYGKLT/ASGTETQY",
+        "AVFNTGNQFY/ASTPWGRGTDTQY",
+    ]
+    assert out["score"].tolist() == pytest.approx([0.25, 0.35])
+
+
+def test_predict_dataframe_accepts_custom_column_mapping():
+    predictor = _FakeNetTCR()
+    df = _nettcr_dataframe({
+        "peptide": "epitope",
+        "cdr1a": "A1",
+        "cdr2a": "A2",
+        "cdr3a": "A3",
+        "cdr1b": "B1",
+        "cdr2b": "B2",
+        "cdr3b": "B3",
+    })
+
+    out = predictor.predict_dataframe(
+        df,
+        peptide_col="epitope",
+        cdr_cols={
+            "cdr1a": "A1",
+            "cdr2a": "A2",
+            "cdr3a": "A3",
+            "cdr1b": "B1",
+            "cdr2b": "B2",
+            "cdr3b": "B3",
+        })
+
+    assert predictor.calls[0][0] == ["SPRWYFYYL", "AVFDRKSDAK"]
+    assert predictor.calls[0][1][0]["a3"] == "GTEIGGGTSYGKLT"
+    assert out["peptide"].tolist() == ["SPRWYFYYL", "AVFDRKSDAK"]
+
+
+def test_predict_dataframe_preserves_existing_cross_product_api():
+    predictor = _FakeNetTCR()
+    tcr = TCR(cdr3a="CAVR", cdr3b="CASS")
+
+    out = predictor.predict_dataframe(["SPRWYFYYL"], [tcr])
+
+    assert predictor.calls == [(
+        ["SPRWYFYYL"],
+        [{
+            "a1": "",
+            "a2": "",
+            "a3": "CAVR",
+            "b1": "",
+            "b2": "",
+            "b3": "CASS",
+        }],
+    )]
+    assert out["tcr"].tolist() == ["CAVR/CASS"]
+
+
+def test_predict_dataframe_missing_column_raises():
+    predictor = _FakeNetTCR()
+    df = _nettcr_dataframe().drop(columns=["cdr2b"])
+
+    with pytest.raises(ValueError, match="cdr2b"):
+        predictor.predict_dataframe(df)
+
+
+def test_predict_dataframe_unknown_cdr_mapping_key_raises():
+    predictor = _FakeNetTCR()
+    df = _nettcr_dataframe()
+
+    with pytest.raises(ValueError, match="cdr4a"):
+        predictor.predict_dataframe(df, cdr_cols={"cdr4a": "cdr4a"})
 
 
 # Reference ensemble predictions produced by running NetTCR-2.2's OWN

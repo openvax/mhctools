@@ -14,6 +14,8 @@
 
 import json
 
+import pandas as pd
+
 from mhctools import TCR
 
 
@@ -74,3 +76,33 @@ def test_to_dict_json_serializable():
 def test_from_dict_ignores_unknown_keys():
     t = TCR.from_dict({"cdr3b": "ASSF", "bogus": 1})
     assert t.cdr3b == "ASSF"
+
+
+def test_from_dict_accepts_short_aliases_case_insensitive():
+    t = TCR.from_dict({
+        "A1": "NSAFQY",
+        "a2": "TYSSGN",
+        "A3": "AMSGDGGSQGNLI",
+        "b1": "LNHDA",
+        "B2": "SQIVND",
+        "b3": "ASSIRAAYEQY",
+    })
+    assert t.cdr1a == "NSAFQY"
+    assert t.cdr2a == "TYSSGN"
+    assert t.cdr3a == "AMSGDGGSQGNLI"
+    assert t.cdr1b == "LNHDA"
+    assert t.cdr2b == "SQIVND"
+    assert t.cdr3b == "ASSIRAAYEQY"
+
+
+def test_from_dict_canonical_keys_win_over_aliases():
+    t = TCR.from_dict({"A1": "ALIAS", "cdr1a": "CANONICAL"})
+    assert t.cdr1a == "CANONICAL"
+
+
+def test_from_series_accepts_aliases():
+    row = pd.Series({"A3": "CAVR", "B3": "CASS", "name": "clone1"})
+    t = TCR.from_series(row)
+    assert t.cdr3a == "CAVR"
+    assert t.cdr3b == "CASS"
+    assert t.identifier == "clone1"
