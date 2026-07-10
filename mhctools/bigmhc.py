@@ -32,6 +32,7 @@ import pandas as pd
 import torch
 
 from .pred import (
+    COLUMNS,
     Kind,
     PeptideResult,
     Prediction,
@@ -237,6 +238,77 @@ class BigMHC(NewModelPredictorMixin):
     # Public API
     # ------------------------------------------------------------------
 
+    def predict_pairs(self, peptides, alleles=None):
+        """Predict scores for explicit peptide/allele pairs.
+
+        Parameters
+        ----------
+        peptides : list of str or iterable of (str, str)
+            Peptides to score. If *alleles* is omitted, this must be an
+            iterable of ``(peptide, allele)`` pairs.
+        alleles : list of str, optional
+            Alleles parallel to *peptides*.
+
+        Returns
+        -------
+        list of PeptideResult
+            One entry per input pair, in order; each contains one Prediction.
+        """
+        if alleles is None:
+            pairs = list(peptides)
+            peptide_list = []
+            allele_list = []
+            for pair in pairs:
+                try:
+                    peptide, allele = pair
+                except (TypeError, ValueError):
+                    raise ValueError(
+                        "Expected (peptide, allele) pairs, got %r" % (pair,))
+                peptide_list.append(peptide)
+                allele_list.append(allele)
+            peptide_list = self._normalize_peptides(peptide_list)
+        else:
+            peptide_list = self._normalize_peptides(peptides)
+            if isinstance(alleles, str):
+                allele_list = [alleles]
+            else:
+                allele_list = list(alleles)
+            if len(peptide_list) != len(allele_list):
+                raise ValueError(
+                    "peptides length %d != alleles length %d"
+                    % (len(peptide_list), len(allele_list)))
+
+        allele_list = [str(allele).strip() for allele in allele_list]
+        if not peptide_list:
+            return []
+
+        scores = self._predict_raw(peptide_list, allele_list)
+        if len(scores) != len(peptide_list):
+            raise ValueError(
+                "BigMHC returned %d scores for %d peptide/allele pairs"
+                % (len(scores), len(peptide_list)))
+
+        kind = self._default_pred_kind()
+        name = self._predictor_name()
+        results = []
+        for peptide, allele, score in zip(peptide_list, allele_list, scores):
+            results.append(PeptideResult(preds=(Prediction(
+                kind=kind,
+                score=float(score),
+                peptide=peptide,
+                allele=allele,
+                predictor_name=name,
+            ),)))
+        return results
+
+    def predict_pairs_dataframe(self, peptides, alleles=None, sample_name=""):
+        """``predict_pairs()`` flattened to a DataFrame."""
+        dfs = [pp.to_dataframe(sample_name)
+               for pp in self.predict_pairs(peptides, alleles)]
+        if not dfs:
+            return pd.DataFrame(columns=COLUMNS)
+        return pd.concat(dfs, ignore_index=True)
+
     def predict(self, peptides):
         """Predict scores for peptides against all alleles.
 
@@ -251,31 +323,18 @@ class BigMHC(NewModelPredictorMixin):
         """
         peptides = self._normalize_peptides(peptides)
 
-        # Build all (peptide, allele) combinations
-        all_peptides = []
-        all_alleles = []
+        pairs = []
         for pep in peptides:
             for allele in self.alleles:
-                all_peptides.append(pep)
-                all_alleles.append(allele)
-
-        scores = self._predict_raw(all_peptides, all_alleles)
-
-        kind = self._default_pred_kind()
-        name = self._predictor_name()
+                pairs.append((pep, allele))
+        flat_results = self.predict_pairs(pairs)
 
         idx = 0
         results = []
-        for pep in peptides:
+        for _ in peptides:
             preds = []
-            for allele in self.alleles:
-                preds.append(Prediction(
-                    kind=kind,
-                    score=float(scores[idx]),
-                    peptide=pep,
-                    allele=allele,
-                    predictor_name=name,
-                ))
+            for _ in self.alleles:
+                preds.extend(flat_results[idx].preds)
                 idx += 1
             results.append(PeptideResult(preds=tuple(preds)))
         return results
