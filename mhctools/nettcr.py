@@ -351,6 +351,44 @@ class NetTCR(object):
     # Public API
     # ------------------------------------------------------------------
 
+    @staticmethod
+    def _tcrs_from_dataframe(df, cdr_cols=None):
+        default_cols = {
+            "cdr1a": "cdr1a",
+            "cdr2a": "cdr2a",
+            "cdr3a": "cdr3a",
+            "cdr1b": "cdr1b",
+            "cdr2b": "cdr2b",
+            "cdr3b": "cdr3b",
+        }
+        if cdr_cols is None:
+            cdr_cols = default_cols
+        else:
+            unknown = sorted(set(cdr_cols) - set(default_cols))
+            if unknown:
+                raise ValueError(
+                    "Unknown NetTCR CDR field(s): %s"
+                    % ", ".join(unknown))
+            cdr_cols = {**default_cols, **cdr_cols}
+
+        missing = [
+            column for column in cdr_cols.values()
+            if column not in df.columns
+        ]
+        if missing:
+            raise ValueError(
+                "NetTCR dataframe missing CDR column(s): %s"
+                % ", ".join(sorted(missing)))
+
+        tcrs = []
+        for row in df.itertuples(index=False):
+            row_values = row._asdict()
+            tcrs.append(TCR.from_dict({
+                cdr: row_values[column]
+                for cdr, column in cdr_cols.items()
+            }))
+        return tcrs
+
     def predict_pairs(self, pairs):
         """Score explicit ``(peptide, TCR)`` pairs.
 
@@ -423,10 +461,37 @@ class NetTCR(object):
             results.append(PeptideResult(preds=tuple(preds)))
         return results
 
-    def predict_dataframe(self, peptides, tcrs, sample_name=""):
-        """``predict()`` flattened to a DataFrame."""
-        dfs = [pp.to_dataframe(sample_name)
-               for pp in self.predict(peptides, tcrs)]
+    def predict_dataframe(
+            self,
+            peptides,
+            tcrs=None,
+            sample_name="",
+            peptide_col="peptide",
+            cdr_cols=None):
+        """Predict flattened to a DataFrame.
+
+        Existing peptide-list calls still use ``predict(peptides, tcrs)``.
+        When *peptides* is a DataFrame, each row is treated as one
+        ``(peptide, TCR)`` pair and TCRs are built from CDR columns.
+        """
+        if isinstance(peptides, pd.DataFrame):
+            if tcrs is not None:
+                raise ValueError(
+                    "tcrs must be omitted when peptides is a DataFrame")
+            if peptide_col not in peptides.columns:
+                raise ValueError(
+                    "NetTCR dataframe missing peptide column %r"
+                    % peptide_col)
+            peptide_list = peptides[peptide_col].tolist()
+            row_tcrs = self._tcrs_from_dataframe(peptides, cdr_cols=cdr_cols)
+            dfs = [pp.to_dataframe(sample_name)
+                   for pp in self.predict_pairs(zip(peptide_list, row_tcrs))]
+        else:
+            if tcrs is None:
+                raise ValueError(
+                    "tcrs is required unless peptides is a DataFrame")
+            dfs = [pp.to_dataframe(sample_name)
+                   for pp in self.predict(peptides, tcrs)]
         if not dfs:
             return pd.DataFrame(columns=COLUMNS)
         return pd.concat(dfs, ignore_index=True)

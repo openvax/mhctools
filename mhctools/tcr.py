@@ -29,6 +29,16 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, fields
 
 
+_SHORT_CDR_ALIASES = {
+    "a1": "cdr1a",
+    "a2": "cdr2a",
+    "a3": "cdr3a",
+    "b1": "cdr1b",
+    "b2": "cdr2b",
+    "b3": "cdr3b",
+}
+
+
 @dataclass(frozen=True)
 class TCR:
     """A paired αβ T-cell receptor, described by its six CDR loops.
@@ -117,6 +127,26 @@ class TCR:
 
     @classmethod
     def from_dict(cls, d):
-        """Deserialize from a dict (as produced by :meth:`to_dict`)."""
+        """Deserialize from a dict.
+
+        Accepts canonical ``cdr1a``..``cdr3b`` keys plus NetTCR/IMMREP-style
+        short aliases ``a1``..``b3`` / ``A1``..``B3``. Canonical field names
+        win if both a canonical key and an alias are present.
+        """
         valid = {f.name for f in fields(cls)}
-        return cls(**{k: v for k, v in d.items() if k in valid})
+        values = {}
+        for key, value in d.items():
+            lower = str(key).lower()
+            canonical = lower if lower in valid else _SHORT_CDR_ALIASES.get(lower)
+            if canonical is None:
+                continue
+            if canonical not in values or lower in valid:
+                values[canonical] = value
+        return cls(**values)
+
+    @classmethod
+    def from_series(cls, row):
+        """Deserialize from a pandas Series or other mapping-like row."""
+        if hasattr(row, "to_dict"):
+            row = row.to_dict()
+        return cls.from_dict(row)
