@@ -71,6 +71,7 @@ from .. import (
     Calis,
     ERAMER,
     DeepImmuno,
+    TLimmuno2,
 )
 
 
@@ -183,6 +184,7 @@ mhc_predictors = {
     "calis": Calis,
     "eramer": ERAMER,
     "deepimmuno": DeepImmuno,
+    "tlimmuno2": TLimmuno2,
 }
 
 
