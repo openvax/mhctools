@@ -216,6 +216,7 @@ Examples:
 | `BigMHC_IM` | `immunogenicity` | `single_allele` | `I` |
 | `PRIME` | `immunogenicity` | `single_allele` | `I` |
 | `DeepImmuno` | `immunogenicity` | `single_allele` | `I` |
+| `TLimmuno2` | `immunogenicity` | `single_allele` | `II` |
 | `Calis` | `immunogenicity` | `none` | `I` |
 
 ### TCR predictors (`NetTCR`, `Tulip`)
@@ -430,6 +431,7 @@ results[0].erap_trimming.score
 | `BigMHC_IM` | immunogenicity | [BigMHC](https://github.com/KarchinLab/bigmhc) clone (set `BIGMHC_DIR`) |
 | `PRIME` | immunogenicity | [PRIME](https://github.com/GfellerLab/PRIME) clone + MixMHCpred |
 | `DeepImmuno` | immunogenicity | [DeepImmuno](https://github.com/frankligy/DeepImmuno) clone (set `DEEPIMMUNO_HOME`) |
+| `TLimmuno2` | immunogenicity (class II) | [TLimmuno2](https://github.com/XSLiuLab/TLimmuno2) clone (set `TLIMMUNO2_HOME`) |
 
 `Calis` is the classic sequence-only IEDB class-I immunogenicity model (Calis et
 al. 2013): a fixed per-amino-acid log-enrichment scale weighted by per-position
@@ -497,6 +499,33 @@ results[0].immunogenicity.score                   # 0.9568 (higher = more immuno
 > self-reported numbers are partly attributable to documented train/test
 > overlap (IMPROVE flagged ~70% overlap with its evaluation set). Use these
 > scores to prioritize, not as ground truth.
+
+`TLimmuno2` is the odd one out: it predicts **class-II (CD4+)** immunogenicity —
+the only class-II immunogenicity model here, filling a gap the class-I models
+(`Calis`, `PRIME`, `BigMHC_IM`, `DeepImmuno`) leave. It scores a peptide against a class-II
+allele (transfer-learned from class-II binding) and emits one `immunogenicity`
+prediction per (peptide, allele): `score` in 0–1 (higher = more immunogenic)
+and `percentile_rank` from its %Rank against a background set, rescaled to
+0–100 (lower = more immunogenic). Native NetMHCIIpan-style keys (`DRB1_0803`,
+`HLA-DPA10103-DPB10101`) pass through; common DR forms (`HLA-DRB1*08:03`) are
+converted; anything TLimmuno2 does not know raises. Its upstream license is
+ambiguous (an Apache-2.0 README badge, no LICENSE file), so mhctools does not
+vendor it — it shells out to a user-provided checkout (`TLIMMUNO2_HOME`), with
+`TLIMMUNO2_PYTHON` naming an interpreter that has TensorFlow (Keras 2, or newer
+TensorFlow plus `tf-keras`).
+
+```python
+from mhctools import TLimmuno2
+
+predictor = TLimmuno2(alleles=["DRB1_0803"])       # resolves TLIMMUNO2_HOME / ~/TLimmuno2
+results = predictor.predict(["FHTMWHVTRGAVLMY"])
+results[0].immunogenicity.score                    # 0.9874 (higher = more immunogenic)
+```
+
+> ⚠️ TLimmuno2's %Rank is computed against ~90,000 background peptides **per
+> distinct allele**, so a call costs about a minute per allele regardless of how
+> many peptides you pass — batch peptides by allele. Class-II immunogenicity is
+> noisier than class-I; a prioritization aid, not ground truth.
 
 ### TCR specificity
 

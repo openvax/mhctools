@@ -30,6 +30,7 @@ from .deeptap import DeepTAP
 from .calis import Calis
 from .eramer import ERAMER
 from .deepimmuno import DeepImmuno
+from .tlimmuno2 import TLimmuno2
 from .processing_predictor import (
     ProcessingPredictor,
     SCORING_MODES,
@@ -86,7 +87,7 @@ def __getattr__(name):
     raise AttributeError(
         "module %r has no attribute %r" % (__name__, name))
 
-__version__ = "3.30.0"
+__version__ = "3.31.0"
 
 __all__ = [
     "Prediction",
@@ -119,6 +120,7 @@ __all__ = [
     "Calis",
     "ERAMER",
     "DeepImmuno",
+    "TLimmuno2",
     "MHCflurry",
     "MHCflurry_Affinity",
     "ProcessingPredictor",
