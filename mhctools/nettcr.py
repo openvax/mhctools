@@ -62,15 +62,21 @@ def _suppress_native_stderr():
     the prediction loop, so the window is small.
     """
     sys.stderr.flush()
-    saved_fd = os.dup(2)
-    devnull_fd = os.open(os.devnull, os.O_WRONLY)
+    # Acquire both descriptors inside the try so a failure partway through
+    # (e.g. fd exhaustion at os.open) can't leak the one already taken.
+    saved_fd = None
+    devnull_fd = None
     try:
+        saved_fd = os.dup(2)
+        devnull_fd = os.open(os.devnull, os.O_WRONLY)
         os.dup2(devnull_fd, 2)
         yield
     finally:
-        os.dup2(saved_fd, 2)
-        os.close(devnull_fd)
-        os.close(saved_fd)
+        if saved_fd is not None:
+            os.dup2(saved_fd, 2)
+            os.close(saved_fd)
+        if devnull_fd is not None:
+            os.close(devnull_fd)
 
 
 # BLOSUM50, restricted to the 20 standard amino acids, in NetTCR's column

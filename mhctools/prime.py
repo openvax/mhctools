@@ -45,7 +45,7 @@ import pandas as pd
 from .allele_normalization import normalize_allele_name
 from .base_predictor import BasePredictor, _check_flank_inputs
 from .cleanup_context import CleanupFiles
-from .pred import COLUMNS, Kind, PeptideResult, Prediction
+from .pred import Kind, PeptideResult, Prediction
 from .process_helpers import run_command
 
 
@@ -145,13 +145,6 @@ class PRIME(BasePredictor):
             PeptideResult(preds=tuple(preds_by_peptide.get(peptide, ())))
             for peptide in peptide_list
         ]
-
-    def predict_dataframe(self, peptides, sample_name=""):
-        """``predict()`` flattened to a DataFrame."""
-        dfs = [pp.to_dataframe(sample_name) for pp in self.predict(peptides)]
-        if not dfs:
-            return pd.DataFrame(columns=COLUMNS)
-        return pd.concat(dfs, ignore_index=True)
 
     def _default_pred_kind(self):
         return Kind.immunogenicity

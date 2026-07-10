@@ -91,6 +91,16 @@ def parse_args(args_list=None):
     return arg_parser.parse_args(args_list)
 
 def _run_single_predictor(predictor, args):
+    # The legacy prediction CLI is built on the BindingPrediction model
+    # (predict_peptides / predict_subsequences). New-model-only predictors
+    # (e.g. bigmhc, calis, deeptap, eramer, netchop, pepsickle) implement only
+    # predict(); route the user to the predict-table subcommand rather than
+    # failing later with an opaque AttributeError.
+    if not hasattr(predictor, "predict_peptides"):
+        raise ValueError(
+            "%s does not support this command (it implements the new "
+            "prediction model only). Use `mhctools predict-table` instead."
+            % type(predictor).__name__)
     if args.input_fasta_file:
         input_dictionary = parse_fasta_dictionary(args.input_fasta_file)
         if not input_dictionary:

@@ -159,3 +159,9 @@ def test_mixmhc2pred_end_to_end():
             assert pred.score is not None
             assert pred.percentile_rank is not None
         assert result.presentation is not None
+
+
+def test_predict_dataframe_inherits_flank_signature():
+    import inspect
+    params = inspect.signature(MixMHC2pred.predict_dataframe).parameters
+    assert "n_flanks" in params and "c_flanks" in params

@@ -69,7 +69,9 @@ _OUTPUT_FIELDS = {
     "value": (Kind.pMHC_affinity, "value"),
     "presentation": (Kind.pMHC_presentation, "score"),
     "processing": (Kind.antigen_processing, "score"),
-    "stability": (Kind.pMHC_stability, "value"),
+    # NetMHCstabpan reports half-life (Thalf) in `score`, not `value`
+    # (`parse_netmhcstabpan` sets no ic50), so read it from there.
+    "stability": (Kind.pMHC_stability, "score"),
     "immunogenicity": (Kind.immunogenicity, "score"),
     "tap_transport": (Kind.tap_transport, "score"),
     "erap_trimming": (Kind.erap_trimming, "score"),
@@ -217,6 +219,12 @@ def _build_lookup(results, spec):
     ``by_peptide`` maps ``peptide -> Prediction`` (allele-free predictions,
     e.g. processing predictors). Predictions whose target field is ``None``
     are skipped.
+
+    A kind-agnostic token (``score``/``percentile_rank``/``rank``, i.e.
+    ``spec.kind is None``) matches every kind, so if the predictor emits more
+    than one kind for the same key the result would be an arbitrary
+    last-one-wins pick. That is raised as an error rather than silently
+    resolved — the caller should use a kind-specific token instead.
     """
     by_pair = {}
     by_peptide = {}
@@ -224,10 +232,20 @@ def _build_lookup(results, spec):
         for pred in peptide_result.filter(kind=spec.kind):
             if getattr(pred, spec.prediction_field) is None:
                 continue
-            if pred.allele:
-                by_pair[(pred.peptide, pred.allele)] = pred
-            else:
-                by_peptide[pred.peptide] = pred
+            target, key = (
+                (by_pair, (pred.peptide, pred.allele)) if pred.allele
+                else (by_peptide, pred.peptide))
+            existing = target.get(key)
+            if (spec.kind is None and existing is not None
+                    and existing.kind != pred.kind):
+                raise ValueError(
+                    "Ambiguous %r field: predictor emits multiple kinds "
+                    "(%s, %s) for peptide %r allele %r. Use a kind-specific "
+                    "token (e.g. affinity, presentation, immunogenicity) "
+                    "instead of %r."
+                    % (spec.field, existing.kind, pred.kind,
+                       pred.peptide, pred.allele, spec.field))
+            target[key] = pred
     return by_pair, by_peptide
 
 
