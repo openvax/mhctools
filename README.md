@@ -169,7 +169,7 @@ The canonical prediction kind strings are defined in `mhctools.pred.Kind`.
 | `proteasome_cleavage` | Proteasomal (MHC-I, cytosolic) C-terminal cleavage score |
 | `endolysosomal_cleavage` | Endolysosomal (MHC-II, cathepsin) C-terminal cleavage score |
 | `tap_transport` | TAP transport / binding score |
-| `erap_trimming` | ERAP trimming score (reserved, not yet used) |
+| `erap_trimming` | ERAP1 N-terminal trimming score |
 
 Predictors also expose `kind_support()` so downstream code can tell what MHC
 context is meaningful for each emitted kind:
@@ -210,6 +210,7 @@ Examples:
 | `NetCleave_I` | `proteasome_cleavage` | `none` | `I` |
 | `NetCleave_II` | `endolysosomal_cleavage` | `none` | `II` |
 | `DeepTAP` | `tap_transport` | `none` | `none` |
+| `ERAMER` | `erap_trimming` | `none` | `I` |
 | `NetTCR` | `pMHC_TCR_binding` | `none` | `I` |
 | `Tulip` | `pMHC_TCR_binding` | `single_allele` | `I` |
 | `BigMHC_IM` | `immunogenicity` | `single_allele` | `I` |
@@ -389,6 +390,36 @@ results[1].tap_transport.score             # 0-1, higher = stronger TAP binding
 > ⚠️ DeepTAP's evaluation is self-reported, and no independent TAP benchmark
 > exists for any tool (true of the whole TAP field). Treat the score as a useful
 > pathway signal for prioritization, not a validated oracle.
+
+### ERAP1 trimming
+
+| Predictor | Kinds produced | Requires |
+|---|---|---|
+| `ERAMER` | ERAP1 trimming (`erap_trimming`) | [ERAMER](https://github.com/aalokaily/ERAMER) clone with `PWM.xlsx` (set `ERAMER_HOME`) + `openpyxl` |
+
+ERAP1 trims the N-termini of 9–16mer precursor peptides in the ER down to the
+8–10mers MHC-I presents — the step between TAP transport and MHC loading, and
+otherwise the last empty stage in the pathway. `ERAMER` scores a precursor by
+averaging a per-length position-weight-matrix specificity over each residue
+trimmed off as it is cut toward a target epitope length (allele-independent, one
+`erap_trimming` prediction per peptide; `score` roughly −1…1, higher = more
+likely trimmed).
+
+ERAMER is **GPLv3** and its PWM ships in a GPL-licensed `PWM.xlsx`, so mhctools
+vendors neither: this is a clean-room Python-3 reimplementation of the
+(Python-2.7) tool's trimming-cascade average that loads the PWM from a
+user-provided ERAMER checkout at runtime. Point at the clone with `ERAMER_HOME`.
+
+```python
+from mhctools import ERAMER
+
+predictor = ERAMER(epitope_length=8)       # resolves ERAMER_HOME / ~/ERAMER
+results = predictor.predict(["GGGGGVVVVVVAAAEE"])   # a 9-16mer precursor
+results[0].erap_trimming.score
+```
+
+> ⚠️ ERAMER's evaluation is self-reported and ERAP1 trimming is an intrinsically
+> noisy signal; treat the score as a pathway prior, not a validated oracle.
 
 ### Immunogenicity
 

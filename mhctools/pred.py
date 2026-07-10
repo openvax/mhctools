@@ -294,6 +294,11 @@ class PeptideResult:
         return self.best_by_score(Kind.tap_transport)
 
     @property
+    def erap_trimming(self) -> Optional[Prediction]:
+        """Best ERAP1 trimming prediction, or None."""
+        return self.best_by_score(Kind.erap_trimming)
+
+    @property
     def tcr_binding(self) -> Optional[Prediction]:
         """Best pMHC:TCR binding prediction, or None."""
         return self.best_by_score(Kind.pMHC_TCR_binding)

@@ -57,6 +57,7 @@ jobs:
             tests/test_mixmhc2pred2.py \
             tests/test_deeptap.py \
             tests/test_calis.py \
+            tests/test_eramer.py \
             tests/test_processing_predictor.py \
             tests/test_pepsickle.py \
             tests/test_bigmhc.py \
