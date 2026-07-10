@@ -215,6 +215,7 @@ Examples:
 | `Tulip` | `pMHC_TCR_binding` | `single_allele` | `I` |
 | `BigMHC_IM` | `immunogenicity` | `single_allele` | `I` |
 | `PRIME` | `immunogenicity` | `single_allele` | `I` |
+| `DeepImmuno` | `immunogenicity` | `single_allele` | `I` |
 | `Calis` | `immunogenicity` | `none` | `I` |
 
 ### TCR predictors (`NetTCR`, `Tulip`)
@@ -428,6 +429,7 @@ results[0].erap_trimming.score
 | `Calis` | immunogenicity | nothing — self-contained |
 | `BigMHC_IM` | immunogenicity | [BigMHC](https://github.com/KarchinLab/bigmhc) clone (set `BIGMHC_DIR`) |
 | `PRIME` | immunogenicity | [PRIME](https://github.com/GfellerLab/PRIME) clone + MixMHCpred |
+| `DeepImmuno` | immunogenicity | [DeepImmuno](https://github.com/frankligy/DeepImmuno) clone (set `DEEPIMMUNO_HOME`) |
 
 `Calis` is the classic sequence-only IEDB class-I immunogenicity model (Calis et
 al. 2013): a fixed per-amino-acid log-enrichment scale weighted by per-position
@@ -463,8 +465,28 @@ results = predictor.predict(["GILGFVFTL", "NLVPMVATV"])
 results[0].immunogenicity.score
 ```
 
-> ⚠️ Every current CD8 immunogenicity predictor — `PRIME` and `BigMHC_IM`
-> included — ranks well in the characterized regime but generalizes poorly to
+`DeepImmuno` predicts class-I CD8+ immunogenicity from the peptide and its
+HLA-A/B/C allele with a small CNN (Li et al. 2021). It scores **9- and 10-mers
+only** and supports a fixed set of ~62 alleles, snapping anything else to the
+nearest it knows. It emits one `immunogenicity` prediction per (peptide,
+allele); `score` is in 0–1 (higher = more immunogenic). DeepImmuno ships its
+weights in-repo and is MIT-licensed, but its script loads them with an old
+Keras 2 / TensorFlow stack, so mhctools shells out to DeepImmuno's own CLI in a
+user-provided checkout. Point at the clone with `DEEPIMMUNO_HOME`, and set
+`DEEPIMMUNO_PYTHON` to an interpreter that has TensorFlow (with Keras 2, or
+newer TensorFlow plus the `tf-keras` shim — the wrapper sets
+`TF_USE_LEGACY_KERAS=1` for the subprocess).
+
+```python
+from mhctools import DeepImmuno
+
+predictor = DeepImmuno(alleles=["HLA-A*02:01"])   # resolves DEEPIMMUNO_HOME / ~/DeepImmuno
+results = predictor.predict(["NLVPMVATV", "GILGFVFTL"])
+results[0].immunogenicity.score                   # 0.9568 (higher = more immunogenic)
+```
+
+> ⚠️ Every current CD8 immunogenicity predictor — `PRIME`, `BigMHC_IM`, and
+> `DeepImmuno` included — ranks well in the characterized regime but generalizes poorly to
 > truly novel neoepitopes; independent benchmarks put the field near AUC
 > 0.5–0.65 on unseen tumor neoepitopes (ITSNdb ~0.52–0.60, ICERFIRE ~0.56,
 > IMPROVE ~0.60). In the one neutral head-to-head that scored both (NeoaPred,

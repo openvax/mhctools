@@ -33,12 +33,18 @@ class AsyncProcess(object):
             self,
             args,
             suppress_stderr=False,
-            redirect_stdout_file=None):
+            redirect_stdout_file=None,
+            cwd=None,
+            env=None):
         assert len(args) > 0
         self.cmd = args[0]
         self.args = args
         self.suppress_stderr = suppress_stderr
         self.redirect_stdout_file = redirect_stdout_file
+        # cwd/env are passed straight through to Popen (None = inherit); used by
+        # wrappers around tools that hardcode relative paths or need extra env.
+        self.cwd = cwd
+        self.env = env
         self.process = None
 
     def start(self):
@@ -51,7 +57,8 @@ class AsyncProcess(object):
             for attempt in range(_POPEN_MAX_RETRIES):
                 try:
                     self.process = Popen(
-                        self.args, stdout=stdout, stderr=stderr)
+                        self.args, stdout=stdout, stderr=stderr,
+                        cwd=self.cwd, env=self.env)
                     return
                 except OSError as e:
                     if e.errno != errno.EAGAIN and not isinstance(
