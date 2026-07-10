@@ -59,6 +59,7 @@ jobs:
             tests/test_calis.py \
             tests/test_eramer.py \
             tests/test_wrapper_base.py \
+            tests/test_deepimmuno.py \
             tests/test_processing_predictor.py \
             tests/test_pepsickle.py \
             tests/test_bigmhc.py \

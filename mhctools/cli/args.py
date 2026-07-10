@@ -70,6 +70,7 @@ from .. import (
     DeepTAP,
     Calis,
     ERAMER,
+    DeepImmuno,
 )
 
 
@@ -181,6 +182,7 @@ mhc_predictors = {
     "deeptap": DeepTAP,
     "calis": Calis,
     "eramer": ERAMER,
+    "deepimmuno": DeepImmuno,
 }
 
 
