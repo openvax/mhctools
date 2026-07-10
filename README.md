@@ -214,6 +214,7 @@ Examples:
 | `Tulip` | `pMHC_TCR_binding` | `single_allele` | `I` |
 | `BigMHC_IM` | `immunogenicity` | `single_allele` | `I` |
 | `PRIME` | `immunogenicity` | `single_allele` | `I` |
+| `Calis` | `immunogenicity` | `none` | `I` |
 
 ### TCR predictors (`NetTCR`, `Tulip`)
 
@@ -393,8 +394,25 @@ results[1].tap_transport.score             # 0-1, higher = stronger TAP binding
 
 | Predictor | Kinds produced | Requires |
 |---|---|---|
+| `Calis` | immunogenicity | nothing — self-contained |
 | `BigMHC_IM` | immunogenicity | [BigMHC](https://github.com/KarchinLab/bigmhc) clone (set `BIGMHC_DIR`) |
 | `PRIME` | immunogenicity | [PRIME](https://github.com/GfellerLab/PRIME) clone + MixMHCpred |
+
+`Calis` is the classic sequence-only IEDB class-I immunogenicity model (Calis et
+al. 2013): a fixed per-amino-acid log-enrichment scale weighted by per-position
+importance, with the anchor positions (P1/P2/C-terminus) masked out. It needs
+**no external install and no downloaded weights** — the ~30 published parameters
+(from the open-access CC-BY paper) are built in — so it is a fast,
+dependency-free, allele-independent baseline. It emits one `immunogenicity`
+prediction per peptide (empty `allele`); `score > 0` leans immunogenic.
+
+```python
+from mhctools import Calis
+
+predictor = Calis()
+results = predictor.predict(["GILGFVFTL", "NLVPMVATV"])
+results[0].immunogenicity.score            # 0.30484 (higher = more immunogenic)
+```
 
 `PRIME` predicts CD8+ T-cell immunogenicity of class-I peptides by combining
 MHC-I binding (via MixMHCpred, which it calls internally) with a TCR-recognition
