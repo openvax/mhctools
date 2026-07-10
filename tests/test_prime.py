@@ -164,3 +164,12 @@ def test_prime_dataframe_end_to_end():
     assert len(df) == 2
     assert set(df["kind"]) == {Kind.immunogenicity}
     assert (df["allele"] == "HLA-A*02:01").all()
+
+
+def test_predict_dataframe_inherits_flank_signature():
+    # Regression: PRIME used to override predict_dataframe with a narrower
+    # signature that dropped n_flanks/c_flanks (a TypeError trap). It should
+    # inherit the base method, which forwards flanks to predict().
+    import inspect
+    params = inspect.signature(PRIME.predict_dataframe).parameters
+    assert "n_flanks" in params and "c_flanks" in params

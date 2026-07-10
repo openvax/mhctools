@@ -317,3 +317,23 @@ def test_legacy_binding_predictor_rejects_multiple():
     args = _make_args(["random", "random"])
     with pytest.raises(ValueError, match="exactly one"):
         mhc_binding_predictor_from_args(args)
+
+
+def test_netcleave_family_registered():
+    from mhctools import NetCleave, NetCleave_I, NetCleave_II
+    assert mhc_predictors["netcleave"] == NetCleave
+    assert mhc_predictors["netcleave-i"] == NetCleave_I
+    assert mhc_predictors["netcleave-ii"] == NetCleave_II
+
+
+def test_legacy_cli_rejects_new_model_only_predictor():
+    # New-model-only predictors (predict() but no predict_peptides) must give a
+    # clear "use predict-table" error on the legacy CLI, not an AttributeError.
+    from mhctools.cli.script import _run_single_predictor
+
+    class _NewModelOnly:
+        def predict(self, peptides):
+            return []
+
+    with pytest.raises(ValueError, match="predict-table"):
+        _run_single_predictor(_NewModelOnly(), Namespace())

@@ -444,6 +444,87 @@ def test_output_field_tokens_include_primary_three():
         assert expected in tokens
 
 
+# --- stability token reads `score` (NetMHCstabpan puts Thalf there) ---------
+
+class _StabilityFixturePredictor:
+    """Allele-bearing predictor emitting pMHC_stability with half-life in
+    ``score`` and no ``value`` — mirroring parse_netmhcstabpan."""
+
+    def __init__(self, alleles):
+        self.alleles = list(alleles) if alleles else []
+
+    def predict(self, peptides):
+        results = []
+        for peptide in peptides:
+            preds = [
+                Prediction(
+                    kind=Kind.pMHC_stability,
+                    peptide=peptide,
+                    allele=allele,
+                    score=12.5,          # half-life (hours), higher = better
+                    value=None,          # NetMHCstabpan sets no ic50
+                    predictor_name="stab-fixture")
+                for allele in self.alleles]
+            results.append(PeptideResult(preds=tuple(preds)))
+        return results
+
+
+def test_stability_token_reads_score_not_value():
+    # Regression: the `stability` token used to map to `value`, which
+    # NetMHCstabpan never populates, so the column was always NaN.
+    spec = parse_annotation_spec("netmhcstabpan:stab:stability")
+    assert (spec.kind, spec.prediction_field) == (Kind.pMHC_stability, "score")
+
+    out = annotate_table(
+        _table(),
+        [AnnotationSpec(lambda a: _StabilityFixturePredictor(a), "stab",
+                        field="stability")],
+        allele_column="hla")
+    assert list(out["stab"]) == [12.5, 12.5]  # not NaN
+
+
+# --- generic score/rank token is rejected on multi-kind predictors ----------
+
+class _MultiKindFixturePredictor:
+    """Emits BOTH affinity and presentation for the same (peptide, allele)."""
+
+    def __init__(self, alleles):
+        self.alleles = list(alleles) if alleles else []
+
+    def predict(self, peptides):
+        results = []
+        for peptide in peptides:
+            preds = []
+            for allele in self.alleles:
+                preds.append(Prediction(
+                    kind=Kind.pMHC_affinity, peptide=peptide, allele=allele,
+                    score=0.2, value=100.0, predictor_name="multi"))
+                preds.append(Prediction(
+                    kind=Kind.pMHC_presentation, peptide=peptide, allele=allele,
+                    score=0.9, predictor_name="multi"))
+            results.append(PeptideResult(preds=tuple(preds)))
+        return results
+
+
+def test_generic_score_token_ambiguous_multikind_raises():
+    with pytest.raises(ValueError, match="[Aa]mbiguous"):
+        annotate_table(
+            _table(),
+            [AnnotationSpec(lambda a: _MultiKindFixturePredictor(a), "s",
+                            field="score")],
+            allele_column="hla")
+
+
+def test_kind_specific_token_unambiguous_on_multikind():
+    # The same multi-kind predictor is fine with a kind-specific token.
+    out = annotate_table(
+        _table(),
+        [AnnotationSpec(lambda a: _MultiKindFixturePredictor(a), "pres",
+                        field="presentation")],
+        allele_column="hla")
+    assert list(out["pres"]) == [0.9, 0.9]
+
+
 # --- integration-flavored smoke test with the real random predictor ---------
 
 def test_random_predictor_smoke():
