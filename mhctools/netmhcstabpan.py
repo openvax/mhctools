@@ -36,13 +36,8 @@ class NetMHCstabpan(BaseCommandlinePredictor):
             length_flag="-l",
             allele_flag="-a",
             extra_flags=flags,
-            process_limit=process_limit)
-        
-    def predict_peptides(self, peptides):
-        peptide_lengths = set(len(p) for p in peptides)
-        if len(peptide_lengths) > 1:
-            raise ValueError("All peptides must be the same length")
-        return super().predict_peptides(peptides)
+            process_limit=process_limit,
+            group_peptides_by_length=True)
 
     def _default_pred_kind(self):
         return Kind.pMHC_stability
