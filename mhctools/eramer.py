@@ -21,31 +21,27 @@ mhctools. ERAMER (Al-okaily 2024) models ERAP1 specificity as a per-length
 position-weight matrix and scores a precursor by averaging the PWM specificity
 over each residue trimmed off as it is cut down to a target epitope length.
 
-Licensing / why nothing is vendored
------------------------------------
-ERAMER is **GPLv3** and its PWM ships in a GPL-licensed ``PWM.xlsx``; mhctools is
-Apache-2.0 and vendors neither. Instead this is a clean-room Python-3
-reimplementation of the (simple, factual) trimming-cascade average — the
-upstream tool is Python 2.7 — that loads the PWM from a user-provided ERAMER
-checkout at runtime, exactly as the netMHC / MixMHCpred wrappers read
-user-provided model files. Point at the checkout with ``ERAMER_HOME`` (or pass
-``eramer_home=`` / ``pwm_path=``).
+Licensing: ERAMER is GPLv3 and its PWM ships in a GPL-licensed ``PWM.xlsx``;
+mhctools is Apache-2.0 and vendors neither. This is a clean-room Python-3
+reimplementation of the trimming-cascade average (the upstream tool is Python
+2.7) that loads the PWM from a user-provided ERAMER checkout at runtime, as the
+netMHC / MixMHCpred wrappers read user-provided model files. Point at the
+checkout with ``ERAMER_HOME`` (or pass ``eramer_home=`` / ``pwm_path=``).
 
 Upstream: https://github.com/aalokaily/ERAMER
-Cite: Al-okaily et al., *Comput. Biol. Med.* 2024 — "ERAMER: A novel in silico
+Cite: Al-okaily et al., Comput. Biol. Med. 2024 — "ERAMER: A novel in silico
 tool for prediction of ERAP1 enzyme trimming".
 
-Note on interpretation: ERAP1 trimming is a genuine but noisy processing signal
-and ERAMER's evaluation is self-reported; treat the score (roughly -1..1, higher
-= more likely trimmed) as a pathway prior, not a validated oracle.
+ERAMER's evaluation is self-reported and ERAP1 trimming is intrinsically noisy —
+treat the score (roughly -1..1, higher = more likely trimmed) as a pathway
+prior, not a validated oracle.
 """
 
 import os
 from os.path import isdir, isfile, join
 
-import pandas as pd
-
-from .pred import COLUMNS, Kind, PeptideResult, Prediction
+from .pred import Kind, PeptideResult, Prediction
+from .wrapper_base import AlleleFreePredictor
 
 # ERAP1 processes precursors in this length range; ERAMER ships one PWM sheet
 # per precursor length in [9, 16].
@@ -165,7 +161,7 @@ def eramer_score(precursor, epitope_length, weights_by_length):
     return sum(scores) / len(scores)
 
 
-class ERAMER:
+class ERAMER(AlleleFreePredictor):
     """ERAMER ERAP1-trimming predictor (clean-room reimplementation).
 
     Allele-independent: ``predict()`` returns one ``Kind.erap_trimming``
@@ -179,11 +175,14 @@ class ERAMER:
         from the precursor length down to ``epitope_length + 1``. Default 8 (so
         every valid 9-16mer precursor yields a score). Must be in 8-15.
     eramer_home : str, optional
-        Path to an ERAMER checkout (containing ``PWM.xlsx``). Resolved from the
-        argument, then ``$ERAMER_HOME``, then ``~/ERAMER``.
+        Path to an ERAMER checkout (containing ``PWM.xlsx``). If omitted, the PWM
+        is resolved from ``$ERAMER_PWM``, then ``$ERAMER_HOME``, then
+        ``~/ERAMER``.
     pwm_path : str, optional
         Direct path to ``PWM.xlsx`` (overrides *eramer_home*).
     """
+
+    mhc_class = "I"
 
     def __init__(self, epitope_length=8, eramer_home=None, pwm_path=None):
         if not (8 <= epitope_length <= ERAMER_MAX_PRECURSOR_LENGTH - 1):
@@ -199,26 +198,8 @@ class ERAMER:
         return "ERAMER(epitope_length=%d, pwm_path=%r)" % (
             self.epitope_length, self.pwm_path)
 
-    def __repr__(self):
-        return str(self)
-
-    def _predictor_name(self):
-        return "eramer"
-
     def _default_pred_kind(self):
         return Kind.erap_trimming
-
-    def kind_support(self):
-        return {
-            Kind.erap_trimming: {
-                "mhc_dependence": "none",
-                "mhc_class": "I",
-            },
-        }
-
-    @property
-    def supported_kinds(self):
-        return tuple(self.kind_support())
 
     def _ensure_loaded(self):
         if self._weights_by_length is None:
@@ -255,27 +236,20 @@ class ERAMER:
             ``Kind.erap_trimming`` prediction (empty ``allele``; ``score`` is the
             ERAMER trimming score, higher = more likely trimmed).
         """
-        if isinstance(peptides, str):
-            peptides = [peptides]
-        peptide_list = [str(p).strip().upper() for p in peptides]
+        peptide_list = self._normalize_peptides(peptides)
         self._check_peptides(peptide_list)
+        if not peptide_list:
+            return []
         weights_by_length = self._ensure_loaded()
 
-        results = []
-        for peptide in peptide_list:
-            score = eramer_score(
-                peptide, self.epitope_length, weights_by_length)
-            preds = () if score is None else (Prediction(
+        # _check_peptides guarantees each precursor is longer than
+        # epitope_length, so eramer_score always yields a value here.
+        return [
+            PeptideResult(preds=(Prediction(
                 kind=Kind.erap_trimming,
-                score=float(score),
+                score=float(eramer_score(
+                    peptide, self.epitope_length, weights_by_length)),
                 peptide=peptide,
-                predictor_name="eramer"),)
-            results.append(PeptideResult(preds=preds))
-        return results
-
-    def predict_dataframe(self, peptides, sample_name=""):
-        """``predict()`` flattened to a DataFrame."""
-        dfs = [pp.to_dataframe(sample_name) for pp in self.predict(peptides)]
-        if not dfs:
-            return pd.DataFrame(columns=COLUMNS)
-        return pd.concat(dfs, ignore_index=True)
+                predictor_name="eramer"),))
+            for peptide in peptide_list
+        ]

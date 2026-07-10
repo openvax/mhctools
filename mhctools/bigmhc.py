@@ -32,11 +32,11 @@ import pandas as pd
 import torch
 
 from .pred import (
-    COLUMNS,
     Kind,
     PeptideResult,
     Prediction,
 )
+from .wrapper_base import NewModelPredictorMixin
 
 
 def _find_bigmhc_dir(bigmhc_path=None):
@@ -79,7 +79,7 @@ def _import_bigmhc_modules(bigmhc_dir):
             sys.path.remove(src_dir)
 
 
-class BigMHC:
+class BigMHC(NewModelPredictorMixin):
     """Wrapper for BigMHC presentation and immunogenicity predictions.
 
     Models are loaded lazily on the first call to :meth:`predict` and
@@ -130,25 +130,18 @@ class BigMHC:
         return "BigMHC(mode=%s, alleles=%s, %s)" % (
             self.mode, self.alleles, loaded)
 
-    def __repr__(self):
-        return str(self)
-
-    def _pred_kind(self):
+    def _default_pred_kind(self):
         if self.mode == "im":
             return Kind.immunogenicity
         return Kind.pMHC_presentation
 
     def kind_support(self):
         return {
-            self._pred_kind(): {
+            self._default_pred_kind(): {
                 "mhc_dependence": "single_allele",
                 "mhc_class": "I",
             }
         }
-
-    @property
-    def supported_kinds(self):
-        return tuple(self.kind_support())
 
     def _predictor_name(self):
         return "bigmhc_%s" % self.mode
@@ -256,8 +249,7 @@ class BigMHC:
         list of PeptideResult
             One entry per peptide; each contains one Prediction per allele.
         """
-        if isinstance(peptides, str):
-            peptides = [peptides]
+        peptides = self._normalize_peptides(peptides)
 
         # Build all (peptide, allele) combinations
         all_peptides = []
@@ -269,7 +261,7 @@ class BigMHC:
 
         scores = self._predict_raw(all_peptides, all_alleles)
 
-        kind = self._pred_kind()
+        kind = self._default_pred_kind()
         name = self._predictor_name()
 
         idx = 0
@@ -287,13 +279,6 @@ class BigMHC:
                 idx += 1
             results.append(PeptideResult(preds=tuple(preds)))
         return results
-
-    def predict_dataframe(self, peptides, sample_name=""):
-        """``predict()`` flattened to a DataFrame."""
-        dfs = [pp.to_dataframe(sample_name) for pp in self.predict(peptides)]
-        if not dfs:
-            return pd.DataFrame(columns=COLUMNS)
-        return pd.concat(dfs, ignore_index=True)
 
 
 class BigMHC_EL(BigMHC):

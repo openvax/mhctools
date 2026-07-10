@@ -24,16 +24,12 @@ PRIME itself calls MixMHCpred (v3.0+ recommended); point at it with
 ``mixmhcpred_path`` if it is not on ``PATH``.
 
 Upstream: https://github.com/GfellerLab/PRIME
-Cite: Gfeller et al., *Cell Systems* 2023 — "Improved predictions of antigen
+Cite: Gfeller et al., Cell Systems 2023 — "Improved predictions of antigen
 presentation and TCR recognition with MixMHCpred2.2 and PRIME2.0".
 
-Note on interpretation: like every current CD8 immunogenicity predictor, PRIME
-is useful for ranking in the well-characterized regime but generalizes poorly
-to truly novel neoepitopes (independent benchmarks put the field near
-AUC 0.5-0.65). PRIME's training positives are dominated by viral / cancer-testis
-antigens, so it does relatively better on infectious-disease epitopes and, in
-the one neutral head-to-head (NeoaPred, Bioinformatics 2024), trails BigMHC_IM
-on cancer neoepitopes. Treat scores as a prioritization aid, not ground truth.
+Like every current CD8 immunogenicity predictor, PRIME ranks better than it
+generalizes to novel neoepitopes (independent benchmarks put the field near
+AUC 0.5-0.65) — a prioritization aid, not ground truth.
 """
 
 from os import remove

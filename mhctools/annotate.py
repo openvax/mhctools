@@ -48,7 +48,7 @@ from typing import Optional
 import pandas as pd
 
 from .allele_normalization import normalize_allele_name_or_raw
-from .pred import Kind, best_direction
+from .pred import Kind, reduce_op
 
 
 # Whitespace, comma, or semicolon separate multiple alleles packed into one
@@ -140,8 +140,7 @@ class AnnotationSpec:
 
     def direction_op(self):
         """``max`` or ``min`` callable for reducing candidate predictions."""
-        return max if best_direction(self.kind, self.prediction_field) == "max" \
-            else min
+        return reduce_op(self.kind, self.prediction_field)
 
 
 def parse_annotation_spec(token):
@@ -338,7 +337,7 @@ def annotate_table(
         predictor = spec.build_predictor(union_alleles or None)
         results = predictor.predict(union_peptides)
         by_pair, by_peptide = _build_lookup(results, spec)
-        reduce_op = spec.direction_op()
+        reducer = spec.direction_op()
         field = spec.prediction_field
 
         values = []
@@ -347,15 +346,13 @@ def annotate_table(
             candidates = [by_pair[(peptide, a)] for a in alleles
                           if (peptide, a) in by_pair]
             if not candidates:
-                # Allele-free predictors (e.g. processing) emit allele-less
-                # predictions indexed by peptide only. Only such predictors
-                # populate ``by_peptide``, so this fallback never masks a
-                # genuine unsupported-allele miss from a binding predictor.
+                # Allele-free predictors (e.g. processing) index by peptide
+                # only; fall back to that lookup.
                 allele_free = by_peptide.get(peptide)
                 if allele_free is not None:
                     candidates = [allele_free]
             if candidates:
-                best = reduce_op(candidates, key=lambda p: getattr(p, field))
+                best = reducer(candidates, key=lambda p: getattr(p, field))
                 values.append(getattr(best, field))
                 best_alleles.append(best.allele or None)
             else:

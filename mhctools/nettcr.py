@@ -26,9 +26,8 @@ require the cloned repository (for the weights) and a TFLite runtime
 (``ai-edge-litert``, ``tflite-runtime``, or ``tensorflow``).
 
 The BLOSUM50 encoding, per-feature padding lengths, and name-based input
-tensor assignment here reproduce ``src/predict.py`` from NetTCR-2.2 exactly
-(verified to ~1e-7 against its own output). Scores are the mean over the
-pan cross-validation ensemble, matching the published usage.
+tensor assignment here reproduce ``src/predict.py`` from NetTCR-2.2. Scores are
+the mean over the pan cross-validation ensemble, matching the published usage.
 """
 
 from __future__ import annotations
@@ -47,19 +46,13 @@ from .tcr import TCR
 
 @contextlib.contextmanager
 def _suppress_native_stderr():
-    """Silence C-level stderr for the duration of the block.
+    """Silence native (C-level) writes to fd 2 for the duration of the block.
 
     The TFLite runtimes print ``INFO: Created TensorFlow Lite XNNPACK delegate
-    for CPU.`` from native code straight to file descriptor 2 (during
-    ``allocate_tensors``), bypassing Python's ``logging``. Redirect fd 2 to
-    ``os.devnull`` so that chatter is dropped; Python-level exceptions still
-    propagate normally (only native writes to stderr are hidden). Restores the
-    original fd afterward, so ordinary stderr keeps working.
-
-    Note: fd 2 is process-global, so for the (brief) duration of the block a
-    concurrent thread's stderr and any non-fatal native warning are also
-    dropped. It wraps only interpreter setup (construction / allocation), never
-    the prediction loop, so the window is small.
+    for CPU.`` straight to fd 2 during interpreter setup, bypassing Python's
+    ``logging``. Redirecting fd 2 is process-global, so this wraps only
+    construction / allocation, never the prediction loop; Python exceptions
+    still propagate.
     """
     sys.stderr.flush()
     # Acquire both descriptors inside the try so a failure partway through

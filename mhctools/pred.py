@@ -80,30 +80,12 @@ VALUE_BEST_DIRECTIONS = {
 
 
 def best_direction(kind, field) -> str:
-    """Canonical "best" direction for a ``(kind, field)`` pair.
+    """Canonical "best" direction (``"max"`` or ``"min"``) for ``(kind, field)``.
 
-    Returns ``"max"`` or ``"min"``.
-
-    Parameters
-    ----------
-    kind : str or Kind
-        Prediction kind (e.g. ``Kind.pMHC_affinity``).
-    field : str
-        Column name within the kind's predictions —
-        ``"score"``, ``"percentile_rank"``, or ``"value"``.
-
-    Raises
-    ------
-    ValueError
-        If ``field`` is unknown, or if ``field == "value"`` for a kind
-        without a registered direction in :data:`VALUE_BEST_DIRECTIONS`.
-
-    Notes
-    -----
-    ``score`` and ``percentile_rank`` directions are uniform across all
-    kinds. ``value`` is kind-dependent: e.g. ``pMHC_affinity`` reports
-    IC50 in nM (lower better) while ``pMHC_stability`` reports half-life
-    (higher better).
+    ``score`` (max) and ``percentile_rank`` (min) are uniform across kinds;
+    ``value`` is kind-dependent (see :data:`VALUE_BEST_DIRECTIONS`). Raises
+    ``ValueError`` for an unknown ``field``, or for ``value`` on a kind with no
+    registered direction.
     """
     direction = FIELD_BEST_DIRECTIONS.get(field)
     if direction is not None:
@@ -120,6 +102,11 @@ def best_direction(kind, field) -> str:
     raise ValueError(
         f"best_direction undefined for field {field!r}. Known: {known}."
     )
+
+
+def reduce_op(kind, field):
+    """``max`` or ``min`` — the reducer that picks the best ``(kind, field)``."""
+    return max if best_direction(kind, field) == "max" else min
 
 
 COLUMNS = (
@@ -142,7 +129,7 @@ COLUMNS = (
 
 @dataclass(frozen=True, repr=False)
 class Prediction:
-    """Single prediction from one model on one peptide. Self-contained."""
+    """Single prediction from one model on one peptide."""
     kind: str
     score: float
     peptide: str = ""
@@ -206,7 +193,7 @@ class Prediction:
 
 @dataclass(repr=False)
 class PeptideResult:
-    """All predictions for one peptide. Contains a tuple of Prediction objects."""
+    """All predictions for one peptide (a tuple of ``Prediction`` objects)."""
     preds: tuple[Prediction, ...] = ()
 
     def __repr__(self):
@@ -371,8 +358,7 @@ class PeptideResult:
         allele, falls back to allele-less predictions (e.g. processing
         predictors that emit allele-independent scores).
         """
-        direction = best_direction(kind, field)
-        op = max if direction == "max" else min
+        op = reduce_op(kind, field)
 
         def has_value(p):
             return getattr(p, field) is not None
