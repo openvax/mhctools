@@ -211,21 +211,23 @@ def parse_mixmhc2pred_results(filename, alleles, cli_names):
                     "MixMHC2pred output missing column %r (columns: %s)"
                     % (column, list(df.columns)))
 
+    # itertuples mangles '%Rank_...' names, so index by position. Resolve the
+    # column positions once, not per row.
+    peptide_idx = df.columns.get_loc("Peptide")
+    rank_idx = [df.columns.get_loc("%Rank_" + name) for name in cli_names]
+    score_idx = [df.columns.get_loc("Score_" + name) for name in cli_names]
+
     results = {}
     for row in df.itertuples(index=False):
-        peptide = getattr(row, "Peptide")
-        preds = []
-        for allele, cli_name in zip(alleles, cli_names):
-            # itertuples mangles '%Rank_...' names, so index by position via
-            # the column list captured from df.columns.
-            rank = float(row[df.columns.get_loc("%Rank_" + cli_name)])
-            score = float(row[df.columns.get_loc("Score_" + cli_name)])
-            preds.append(Prediction(
+        peptide = row[peptide_idx]
+        preds = [
+            Prediction(
                 kind=Kind.pMHC_presentation,
-                score=score,
+                score=float(row[score_idx[i]]),
                 peptide=peptide,
                 allele=allele,
-                percentile_rank=rank,
-                predictor_name="mixmhc2pred"))
+                percentile_rank=float(row[rank_idx[i]]),
+                predictor_name="mixmhc2pred")
+            for i, allele in enumerate(alleles)]
         results[peptide] = preds
     return results

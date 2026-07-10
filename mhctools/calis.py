@@ -19,28 +19,19 @@ a fixed per-amino-acid log-enrichment scale, weighted by per-position
 importance, with the anchor positions (P1, P2, and the C-terminus) masked out
 because their identity is driven by MHC binding rather than TCR recognition.
 
-Unlike every other predictor in mhctools, this needs **no external install and
-no downloaded weights** — the ~30 published parameters are reproduced here
-directly (they come from the open-access CC-BY paper, Calis et al.,
-*PLoS Comput. Biol.* 2013, ``10.1371/journal.pcbi.1003266``). It is a fast,
-dependency-free baseline that sits alongside the learned immunogenicity
-predictors (``BigMHC_IM``, ``PRIME``).
+The ~30 parameters come from the open-access paper (Calis et al.,
+PLoS Comput. Biol. 2013, 10.1371/journal.pcbi.1003266) and are reproduced here,
+so the predictor is self-contained. It is allele-independent: it always masks
+P1/P2/C-terminus, the default the IEDB tool uses when no allele is given. A
+score > 0 leans immunogenic, < 0 non-immunogenic.
 
-The model is **allele-independent** here: it always masks P1/P2/C-terminus, the
-default the IEDB tool uses when no allele is supplied. (The IEDB tool can swap
-in allele-specific anchor masks for a fixed ~50-allele catalogue, but those
-anchor sets almost all reduce to the P1/P2/C-terminus default anyway.)
-
-Note on interpretation: like every current CD8 immunogenicity predictor, Calis
-is useful for ranking but generalizes weakly — independent benchmarks put the
-whole field near AUC 0.5-0.65 on unseen neoepitopes. Treat scores as a
-prioritization aid, not ground truth. A score > 0 leans immunogenic, < 0 leans
-non-immunogenic.
+Like every current CD8 immunogenicity predictor it ranks better than it
+generalizes (independent benchmarks put the field near AUC 0.5-0.65 on unseen
+neoepitopes) — a prioritization aid, not ground truth.
 """
 
-import pandas as pd
-
-from .pred import COLUMNS, Kind, PeptideResult, Prediction
+from .pred import Kind, PeptideResult, Prediction
+from .wrapper_base import AlleleFreePredictor
 
 # Per-amino-acid log-enrichment score, log(freq(aa | immunogenic) /
 # freq(aa | non-immunogenic)) from the Calis 2013 training set. Higher = more
@@ -67,7 +58,8 @@ def position_weights(peptide_length):
 
     For 9-mers this is :data:`IMMUNOWEIGHT` verbatim. For longer peptides the
     Calis rule pads the interior (after P5) with ``0.30`` weights, matching the
-    IEDB tool. Shorter peptides use the leading slice of :data:`IMMUNOWEIGHT`.
+    IEDB tool. For shorter peptides it returns ``IMMUNOWEIGHT`` unchanged and the
+    caller uses only the leading ``peptide_length`` entries.
     """
     if peptide_length > 9:
         return (
@@ -104,12 +96,12 @@ def immunogenicity_score(peptide):
     return round(score, 5)
 
 
-class Calis:
+class Calis(AlleleFreePredictor):
     """The Calis (IEDB) class-I immunogenicity predictor.
 
-    Self-contained (no external tool, no downloaded weights). Allele-independent:
-    ``predict()`` returns one :class:`~mhctools.pred.Prediction` per peptide with
-    an empty ``allele`` and ``kind == Kind.immunogenicity``.
+    Allele-independent: ``predict()`` returns one
+    :class:`~mhctools.pred.Prediction` per peptide with an empty ``allele`` and
+    ``kind == Kind.immunogenicity``.
 
     Parameters
     ----------
@@ -120,6 +112,8 @@ class Calis:
         designed for; longer peptides are handled by the interior-padding rule
         but are outside its intended scope).
     """
+
+    mhc_class = "I"
 
     def __init__(self, min_peptide_length=8, max_peptide_length=11):
         if min_peptide_length < 3:
@@ -137,26 +131,8 @@ class Calis:
         return "Calis(min_peptide_length=%d, max_peptide_length=%d)" % (
             self.min_peptide_length, self.max_peptide_length)
 
-    def __repr__(self):
-        return str(self)
-
-    def _predictor_name(self):
-        return "calis"
-
     def _default_pred_kind(self):
         return Kind.immunogenicity
-
-    def kind_support(self):
-        return {
-            Kind.immunogenicity: {
-                "mhc_dependence": "none",
-                "mhc_class": "I",
-            },
-        }
-
-    @property
-    def supported_kinds(self):
-        return tuple(self.kind_support())
 
     def _check_peptides(self, peptides):
         for peptide in peptides:
@@ -182,24 +158,13 @@ class Calis:
             ``Kind.immunogenicity`` prediction (empty ``allele``; ``score`` is
             the Calis score, higher = more immunogenic).
         """
-        if isinstance(peptides, str):
-            peptides = [peptides]
-        peptide_list = [str(p).strip().upper() for p in peptides]
+        peptide_list = self._normalize_peptides(peptides)
         self._check_peptides(peptide_list)
-
-        results = []
-        for peptide in peptide_list:
-            pred = Prediction(
+        return [
+            PeptideResult(preds=(Prediction(
                 kind=Kind.immunogenicity,
                 score=immunogenicity_score(peptide),
                 peptide=peptide,
-                predictor_name="calis")
-            results.append(PeptideResult(preds=(pred,)))
-        return results
-
-    def predict_dataframe(self, peptides, sample_name=""):
-        """``predict()`` flattened to a DataFrame."""
-        dfs = [pp.to_dataframe(sample_name) for pp in self.predict(peptides)]
-        if not dfs:
-            return pd.DataFrame(columns=COLUMNS)
-        return pd.concat(dfs, ignore_index=True)
+                predictor_name="calis"),))
+            for peptide in peptide_list
+        ]

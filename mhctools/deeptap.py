@@ -20,25 +20,23 @@ processing pathway from proteasomal cleavage (NetChop / NetCleave / Pepsickle).
 mhctools otherwise has no TAP predictor; DeepTAP fills that gap and emits
 ``Kind.tap_transport``.
 
-Like the cleavage predictors, DeepTAP is **allele-independent**: it scores each
+Like the cleavage predictors, DeepTAP is allele-independent: it scores each
 peptide once, so ``predict()`` returns one prediction per peptide (with an empty
 ``allele``).
 
-DeepTAP ships its pretrained weights in-repo and is Apache-2.0 licensed, but
-pins an old scientific-Python stack (``pytorch-lightning==1.9.2``, torch). To
-keep that stack out of the mhctools environment, this wrapper shells out to
-DeepTAP's own ``deeptap.py`` CLI in a user-provided checkout, run by a
-user-provided interpreter (the Tulip pattern). The checkpoints load fine under
-modern Lightning too, so any interpreter with torch + pytorch-lightning works.
+DeepTAP ships its pretrained weights in-repo (Apache-2.0) but pins an old stack
+(pytorch-lightning==1.9.2, torch). To keep that out of the mhctools environment,
+this wrapper shells out to DeepTAP's own ``deeptap.py`` CLI in a user-provided
+checkout (``DEEPTAP_HOME``), run by a user-provided interpreter
+(``DEEPTAP_PYTHON``, default the current one); the checkpoints also load under
+modern Lightning.
 
 Upstream: https://github.com/zjupgx/DeepTAP
-Cite: Chen et al., *Comput. Biol. Med.* 2023 — "DeepTAP: An RNN-based method of
+Cite: Chen et al., Comput. Biol. Med. 2023 — "DeepTAP: An RNN-based method of
 TAP-binding peptide prediction in the selection of tumor neoantigens".
 
-Note on interpretation: DeepTAP's evaluation is self-reported, and no
-independent TAP benchmark exists for any tool (true of the whole TAP field).
-Treat the score as a useful pathway signal for prioritization, not a validated
-oracle.
+DeepTAP's evaluation is self-reported and no independent TAP benchmark exists —
+a useful pathway signal, not a validated oracle.
 """
 
 import os
@@ -49,8 +47,9 @@ from tempfile import mkdtemp
 import pandas as pd
 
 from .cleanup_context import CleanupFiles
-from .pred import COLUMNS, Kind, PeptideResult, Prediction
+from .pred import Kind, PeptideResult, Prediction
 from .process_helpers import run_command
+from .wrapper_base import AlleleFreePredictor
 
 # DeepTAP one-hot encodes the 20 standard amino acids plus "X" (unknown /
 # padding) and pads every peptide to a fixed width of 17; longer peptides
@@ -83,7 +82,7 @@ def _find_deeptap_home(deeptap_home=None):
     return candidate
 
 
-class DeepTAP:
+class DeepTAP(AlleleFreePredictor):
     """Wrapper for the DeepTAP TAP-transport predictor.
 
     Parameters
@@ -131,26 +130,8 @@ class DeepTAP:
         return "DeepTAP(task_type=%r, deeptap_home=%r)" % (
             self.task_type, self.deeptap_home)
 
-    def __repr__(self):
-        return str(self)
-
-    def _predictor_name(self):
-        return "deeptap_%s" % self.task_type
-
     def _default_pred_kind(self):
         return Kind.tap_transport
-
-    def kind_support(self):
-        return {
-            Kind.tap_transport: {
-                "mhc_dependence": "none",
-                "mhc_class": "none",
-            },
-        }
-
-    @property
-    def supported_kinds(self):
-        return tuple(self.kind_support())
 
     def _check_peptides(self, peptides):
         for peptide in peptides:
@@ -178,9 +159,7 @@ class DeepTAP:
             ``"reg"`` mode the prediction's ``value`` is the predicted affinity
             in nM.
         """
-        if isinstance(peptides, str):
-            peptides = [peptides]
-        peptide_list = [str(p).strip().upper() for p in peptides]
+        peptide_list = self._normalize_peptides(peptides)
         self._check_peptides(peptide_list)
         if not peptide_list:
             return []
@@ -219,13 +198,6 @@ class DeepTAP:
             PeptideResult(preds=tuple(preds_by_peptide.get(peptide, ())))
             for peptide in peptide_list
         ]
-
-    def predict_dataframe(self, peptides, sample_name=""):
-        """``predict()`` flattened to a DataFrame."""
-        dfs = [pp.to_dataframe(sample_name) for pp in self.predict(peptides)]
-        if not dfs:
-            return pd.DataFrame(columns=COLUMNS)
-        return pd.concat(dfs, ignore_index=True)
 
 
 def parse_deeptap_results(filename, task_type="cla"):
