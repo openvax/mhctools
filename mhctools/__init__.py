@@ -1,5 +1,6 @@
 from .binding_prediction import BindingPrediction
 from .binding_prediction_collection import BindingPredictionCollection
+from .logging import set_log_level
 from .pred import (
     FIELD_BEST_DIRECTIONS,
     Kind,
@@ -87,7 +88,7 @@ def __getattr__(name):
     raise AttributeError(
         "module %r has no attribute %r" % (__name__, name))
 
-__version__ = "3.31.3"
+__version__ = "3.31.4"
 
 __all__ = [
     "Prediction",
@@ -108,6 +109,7 @@ __all__ = [
     "parse_annotation_spec",
     "BindingPrediction",
     "BindingPredictionCollection",
+    "set_log_level",
     "IedbNetMHCcons",
     "IedbNetMHCpan",
     "IedbSMM",
