@@ -19,7 +19,11 @@ from subprocess import check_output
 import tempfile
 
 from typechecks import require_string, require_integer, require_iterable_of
-from .allele_normalization import normalize_allele_name, AlleleParseError
+from .allele_normalization import (
+    normalize_allele_name,
+    normalize_allele_name_or_raw,
+    AlleleParseError,
+)
 
 from .base_predictor import BasePredictor
 from .unsupported_allele import UnsupportedAllele
@@ -59,6 +63,10 @@ _supported_alleles_cache = {}
 # e.g. many non-human BoLA/Mamu names). The raw_name is the predictor's own
 # spelling, which is what must be passed back on the command line.
 _normalized_supported_cache = {}
+
+
+def _unique_in_order(values):
+    return list(dict.fromkeys(values))
 
 
 def _prefer_allele_spelling(new, existing):
@@ -363,11 +371,10 @@ class BaseCommandlinePredictor(BasePredictor):
         _normalized_supported_cache[cache_key] = mapping
         return mapping
 
-    def _resolve_supported_alleles(self):
+    def _resolve_supported_allele_cli_names(self, alleles):
         """
-        Validate self.alleles against the predictor's supported-allele list and
-        record, for each, the exact spelling to pass on the command line
-        (self._allele_cli_names).
+        Validate alleles against the predictor's supported-allele list and
+        return the exact spelling to pass on the command line for each.
 
         Fast path: if prepare_allele_name(allele) is printed verbatim by the
         predictor, use it directly — no full-list normalization needed. Slow
@@ -377,12 +384,12 @@ class BaseCommandlinePredictor(BasePredictor):
         non-human alleles) still round-trip.
         """
         raw_names = self._supported_allele_names
-        self._allele_cli_names = {}
+        allele_cli_names = {}
         if raw_names is None:
-            return
+            return allele_cli_names
         unsupported = []
         normalized_map = None
-        for allele in self.alleles:
+        for allele in _unique_in_order(alleles):
             # Fast path: the predictor's expected spelling is printed verbatim.
             # prepare_allele_name can itself reject an allele (e.g. netMHCIIpan
             # re-parses and raises on unexpected genes); if so, fall through to
@@ -393,7 +400,7 @@ class BaseCommandlinePredictor(BasePredictor):
             except Exception:
                 cli_name = None
             if cli_name is not None and cli_name in raw_names:
-                self._allele_cli_names[allele] = cli_name
+                allele_cli_names[allele] = cli_name
                 continue
             if normalized_map is None:
                 normalized_map = self._normalized_supported_alleles(
@@ -402,7 +409,7 @@ class BaseCommandlinePredictor(BasePredictor):
                     raw_names)
             original = normalized_map.get(allele)
             if original is not None:
-                self._allele_cli_names[allele] = original
+                allele_cli_names[allele] = original
             else:
                 unsupported.append(allele)
         if unsupported:
@@ -413,6 +420,14 @@ class BaseCommandlinePredictor(BasePredictor):
                     unsupported,
                     self.program_name,
                     self.supported_alleles_flag))
+        return allele_cli_names
+
+    def _resolve_supported_alleles(self):
+        """
+        Validate self.alleles and record command-line spellings for them.
+        """
+        self._allele_cli_names = self._resolve_supported_allele_cli_names(
+            self.alleles)
 
     def prepare_allele_name(self, allele_name):
         """
@@ -420,7 +435,7 @@ class BaseCommandlinePredictor(BasePredictor):
         """
         return allele_name.replace("*", "")
 
-    def _cli_allele_name(self, allele_name):
+    def _cli_allele_name(self, allele_name, allele_cli_names=None):
         """
         The spelling to pass on the command line for a (normalized) allele.
 
@@ -429,6 +444,10 @@ class BaseCommandlinePredictor(BasePredictor):
         rewritten to a rejected form); falls back to prepare_allele_name for
         predictors that don't enumerate their supported alleles.
         """
+        if allele_cli_names:
+            resolved = allele_cli_names.get(allele_name)
+            if resolved is not None:
+                return resolved
         resolved = getattr(self, "_allele_cli_names", {}).get(allele_name)
         if resolved is not None:
             return resolved
@@ -454,16 +473,18 @@ class BaseCommandlinePredictor(BasePredictor):
         group_size = max(1, -(-n_alleles // groups_per_file))
         return min(group_size, AUTO_MAX_ALLELES_PER_COMMAND)
 
-    def _allele_groups(self, n_input_files=1):
+    def _allele_groups(self, n_input_files=1, alleles=None):
         """
-        Partition self.alleles into groups, one command (one predictor
+        Partition alleles into groups, one command (one predictor
         process) per group per input file. Group size is controlled by
         max_alleles_per_command (see __init__).
 
         Returns a list of lists of allele names. Empty if there are no
         alleles.
         """
-        alleles = list(self.alleles)
+        if alleles is None:
+            alleles = self.alleles
+        alleles = list(alleles)
         if not alleles:
             return []
         n = self.max_alleles_per_command
@@ -482,7 +503,8 @@ class BaseCommandlinePredictor(BasePredictor):
             alleles,
             length=None,
             temp_dirname=None,
-            peptide_mode=False):
+            peptide_mode=False,
+            allele_cli_names=None):
         # accept either a single allele name or a list of them
         if isinstance(alleles, str):
             alleles = [alleles]
@@ -490,7 +512,8 @@ class BaseCommandlinePredictor(BasePredictor):
         if peptide_mode:
             args.extend(self.peptide_mode_flags)
         allele_arg = ",".join(
-            self._cli_allele_name(allele) for allele in alleles)
+            self._cli_allele_name(allele, allele_cli_names)
+            for allele in alleles)
         args.extend([self.allele_flag, allele_arg])
         if length:
             args.extend([self.length_flag, str(length)])
@@ -580,54 +603,11 @@ class BaseCommandlinePredictor(BasePredictor):
             groups[key].append(pred)
         return [PeptideResult(preds=tuple(preds)) for preds in groups.values()]
 
-    def predict(self, peptides, n_flanks=None, c_flanks=None):
-        """
-        Predict for a list of peptide sequences.
-
-        Returns list of PeptideResult. When a native parse_to_preds_fn is
-        available, parses directly to Pred objects. Otherwise falls back
-        to converting from BindingPrediction.
-        """
-        peptides, n_flank_list, c_flank_list = self._check_flank_inputs(
-            peptides, n_flanks, c_flanks)
-        if self.parse_to_preds_fn is None:
-            return super().predict(
-                peptides, n_flanks=n_flank_list, c_flanks=c_flank_list)
-
-        self._check_peptide_inputs(peptides)
-        input_filenames = create_input_peptides_files(
+    def _build_peptide_commands(
+            self,
             peptides,
-            max_peptides_per_file=self.max_peptides_per_file,
-            group_by_length=self.group_peptides_by_length)
-        commands = {}
-        dirs = []
-
-        for i, input_filename in enumerate(input_filenames):
-            for j, allele_group in enumerate(
-                    self._allele_groups(n_input_files=len(input_filenames))):
-                if self.tempdir_flag:
-                    temp_dirname = tempfile.mkdtemp(
-                        prefix="tmp_%d_%d_%s" % (i, j, self.program_name),
-                        suffix="XXXXXX")
-                    dirs.append(temp_dirname)
-                else:
-                    temp_dirname = None
-                output_file = tempfile.NamedTemporaryFile(
-                    "w+",
-                    prefix="%s_output_length_%d_%d" % (
-                        self.program_name, i, j),
-                    delete=False)
-                commands[output_file] = self._build_command(
-                    input_filename=input_filename,
-                    alleles=allele_group,
-                    peptide_mode=True,
-                    temp_dirname=temp_dirname)
-        return self._run_commands_and_collect_preds(
-            commands=commands,
-            input_filenames=input_filenames,
-            temp_dir_list=dirs)
-
-    def predict_peptides(self, peptides):
+            alleles,
+            allele_cli_names=None):
         self._check_peptide_inputs(peptides)
         input_filenames = create_input_peptides_files(
             peptides,
@@ -639,14 +619,16 @@ class BaseCommandlinePredictor(BasePredictor):
 
         for i, input_filename in enumerate(input_filenames):
             for j, allele_group in enumerate(
-                    self._allele_groups(n_input_files=len(input_filenames))):
+                    self._allele_groups(
+                        n_input_files=len(input_filenames),
+                        alleles=alleles)):
                 if self.tempdir_flag:
                     temp_dirname = tempfile.mkdtemp(
                         prefix="tmp_%d_%d_%s" % (
                             i,
                             j,
                             self.program_name),
-                    suffix="XXXXXX")
+                        suffix="XXXXXX")
                     logger.debug(
                         "Created temporary directory %s for alleles %s",
                         temp_dirname,
@@ -663,7 +645,19 @@ class BaseCommandlinePredictor(BasePredictor):
                     input_filename=input_filename,
                     alleles=allele_group,
                     peptide_mode=True,
-                    temp_dirname=temp_dirname)
+                    temp_dirname=temp_dirname,
+                    allele_cli_names=allele_cli_names)
+        return commands, input_filenames, dirs
+
+    def _predict_binding_predictions_for_alleles(
+            self,
+            peptides,
+            alleles,
+            allele_cli_names=None):
+        commands, input_filenames, dirs = self._build_peptide_commands(
+            peptides=peptides,
+            alleles=alleles,
+            allele_cli_names=allele_cli_names)
         results = self._run_commands_and_collect_predictions(
             commands=commands,
             input_filenames=input_filenames,
@@ -671,5 +665,151 @@ class BaseCommandlinePredictor(BasePredictor):
         self._check_results(
             results,
             peptides=peptides,
-            alleles=self.alleles)
+            alleles=alleles)
         return results
+
+    def _predict_for_alleles(self, peptides, alleles, allele_cli_names=None):
+        if self.parse_to_preds_fn is None:
+            collection = self._predict_binding_predictions_for_alleles(
+                peptides=peptides,
+                alleles=alleles,
+                allele_cli_names=allele_cli_names)
+            return collection.to_peptide_preds(kind=self._default_pred_kind())
+
+        commands, input_filenames, dirs = self._build_peptide_commands(
+            peptides=peptides,
+            alleles=alleles,
+            allele_cli_names=allele_cli_names)
+        return self._run_commands_and_collect_preds(
+            commands=commands,
+            input_filenames=input_filenames,
+            temp_dir_list=dirs)
+
+    def _check_pair_inputs(self, peptides, alleles=None):
+        if alleles is None:
+            pairs = list(peptides)
+            peptide_list = []
+            allele_list = []
+            for pair in pairs:
+                try:
+                    peptide, allele = pair
+                except (TypeError, ValueError):
+                    raise ValueError(
+                        "Expected (peptide, allele) pairs, got %r" % (pair,))
+                peptide_list.append(peptide)
+                allele_list.append(allele)
+        else:
+            peptide_list = list(peptides)
+            if isinstance(alleles, str):
+                allele_list = [alleles]
+            else:
+                allele_list = list(alleles)
+            if len(peptide_list) != len(allele_list):
+                raise ValueError(
+                    "peptides length %d != alleles length %d"
+                    % (len(peptide_list), len(allele_list)))
+
+        self._check_peptide_inputs(peptide_list)
+        require_iterable_of(allele_list, str, "HLA alleles")
+        allele_list = [
+            normalize_allele_name_or_raw(allele)
+            for allele in allele_list]
+        return peptide_list, allele_list
+
+    @staticmethod
+    def _result_lookup_for_allele(results, allele):
+        lookup = {}
+        for peptide_result in results:
+            matching_preds = tuple(
+                pred for pred in peptide_result.preds
+                if pred.allele == allele)
+            if not matching_preds:
+                continue
+            peptide = matching_preds[0].peptide
+            existing = lookup.get(peptide)
+            if existing is None:
+                lookup[peptide] = PeptideResult(preds=matching_preds)
+            else:
+                lookup[peptide] = PeptideResult(
+                    preds=existing.preds + matching_preds)
+        return lookup
+
+    def predict_pairs(self, peptides, alleles=None):
+        """Predict explicit peptide/allele pairs.
+
+        Parameters
+        ----------
+        peptides : list of str or iterable of (str, str)
+            Peptides to score. If *alleles* is omitted, this must be an
+            iterable of ``(peptide, allele)`` pairs.
+        alleles : list of str, optional
+            Alleles parallel to *peptides*.
+
+        Returns
+        -------
+        list of PeptideResult
+            One entry per input pair, in order.
+        """
+        peptide_list, allele_list = self._check_pair_inputs(peptides, alleles)
+        if not peptide_list:
+            return []
+
+        unique_alleles = _unique_in_order(allele_list)
+        allele_cli_names = self._resolve_supported_allele_cli_names(
+            unique_alleles)
+        indices_by_allele = defaultdict(list)
+        for index, allele in enumerate(allele_list):
+            indices_by_allele[allele].append(index)
+
+        results = [None] * len(peptide_list)
+        for allele in unique_alleles:
+            indices = indices_by_allele[allele]
+            group_peptides = _unique_in_order(
+                peptide_list[index] for index in indices)
+            group_results = self._predict_for_alleles(
+                peptides=group_peptides,
+                alleles=[allele],
+                allele_cli_names=allele_cli_names)
+            lookup = self._result_lookup_for_allele(group_results, allele)
+            for index in indices:
+                peptide = peptide_list[index]
+                peptide_result = lookup.get(peptide)
+                if peptide_result is None:
+                    raise ValueError(
+                        "Missing predictions, example peptide='%s' allele='%s'"
+                        % (peptide, allele))
+                results[index] = PeptideResult(preds=tuple(peptide_result.preds))
+        return results
+
+    def predict_pairs_dataframe(self, peptides, alleles=None, sample_name=""):
+        """``predict_pairs()`` flattened to a DataFrame."""
+        import pandas as pd
+        from .pred import COLUMNS
+
+        dfs = [
+            pp.to_dataframe(sample_name)
+            for pp in self.predict_pairs(peptides, alleles)]
+        if not dfs:
+            return pd.DataFrame(columns=COLUMNS)
+        return pd.concat(dfs, ignore_index=True)
+
+    def predict(self, peptides, n_flanks=None, c_flanks=None):
+        """
+        Predict for a list of peptide sequences.
+
+        Returns list of PeptideResult. When a native parse_to_preds_fn is
+        available, parses directly to Pred objects. Otherwise falls back
+        to converting from BindingPrediction.
+        """
+        peptides, _, _ = self._check_flank_inputs(
+            peptides, n_flanks, c_flanks)
+        return self._predict_for_alleles(
+            peptides=peptides,
+            alleles=self.alleles,
+            allele_cli_names=getattr(self, "_allele_cli_names", None))
+
+    def predict_peptides(self, peptides):
+        return self._predict_binding_predictions_for_alleles(
+            peptides=peptides,
+            alleles=self.alleles,
+            allele_cli_names=getattr(self, "_allele_cli_names", None))
