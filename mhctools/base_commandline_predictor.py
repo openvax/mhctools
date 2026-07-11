@@ -371,10 +371,10 @@ class BaseCommandlinePredictor(BasePredictor):
         _normalized_supported_cache[cache_key] = mapping
         return mapping
 
-    def _resolve_supported_allele_cli_names(self, alleles):
+    def _partition_supported_allele_cli_names(self, alleles):
         """
-        Validate alleles against the predictor's supported-allele list and
-        return the exact spelling to pass on the command line for each.
+        Resolve alleles against the predictor's supported-allele list without
+        raising, returning ``(allele_cli_names, unsupported)``.
 
         Fast path: if prepare_allele_name(allele) is printed verbatim by the
         predictor, use it directly — no full-list normalization needed. Slow
@@ -382,11 +382,14 @@ class BaseCommandlinePredictor(BasePredictor):
         the allele up by its normalized name, using the predictor's own
         spelling on the command line so names our normalizer rewrites (many
         non-human alleles) still round-trip.
+
+        A predictor with no known supported-allele list (``raw_names is None``)
+        supports everything, so ``unsupported`` is always empty for it.
         """
         raw_names = self._supported_allele_names
         allele_cli_names = {}
         if raw_names is None:
-            return allele_cli_names
+            return allele_cli_names, []
         unsupported = []
         normalized_map = None
         for allele in _unique_in_order(alleles):
@@ -412,6 +415,16 @@ class BaseCommandlinePredictor(BasePredictor):
                 allele_cli_names[allele] = original
             else:
                 unsupported.append(allele)
+        return allele_cli_names, unsupported
+
+    def _resolve_supported_allele_cli_names(self, alleles):
+        """
+        Validate alleles against the predictor's supported-allele list and
+        return the exact spelling to pass on the command line for each. Raise
+        UnsupportedAllele if any allele is not supported.
+        """
+        allele_cli_names, unsupported = \
+            self._partition_supported_allele_cli_names(alleles)
         if unsupported:
             raise UnsupportedAllele(
                 "Unsupported alleles for %s: %s\n"
@@ -734,7 +747,7 @@ class BaseCommandlinePredictor(BasePredictor):
                     preds=existing.preds + matching_preds)
         return lookup
 
-    def predict_pairs(self, peptides, alleles=None):
+    def predict_pairs(self, peptides, alleles=None, skip_unsupported=False):
         """Predict explicit peptide/allele pairs.
 
         Parameters
@@ -744,25 +757,44 @@ class BaseCommandlinePredictor(BasePredictor):
             iterable of ``(peptide, allele)`` pairs.
         alleles : list of str, optional
             Alleles parallel to *peptides*.
+        skip_unsupported : bool
+            By default one unsupported allele raises UnsupportedAllele and no
+            pair is scored. Set True to score the supported pairs anyway: pairs
+            whose allele the predictor does not support are left as ``None`` in
+            the returned list (its length and order are preserved), and the
+            skipped alleles are logged at WARNING.
 
         Returns
         -------
         list of PeptideResult
-            One entry per input pair, in order.
+            One entry per input pair, in order. With ``skip_unsupported`` a pair
+            whose allele is unsupported is ``None`` rather than a PeptideResult.
         """
         peptide_list, allele_list = self._check_pair_inputs(peptides, alleles)
         if not peptide_list:
             return []
 
         unique_alleles = _unique_in_order(allele_list)
-        allele_cli_names = self._resolve_supported_allele_cli_names(
-            unique_alleles)
+        if skip_unsupported:
+            allele_cli_names, unsupported = \
+                self._partition_supported_allele_cli_names(unique_alleles)
+            if unsupported:
+                logger.warning(
+                    "Skipping %d unsupported allele(s) for %s: %s",
+                    len(unsupported), self.program_name, unsupported)
+        else:
+            allele_cli_names = self._resolve_supported_allele_cli_names(
+                unique_alleles)
+            unsupported = []
+        skipped = set(unsupported)
         indices_by_allele = defaultdict(list)
         for index, allele in enumerate(allele_list):
             indices_by_allele[allele].append(index)
 
         results = [None] * len(peptide_list)
         for allele in unique_alleles:
+            if allele in skipped:
+                continue
             indices = indices_by_allele[allele]
             group_peptides = _unique_in_order(
                 peptide_list[index] for index in indices)
@@ -781,14 +813,23 @@ class BaseCommandlinePredictor(BasePredictor):
                 results[index] = PeptideResult(preds=tuple(peptide_result.preds))
         return results
 
-    def predict_pairs_dataframe(self, peptides, alleles=None, sample_name=""):
-        """``predict_pairs()`` flattened to a DataFrame."""
+    def predict_pairs_dataframe(
+            self, peptides, alleles=None, sample_name="",
+            skip_unsupported=False):
+        """``predict_pairs()`` flattened to a DataFrame.
+
+        With ``skip_unsupported`` (see :meth:`predict_pairs`) pairs whose allele
+        the predictor does not support are simply absent from the result rather
+        than raising, so the DataFrame can be shorter than the input.
+        """
         import pandas as pd
         from .pred import COLUMNS
 
         dfs = [
             pp.to_dataframe(sample_name)
-            for pp in self.predict_pairs(peptides, alleles)]
+            for pp in self.predict_pairs(
+                peptides, alleles, skip_unsupported=skip_unsupported)
+            if pp is not None]
         if not dfs:
             return pd.DataFrame(columns=COLUMNS)
         return pd.concat(dfs, ignore_index=True)

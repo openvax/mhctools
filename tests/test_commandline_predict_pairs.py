@@ -162,3 +162,67 @@ def test_predict_pairs_dataframe_empty_result_has_canonical_columns():
 
     assert list(df.columns) == list(COLUMNS)
     assert df.empty
+
+
+def test_predict_pairs_skip_unsupported_scores_supported_and_nones_the_rest():
+    predictor = _PairStubPredictor(supported_alleles=["HLA-A*02:01"])
+
+    results = predictor.predict_pairs(
+        ["SIINFEKLL", "GILGFVFTL", "NLVPMVATV"],
+        ["HLA-A*02:01", "HLA-B*07:02", "HLA-A*02:01"],
+        skip_unsupported=True)
+
+    # length and order preserved; the unsupported allele's pair is None
+    assert len(results) == 3
+    assert results[1] is None
+    assert [r.preds[0].peptide for r in results if r is not None] == [
+        "SIINFEKLL", "NLVPMVATV"]
+    assert [r.preds[0].allele for r in results if r is not None] == [
+        "HLA-A*02:01", "HLA-A*02:01"]
+    # the unsupported allele never reached the command runner
+    assert predictor.calls == [(["HLA-A*02:01"], ["SIINFEKLL", "NLVPMVATV"])]
+
+
+def test_predict_pairs_skip_unsupported_warns_which_alleles(caplog):
+    predictor = _PairStubPredictor(supported_alleles=["HLA-A*02:01"])
+
+    with caplog.at_level("WARNING"):
+        predictor.predict_pairs(
+            ["SIINFEKLL"], ["HLA-B*07:02"], skip_unsupported=True)
+
+    assert "HLA-B*07:02" in caplog.text
+
+
+def test_predict_pairs_skip_unsupported_all_unsupported_is_all_none():
+    predictor = _PairStubPredictor(supported_alleles=["HLA-A*02:01"])
+
+    results = predictor.predict_pairs(
+        ["SIINFEKLL", "GILGFVFTL"],
+        ["HLA-B*07:02", "HLA-C*07:02"],
+        skip_unsupported=True)
+
+    assert results == [None, None]
+    assert predictor.calls == []
+
+
+def test_predict_pairs_dataframe_skip_unsupported_omits_unsupported_rows():
+    predictor = _PairStubPredictor(supported_alleles=["HLA-A*02:01"])
+
+    df = predictor.predict_pairs_dataframe(
+        ["SIINFEKLL", "GILGFVFTL", "NLVPMVATV"],
+        ["HLA-A*02:01", "HLA-B*07:02", "HLA-A*02:01"],
+        skip_unsupported=True)
+
+    assert list(df.columns) == list(COLUMNS)
+    assert df["peptide"].tolist() == ["SIINFEKLL", "NLVPMVATV"]
+    assert df["allele"].tolist() == ["HLA-A*02:01", "HLA-A*02:01"]
+
+
+def test_predict_pairs_dataframe_skip_unsupported_all_unsupported_is_empty():
+    predictor = _PairStubPredictor(supported_alleles=["HLA-A*02:01"])
+
+    df = predictor.predict_pairs_dataframe(
+        ["SIINFEKLL"], ["HLA-B*07:02"], skip_unsupported=True)
+
+    assert list(df.columns) == list(COLUMNS)
+    assert df.empty
