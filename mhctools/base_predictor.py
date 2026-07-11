@@ -112,7 +112,7 @@ class BasePredictor(object):
 
     def __init__(
             self,
-            alleles,
+            alleles=None,
             valid_alleles=None,
             default_peptide_lengths=None,
             min_peptide_length=8,
@@ -154,6 +154,11 @@ class BasePredictor(object):
             against the tool's own supported-allele list, so that non-human
             alleles like H-2-Qa1 or BoLA-amani.1 can still be requested).
         """
+        # alleles is optional: a predictor built without one can still score
+        # explicit (peptide, allele) pairs via predict_pairs(). The
+        # allele-consuming predict()/predict_peptides() path guards on empty.
+        if alleles is None:
+            alleles = []
         # I find myself often constructing a predictor with just one allele
         # so as a convenience, allow user to not wrap that allele as a list
         if type(alleles) is str:

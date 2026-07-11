@@ -17,7 +17,7 @@ from .pred import Kind
 class NetMHCstabpan(BaseCommandlinePredictor):
     def __init__(
             self,
-            alleles,
+            alleles=None,
             default_peptide_lengths=[],
             program_name="netMHCstabpan",
             process_limit=-1,

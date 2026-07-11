@@ -16,7 +16,7 @@ from .parsing import parse_netmhcpan28_stdout, parse_netmhcpan_to_preds
 class NetMHCpan28(BaseCommandlinePredictor):
     def __init__(
             self,
-            alleles,
+            alleles=None,
             default_peptide_lengths=[9],
             program_name="netMHCpan",
             process_limit=-1,

@@ -47,7 +47,7 @@ def _parse_version(version_str):
 
 
 def NetMHCpan(
-        alleles,
+        alleles=None,
         program_name="netMHCpan",
         process_limit=-1,
         default_peptide_lengths=[9],

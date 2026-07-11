@@ -16,7 +16,7 @@ from .parsing import parse_netmhc3_stdout
 class NetMHC3(BaseCommandlinePredictor):
     def __init__(
             self,
-            alleles,
+            alleles=None,
             program_name="netMHC",
             default_peptide_lengths=[9]):
         BaseCommandlinePredictor.__init__(
