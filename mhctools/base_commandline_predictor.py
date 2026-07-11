@@ -834,6 +834,18 @@ class BaseCommandlinePredictor(BasePredictor):
             return pd.DataFrame(columns=COLUMNS)
         return pd.concat(dfs, ignore_index=True)
 
+    def _require_alleles(self):
+        """Guard the allele-consuming predict paths. alleles is optional at
+        construction so a predictor can score explicit (peptide, allele) pairs
+        via predict_pairs(); but predict()/predict_peptides() score against
+        self.alleles, and with none configured they would silently return
+        nothing (see _allele_groups). Fail loud instead."""
+        if not self.alleles:
+            raise ValueError(
+                "%s was constructed without alleles; pass alleles=[...] to the "
+                "constructor, or use predict_pairs(peptides, alleles) to score "
+                "explicit (peptide, allele) pairs." % type(self).__name__)
+
     def predict(self, peptides, n_flanks=None, c_flanks=None):
         """
         Predict for a list of peptide sequences.
@@ -842,6 +854,7 @@ class BaseCommandlinePredictor(BasePredictor):
         available, parses directly to Pred objects. Otherwise falls back
         to converting from BindingPrediction.
         """
+        self._require_alleles()
         peptides, _, _ = self._check_flank_inputs(
             peptides, n_flanks, c_flanks)
         return self._predict_for_alleles(
@@ -850,6 +863,7 @@ class BaseCommandlinePredictor(BasePredictor):
             allele_cli_names=getattr(self, "_allele_cli_names", None))
 
     def predict_peptides(self, peptides):
+        self._require_alleles()
         return self._predict_binding_predictions_for_alleles(
             peptides=peptides,
             alleles=self.alleles,

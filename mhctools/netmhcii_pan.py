@@ -105,7 +105,7 @@ class NetMHCIIpan3(NetMHCIIpanBase):
     """
     def __init__(
             self,
-            alleles,
+            alleles=None,
             default_peptide_lengths=[15, 16, 17, 18, 19, 20],
             program_name="netMHCIIpan",
             process_limit=-1,
@@ -126,7 +126,7 @@ class NetMHCIIpan4(NetMHCIIpanBase):
     """
     def __init__(
             self,
-            alleles,
+            alleles=None,
             default_peptide_lengths=[15, 16, 17, 18, 19, 20],
             program_name="netMHCIIpan",
             process_limit=-1,
@@ -161,7 +161,7 @@ class NetMHCIIpan4_EL(NetMHCIIpan4):
     """
     def __init__(
             self,
-            alleles,
+            alleles=None,
             default_peptide_lengths=[15, 16, 17, 18, 19, 20],
             program_name="netMHCIIpan",
             process_limit=-1,
@@ -182,7 +182,7 @@ class NetMHCIIpan4_BA(NetMHCIIpan4):
     """
     def __init__(
             self,
-            alleles,
+            alleles=None,
             default_peptide_lengths=[15, 16, 17, 18, 19, 20],
             program_name="netMHCIIpan",
             process_limit=-1,
@@ -198,7 +198,7 @@ class NetMHCIIpan4_BA(NetMHCIIpan4):
 
 
 def NetMHCIIpan(
-        alleles,
+        alleles=None,
         process_limit=-1,
         program_name="netMHCIIpan",
         default_peptide_lengths=[15, 16, 17, 18, 19, 20],
@@ -236,7 +236,7 @@ class NetMHCIIpan43(NetMHCIIpanBase):
     """
     def __init__(
             self,
-            alleles,
+            alleles=None,
             default_peptide_lengths=[15, 16, 17, 18, 19, 20],
             program_name="netMHCIIpan",
             process_limit=-1,
@@ -270,7 +270,7 @@ class NetMHCIIpan43_EL(NetMHCIIpan43):
     """
     def __init__(
             self,
-            alleles,
+            alleles=None,
             default_peptide_lengths=[15, 16, 17, 18, 19, 20],
             program_name="netMHCIIpan",
             process_limit=-1,
@@ -291,7 +291,7 @@ class NetMHCIIpan43_BA(NetMHCIIpan43):
     """
     def __init__(
             self,
-            alleles,
+            alleles=None,
             default_peptide_lengths=[15, 16, 17, 18, 19, 20],
             program_name="netMHCIIpan",
             process_limit=-1,

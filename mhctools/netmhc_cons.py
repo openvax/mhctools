@@ -16,7 +16,7 @@ from .parsing import parse_netmhccons_stdout
 class NetMHCcons(BaseCommandlinePredictor):
     def __init__(
             self,
-            alleles,
+            alleles=None,
             program_name="netMHCcons",
             process_limit=0,
             default_peptide_lengths=[9]):

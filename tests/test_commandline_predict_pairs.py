@@ -226,3 +226,36 @@ def test_predict_pairs_dataframe_skip_unsupported_all_unsupported_is_empty():
 
     assert list(df.columns) == list(COLUMNS)
     assert df.empty
+
+
+# ---- alleles optional at construction ---------------------------------------
+
+def test_base_predictor_alleles_optional_normalizes_to_empty():
+    from mhctools.base_predictor import BasePredictor
+
+    assert BasePredictor(default_peptide_lengths=[9]).alleles == []
+    assert BasePredictor(alleles=None, default_peptide_lengths=[9]).alleles == []
+    # an allele passed as a bare string still works
+    assert BasePredictor(
+        alleles="HLA-A*02:01", default_peptide_lengths=[9]).alleles == ["HLA-A*02:01"]
+
+
+def test_predict_pairs_works_without_constructor_alleles():
+    predictor = _PairStubPredictor()
+    predictor.alleles = []          # built for the pairs workflow, no default alleles
+
+    results = predictor.predict_pairs(
+        ["SIINFEKLL", "GILGFVFTL"], ["HLA-A*02:01", "HLA-B*07:02"])
+
+    assert [r.preds[0].peptide for r in results] == ["SIINFEKLL", "GILGFVFTL"]
+
+
+def test_predict_without_alleles_raises_rather_than_returning_nothing():
+    predictor = _PairStubPredictor()
+    predictor.alleles = []
+
+    with pytest.raises(ValueError, match="without alleles"):
+        predictor.predict(["SIINFEKLL"])
+    with pytest.raises(ValueError, match="without alleles"):
+        predictor.predict_peptides(["SIINFEKLL"])
+    assert predictor.calls == []    # guarded before running any command

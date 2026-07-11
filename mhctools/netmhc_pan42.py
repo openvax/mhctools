@@ -20,7 +20,7 @@ from .pred import Kind
 class NetMHCpan42(BaseCommandlinePredictor):
     def __init__(
             self,
-            alleles,
+            alleles=None,
             default_peptide_lengths=[9],
             program_name="netMHCpan",
             process_limit=-1,
@@ -79,7 +79,7 @@ class NetMHCpan42_EL(NetMHCpan42):
     """NetMHCpan 4.2 in elution score mode."""
     def __init__(
             self,
-            alleles,
+            alleles=None,
             default_peptide_lengths=[9],
             program_name="netMHCpan",
             process_limit=-1,
@@ -98,7 +98,7 @@ class NetMHCpan42_BA(NetMHCpan42):
     """NetMHCpan 4.2 in binding affinity mode."""
     def __init__(
             self,
-            alleles,
+            alleles=None,
             default_peptide_lengths=[9],
             program_name="netMHCpan",
             process_limit=-1,

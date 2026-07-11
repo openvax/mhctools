@@ -20,7 +20,7 @@ from .pred import Kind
 class NetMHCpan41(BaseCommandlinePredictor):
     def __init__(
             self,
-            alleles,
+            alleles=None,
             default_peptide_lengths=[9],
             program_name="netMHCpan",
             process_limit=-1,
@@ -80,7 +80,7 @@ class NetMHCpan41_EL(NetMHCpan41):
     """
     def __init__(
             self,
-            alleles,
+            alleles=None,
             default_peptide_lengths=[9],
             program_name="netMHCpan",
             process_limit=-1,
@@ -101,7 +101,7 @@ class NetMHCpan41_BA(NetMHCpan41):
     """
     def __init__(
             self,
-            alleles,
+            alleles=None,
             default_peptide_lengths=[9],
             program_name="netMHCpan",
             process_limit=-1,
