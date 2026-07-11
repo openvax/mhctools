@@ -11,12 +11,46 @@
 # limitations under the License.
 
 import logging
-import logging.config
-from importlib.resources import as_file, files
+
+
+_PACKAGE_LOGGER_NAME = "mhctools"
+_PACKAGE_LOGGER = logging.getLogger(_PACKAGE_LOGGER_NAME)
+if not any(isinstance(handler, logging.NullHandler)
+           for handler in _PACKAGE_LOGGER.handlers):
+    _PACKAGE_LOGGER.addHandler(logging.NullHandler())
+
+_LOG_LEVELS = {
+    "CRITICAL": logging.CRITICAL,
+    "ERROR": logging.ERROR,
+    "WARNING": logging.WARNING,
+    "WARN": logging.WARNING,
+    "INFO": logging.INFO,
+    "DEBUG": logging.DEBUG,
+    "NOTSET": logging.NOTSET,
+}
 
 
 def get_logger(name):
-    config_resource = files("mhctools").joinpath("logging.conf")
-    with as_file(config_resource) as config_path:
-        logging.config.fileConfig(str(config_path))
     return logging.getLogger(name)
+
+
+def set_log_level(level):
+    """Set the log level for mhctools loggers.
+
+    Parameters
+    ----------
+    level : str or int
+        Logging level such as ``"WARNING"``, ``"INFO"``, or ``logging.DEBUG``.
+
+    Returns
+    -------
+    logging.Logger
+        The package logger whose level was set.
+    """
+    if isinstance(level, str):
+        level_name = level.upper()
+        if level_name not in _LOG_LEVELS:
+            raise ValueError("Unknown logging level %r" % level)
+        level = _LOG_LEVELS[level_name]
+    _PACKAGE_LOGGER.setLevel(level)
+    return _PACKAGE_LOGGER
