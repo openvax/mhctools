@@ -15,16 +15,23 @@
 """Discover and fetch model artifacts used by mhctools predictors.
 
 Predictors that already manage their own downloads retain ownership of their
-cache.  mhctools provides a common entry point and reports the resolved path;
-it does not copy those artifacts into a second cache.
+cache. For upstream repositories that have no download manager, mhctools can
+install a pinned, minimal git snapshot in its data directory. Other tools are
+inventory-only because their licenses or distribution mechanisms require a
+manual installation.
 """
 
 from dataclasses import asdict, dataclass
 from importlib import metadata, util
+import json
 import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
+import tempfile
+
+from platformdirs import user_data_path
 
 
 @dataclass(frozen=True)
@@ -42,6 +49,200 @@ class ArtifactStatus:
     def to_dict(self):
         """Return a JSON-serializable representation."""
         return asdict(self)
+
+
+@dataclass(frozen=True)
+class _Snapshot:
+    """A tested upstream git snapshot that mhctools can acquire."""
+
+    repository: str
+    revision: str
+    required_paths: tuple
+    sparse_paths: tuple = ()
+    sparse_cone: bool = True
+    required_globs: tuple = ()
+    license_name: str = ""
+    license_url: str = ""
+    acceptance_required: bool = False
+    environment_variable: str = ""
+    legacy_paths: tuple = ()
+
+
+# Revisions are deliberately immutable. Updating one is a reviewed mhctools
+# change, which gives wrappers a stable upstream layout and reproducible model
+# identity instead of silently following a moving default branch.
+_SNAPSHOTS = {
+    "bigmhc": _Snapshot(
+        repository="https://github.com/KarchinLab/bigmhc.git",
+        revision="c7e37a249317704bf96a1e3881a7ece3c3c977a6",
+        sparse_paths=("data", "models", "src"),
+        required_paths=("src/bigmhc.py", "data/pseudoseqs.csv", "models"),
+        license_name="BigMHC Academic License",
+        license_url=(
+            "https://github.com/KarchinLab/bigmhc/blob/"
+            "c7e37a249317704bf96a1e3881a7ece3c3c977a6/LICENSE"),
+        acceptance_required=True,
+        environment_variable="BIGMHC_DIR",
+        legacy_paths=("~/bigmhc",),
+    ),
+    "deepimmuno": _Snapshot(
+        repository="https://github.com/frankligy/DeepImmuno.git",
+        revision="df42ac5b6bddfe531268335e2dcb496559cd488b",
+        sparse_paths=("data", "models"),
+        required_paths=("deepimmuno-cnn.py", "data", "models"),
+        license_name="MIT",
+        license_url=(
+            "https://github.com/frankligy/DeepImmuno/blob/"
+            "df42ac5b6bddfe531268335e2dcb496559cd488b/LICENSE"),
+        environment_variable="DEEPIMMUNO_HOME",
+        legacy_paths=("~/DeepImmuno",),
+    ),
+    "deeptap": _Snapshot(
+        repository="https://github.com/zjupgx/DeepTAP.git",
+        revision="d2dad5bdea146ecc245304f509e97ae8137f94fd",
+        sparse_paths=("data", "model"),
+        required_paths=("deeptap.py", "data", "model"),
+        license_name="Apache-2.0",
+        license_url=(
+            "https://github.com/zjupgx/DeepTAP/blob/"
+            "d2dad5bdea146ecc245304f509e97ae8137f94fd/LICENSE"),
+        environment_variable="DEEPTAP_HOME",
+        legacy_paths=("~/DeepTAP",),
+    ),
+    "eramer": _Snapshot(
+        repository="https://github.com/aalokaily/ERAMER.git",
+        revision="7745d5cf72d99bcda1c73f26ca746d025b46b7f3",
+        required_paths=("PWM.xlsx",),
+        license_name="GPL-3.0",
+        license_url=(
+            "https://github.com/aalokaily/ERAMER/blob/"
+            "7745d5cf72d99bcda1c73f26ca746d025b46b7f3/LICENSE"),
+        environment_variable="ERAMER_HOME",
+        legacy_paths=("~/ERAMER",),
+    ),
+    "nettcr": _Snapshot(
+        repository="https://github.com/mnielLab/NetTCR-2.2.git",
+        revision="7cead3fe6dcb539ff8e2d9121586dafca1e059c2",
+        sparse_paths=(
+            "/README.md",
+            "/academic_software_license_agreement.pdf",
+            "/models/nettcr_2_2_pan/checkpoint/*.tflite",
+        ),
+        sparse_cone=False,
+        required_paths=("models/nettcr_2_2_pan/checkpoint",),
+        required_globs=("models/nettcr_2_2_pan/checkpoint/*.tflite",),
+        license_name="NetTCR Academic Software License Agreement",
+        license_url=(
+            "https://github.com/mnielLab/NetTCR-2.2/blob/"
+            "7cead3fe6dcb539ff8e2d9121586dafca1e059c2/"
+            "academic_software_license_agreement.pdf"),
+        acceptance_required=True,
+        environment_variable="NETTCR_DIR",
+        legacy_paths=("~/NetTCR-2.2", "~/code/NetTCR-2.2"),
+    ),
+    "tulip": _Snapshot(
+        repository="https://github.com/barthelemymp/TULIP-TCR.git",
+        revision="798fab97a3b13d08dcbfc381ea643e8dc14297c2",
+        sparse_paths=(
+            "aatok", "configs", "mhctok", "model_weights", "src"),
+        required_paths=(
+            "predict.py", "aatok", "configs", "mhctok", "model_weights",
+            "src"),
+        license_name="GPL-3.0",
+        license_url=(
+            "https://github.com/barthelemymp/TULIP-TCR/blob/"
+            "798fab97a3b13d08dcbfc381ea643e8dc14297c2/LICENSE"),
+        environment_variable="TULIP_HOME",
+        legacy_paths=("~/TULIP-TCR", "~/code/TULIP-TCR"),
+    ),
+}
+
+
+# These distributions cannot be fetched safely and unattended. They still
+# belong in the inventory so ``mhctools ls`` reports the executable/checkout
+# actually used by their wrappers and identifies who manages it.
+_MANUAL_EXECUTABLES = {
+    "mixmhc2pred": {
+        "environment_variables": ("MIXMHC2PRED_EXECUTABLE",),
+        "executables": ("MixMHC2pred", "MixMHC2pred_unix"),
+        "detail": "Install MixMHC2pred under its upstream license",
+    },
+    "mixmhcpred": {
+        "environment_variables": ("MIXMHCPRED_PATH",),
+        "executables": ("MixMHCpred",),
+        "detail": "Install MixMHCpred under its academic/non-commercial license",
+    },
+    "netchop": {
+        "executables": ("netChop",),
+        "detail": "Install NetChop from DTU Health Tech",
+    },
+    "netmhc": {
+        "executables": ("netMHC",),
+        "detail": "Install NetMHC from DTU Health Tech",
+    },
+    "netmhccons": {
+        "executables": ("netMHCcons",),
+        "detail": "Install NetMHCcons from DTU Health Tech",
+    },
+    "netmhciipan": {
+        "executables": ("netMHCIIpan",),
+        "detail": "Install NetMHCIIpan from DTU Health Tech",
+    },
+    "netmhcpan": {
+        "executables": ("netMHCpan",),
+        "detail": "Install NetMHCpan from DTU Health Tech",
+    },
+    "netmhcstabpan": {
+        "executables": ("netMHCstabpan",),
+        "detail": "Install NetMHCstabpan from DTU Health Tech",
+    },
+    "prime": {
+        "environment_variables": ("PRIME_EXECUTABLE",),
+        "executables": ("PRIME",),
+        "detail": "Install PRIME under its academic/non-commercial license",
+    },
+}
+
+_MANUAL_DIRECTORIES = {
+    "netcleave": {
+        "environment_variable": "NETCLEAVE_DIR",
+        "legacy_paths": ("~/NetCleave", "~/code/NetCleave"),
+        "required_path": "NetCleave.py",
+        "detail": (
+            "Install NetCleave manually; its repository has no license file"),
+    },
+    "tlimmuno2": {
+        "environment_variable": "TLIMMUNO2_HOME",
+        "legacy_paths": ("~/TLimmuno2",),
+        "required_path": "Python/TLimmuno2.py",
+        "detail": (
+            "Install TLimmuno2 manually; its repository has no license file"),
+    },
+}
+
+
+def data_path(data_dir=None):
+    """Return the base directory used for mhctools-managed artifacts.
+
+    The explicit argument takes precedence over ``MHCTOOLS_DATA_DIR`` and the
+    platform-native user data directory.
+    """
+    if data_dir is not None:
+        return Path(data_dir).expanduser().resolve()
+    configured = os.environ.get("MHCTOOLS_DATA_DIR")
+    if configured:
+        return Path(configured).expanduser().resolve()
+    return Path(user_data_path("mhctools", appauthor=False)).resolve()
+
+
+def managed_path(name, data_dir=None):
+    """Return the pinned installation path for an mhctools-managed snapshot."""
+    canonical = _canonical_name(name)
+    try:
+        snapshot = _SNAPSHOTS[canonical]
+    except KeyError:
+        raise ValueError("%s is not an mhctools-managed artifact" % name)
+    return data_path(data_dir) / "artifacts" / canonical / snapshot.revision
 
 
 def _mhcflurry_downloads():
@@ -151,6 +352,7 @@ _STATUS_FUNCTIONS = {
 
 _ALIASES = {
     "mhcflurry-presentation": "mhcflurry",
+    "tulip-tcr": "tulip",
 }
 
 
@@ -159,29 +361,162 @@ def _canonical_name(name):
     return _ALIASES.get(normalized, normalized)
 
 
-def artifact_status(name):
+def _snapshot_is_valid(path, snapshot):
+    path = Path(path)
+    return (
+        all((path / relative).exists() for relative in snapshot.required_paths)
+        and all(list(path.glob(pattern)) for pattern in snapshot.required_globs)
+    )
+
+
+def _managed_snapshot_is_valid(name, path, snapshot):
+    if not _snapshot_is_valid(path, snapshot):
+        return False
+    try:
+        with (Path(path) / ".mhctools-artifact.json").open() as input_file:
+            manifest = json.load(input_file)
+    except (OSError, ValueError):
+        return False
+    return (
+        manifest.get("name") == name
+        and manifest.get("repository") == snapshot.repository
+        and manifest.get("revision") == snapshot.revision
+    )
+
+
+def _user_snapshot_path(name, snapshot):
+    if name == "eramer":
+        pwm_path = os.environ.get("ERAMER_PWM")
+        if pwm_path and Path(pwm_path).expanduser().is_file():
+            return Path(pwm_path).expanduser().resolve()
+    if snapshot.environment_variable:
+        configured = os.environ.get(snapshot.environment_variable)
+        if configured and _snapshot_is_valid(configured, snapshot):
+            return Path(configured).expanduser().resolve()
+    for legacy in snapshot.legacy_paths:
+        candidate = Path(legacy).expanduser()
+        if _snapshot_is_valid(candidate, snapshot):
+            return candidate.resolve()
+    return None
+
+
+def _snapshot_status(name, data_dir=None):
+    snapshot = _SNAPSHOTS[name]
+    user_path = _user_snapshot_path(name, snapshot)
+    if user_path is not None:
+        return ArtifactStatus(
+            name=name,
+            status="ready",
+            manager="user",
+            version="unknown",
+            path=str(user_path),
+            fetchable=True,
+            detail="Using an existing user-managed upstream installation",
+        )
+
+    path = managed_path(name, data_dir=data_dir)
+    ready = _managed_snapshot_is_valid(name, path, snapshot)
+    detail = "Pinned upstream snapshot managed by mhctools"
+    if path.exists() and not ready:
+        detail = "Managed destination is incomplete or has invalid provenance"
+    if snapshot.acceptance_required:
+        detail += "; initial fetch requires explicit acceptance of %s (%s)" % (
+            snapshot.license_name, snapshot.license_url)
+    return ArtifactStatus(
+        name=name,
+        status="ready" if ready else "missing",
+        manager="mhctools",
+        version=snapshot.revision,
+        path=str(path),
+        fetchable=True,
+        detail=detail,
+    )
+
+
+def _manual_executable_status(name):
+    definition = _MANUAL_EXECUTABLES[name]
+    path = ""
+    for variable in definition.get("environment_variables", ()):
+        configured = os.environ.get(variable)
+        if configured:
+            candidate = Path(configured).expanduser()
+            if candidate.is_dir() and name == "mixmhcpred":
+                candidate = candidate / "MixMHCpred"
+            if candidate.is_file():
+                path = str(candidate)
+                break
+    if not path:
+        for executable in definition["executables"]:
+            path = shutil.which(executable) or ""
+            if path:
+                break
+    return ArtifactStatus(
+        name=name,
+        status="ready" if path else "missing",
+        manager="manual",
+        version="unknown" if path else "",
+        path=os.path.abspath(path) if path else "",
+        fetchable=False,
+        detail=definition["detail"],
+    )
+
+
+def _manual_directory_status(name):
+    definition = _MANUAL_DIRECTORIES[name]
+    candidates = []
+    configured = os.environ.get(definition["environment_variable"])
+    if configured:
+        candidates.append(Path(configured).expanduser())
+    candidates.extend(Path(path).expanduser() for path in definition["legacy_paths"])
+    root = next((
+        path.resolve() for path in candidates
+        if (path / definition["required_path"]).is_file()), None)
+    return ArtifactStatus(
+        name=name,
+        status="ready" if root else "missing",
+        manager="manual",
+        version="unknown" if root else "",
+        path=str(root) if root else "",
+        fetchable=False,
+        detail=definition["detail"],
+    )
+
+
+def _all_names():
+    return set(_STATUS_FUNCTIONS) | set(_SNAPSHOTS) | set(
+        _MANUAL_EXECUTABLES) | set(_MANUAL_DIRECTORIES)
+
+
+def artifact_status(name, data_dir=None):
     """Return the current status for a named predictor's artifacts."""
     canonical = _canonical_name(name)
+    if canonical in _SNAPSHOTS:
+        return _snapshot_status(canonical, data_dir=data_dir)
+    if canonical in _MANUAL_EXECUTABLES:
+        return _manual_executable_status(canonical)
+    if canonical in _MANUAL_DIRECTORIES:
+        return _manual_directory_status(canonical)
     try:
         status_function = _STATUS_FUNCTIONS[canonical]
     except KeyError:
         raise ValueError(
             "Unknown artifact %r. Available: %s" % (
-                name, ", ".join(sorted(_STATUS_FUNCTIONS))))
+                name, ", ".join(sorted(_all_names()))))
     return status_function()
 
 
-def list_artifacts(names=None):
-    """List known packaged, native, and optionally downloadable artifacts."""
+def list_artifacts(names=None, data_dir=None):
+    """List known packaged, native, managed, and manual artifacts."""
     if names is None:
-        canonical_names = sorted(_STATUS_FUNCTIONS)
+        canonical_names = sorted(_all_names())
     else:
         canonical_names = []
         for name in names:
             canonical = _canonical_name(name)
             if canonical not in canonical_names:
                 canonical_names.append(canonical)
-    return [artifact_status(name) for name in canonical_names]
+    return [
+        artifact_status(name, data_dir=data_dir) for name in canonical_names]
 
 
 def _fetch_mhcflurry(name, download_name, relative_path, version=None):
@@ -218,7 +553,8 @@ def _fetch_mhcflurry(name, download_name, relative_path, version=None):
 
     resolved_version = str(version) if version is not None else ""
     if not resolved_version:
-        resolved_version = str(_mhcflurry_downloads().get_current_release() or "custom")
+        resolved_version = str(
+            _mhcflurry_downloads().get_current_release() or "custom")
     return ArtifactStatus(
         name=name,
         status="ready",
@@ -230,11 +566,134 @@ def _fetch_mhcflurry(name, download_name, relative_path, version=None):
     )
 
 
-def fetch(name, version=None):
+def _resolve_revision(name, snapshot, version):
+    if version is None or version == "default":
+        return snapshot.revision
+    requested = str(version).lower()
+    if snapshot.revision.lower().startswith(requested):
+        return snapshot.revision
+    raise ValueError(
+        "%s is tested only at revision %s, not %s" % (
+            name, snapshot.revision, version))
+
+
+def _run_git(arguments):
+    executable = shutil.which("git")
+    if executable is None:
+        raise RuntimeError("git is required to fetch upstream model artifacts")
+    # Keep command progress visible without corrupting ``fetch --json`` stdout.
+    subprocess.run(
+        [executable] + list(arguments), check=True, stdout=sys.stderr)
+
+
+def _fetch_snapshot(name, version=None, data_dir=None, accept_license=False):
+    snapshot = _SNAPSHOTS[name]
+    revision = _resolve_revision(name, snapshot, version)
+    target = managed_path(name, data_dir=data_dir)
+    if target.exists():
+        if _managed_snapshot_is_valid(name, target, snapshot):
+            return ArtifactStatus(
+                name=name,
+                status="ready",
+                manager="mhctools",
+                version=revision,
+                path=str(target),
+                fetchable=True,
+                detail="Pinned upstream snapshot managed by mhctools",
+            )
+        raise RuntimeError(
+            "Artifact directory exists but is incomplete: %s. Move it aside "
+            "and fetch again." % target)
+
+    if snapshot.acceptance_required and not accept_license:
+        raise RuntimeError(
+            "%s is distributed under the %s. Review %s, then rerun with "
+            "--accept-license (or accept_license=True)." % (
+                name, snapshot.license_name, snapshot.license_url))
+
+    target.parent.mkdir(parents=True, exist_ok=True)
+    temporary_root = Path(tempfile.mkdtemp(
+        prefix=".%s-" % name, dir=str(target.parent)))
+    checkout = temporary_root / "checkout"
+    try:
+        _run_git(("init", str(checkout)))
+        _run_git(("-C", str(checkout), "remote", "add", "origin",
+                  snapshot.repository))
+        if snapshot.sparse_paths:
+            mode = "--cone" if snapshot.sparse_cone else "--no-cone"
+            _run_git((
+                "-C", str(checkout), "sparse-checkout", "init", mode))
+            _run_git((
+                "-C", str(checkout), "sparse-checkout", "set", mode)
+                + snapshot.sparse_paths)
+        _run_git(("-C", str(checkout), "fetch", "--depth", "1",
+                  "--filter=blob:none", "origin", revision))
+        _run_git(("-C", str(checkout), "checkout", "--detach", "FETCH_HEAD"))
+        executable = shutil.which("git")
+        result = subprocess.run(
+            [executable, "-C", str(checkout), "rev-parse", "HEAD"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        actual_revision = result.stdout.strip()
+        if actual_revision != revision:
+            raise RuntimeError(
+                "Expected revision %s but git checked out %s" % (
+                    revision, actual_revision))
+        if not _snapshot_is_valid(checkout, snapshot):
+            raise RuntimeError(
+                "%s revision %s lacks files required by its mhctools wrapper"
+                % (name, revision))
+
+        manifest = {
+            "license": snapshot.license_name,
+            "license_accepted": bool(
+                snapshot.acceptance_required and accept_license),
+            "license_url": snapshot.license_url,
+            "name": name,
+            "repository": snapshot.repository,
+            "revision": revision,
+            "sparse_paths": list(snapshot.sparse_paths),
+        }
+        with (checkout / ".mhctools-artifact.json").open("w") as output:
+            json.dump(manifest, output, indent=2, sort_keys=True)
+            output.write("\n")
+        # The checked-out content is immutable and identified by the manifest;
+        # discard git objects so large model blobs are not stored twice.
+        shutil.rmtree(checkout / ".git")
+        try:
+            checkout.rename(target)
+        except FileExistsError:
+            if not _managed_snapshot_is_valid(name, target, snapshot):
+                raise
+    except subprocess.CalledProcessError as error:
+        raise RuntimeError(
+            "Could not fetch %s revision %s with git" % (name, revision)) from error
+    finally:
+        shutil.rmtree(temporary_root, ignore_errors=True)
+
+    return ArtifactStatus(
+        name=name,
+        status="ready",
+        manager="mhctools",
+        version=revision,
+        path=str(target),
+        fetchable=True,
+        detail="Pinned upstream snapshot managed by mhctools",
+    )
+
+
+def fetch(
+        name,
+        version=None,
+        data_dir=None,
+        accept_license=False):
     """Fetch a predictor's external artifacts and return their status.
 
-    Native download managers retain ownership of their files. Predictors whose
-    parameters are already packaged are treated as successful no-ops.
+    Native download managers retain ownership of their files. Tested upstream
+    snapshots are installed under :func:`data_path`. Predictors whose
+    parameters are already packaged are successful no-ops.
     """
     canonical = _canonical_name(name)
     if canonical == "mhcflurry":
@@ -251,8 +710,18 @@ def fetch(name, version=None):
             relative_path="models.combined",
             version=version,
         )
+    if canonical in _SNAPSHOTS:
+        current = _snapshot_status(canonical, data_dir=data_dir)
+        if data_dir is None and version is None and current.status == "ready":
+            return current
+        return _fetch_snapshot(
+            canonical,
+            version=version,
+            data_dir=data_dir,
+            accept_license=accept_license,
+        )
 
-    status = artifact_status(canonical)
+    status = artifact_status(canonical, data_dir=data_dir)
     if status.status == "ready":
         if version is not None and version != status.version:
             raise ValueError(

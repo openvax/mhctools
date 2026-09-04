@@ -50,10 +50,13 @@ def ls_main(args_list=None):
     )
     parser.add_argument("name", nargs="*", help="Optional artifact names")
     parser.add_argument(
+        "--data-dir",
+        help="Override MHCTOOLS_DATA_DIR for mhctools-managed artifacts")
+    parser.add_argument(
         "--json", action="store_true", help="Emit machine-readable JSON")
     args = parser.parse_args(args_list)
     try:
-        statuses = list_artifacts(args.name or None)
+        statuses = list_artifacts(args.name or None, data_dir=args.data_dir)
     except ValueError as error:
         parser.error(str(error))
     if args.json:
@@ -72,10 +75,22 @@ def fetch_main(args_list=None):
     parser.add_argument(
         "--version", help="Specific upstream artifact release to fetch")
     parser.add_argument(
+        "--data-dir",
+        help="Override MHCTOOLS_DATA_DIR for mhctools-managed artifacts")
+    parser.add_argument(
+        "--accept-license",
+        action="store_true",
+        help="Confirm acceptance when an upstream license requires it")
+    parser.add_argument(
         "--json", action="store_true", help="Emit machine-readable JSON")
     args = parser.parse_args(args_list)
     try:
-        status = fetch(args.name, version=args.version)
+        status = fetch(
+            args.name,
+            version=args.version,
+            data_dir=args.data_dir,
+            accept_license=args.accept_license,
+        )
     except (RuntimeError, ValueError) as error:
         parser.error(str(error))
     if args.json:

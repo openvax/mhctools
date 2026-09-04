@@ -22,7 +22,8 @@ Unlike the DTU ``netMHC*`` tools, NetTCR ships its pretrained weights
 directly in its git repository as small TFLite models (the pan ensemble is
 20 models of ~0.4 MB each). This wrapper runs them **in-process** through a
 TFLite interpreter — it does *not* need NetTCR's conda environment. We only
-require the cloned repository (for the weights) and a TFLite runtime
+require the model snapshot (``mhctools fetch nettcr --accept-license``) and a
+TFLite runtime
 (``ai-edge-litert``, ``tflite-runtime``, or ``tensorflow``).
 
 The BLOSUM50 encoding, per-feature padding lengths, and name-based input
@@ -183,9 +184,14 @@ def _find_nettcr_dir(nettcr_path=None):
             os.path.join(home, "code", "NetTCR-2.2")):
         if os.path.isdir(candidate):
             return candidate
+    from .artifacts import artifact_status
+    managed = artifact_status("nettcr")
+    if managed.manager == "mhctools" and managed.status == "ready":
+        return managed.path
     raise FileNotFoundError(
         "NetTCR-2.2 not found. Set NETTCR_DIR or pass nettcr_path= to the "
-        "constructor. %s" % clone_hint)
+        "constructor. Run `mhctools fetch nettcr --accept-license`. %s"
+        % clone_hint)
 
 
 def _encode_feature(sequences, feature):
@@ -236,12 +242,22 @@ class NetTCR(object):
     Notes
     -----
     NetTCR-2.2 is distributed under an academic software license; this
-    wrapper only *runs* a user-provided installation and vendors none of it.
+    wrapper only *runs* an upstream installation and vendors none of it.
 
     The cached ensemble interpreters are stateful, so a single ``NetTCR``
     instance is not safe to call from multiple threads concurrently; use one
     instance per thread.
     """
+
+    @classmethod
+    def fetch(cls, version=None, data_dir=None, accept_license=False):
+        """Fetch the pinned NetTCR pan-ensemble weights."""
+        from .artifacts import fetch
+        return fetch(
+            "nettcr",
+            version=version,
+            data_dir=data_dir,
+            accept_license=accept_license)
 
     def __init__(self, nettcr_path=None, checkpoint_dir=None):
         self.nettcr_dir = _find_nettcr_dir(nettcr_path)

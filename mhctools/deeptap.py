@@ -26,8 +26,9 @@ peptide once, so ``predict()`` returns one prediction per peptide (with an empty
 
 DeepTAP ships its pretrained weights in-repo (Apache-2.0) but pins an old stack
 (pytorch-lightning==1.9.2, torch). To keep that out of the mhctools environment,
-this wrapper shells out to DeepTAP's own ``deeptap.py`` CLI in a user-provided
-checkout (``DEEPTAP_HOME``), run by a user-provided interpreter
+this wrapper shells out to DeepTAP's own ``deeptap.py`` CLI in an upstream
+checkout (fetched with ``mhctools fetch deeptap`` or set by ``DEEPTAP_HOME``),
+run by a user-provided interpreter
 (``DEEPTAP_PYTHON``, default the current one); the checkpoints also load under
 modern Lightning.
 
@@ -72,9 +73,15 @@ def _find_deeptap_home(deeptap_home=None):
         if isdir(home):
             candidate = home
     if not candidate:
+        from .artifacts import artifact_status
+        managed = artifact_status("deeptap")
+        if managed.manager == "mhctools" and managed.status == "ready":
+            candidate = managed.path
+    if not candidate:
         raise FileNotFoundError(
             "DeepTAP not found. Set DEEPTAP_HOME or pass deeptap_home= to the "
-            "constructor. Clone from https://github.com/zjupgx/DeepTAP")
+            "constructor. Run `mhctools fetch deeptap` or clone from "
+            "https://github.com/zjupgx/DeepTAP")
     if not isfile(join(candidate, "deeptap.py")):
         raise FileNotFoundError(
             "deeptap.py not found in %r — is this a DeepTAP checkout?"
@@ -102,6 +109,12 @@ class DeepTAP(AlleleFreePredictor):
         Peptides longer than this are rejected. Capped at DeepTAP's hard limit
         of 17. Default 17.
     """
+
+    @classmethod
+    def fetch(cls, version=None, data_dir=None):
+        """Fetch the pinned DeepTAP code and weights."""
+        from .artifacts import fetch
+        return fetch("deeptap", version=version, data_dir=data_dir)
 
     def __init__(
             self,

@@ -24,15 +24,16 @@ TULIP-TCR is distributed under the **GPLv3** and is coupled to a specific,
 old transformers release (``transformers==4.32.1``); mhctools is Apache-2.0
 and depends on neither torch nor transformers. To keep the two apart in both
 senses, this wrapper **vendors none of TULIP** — no source, no weights, no
-tokenizers. It runs the user's own TULIP checkout as a black box, in a
-separate interpreter, by invoking TULIP's own ``predict.py`` via subprocess
+tokenizers. It runs an upstream TULIP checkout as a black box, in a separate
+interpreter, by invoking TULIP's own ``predict.py`` via subprocess
 (the same "shell out to a user-provided install" pattern used for the DTU
 ``netMHC*`` tools and NetTCR). Nothing here imports TULIP's GPL code.
 
 You therefore need two things, supplied via constructor arguments or
 environment variables:
 
-* ``TULIP_HOME`` — a clone of https://github.com/barthelemymp/TULIP-TCR
+* ``TULIP_HOME`` — an optional manual clone of
+  https://github.com/barthelemymp/TULIP-TCR
   (provides ``predict.py``, ``src/``, ``aatok/``, ``mhctok/``, ``configs/``
   and the released ``model_weights/``).
 * ``TULIP_PYTHON`` — a Python interpreter that can import TULIP, i.e. an
@@ -95,9 +96,13 @@ def _find_tulip_home(tulip_home=None):
             os.path.join(home, "code", "TULIP-TCR")):
         if os.path.isfile(os.path.join(candidate, "predict.py")):
             return candidate
+    from .artifacts import artifact_status
+    managed = artifact_status("tulip")
+    if managed.manager == "mhctools" and managed.status == "ready":
+        return managed.path
     raise FileNotFoundError(
         "TULIP-TCR not found. Set TULIP_HOME or pass tulip_home= to the "
-        "constructor. %s" % _CLONE_HINT)
+        "constructor. Run `mhctools fetch tulip`. %s" % _CLONE_HINT)
 
 
 def _find_tulip_python(tulip_python=None):
@@ -144,9 +149,15 @@ class Tulip(object):
 
     Notes
     -----
-    TULIP-TCR is GPLv3; this wrapper vendors none of it and only runs a
-    user-provided installation out-of-process.
+    TULIP-TCR is GPLv3; this wrapper vendors none of it and only runs an
+    upstream installation out-of-process.
     """
+
+    @classmethod
+    def fetch(cls, version=None, data_dir=None):
+        """Fetch the pinned TULIP code, tokenizers, and weights."""
+        from .artifacts import fetch
+        return fetch("tulip", version=version, data_dir=data_dir)
 
     def __init__(
             self,
