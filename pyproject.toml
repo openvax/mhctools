@@ -45,9 +45,12 @@ mixmhcpred = [
 ]
 nettcr = [
   # A TFLite runtime for NetTCR's bundled models. ai-edge-litert is the
-  # lightweight option; tensorflow also works. The NetTCR-2.2 repository
-  # itself (weights) must be cloned separately.
+  # lightweight option; tensorflow also works. Fetch the tested pan weights
+  # with `mhctools fetch nettcr --accept-license`.
   "ai-edge-litert",
+]
+caphla = [
+  "torch>=1.12",
 ]
 dev = [
   "build",

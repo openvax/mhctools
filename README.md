@@ -261,6 +261,8 @@ Examples:
 | `NetMHCpan41` | `pMHC_affinity` | `single_allele` | `I` |
 | `NetMHCpan41` | `pMHC_presentation` | `single_allele` | `I` |
 | `NetMHCIIpan4_EL` | `pMHC_presentation` | `single_allele` | `II` |
+| `CapHLA` | `pMHC_affinity` | `single_allele` | `both` |
+| `CapHLA` | `pMHC_presentation` | `single_allele` | `both` |
 | `MixMHC2pred` | `pMHC_presentation` | `single_allele` | `II` |
 | `NetMHCstabpan` | `pMHC_stability` | `single_allele` | `I` |
 | `MHCflurry` | `pMHC_affinity` | `single_allele` | `I` |
@@ -360,10 +362,51 @@ affinity, hours for stability). `percentile_rank` is always optional,
 | `MHCflurry` | affinity + presentation + processing | `pip install mhcflurry` + `mhctools fetch mhcflurry` |
 | `MHCflurry_Affinity` | affinity | `pip install mhcflurry` + `mhctools fetch mhcflurry-affinity` |
 | `BigMHC` | presentation or immunogenicity | `mhctools fetch bigmhc --accept-license` + PyTorch, or set `BIGMHC_DIR` |
+| `CapHLA` / `CapHLA_EL` / `CapHLA_BA` | presentation + affinity (class I and II) | `pip install "mhctools[caphla]"` + `mhctools fetch caphla` |
 | `MixMHCpred` | presentation (class I) | [MixMHCpred](https://github.com/GfellerLab/MixMHCpred) |
 | `MixMHC2pred` | presentation (class II) | [MixMHC2pred](https://github.com/GfellerLab/MixMHC2pred) release (has `PWMdef/`) |
 | `IedbNetMHCpan` / `IedbSMM` / `IedbNetMHCIIpan` | affinity | IEDB web API |
 | `RandomBindingPredictor` | affinity | (built-in) |
+
+`CapHLA` is a 2025 MIT-licensed PyTorch model family ([Chang & Wu,
+*Briefings in Bioinformatics*](https://doi.org/10.1093/bib/bbae595)) covering
+human and mouse MHC class I and II, with peptides from 7–25 residues. The default wrapper emits
+both outputs for every peptide/allele pair: EL `presentation_score` as
+`pMHC_presentation`, and the BA normalized score as `pMHC_affinity`. For BA,
+mhctools also inverts CapHLA's training transform to provide predicted IC50 nM
+in `value`. Upstream provides neither percentile ranks nor binder thresholds,
+so the wrapper does not invent them. `CapHLA_EL` and `CapHLA_BA` load only the
+five-fold ensemble they need.
+
+```sh
+pip install "mhctools[caphla]"
+mhctools fetch caphla
+```
+
+```python
+from mhctools import CapHLA
+
+predictor = CapHLA(alleles=[
+    "HLA-A*02:01",
+    "HLA-DPA1*01:03-DPB1*04:01",
+])
+results = predictor.predict(["GILGFVFTL", "GELIGTLNAAKVPAD"])
+results[0].presentation.score
+results[0].affinity.score
+results[0].affinity.value       # predicted IC50, nM
+
+# Explicit pairs preserve order and duplicates without a cross product.
+paired = predictor.predict_pairs([
+    ("GILGFVFTL", "HLA-A*02:01"),
+    ("GELIGTLNAAKVPAD", "HLA-DPA1*01:03-DPB1*04:01"),
+])
+```
+
+The wrapper loads the pinned upstream model definitions and weights unchanged,
+batches inference deterministically in-process, and preserves canonical
+mhcgnomes allele identity in its outputs. CapHLA performance numbers are
+author-reported; treat it as a complementary research predictor rather than a
+default or independent validation.
 
 `MixMHCpred` 3.0 predicts **class-I presentation** for peptides of length
 8-14. Version 3.0 adds pan-allele inference, MHC-I sequence alignment and

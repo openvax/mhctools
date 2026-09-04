@@ -21,7 +21,7 @@ from mhctools.cli.script import main
 def test_list_includes_native_and_packaged_artifacts():
     statuses = {status.name: status for status in list_artifacts()}
     assert set(statuses) == {
-        "bigmhc", "calis", "deepimmuno", "deeptap", "eramer",
+        "bigmhc", "calis", "caphla", "deepimmuno", "deeptap", "eramer",
         "mhcflurry", "mhcflurry-affinity", "mixmhc2pred", "mixmhcpred",
         "netchop", "netcleave", "netmhc", "netmhccons", "netmhciipan",
         "netmhcpan", "netmhcstabpan", "nettcr", "pepsickle", "prime",

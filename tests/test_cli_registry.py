@@ -22,6 +22,7 @@ from mhctools.cli.args import (
     mhc_binding_predictor_from_args,
 )
 from mhctools.bigmhc import BigMHC, BigMHC_EL, BigMHC_IM
+from mhctools.caphla import CapHLA, CapHLA_BA, CapHLA_EL
 from mhctools.random_predictor import RandomBindingPredictor
 from mhctools.pepsickle import Pepsickle
 
@@ -34,6 +35,7 @@ def test_all_models_in_registry():
         "netmhcpan42", "netmhcpan42-ba", "netmhcpan42-el",
         "netmhciipan43", "netmhciipan43-ba", "netmhciipan43-el",
         "bigmhc", "bigmhc-el", "bigmhc-im",
+        "caphla", "caphla-ba", "caphla-el",
         "netmhcstabpan", "netchop", "pepsickle",
         # legacy entries that should still be present
         "netmhcpan", "netmhcpan4", "netmhcpan41",
@@ -88,12 +90,29 @@ def test_bigmhc_im_no_mode_arg():
     assert "mode" not in sig.parameters
 
 
+def test_caphla_registry_entries():
+    assert mhc_predictors["caphla"] == CapHLA
+    assert mhc_predictors["caphla-ba"] == CapHLA_BA
+    assert mhc_predictors["caphla-el"] == CapHLA_EL
+
+
+def test_caphla_mode_subclasses():
+    assert issubclass(CapHLA_BA, CapHLA)
+    assert issubclass(CapHLA_EL, CapHLA)
+
+
 # ── _cls_accepts introspection ─────────────────────────────────────
 
 def test_cls_accepts_bigmhc_path():
     assert _cls_accepts(BigMHC, "bigmhc_path") is True
     assert _cls_accepts(BigMHC_EL, "bigmhc_path") is True
     assert _cls_accepts(BigMHC_IM, "bigmhc_path") is True
+
+
+def test_cls_accepts_caphla_path():
+    assert _cls_accepts(CapHLA, "caphla_path") is True
+    assert _cls_accepts(CapHLA_BA, "caphla_path") is True
+    assert _cls_accepts(CapHLA_EL, "caphla_path") is True
 
 
 def test_cls_accepts_bigmhc_rejects_program_name():
@@ -222,6 +241,15 @@ def test_build_predictor_bigmhc_path_mapping():
     with pytest.raises(FileNotFoundError):
         _build_predictor(
             BigMHC_EL, "bigmhc-el",
+            alleles=["HLA-A*02:01"], peptide_lengths=None, args=args)
+
+
+def test_build_predictor_caphla_path_mapping():
+    """--mhc-predictor-path should map to caphla_path for CapHLA."""
+    args = _stub_args(mhc_predictor_path="/some/path")
+    with pytest.raises(FileNotFoundError):
+        _build_predictor(
+            CapHLA, "caphla",
             alleles=["HLA-A*02:01"], peptide_lengths=None, args=args)
 
 

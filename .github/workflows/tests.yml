@@ -64,6 +64,7 @@ jobs:
             tests/test_processing_predictor.py \
             tests/test_pepsickle.py \
             tests/test_bigmhc.py \
+            tests/test_caphla.py \
             tests/test_unparseable_alleles.py \
             tests/test_nettcr.py \
             tests/test_tulip.py \
@@ -205,3 +206,37 @@ jobs:
           TULIP_PYTHON: ${{ github.workspace }}/tulip-env/bin/python
         run: |
           python -m pytest tests/test_tulip.py -ra
+
+  integration-caphla:
+    # Public MIT-licensed code/weights, fetched through mhctools itself. This
+    # pins the official 32-row EL+BA regression on a current CPU PyTorch.
+    runs-on: ubuntu-22.04
+    env:
+      MHCTOOLS_DATA_DIR: ${{ github.workspace }}/mhctools-data
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install CPU PyTorch and mhctools
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install -e ".[dev,caphla]"
+
+      - name: Cache pinned CapHLA snapshot
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.MHCTOOLS_DATA_DIR }}
+          key: caphla-${{ runner.os }}-${{ hashFiles('mhctools/artifacts.py') }}
+
+      - name: Fetch CapHLA code and weights
+        run: mhctools fetch caphla
+
+      - name: Run CapHLA official regression
+        run: python -m pytest tests/test_caphla.py -ra
