@@ -119,6 +119,12 @@ class MHCflurry(BasePredictor):
         "per_allele",
     ))
 
+    @classmethod
+    def fetch(cls, version=None):
+        """Fetch MHCflurry presentation models using its native manager."""
+        from .artifacts import fetch
+        return fetch("mhcflurry", version=version)
+
     def __init__(
             self,
             alleles,
@@ -457,6 +463,12 @@ class MHCflurry_Affinity(BasePredictor):
 
     See https://github.com/openvax/mhcflurry
     """
+
+    @classmethod
+    def fetch(cls, version=None):
+        """Fetch MHCflurry affinity models using its native manager."""
+        from .artifacts import fetch
+        return fetch("mhcflurry-affinity", version=version)
 
     def __init__(
             self,

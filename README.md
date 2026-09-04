@@ -16,8 +16,41 @@ pip install mhctools
 For MHCflurry support, also run:
 
 ```sh
-mhcflurry-downloads fetch
+mhctools fetch mhcflurry
 ```
+
+## Predictor artifacts
+
+mhctools exposes one acquisition command for model weights, reference files,
+and external tool snapshots required by its wrappers. Predictors with their own
+download manager keep using it; mhctools reports the manager and resolved path
+instead of copying the files into a second cache.
+
+```sh
+# Show packaged and optional artifacts, where they live, and who manages them.
+mhctools ls
+
+# Fetch the upstream package's default compatible release.
+mhctools fetch mhcflurry
+
+# Reproducibility runs may request an explicit artifact release.
+mhctools fetch mhcflurry --version 2.2.0
+```
+
+The same operations are available in Python:
+
+```python
+from mhctools import MHCflurry, fetch, list_artifacts
+
+MHCflurry.fetch()
+fetch("mhcflurry-affinity")
+for artifact in list_artifacts():
+    print(artifact.name, artifact.manager, artifact.version, artifact.path)
+```
+
+`fetch()` obtains every safely and legally downloadable artifact needed by the
+named wrapper. It does not install Python packages, execute upstream setup
+scripts, or duplicate caches owned by another package.
 
 ## Quick start
 
@@ -294,8 +327,8 @@ affinity, hours for stability). `percentile_rank` is always optional,
 | `NetMHCIIpan` / `NetMHCIIpan43` | affinity or presentation | [NetMHCIIpan](https://services.healthtech.dtu.dk/services/NetMHCIIpan-4.3/) |
 | `NetMHCcons` | affinity | [NetMHCcons](https://services.healthtech.dtu.dk/services/NetMHCcons-1.1/) |
 | `NetMHCstabpan` | stability | [NetMHCstabpan](https://services.healthtech.dtu.dk/services/NetMHCstabpan-1.0/) |
-| `MHCflurry` | affinity + presentation + processing | `pip install mhcflurry` + `mhcflurry-downloads fetch` |
-| `MHCflurry_Affinity` | affinity | `pip install mhcflurry` + `mhcflurry-downloads fetch` |
+| `MHCflurry` | affinity + presentation + processing | `pip install mhcflurry` + `mhctools fetch mhcflurry` |
+| `MHCflurry_Affinity` | affinity | `pip install mhcflurry` + `mhctools fetch mhcflurry-affinity` |
 | `BigMHC` | presentation or immunogenicity | [BigMHC](https://github.com/KarchinLab/bigmhc) clone (set `BIGMHC_DIR`) |
 | `MixMHCpred` | presentation (class I) | [MixMHCpred](https://github.com/GfellerLab/MixMHCpred) |
 | `MixMHC2pred` | presentation (class II) | [MixMHC2pred](https://github.com/GfellerLab/MixMHC2pred) release (has `PWMdef/`) |
