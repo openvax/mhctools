@@ -17,7 +17,14 @@ from .pred import (
 from .sample import MultiSample
 from .tcr import TCR
 from .annotate import AnnotationSpec, annotate_table, parse_annotation_spec
-from .artifacts import ArtifactStatus, fetch, list_artifacts
+from .artifacts import (
+    ArtifactStatus,
+    artifact_status,
+    data_path,
+    fetch,
+    list_artifacts,
+    managed_path,
+)
 from .iedb import (
     IedbNetMHCcons,
     IedbNetMHCpan,
@@ -114,8 +121,11 @@ __all__ = [
     "annotate_table",
     "parse_annotation_spec",
     "ArtifactStatus",
+    "artifact_status",
+    "data_path",
     "fetch",
     "list_artifacts",
+    "managed_path",
     "BindingPrediction",
     "BindingPredictionCollection",
     "set_log_level",

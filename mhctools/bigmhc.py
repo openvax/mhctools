@@ -56,9 +56,14 @@ def _find_bigmhc_dir(bigmhc_path=None):
     home = os.path.join(os.path.expanduser("~"), "bigmhc")
     if os.path.isdir(home):
         return home
+    from .artifacts import artifact_status
+    managed = artifact_status("bigmhc")
+    if managed.manager == "mhctools" and managed.status == "ready":
+        return managed.path
     raise FileNotFoundError(
         "BigMHC not found. Set BIGMHC_DIR or pass bigmhc_path= to the constructor. "
-        "Clone from https://github.com/KarchinLab/bigmhc")
+        "Run `mhctools fetch bigmhc --accept-license` or clone from "
+        "https://github.com/KarchinLab/bigmhc")
 
 
 def _import_bigmhc_modules(bigmhc_dir):
@@ -101,6 +106,16 @@ class BigMHC(NewModelPredictorMixin):
     """
 
     VALID_MODES = ("el", "im")
+
+    @classmethod
+    def fetch(cls, version=None, data_dir=None, accept_license=False):
+        """Fetch the pinned BigMHC code and weights."""
+        from .artifacts import fetch
+        return fetch(
+            "bigmhc",
+            version=version,
+            data_dir=data_dir,
+            accept_license=accept_license)
 
     def __init__(self, alleles, mode="el", bigmhc_path=None, device="cpu",
                  max_batch_size=4096):

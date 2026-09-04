@@ -24,9 +24,9 @@ over each residue trimmed off as it is cut down to a target epitope length.
 Licensing: ERAMER is GPLv3 and its PWM ships in a GPL-licensed ``PWM.xlsx``;
 mhctools is Apache-2.0 and vendors neither. This is a clean-room Python-3
 reimplementation of the trimming-cascade average (the upstream tool is Python
-2.7) that loads the PWM from a user-provided ERAMER checkout at runtime, as the
-netMHC / MixMHCpred wrappers read user-provided model files. Point at the
-checkout with ``ERAMER_HOME`` (or pass ``eramer_home=`` / ``pwm_path=``).
+2.7) that loads the PWM from an upstream ERAMER checkout at runtime. Fetch the
+tested snapshot with ``mhctools fetch eramer``, or point at a manual checkout
+with ``ERAMER_HOME`` (or pass ``eramer_home=`` / ``pwm_path=``).
 
 Upstream: https://github.com/aalokaily/ERAMER
 Cite: Al-okaily et al., Comput. Biol. Med. 2024 — "ERAMER: A novel in silico
@@ -85,6 +85,10 @@ def _find_pwm_path(eramer_home=None, pwm_path=None):
     home = join(os.path.expanduser("~"), "ERAMER")
     if isdir(home):
         candidates.append(join(home, "PWM.xlsx"))
+    from .artifacts import artifact_status
+    managed = artifact_status("eramer")
+    if managed.manager == "mhctools" and managed.status == "ready":
+        candidates.append(join(managed.path, "PWM.xlsx"))
     for candidate in candidates:
         if isfile(candidate):
             return candidate
@@ -183,6 +187,12 @@ class ERAMER(AlleleFreePredictor):
     """
 
     mhc_class = "I"
+
+    @classmethod
+    def fetch(cls, version=None, data_dir=None):
+        """Fetch the pinned ERAMER PWM and upstream license."""
+        from .artifacts import fetch
+        return fetch("eramer", version=version, data_dir=data_dir)
 
     def __init__(self, epitope_length=8, eramer_home=None, pwm_path=None):
         if not (8 <= epitope_length <= ERAMER_MAX_PRECURSOR_LENGTH - 1):

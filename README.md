@@ -35,15 +35,26 @@ mhctools fetch mhcflurry
 
 # Reproducibility runs may request an explicit artifact release.
 mhctools fetch mhcflurry --version 2.2.0
+
+# Fetch a pinned open-source snapshot (code plus the wrapper's model files).
+mhctools fetch eramer
+
+# Academic licenses must be reviewed and accepted explicitly.
+mhctools fetch nettcr --accept-license
+
+# Machine-readable inventory, optionally rooted somewhere else.
+mhctools ls --json
+mhctools ls --data-dir /shared/models
 ```
 
 The same operations are available in Python:
 
 ```python
-from mhctools import MHCflurry, fetch, list_artifacts
+from mhctools import ERAMER, MHCflurry, fetch, list_artifacts
 
 MHCflurry.fetch()
 fetch("mhcflurry-affinity")
+ERAMER.fetch()
 for artifact in list_artifacts():
     print(artifact.name, artifact.manager, artifact.version, artifact.path)
 ```
@@ -51,6 +62,23 @@ for artifact in list_artifacts():
 `fetch()` obtains every safely and legally downloadable artifact needed by the
 named wrapper. It does not install Python packages, execute upstream setup
 scripts, or duplicate caches owned by another package.
+
+mhctools-managed snapshots default to the platform's user data directory
+(`~/Library/Application Support/mhctools` on macOS,
+`~/.local/share/mhctools` on Linux). Set `MHCTOOLS_DATA_DIR`, pass
+`--data-dir`, or use the Python `data_dir=` argument to put them on shared or
+scratch storage. Every snapshot lives under
+`artifacts/<tool>/<git-commit>/` and includes `.mhctools-artifact.json` with
+its source repository, exact commit, sparse paths, and license provenance.
+
+The `MANAGER` column distinguishes four ownership models:
+
+- `mhctools package` / `<package> package`: weights shipped in an installed
+  Python package;
+- `mhcflurry`: MHCflurry's own native download cache;
+- `mhctools`: a pinned snapshot fetched into the directory above;
+- `user` / `manual`: an existing checkout or licensed executable owned by the
+  user. Manual artifacts are listed but `fetch` will not redistribute them.
 
 ## Quick start
 
@@ -263,17 +291,19 @@ MHC allele.
 from mhctools import Tulip, TCR
 
 tcr = TCR(cdr3a="CAGASGNTGKLIF", cdr3b="CASSIRASYEQYF", name="clone1")
-predictor = Tulip()                       # needs TULIP_HOME + TULIP_PYTHON
+Tulip.fetch()                             # pinned code, tokenizers, and weights
+predictor = Tulip()                       # also needs a TULIP-capable Python
 results = predictor.predict(["GILGFVFTL"], [tcr], mhc="HLA-A*02:01")
 results[0].preds[0].score                 # higher = more likely binding
 ```
 
 [TULIP-TCR](https://github.com/barthelemymp/TULIP-TCR) is **GPLv3** and pinned to
 `transformers==4.32.1`; mhctools is Apache-2.0 and depends on neither torch nor
-transformers. The `Tulip` wrapper therefore vendors none of TULIP — it runs a
-user-provided checkout out-of-process, in an isolated interpreter, via TULIP's
-own `predict.py`. Set two things up first (see `scripts/setup_tulip_env.sh`,
-which does both):
+transformers. The `Tulip` wrapper therefore vendors none of TULIP — it runs an
+upstream checkout out-of-process, in an isolated interpreter, via TULIP's own
+`predict.py`. `mhctools fetch tulip` obtains the tested code, tokenizers, and
+weights; `scripts/setup_tulip_env.sh` can build the separate runtime. You may
+instead provide your own checkout and interpreter:
 
 - `TULIP_HOME` — a clone of TULIP-TCR (provides `predict.py`, `src/`, tokenizers,
   and the released `model_weights/`);
@@ -329,7 +359,7 @@ affinity, hours for stability). `percentile_rank` is always optional,
 | `NetMHCstabpan` | stability | [NetMHCstabpan](https://services.healthtech.dtu.dk/services/NetMHCstabpan-1.0/) |
 | `MHCflurry` | affinity + presentation + processing | `pip install mhcflurry` + `mhctools fetch mhcflurry` |
 | `MHCflurry_Affinity` | affinity | `pip install mhcflurry` + `mhctools fetch mhcflurry-affinity` |
-| `BigMHC` | presentation or immunogenicity | [BigMHC](https://github.com/KarchinLab/bigmhc) clone (set `BIGMHC_DIR`) |
+| `BigMHC` | presentation or immunogenicity | `mhctools fetch bigmhc --accept-license` + PyTorch, or set `BIGMHC_DIR` |
 | `MixMHCpred` | presentation (class I) | [MixMHCpred](https://github.com/GfellerLab/MixMHCpred) |
 | `MixMHC2pred` | presentation (class II) | [MixMHC2pred](https://github.com/GfellerLab/MixMHC2pred) release (has `PWMdef/`) |
 | `IedbNetMHCpan` / `IedbSMM` / `IedbNetMHCIIpan` | affinity | IEDB web API |
@@ -464,7 +494,7 @@ by_protein = predictor.predict_proteins({"TP53": "MEEPQ..."}, peptide_lengths=[1
 
 | Predictor | Kinds produced | Requires |
 |---|---|---|
-| `DeepTAP` | TAP transport (`tap_transport`) | [DeepTAP](https://github.com/zjupgx/DeepTAP) clone (set `DEEPTAP_HOME`) |
+| `DeepTAP` | TAP transport (`tap_transport`) | `mhctools fetch deeptap` + a DeepTAP-capable Python |
 
 TAP (transporter associated with antigen processing) is the step that shuttles
 cytosolic peptides into the ER for MHC-I loading — a distinct part of the
@@ -477,13 +507,15 @@ affinity in nM is also surfaced as `value` (lower = stronger).
 
 DeepTAP ships its weights in-repo and is Apache-2.0, but pins an old
 `pytorch-lightning`, so mhctools shells out to DeepTAP's own CLI in a
-user-provided checkout, run by a user-provided interpreter (the checkpoints load
-fine under modern Lightning too). Set `DEEPTAP_HOME` to the clone and, if the
-current interpreter lacks torch, `DEEPTAP_PYTHON` to one that has it.
+separate interpreter (the checkpoints load fine under modern Lightning too).
+Run `mhctools fetch deeptap`; if the current interpreter lacks torch, set
+`DEEPTAP_PYTHON` to one that has it. `DEEPTAP_HOME` can still select a manual
+checkout.
 
 ```python
 from mhctools import DeepTAP
 
+DeepTAP.fetch()
 predictor = DeepTAP(task_type="cla")       # resolves DEEPTAP_HOME / ~/DeepTAP
 results = predictor.predict(["SIINFEKL", "AEASAAAAY"])
 results[1].tap_transport.score             # 0-1, higher = stronger TAP binding
@@ -497,7 +529,7 @@ results[1].tap_transport.score             # 0-1, higher = stronger TAP binding
 
 | Predictor | Kinds produced | Requires |
 |---|---|---|
-| `ERAMER` | ERAP1 trimming (`erap_trimming`) | [ERAMER](https://github.com/aalokaily/ERAMER) clone with `PWM.xlsx` (set `ERAMER_HOME`) + `openpyxl` |
+| `ERAMER` | ERAP1 trimming (`erap_trimming`) | `mhctools fetch eramer` + `openpyxl` |
 
 ERAP1 trims the N-termini of 9–16mer precursor peptides in the ER down to the
 8–10mers MHC-I presents — the step between TAP transport and MHC loading, and
@@ -510,11 +542,13 @@ likely trimmed).
 ERAMER is **GPLv3** and its PWM ships in a GPL-licensed `PWM.xlsx`, so mhctools
 vendors neither: this is a clean-room Python-3 reimplementation of the
 (Python-2.7) tool's trimming-cascade average that loads the PWM from a
-user-provided ERAMER checkout at runtime. Point at the clone with `ERAMER_HOME`.
+upstream ERAMER checkout at runtime. Run `mhctools fetch eramer`, or point at a
+manual clone with `ERAMER_HOME`.
 
 ```python
 from mhctools import ERAMER
 
+ERAMER.fetch()
 predictor = ERAMER(epitope_length=8)       # resolves ERAMER_HOME / ~/ERAMER
 results = predictor.predict(["GGGGGVVVVVVAAAEE"])   # a 9-16mer precursor
 results[0].erap_trimming.score
@@ -528,9 +562,9 @@ results[0].erap_trimming.score
 | Predictor | Kinds produced | Requires |
 |---|---|---|
 | `Calis` | immunogenicity | nothing — self-contained |
-| `BigMHC_IM` | immunogenicity | [BigMHC](https://github.com/KarchinLab/bigmhc) clone (set `BIGMHC_DIR`) |
+| `BigMHC_IM` | immunogenicity | `mhctools fetch bigmhc --accept-license` + PyTorch, or set `BIGMHC_DIR` |
 | `PRIME` | immunogenicity | [PRIME](https://github.com/GfellerLab/PRIME) clone + MixMHCpred |
-| `DeepImmuno` | immunogenicity | [DeepImmuno](https://github.com/frankligy/DeepImmuno) clone (set `DEEPIMMUNO_HOME`) |
+| `DeepImmuno` | immunogenicity | `mhctools fetch deepimmuno` + a TensorFlow/Keras-2-capable Python |
 | `TLimmuno2` | immunogenicity (class II) | [TLimmuno2](https://github.com/XSLiuLab/TLimmuno2) clone (set `TLIMMUNO2_HOME`) |
 
 `Calis` is the classic sequence-only IEDB class-I immunogenicity model (Calis et
@@ -574,7 +608,8 @@ nearest it knows. It emits one `immunogenicity` prediction per (peptide,
 allele); `score` is in 0–1 (higher = more immunogenic). DeepImmuno ships its
 weights in-repo and is MIT-licensed, but its script loads them with an old
 Keras 2 / TensorFlow stack, so mhctools shells out to DeepImmuno's own CLI in a
-user-provided checkout. Point at the clone with `DEEPIMMUNO_HOME`, and set
+separate checkout. Run `mhctools fetch deepimmuno`, or point at a manual clone
+with `DEEPIMMUNO_HOME`, and set
 `DEEPIMMUNO_PYTHON` to an interpreter that has TensorFlow (with Keras 2, or
 newer TensorFlow plus the `tf-keras` shim — the wrapper sets
 `TF_USE_LEGACY_KERAS=1` for the subprocess).
@@ -582,6 +617,7 @@ newer TensorFlow plus the `tf-keras` shim — the wrapper sets
 ```python
 from mhctools import DeepImmuno
 
+DeepImmuno.fetch()
 predictor = DeepImmuno(alleles=["HLA-A*02:01"])   # resolves DEEPIMMUNO_HOME / ~/DeepImmuno
 results = predictor.predict(["NLVPMVATV", "GILGFVFTL"])
 results[0].immunogenicity.score                   # 0.9568 (higher = more immunogenic)
@@ -631,7 +667,7 @@ results[0].immunogenicity.score                    # 0.9874 (higher = more immun
 
 | Predictor | Kinds produced | Requires |
 |---|---|---|
-| `NetTCR` | pMHC:TCR binding | [NetTCR-2.2](https://github.com/mnielLab/NetTCR-2.2) clone (set `NETTCR_DIR`) + a TFLite runtime (`pip install mhctools[nettcr]`) |
+| `NetTCR` | pMHC:TCR binding | `mhctools fetch nettcr --accept-license` + a TFLite runtime (`pip install mhctools[nettcr]`) |
 
 `NetTCR` predicts whether a paired αβ T-cell receptor recognises a
 (class-I) peptide. Unlike the MHC-ligand predictors, its input is a peptide
@@ -643,6 +679,7 @@ ensemble in-process and does not need NetTCR's conda environment.
 ```python
 from mhctools import NetTCR, TCR
 
+NetTCR.fetch(accept_license=True)  # downloads only the ~8 MB pan ensemble
 predictor = NetTCR()   # resolves NETTCR_DIR / ~/NetTCR-2.2
 tcr = TCR(
     cdr1a="NSASQS", cdr2a="VYSSG", cdr3a="VVEGDKVI",

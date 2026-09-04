@@ -22,8 +22,9 @@ BigMHC_IM), emitting ``Kind.immunogenicity`` per (peptide, allele).
 DeepImmuno ships its trained CNN weights in-repo (MIT-licensed) but its
 ``deepimmuno-cnn.py`` script rebuilds the network in code and loads those
 weights with an old Keras 2 / TensorFlow stack. To keep that dependency out of
-the mhctools environment, this wrapper shells out to that script in a
-user-provided checkout (``DEEPIMMUNO_HOME``), run by a user-provided interpreter
+the mhctools environment, this wrapper shells out to that script in an upstream
+checkout (fetched with ``mhctools fetch deepimmuno`` or set by
+``DEEPIMMUNO_HOME``), run by a user-provided interpreter
 (``DEEPIMMUNO_PYTHON``, default the current one). On newer TensorFlow the
 interpreter only needs the ``tf-keras`` shim installed — this wrapper sets
 ``TF_USE_LEGACY_KERAS=1`` for the subprocess so DeepImmuno's Keras-2 model
@@ -70,9 +71,14 @@ def _find_deepimmuno_home(deepimmuno_home=None):
         if isdir(home):
             candidate = home
     if not candidate:
+        from .artifacts import artifact_status
+        managed = artifact_status("deepimmuno")
+        if managed.manager == "mhctools" and managed.status == "ready":
+            candidate = managed.path
+    if not candidate:
         raise FileNotFoundError(
             "DeepImmuno not found. Set DEEPIMMUNO_HOME or pass deepimmuno_home= "
-            "to the constructor. Clone from "
+            "to the constructor. Run `mhctools fetch deepimmuno` or clone from "
             "https://github.com/frankligy/DeepImmuno")
     if not isfile(join(candidate, "deepimmuno-cnn.py")):
         raise FileNotFoundError(
@@ -123,6 +129,12 @@ class DeepImmuno(NewModelPredictorMixin):
         ``$DEEPIMMUNO_PYTHON``, then the current interpreter
         (``sys.executable``).
     """
+
+    @classmethod
+    def fetch(cls, version=None, data_dir=None):
+        """Fetch the pinned DeepImmuno code and weights."""
+        from .artifacts import fetch
+        return fetch("deepimmuno", version=version, data_dir=data_dir)
 
     def __init__(self, alleles, deepimmuno_home=None, deepimmuno_python=None):
         if isinstance(alleles, str):

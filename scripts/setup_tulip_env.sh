@@ -16,7 +16,8 @@
 #   scripts/setup_tulip_env.sh [ENV_DIR] [TULIP_HOME]
 #
 #   ENV_DIR     where to create the venv        (default: ./tulip-env)
-#   TULIP_HOME  where to clone/find TULIP-TCR   (default: ./TULIP-TCR)
+#   TULIP_HOME  existing TULIP-TCR snapshot (default: `mhctools fetch tulip`,
+#               falling back to ./TULIP-TCR when mhctools is unavailable)
 #
 # After it runs, export the two variables it prints, e.g.:
 #   export TULIP_HOME=/path/to/TULIP-TCR
@@ -25,7 +26,7 @@
 set -euo pipefail
 
 ENV_DIR="${1:-./tulip-env}"
-TULIP_HOME="${2:-./TULIP-TCR}"
+TULIP_HOME="${2:-${TULIP_HOME:-}}"
 PY311="${TULIP_SETUP_PYTHON:-python3.11}"
 TULIP_REPO="https://github.com/barthelemymp/TULIP-TCR.git"
 
@@ -37,8 +38,17 @@ if ! command -v "$PY311" >/dev/null 2>&1; then
     exit 1
 fi
 
-# Clone TULIP-TCR (GPLv3) if it isn't already present. We never redistribute
-# it; you obtain it yourself under its own license.
+# Prefer mhctools' pinned, sparse snapshot. JSON stdout remains parseable while
+# git progress goes to stderr; Python 3.11 is already guaranteed above.
+if [[ -z "$TULIP_HOME" ]] && command -v mhctools >/dev/null 2>&1; then
+    log "Fetching the pinned TULIP-TCR snapshot with mhctools"
+    TULIP_JSON="$(mhctools fetch tulip --json)"
+    TULIP_HOME="$(printf '%s' "$TULIP_JSON" | "$PY311" -c \
+        'import json, sys; print(json.load(sys.stdin)["path"])')"
+fi
+TULIP_HOME="${TULIP_HOME:-./TULIP-TCR}"
+
+# Clone TULIP-TCR (GPLv3) if neither the managed nor a supplied snapshot exists.
 if [[ ! -f "$TULIP_HOME/predict.py" ]]; then
     log "Cloning TULIP-TCR (GPLv3) into $TULIP_HOME"
     git clone --depth 1 "$TULIP_REPO" "$TULIP_HOME"
