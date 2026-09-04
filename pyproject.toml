@@ -36,6 +36,12 @@ dependencies = [
 pepsickle = [
   "pepsickle",
 ]
+mixmhcpred = [
+  # Runtime packages used by the separately licensed upstream v3 checkout.
+  "scipy",
+  "logomaker",
+  "matplotlib",
+]
 nettcr = [
   # A TFLite runtime for NetTCR's bundled models. ai-edge-litert is the
   # lightweight option; tensorflow also works. The NetTCR-2.2 repository
@@ -44,7 +50,8 @@ nettcr = [
 ]
 dev = [
   "build",
-  "ruff",
+  # Ruff 0.16 changed its default rule set; keep lint reproducible until #268.
+  "ruff==0.15.21",
   "pytest",
   "pytest-cov",
   "twine",
