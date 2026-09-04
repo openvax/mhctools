@@ -8,7 +8,7 @@
 
 Importing the CLI argument helpers or the top-level mhctools package must not
 pull in torch or tensorflow. These libraries are only needed when an instance
-of MHCflurry or BigMHC is actually constructed.
+of MHCflurry, BigMHC, or CapHLA is actually constructed.
 """
 
 import subprocess
@@ -37,7 +37,7 @@ def test_importing_mhctools_cli_args_does_not_load_torch_or_tensorflow():
     loaded = _import_and_check("import mhctools.cli.args")
     assert not loaded, (
         "Importing mhctools.cli.args pulled in: %s. "
-        "Heavy predictors (BigMHC/MHCflurry) must stay behind _LazyPredictor."
+        "Heavy predictors must stay behind _LazyPredictor."
         % sorted(loaded)
     )
 
@@ -46,7 +46,7 @@ def test_importing_top_level_mhctools_does_not_load_torch_or_tensorflow():
     loaded = _import_and_check("import mhctools")
     assert not loaded, (
         "Importing mhctools pulled in: %s. "
-        "BigMHC/MHCflurry must stay behind the PEP 562 __getattr__ in __init__."
+        "Heavy predictors must stay behind the PEP 562 __getattr__ in __init__."
         % sorted(loaded)
     )
 

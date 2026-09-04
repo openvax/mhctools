@@ -85,6 +85,20 @@ _SNAPSHOTS = {
         environment_variable="BIGMHC_DIR",
         legacy_paths=("~/bigmhc",),
     ),
+    "caphla": _Snapshot(
+        repository="https://github.com/changyunjian/CapHLA.git",
+        revision="33ebdd6ce6dadbbb1c66b026ce4b5d81dbf3a831",
+        sparse_paths=("params",),
+        required_paths=(
+            "BA_model.py", "EL_model.py", "HLA_library.csv", "params"),
+        required_globs=("params/ba_fold*.params", "params/el_fold*.params"),
+        license_name="MIT",
+        license_url=(
+            "https://github.com/changyunjian/CapHLA/blob/"
+            "33ebdd6ce6dadbbb1c66b026ce4b5d81dbf3a831/LICENSE"),
+        environment_variable="CAPHLA_HOME",
+        legacy_paths=("~/CapHLA",),
+    ),
     "deepimmuno": _Snapshot(
         repository="https://github.com/frankligy/DeepImmuno.git",
         revision="df42ac5b6bddfe531268335e2dcb496559cd488b",

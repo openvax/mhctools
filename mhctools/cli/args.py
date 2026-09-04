@@ -24,7 +24,7 @@ import logging
 from ..allele_normalization import normalize_allele_name_or_raw
 
 from .parsing_helpers import parse_int_list
-# Heavy predictors (BigMHC, MHCflurry) are NOT imported here: pulling them in
+# Heavy predictors (BigMHC, CapHLA, MHCflurry) are NOT imported here: pulling them in
 # would trigger torch/TF imports just by loading this CLI module. They are
 # wrapped in _LazyPredictor below and resolved on first use.
 from .. import (
@@ -76,7 +76,7 @@ from .. import (
 
 
 class _LazyPredictor:
-    """Lazy-import factory for heavy predictors (BigMHC, MHCflurry).
+    """Lazy-import factory for heavy predictors.
 
     NOTE: this is an instance, not a class. `isinstance(x, _LazyPredictor(...))`
     and `issubclass(cls, _LazyPredictor(...))` will NOT work against these
@@ -124,6 +124,9 @@ class _LazyPredictor:
 _BigMHC = _LazyPredictor(".bigmhc", "BigMHC")
 _BigMHC_EL = _LazyPredictor(".bigmhc", "BigMHC_EL")
 _BigMHC_IM = _LazyPredictor(".bigmhc", "BigMHC_IM")
+_CapHLA = _LazyPredictor(".caphla", "CapHLA")
+_CapHLA_BA = _LazyPredictor(".caphla", "CapHLA_BA")
+_CapHLA_EL = _LazyPredictor(".caphla", "CapHLA_EL")
 _MHCflurry = _LazyPredictor(".mhcflurry", "MHCflurry")
 _MHCflurry_Affinity = _LazyPredictor(".mhcflurry", "MHCflurry_Affinity")
 
@@ -159,6 +162,9 @@ mhc_predictors = {
     "bigmhc": _BigMHC,
     "bigmhc-el": _BigMHC_EL,
     "bigmhc-im": _BigMHC_IM,
+    "caphla": _CapHLA,
+    "caphla-ba": _CapHLA_BA,
+    "caphla-el": _CapHLA_EL,
     "netchop": NetChop,
     "netcleave": NetCleave,
     "netcleave-i": NetCleave_I,
@@ -311,6 +317,8 @@ def _build_predictor(cls, name, alleles, peptide_lengths, args):
     if getattr(args, "mhc_predictor_path", None):
         if _cls_accepts(cls, "bigmhc_path"):
             kwargs["bigmhc_path"] = args.mhc_predictor_path
+        elif _cls_accepts(cls, "caphla_path"):
+            kwargs["caphla_path"] = args.mhc_predictor_path
         elif _cls_accepts(cls, "program_name"):
             kwargs["program_name"] = args.mhc_predictor_path
     if getattr(args, "do_not_raise_on_error", False):
