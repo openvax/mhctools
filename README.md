@@ -302,6 +302,73 @@ affinity, hours for stability). `percentile_rank` is always optional,
 | `IedbNetMHCpan` / `IedbSMM` / `IedbNetMHCIIpan` | affinity | IEDB web API |
 | `RandomBindingPredictor` | affinity | (built-in) |
 
+`MixMHCpred` 3.0 predicts **class-I presentation** for peptides of length
+8-14. Version 3.0 adds pan-allele inference, MHC-I sequence alignment and
+sequence-driven prediction, and optional binding-motif/peptide-length plots.
+mhctools exposes all per-allele scores and percentile ranks through the
+canonical prediction API. `predict_detailed` also retains MixMHCpred's raw
+`Score_bestAllele`, `BestAllele`, and `%Rank_bestAllele` columns plus each
+allele's closest training allele, sequence distance, and pan-allele status.
+
+MixMHCpred 3.0 is licensed for academic, non-commercial research and prohibits
+redistribution without written permission, so its approximately 200 MB of
+code, models, and reference data are not included in mhctools. Review the
+[upstream license and installation guide](https://github.com/GfellerLab/MixMHCpred)
+before downloading the official tagged release:
+
+```sh
+git clone --branch v3.0 --depth 1 \
+    https://github.com/GfellerLab/MixMHCpred.git
+chmod +x MixMHCpred/MixMHCpred
+export MIXMHCPRED_PATH="$PWD/MixMHCpred"
+pip install "mhctools[mixmhcpred]"
+```
+
+The `mixmhcpred` extra installs the upstream Python dependencies. Sequence
+alignment additionally needs the `mafft` executable. The upstream
+`install_packages` script is another way to install both sets of dependencies.
+
+```python
+from mhctools import MixMHCpred
+
+predictor = MixMHCpred(
+    alleles=["HLA-A*02:01", "HLA-A*01:02"],  # A*01:02 uses v3 pan inference
+)
+
+# Canonical mhctools output: one pMHC_presentation Prediction per allele.
+results = predictor.predict(["SIINFEKL"])
+results[0].presentation.score
+
+# Complete native output and v3 quality/provenance metadata.
+detailed = predictor.predict_detailed(["SIINFEKL"])
+detailed.table[["Score_bestAllele", "BestAllele", "%Rank_bestAllele"]]
+detailed.allele_info[1].closest_training_allele
+detailed.allele_info[1].distance
+detailed.allele_info[1].pan_allele
+
+# Retain Binding_predictions.txt, PWM/PLD files and images, and the HTML view.
+motifs = predictor.predict_detailed(
+    ["SIINFEKL"], output_dir="mixmhcpred-output", output_motifs=True)
+motifs.artifacts.files
+
+# Align novel MHC-I sequences, then optionally predict and render their motifs.
+sequence_result = predictor.predict_allele_sequences(
+    "unaligned-mhc-i.fasta",
+    peptides=["SIINFEKL"],
+    output_dir="mixmhcpred-sequence-output",
+    output_motifs=True,
+)
+sequence_result.aligned_sequences
+sequence_result.table
+sequence_result.allele_info[0].closest_database_allele
+sequence_result.artifacts.files
+```
+
+Both artifact APIs require a new output path: the wrapper refuses an existing
+path because MixMHCpred itself deletes and recreates its output directory.
+`exclude_peptides_with_cysteine=True` is implemented by mhctools before the
+external call, including under v3.0 where the legacy `-c` option was removed.
+
 `MixMHC2pred` is a pan-allele **class-II** presentation predictor and a strong
 complement to `NetMHCIIpan` (independently co-best in the Frontiers in
 Immunology 2024 class-II benchmark). It emits one `pMHC_presentation`

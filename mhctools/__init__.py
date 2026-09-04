@@ -24,7 +24,12 @@ from .iedb import (
     IedbSMM_PMBEC,
     IedbNetMHCIIpan,
 )
-from .mixmhcpred import MixMHCpred
+from .mixmhcpred import (
+    MixMHCpred,
+    MixMHCpredAlleleInfo,
+    MixMHCpredArtifacts,
+    MixMHCpredResult,
+)
 from .mixmhc2pred import MixMHC2pred
 from .prime import PRIME
 from .deeptap import DeepTAP
@@ -88,7 +93,7 @@ def __getattr__(name):
     raise AttributeError(
         "module %r has no attribute %r" % (__name__, name))
 
-__version__ = "3.31.7"
+__version__ = "3.31.8"
 
 __all__ = [
     "Prediction",
@@ -116,6 +121,9 @@ __all__ = [
     "IedbSMM_PMBEC",
     "IedbNetMHCIIpan",
     "MixMHCpred",
+    "MixMHCpredAlleleInfo",
+    "MixMHCpredArtifacts",
+    "MixMHCpredResult",
     "MixMHC2pred",
     "PRIME",
     "DeepTAP",
