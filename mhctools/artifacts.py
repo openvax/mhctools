@@ -154,6 +154,32 @@ _SNAPSHOTS = {
         environment_variable="NETTCR_DIR",
         legacy_paths=("~/NetTCR-2.2", "~/code/NetTCR-2.2"),
     ),
+    "mixtcrpred": _Snapshot(
+        repository="https://github.com/GfellerLab/MixTCRpred.git",
+        revision="acd6f57444bde675840890207c74ca3b0c7ffac2",
+        sparse_paths=("src", "pretrained_models"),
+        required_paths=(
+            "LICENSE.md",
+            "MixTCRpred.py",
+            "src/dataloaders.py",
+            "src/models.py",
+            "src/utils.py",
+            "pretrained_models/anchors_perc_rank.pickle",
+            "pretrained_models/info_models.csv",
+            # These two checkpoints ship in the upstream repository. Keep
+            # them visible alongside optional Zenodo downloads rather than
+            # copying them into a second cache.
+            "pretrained_models/model_A0201_ELAGIGILTV.ckpt",
+            "pretrained_models/model_A0201_GILGFVFTL.ckpt",
+        ),
+        license_name="MixTCRpred Academic Non-Commercial License",
+        license_url=(
+            "https://github.com/GfellerLab/MixTCRpred/blob/"
+            "acd6f57444bde675840890207c74ca3b0c7ffac2/LICENSE.md"),
+        acceptance_required=True,
+        environment_variable="MIXTCRPRED_HOME",
+        legacy_paths=("~/MixTCRpred", "~/code/MixTCRpred"),
+    ),
     "tulip": _Snapshot(
         repository="https://github.com/barthelemymp/TULIP-TCR.git",
         revision="798fab97a3b13d08dcbfc381ea643e8dc14297c2",
@@ -188,27 +214,45 @@ _MANUAL_EXECUTABLES = {
     },
     "netchop": {
         "executables": ("netChop",),
-        "detail": "Install NetChop from DTU Health Tech",
+        "detail": (
+            "Install NetChop from DTU Health Tech; its identity-bound "
+            "request form and emailed private link cannot be replaced by "
+            "--accept-license"),
     },
     "netmhc": {
         "executables": ("netMHC",),
-        "detail": "Install NetMHC from DTU Health Tech",
+        "detail": (
+            "Install NetMHC from DTU Health Tech; its identity-bound "
+            "request form and emailed private link cannot be replaced by "
+            "--accept-license"),
     },
     "netmhccons": {
         "executables": ("netMHCcons",),
-        "detail": "Install NetMHCcons from DTU Health Tech",
+        "detail": (
+            "Install NetMHCcons from DTU Health Tech; its identity-bound "
+            "request form and emailed private link cannot be replaced by "
+            "--accept-license"),
     },
     "netmhciipan": {
         "executables": ("netMHCIIpan",),
-        "detail": "Install NetMHCIIpan from DTU Health Tech",
+        "detail": (
+            "Install NetMHCIIpan from DTU Health Tech; its identity-bound "
+            "request form and emailed private link cannot be replaced by "
+            "--accept-license"),
     },
     "netmhcpan": {
         "executables": ("netMHCpan",),
-        "detail": "Install NetMHCpan from DTU Health Tech",
+        "detail": (
+            "Install NetMHCpan from DTU Health Tech; its identity-bound "
+            "request form and emailed private link cannot be replaced by "
+            "--accept-license"),
     },
     "netmhcstabpan": {
         "executables": ("netMHCstabpan",),
-        "detail": "Install NetMHCstabpan from DTU Health Tech",
+        "detail": (
+            "Install NetMHCstabpan from DTU Health Tech; its identity-bound "
+            "request form and emailed private link cannot be replaced by "
+            "--accept-license"),
     },
     "prime": {
         "environment_variables": ("PRIME_EXECUTABLE",),
@@ -436,6 +480,15 @@ def _snapshot_status(name, data_dir=None):
     if snapshot.acceptance_required:
         detail += "; initial fetch requires explicit acceptance of %s (%s)" % (
             snapshot.license_name, snapshot.license_url)
+    if name == "mixtcrpred" and ready:
+        try:
+            from .mixtcrpred import model_catalog
+            models = model_catalog(mixtcrpred_path=path)
+            downloaded = sum(model.status == "ready" for model in models)
+            detail += "; %d/%d pMHC model weights available" % (
+                downloaded, len(models))
+        except (OSError, RuntimeError, ValueError):
+            pass
     return ArtifactStatus(
         name=name,
         status="ready" if ready else "missing",
@@ -702,7 +755,10 @@ def fetch(
         name,
         version=None,
         data_dir=None,
-        accept_license=False):
+        accept_license=False,
+        models=None,
+        all_models=False,
+        high_confidence=False):
     """Fetch a predictor's external artifacts and return their status.
 
     Native download managers retain ownership of their files. Tested upstream
@@ -710,6 +766,10 @@ def fetch(
     parameters are already packaged are successful no-ops.
     """
     canonical = _canonical_name(name)
+    model_selection = bool(models or all_models or high_confidence)
+    if model_selection and canonical != "mixtcrpred":
+        raise ValueError(
+            "Model selection is supported only for the mixtcrpred artifact")
     if canonical == "mhcflurry":
         return _fetch_mhcflurry(
             name="mhcflurry",
@@ -727,13 +787,24 @@ def fetch(
     if canonical in _SNAPSHOTS:
         current = _snapshot_status(canonical, data_dir=data_dir)
         if data_dir is None and version is None and current.status == "ready":
-            return current
-        return _fetch_snapshot(
-            canonical,
-            version=version,
-            data_dir=data_dir,
-            accept_license=accept_license,
-        )
+            status = current
+        else:
+            status = _fetch_snapshot(
+                canonical,
+                version=version,
+                data_dir=data_dir,
+                accept_license=accept_license,
+            )
+        if canonical == "mixtcrpred" and model_selection:
+            from .mixtcrpred import fetch_models
+            fetch_models(
+                mixtcrpred_path=status.path,
+                models=models,
+                all_models=all_models,
+                high_confidence=high_confidence,
+            )
+            return _snapshot_status(canonical, data_dir=data_dir)
+        return status
 
     status = artifact_status(canonical, data_dir=data_dir)
     if status.status == "ready":

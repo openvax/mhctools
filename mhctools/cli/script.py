@@ -178,6 +178,9 @@ def main(args_list=None):
     if args_list and args_list[0] == "predict-table":
         from .annotate_table import main as annotate_table_main
         return annotate_table_main(args_list[1:])
+    if args_list and args_list[0] == "mixtcrpred":
+        from .mixtcrpred import main as mixtcrpred_main
+        return mixtcrpred_main(args_list[1:])
 
     args = parse_args(args_list)
     binding_predictions = run_predictor(args)

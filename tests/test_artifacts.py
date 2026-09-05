@@ -23,6 +23,7 @@ def test_list_includes_native_and_packaged_artifacts():
     assert set(statuses) == {
         "bigmhc", "calis", "caphla", "deepimmuno", "deeptap", "eramer",
         "mhcflurry", "mhcflurry-affinity", "mixmhc2pred", "mixmhcpred",
+        "mixtcrpred",
         "netchop", "netcleave", "netmhc", "netmhccons", "netmhciipan",
         "netmhcpan", "netmhcstabpan", "nettcr", "pepsickle", "prime",
         "tlimmuno2", "tulip"}
@@ -35,6 +36,10 @@ def test_list_includes_native_and_packaged_artifacts():
     assert statuses["deeptap"].manager == "mhctools"
     assert statuses["mixmhcpred"].manager == "manual"
     assert statuses["mixmhcpred"].fetchable is False
+    assert "identity-bound" in statuses["netmhcpan"].detail
+    assert "--accept-license" in statuses["netmhcpan"].detail
+    assert statuses["mixtcrpred"].manager == "mhctools"
+    assert statuses["mixtcrpred"].fetchable is True
 
 
 def test_alias_resolves_to_presentation_artifact():
@@ -107,6 +112,8 @@ def test_eramer_status_finds_direct_pwm(monkeypatch, tmp_path):
 def test_license_gated_snapshot_requires_acceptance(tmp_path):
     with pytest.raises(RuntimeError, match="--accept-license"):
         fetch("nettcr", data_dir=tmp_path)
+    with pytest.raises(RuntimeError, match="--accept-license"):
+        fetch("mixtcrpred", data_dir=tmp_path)
 
 
 def test_snapshot_rejects_untested_revision(tmp_path):
@@ -267,9 +274,30 @@ def test_fetch_cli_dispatch(monkeypatch, capsys):
     monkeypatch.setattr(
         artifact_cli,
         "fetch",
-        lambda name, version=None, data_dir=None, accept_license=False: status)
+        lambda name, version=None, data_dir=None, accept_license=False,
+        models=None, all_models=False, high_confidence=False: status)
     result = main([
         "fetch", "example", "--version", "v1", "--data-dir", "/models",
         "--accept-license"])
     assert result is None
     assert "upstream" in capsys.readouterr().out
+
+
+def test_fetch_cli_passes_mixtcrpred_model_selection(monkeypatch):
+    calls = []
+    status = ArtifactStatus(
+        name="mixtcrpred", status="ready", manager="mhctools",
+        version="v1", path="/models", fetchable=True, detail="example")
+
+    def fake_fetch(name, **kwargs):
+        calls.append((name, kwargs))
+        return status
+
+    monkeypatch.setattr(artifact_cli, "fetch", fake_fetch)
+    main([
+        "fetch", "mixtcrpred", "--model", "A0201_GILGFVFTL",
+        "--accept-license",
+    ])
+    assert calls[0][0] == "mixtcrpred"
+    assert calls[0][1]["models"] == ["A0201_GILGFVFTL"]
+    assert calls[0][1]["accept_license"] is True
