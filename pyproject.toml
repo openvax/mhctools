@@ -52,6 +52,16 @@ nettcr = [
 caphla = [
   "torch>=1.12",
 ]
+mixtcrpred = [
+  # Runtime for the separately licensed upstream checkout. MixTCRpred's
+  # checkpoints were created with Lightning 1.6 but are exercised in CI on a
+  # current PyTorch/Lightning CPU stack.
+  "torch>=1.12",
+  "torchvision",
+  "pytorch-lightning>=1.6",
+  "scipy",
+  "scikit-learn",
+]
 dev = [
   "build",
   # Ruff 0.16 changed its default rule set; keep lint reproducible until #268.

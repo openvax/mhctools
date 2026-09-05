@@ -42,6 +42,11 @@ mhctools fetch eramer
 # Academic licenses must be reviewed and accepted explicitly.
 mhctools fetch nettcr --accept-license
 
+# MixTCRpred includes two upstream checkpoints; fetch another by model name.
+mhctools fetch mixtcrpred --accept-license
+mhctools fetch mixtcrpred --model A0201_NLVPMVATV
+mhctools ls mixtcrpred --models --downloaded
+
 # Machine-readable inventory, optionally rooted somewhere else.
 mhctools ls --json
 mhctools ls --data-dir /shared/models
@@ -79,6 +84,13 @@ The `MANAGER` column distinguishes four ownership models:
 - `mhctools`: a pinned snapshot fetched into the directory above;
 - `user` / `manual`: an existing checkout or licensed executable owned by the
   user. Manual artifacts are listed but `fetch` will not redistribute them.
+
+Small published models such as CALIS remain fully embedded in the mhctools
+package and appear as `mhctools package`; they never require a separate fetch.
+The DTU NetMHC-family downloads are identity-bound licenses: DTU requires a
+name, position, academic email, affiliation, acceptance, and then sends a
+private download link. Therefore `--accept-license` cannot substitute for the
+official DTU request form, and these installations remain `manual` inventory.
 
 ## Quick start
 
@@ -276,18 +288,60 @@ Examples:
 | `ERAMER` | `erap_trimming` | `none` | `I` |
 | `NetTCR` | `pMHC_TCR_binding` | `none` | `I` |
 | `Tulip` | `pMHC_TCR_binding` | `single_allele` | `I` |
+| `MixTCRpred` | `pMHC_TCR_binding` | `single_allele` | model-specific |
 | `BigMHC_IM` | `immunogenicity` | `single_allele` | `I` |
 | `PRIME` | `immunogenicity` | `single_allele` | `I` |
 | `DeepImmuno` | `immunogenicity` | `single_allele` | `I` |
 | `TLimmuno2` | `immunogenicity` | `single_allele` | `II` |
 | `Calis` | `immunogenicity` | `none` | `I` |
 
-### TCR predictors (`NetTCR`, `Tulip`)
+### TCR predictors (`NetTCR`, `Tulip`, `MixTCRpred`)
 
 `NetTCR` and `Tulip` predict pMHC:TCR binding — whether a paired αβ T-cell
 receptor (an `mhctools.TCR`, described by its CDR loops) recognises a peptide.
 Both take `(peptide, TCR)` inputs; `Tulip` additionally takes the presenting
 MHC allele.
+
+MixTCRpred has a different, deliberately explicit shape: each checkpoint is
+trained for one fixed peptide/MHC target. Its catalog currently contains 147
+models (43 marked high-confidence by upstream), spanning human/mouse class I
+and II targets. The input `TCR` stores paired CDR3s and optional `trav`, `traj`,
+`trbv`, and `trbj` assignments. Released models use CDR3alpha/beta plus CDR1/2
+derived from the V genes; J assignments are accepted and QC-reported but are
+not network inputs.
+
+```sh
+pip install "mhctools[mixtcrpred]"
+mhctools fetch mixtcrpred --accept-license
+mhctools ls mixtcrpred --models --high-confidence
+mhctools fetch mixtcrpred --model A0201_GILGFVFTL
+mhctools mixtcrpred --model A0201_GILGFVFTL \
+  --input paired-tcrs.csv --out scored-tcrs.csv
+```
+
+```python
+from mhctools import MixTCRpred, TCR
+
+models = MixTCRpred.catalog()
+target = MixTCRpred.resolve_model("GILGFVFTL", "HLA-A*02:01")
+predictor = MixTCRpred(target.name)
+tcr = TCR(
+    cdr3a="CAGASGNTGKLIF", cdr3b="CASSIRASYEQYF",
+    trav="TRAV27", traj="TRAJ42", trbv="TRBV19", trbj="TRBJ2-6",
+)
+prediction = predictor.predict_tcrs([tcr])[0]
+prediction.score
+prediction.percentile_rank
+```
+
+`annotate_dataframe()` and the CSV command retain the original table and add
+the raw score, percentile rank, fixed target metadata, corrected V/J names,
+V-derived CDR1/2 loops, and upstream-equivalent QC warning. MixTCRpred code is
+academic/non-commercial and fetched directly from its original repository
+only after explicit acceptance. Optional checkpoints come from the authors'
+immutable CC-BY-4.0 Zenodo record and are checksum-verified before use.
+As with any PyTorch checkpoint, explicit overrides and user-managed model files
+must come from a trusted source because loading can execute serialized code.
 
 ```python
 from mhctools import Tulip, TCR
@@ -711,6 +765,7 @@ results[0].immunogenicity.score                    # 0.9874 (higher = more immun
 | Predictor | Kinds produced | Requires |
 |---|---|---|
 | `NetTCR` | pMHC:TCR binding | `mhctools fetch nettcr --accept-license` + a TFLite runtime (`pip install mhctools[nettcr]`) |
+| `MixTCRpred` | fixed-pMHC:TCR binding | `pip install "mhctools[mixtcrpred]"` + `mhctools fetch mixtcrpred --accept-license` |
 
 `NetTCR` predicts whether a paired αβ T-cell receptor recognises a
 (class-I) peptide. Unlike the MHC-ligand predictors, its input is a peptide

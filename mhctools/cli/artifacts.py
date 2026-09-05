@@ -54,7 +54,31 @@ def ls_main(args_list=None):
         help="Override MHCTOOLS_DATA_DIR for mhctools-managed artifacts")
     parser.add_argument(
         "--json", action="store_true", help="Emit machine-readable JSON")
+    parser.add_argument(
+        "--models", action="store_true",
+        help="List the per-pMHC model catalog (mixtcrpred only)")
+    parser.add_argument(
+        "--downloaded", action="store_true",
+        help="With --models, show only locally available weights")
+    parser.add_argument(
+        "--high-confidence", action="store_true",
+        help="With --models, show only upstream high-confidence models")
     args = parser.parse_args(args_list)
+    if args.models:
+        if args.name != ["mixtcrpred"]:
+            parser.error("--models requires exactly: mhctools ls mixtcrpred")
+        from ..mixtcrpred import print_model_catalog
+        try:
+            return print_model_catalog(
+                data_dir=args.data_dir,
+                downloaded=args.downloaded,
+                high_confidence=args.high_confidence,
+                json_output=args.json,
+            )
+        except (OSError, RuntimeError, ValueError) as error:
+            parser.error(str(error))
+    if args.downloaded or args.high_confidence:
+        parser.error("--downloaded/--high-confidence require --models")
     try:
         statuses = list_artifacts(args.name or None, data_dir=args.data_dir)
     except ValueError as error:
@@ -81,6 +105,16 @@ def fetch_main(args_list=None):
         "--accept-license",
         action="store_true",
         help="Confirm acceptance when an upstream license requires it")
+    selection = parser.add_mutually_exclusive_group()
+    selection.add_argument(
+        "--model", dest="models", action="append", metavar="NAME",
+        help="Fetch one model weight; repeat for multiple models")
+    selection.add_argument(
+        "--all-models", action="store_true",
+        help="Fetch every available model weight (mixtcrpred only)")
+    selection.add_argument(
+        "--high-confidence", action="store_true",
+        help="Fetch upstream's high-confidence weights (mixtcrpred only)")
     parser.add_argument(
         "--json", action="store_true", help="Emit machine-readable JSON")
     args = parser.parse_args(args_list)
@@ -90,6 +124,9 @@ def fetch_main(args_list=None):
             version=args.version,
             data_dir=args.data_dir,
             accept_license=args.accept_license,
+            models=args.models,
+            all_models=args.all_models,
+            high_confidence=args.high_confidence,
         )
     except (RuntimeError, ValueError) as error:
         parser.error(str(error))

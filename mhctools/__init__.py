@@ -87,6 +87,8 @@ _LAZY_IMPORTS = {
     "CapHLA_EL": (".caphla", "CapHLA_EL"),
     "MHCflurry": (".mhcflurry", "MHCflurry"),
     "MHCflurry_Affinity": (".mhcflurry", "MHCflurry_Affinity"),
+    "MixTCRpred": (".mixtcrpred", "MixTCRpred"),
+    "MixTCRpredModel": (".mixtcrpred", "MixTCRpredModel"),
     "NetTCR": (".nettcr", "NetTCR"),
     "Tulip": (".tulip", "Tulip"),
 }
@@ -196,6 +198,8 @@ __all__ = [
     "CapHLA",
     "CapHLA_BA",
     "CapHLA_EL",
+    "MixTCRpred",
+    "MixTCRpredModel",
     "NetTCR",
     "Tulip",
     "RandomBindingPredictor",

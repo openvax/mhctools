@@ -67,6 +67,7 @@ jobs:
             tests/test_caphla.py \
             tests/test_unparseable_alleles.py \
             tests/test_nettcr.py \
+            tests/test_mixtcrpred.py \
             tests/test_tulip.py \
             tests/test_random.py
 
@@ -240,3 +241,41 @@ jobs:
 
       - name: Run CapHLA official regression
         run: python -m pytest tests/test_caphla.py -ra
+
+  integration-mixtcrpred:
+    # Upstream code is academic/non-commercial and is fetched directly after
+    # explicit acceptance; it is never copied into the mhctools distribution.
+    if: github.repository == 'openvax/mhctools'
+    runs-on: ubuntu-22.04
+    env:
+      MHCTOOLS_DATA_DIR: ${{ github.workspace }}/mhctools-data
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install current CPU PyTorch, Lightning, and mhctools
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install torch torchvision \
+            --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install -e ".[dev,mixtcrpred]"
+
+      - name: Cache pinned MixTCRpred source and weights
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.MHCTOOLS_DATA_DIR }}
+          key: mixtcrpred-${{ runner.os }}-${{ hashFiles('mhctools/artifacts.py', 'mhctools/mixtcrpred.py') }}
+
+      - name: Fetch licensed source and one optional Zenodo model
+        run: |
+          mhctools fetch mixtcrpred --accept-license \
+            --model A0201_NLVPMVATV
+
+      - name: Run MixTCRpred catalog, download, and inference regression
+        run: python -m pytest tests/test_mixtcrpred.py -ra

@@ -18,7 +18,8 @@ predictors (e.g. NetTCR) add a new input modality — the receptor itself,
 represented by its complementarity-determining regions (CDRs) — and a new
 output kind (:attr:`~mhctools.pred.Kind.pMHC_TCR_binding`).
 
-A :class:`TCR` is a paired αβ receptor described by its six CDR loops.
+A :class:`TCR` is a paired αβ receptor described by its six CDR loops and,
+when available, its V/J gene assignments.
 The field names use the biological convention (``cdr1a`` = CDR1 of the α
 chain, ``cdr3b`` = CDR3 of the β chain, ...); the ``a1``/``b3`` short
 forms used by NetTCR are exposed as properties.
@@ -36,6 +37,12 @@ _SHORT_CDR_ALIASES = {
     "b1": "cdr1b",
     "b2": "cdr2b",
     "b3": "cdr3b",
+    "cdr1_tra": "cdr1a",
+    "cdr2_tra": "cdr2a",
+    "cdr3_tra": "cdr3a",
+    "cdr1_trb": "cdr1b",
+    "cdr2_trb": "cdr2b",
+    "cdr3_trb": "cdr3b",
 }
 
 
@@ -52,6 +59,10 @@ class TCR:
     name : str, optional
         Human-readable identifier (e.g. a clonotype name). If omitted,
         :attr:`identifier` falls back to the CDR3α/CDR3β pair.
+    trav, traj, trbv, trbj : str, optional
+        TCR alpha/beta V and J gene assignments. These fields intentionally
+        preserve the caller's spelling: predictor-specific correction and
+        allele handling belong in the predictor adapter.
 
     Notes
     -----
@@ -67,6 +78,12 @@ class TCR:
     cdr2b: str = ""
     cdr3b: str = ""
     name: str = ""
+    # Keep gene fields after ``name`` so existing positional construction of
+    # the original seven-field TCR dataclass remains backward compatible.
+    trav: str = ""
+    traj: str = ""
+    trbv: str = ""
+    trbj: str = ""
 
     # NetTCR-style short aliases -------------------------------------------
     @property
@@ -115,6 +132,15 @@ class TCR:
             "b3": self.cdr3b,
         }
 
+    def gene_dict(self) -> dict:
+        """Return V/J assignments using standard AIRR-style gene names."""
+        return {
+            "TRAV": self.trav,
+            "TRAJ": self.traj,
+            "TRBV": self.trbv,
+            "TRBJ": self.trbj,
+        }
+
     def __str__(self):
         return "TCR(%s)" % self.identifier
 
@@ -129,9 +155,10 @@ class TCR:
     def from_dict(cls, d):
         """Deserialize from a dict.
 
-        Accepts canonical ``cdr1a``..``cdr3b`` keys plus NetTCR/IMMREP-style
-        short aliases ``a1``..``b3`` / ``A1``..``B3``. Canonical field names
-        win if both a canonical key and an alias are present.
+        Accepts canonical ``cdr1a``..``cdr3b`` and ``trav``..``trbj`` keys
+        case-insensitively, plus NetTCR/IMMREP-style short aliases
+        ``a1``..``b3`` / ``A1``..``B3``. Canonical field names win if both a
+        canonical key and an alias are present.
         """
         valid = {f.name for f in fields(cls)}
         values = {}

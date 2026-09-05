@@ -43,6 +43,31 @@ def test_cdr_dict_keys_and_values():
         "b1": "LNHDA", "b2": "SQIVND", "b3": "ASSIRAAYEQY"}
 
 
+def test_gene_fields_and_upstream_style_deserialization():
+    t = TCR.from_dict({
+        "cdr3_TRA": "CAVR",
+        "cdr3_TRB": "CASS",
+        "TRAV": "TRAV12-2",
+        "TRAJ": "TRAJ45",
+        "TRBV": "TRBV2",
+        "TRBJ": "TRBJ2-5",
+    })
+    assert t.cdr3a == "CAVR"
+    assert t.cdr3b == "CASS"
+    assert t.gene_dict() == {
+        "TRAV": "TRAV12-2",
+        "TRAJ": "TRAJ45",
+        "TRBV": "TRBV2",
+        "TRBJ": "TRBJ2-5",
+    }
+
+
+def test_gene_fields_do_not_break_original_positional_name_argument():
+    t = TCR("a1", "a2", "a3", "b1", "b2", "b3", "clone")
+    assert t.name == "clone"
+    assert t.trav == ""
+
+
 def test_identifier_uses_name_when_present():
     assert _tcr().identifier == "clone1"
 
