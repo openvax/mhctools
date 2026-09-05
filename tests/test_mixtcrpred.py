@@ -277,9 +277,12 @@ def test_real_checkpoint_regression_current_pytorch():
             trbv="TRBV999", trbj="TRBJ999", name="bad-v"),
     ]
     output = predictor.predict_dataframe(tcrs)
+    # Upstream's reference output is published to three decimal places. Keep
+    # that scientifically meaningful precision while tolerating the observed
+    # ~4e-5 CPU-kernel difference between macOS and Linux.
     assert output["score"].tolist() == pytest.approx([
-        3.076019, -1.651455, -1.870569], abs=1e-5)
+        3.076, -1.651, -1.871], abs=5e-4)
     assert output["percentile_rank"].tolist() == pytest.approx([
-        0.001, 22.141987, 28.796943], abs=1e-5)
+        0.001, 22.142, 28.797], abs=5e-4)
     assert predictor.last_qc["warning"].tolist() == [
         "-", "-", "Error TRAV-TRBV"]
