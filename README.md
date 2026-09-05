@@ -85,7 +85,7 @@ The `MANAGER` column distinguishes four ownership models:
 - `user` / `manual`: an existing checkout or licensed executable owned by the
   user. Manual artifacts are listed but `fetch` will not redistribute them.
 
-Small published models such as CALIS remain fully embedded in the mhctools
+Small published models such as Calis remain fully embedded in the mhctools
 package and appear as `mhctools package`; they never require a separate fetch.
 The DTU NetMHC-family downloads are identity-bound licenses: DTU requires a
 name, position, academic email, affiliation, acceptance, and then sends a
