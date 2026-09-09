@@ -59,26 +59,24 @@ def test_half_life_hours_inverts_log10_seconds():
     assert half_life_hours(math.log10(86400.0)) == pytest.approx(24.0)
 
 
-def test_units_reproduce_the_documented_training_floor():
-    # The lineage paper (PLoS ONE 2018) discarded peptides with a half-life
-    # below 20 seconds, and the shipped forests' lowest leaf value inverts to
-    # that floor under log10-seconds. This is the evidence the transform rests
-    # on, so it is pinned here: if someone "fixes" the conversion to log2 or
-    # ln, the training range stops making sense.
+def test_inferred_transform_is_self_consistent_with_the_forest_extrema():
+    # NOT a validation of the transform -- upstream documents no target, and
+    # agreement with our own conversion is not external evidence. This pins
+    # the arithmetic behind the inference recorded in the module docstring, so
+    # that changing `half_life_hours` without revisiting that reasoning fails.
     lowest_leaf_value = 1.30535
     assert half_life_hours(lowest_leaf_value) * 3600.0 == pytest.approx(
         20.2, abs=0.1)
-    # The natural model's highest leaf value is exactly seven days.
+    # The natural model's highest leaf value comes out at exactly seven days.
     assert half_life_hours(5.78161) == pytest.approx(24.0 * 7, rel=1e-4)
 
 
-def test_log2_and_ln_readings_contradict_the_documented_dataset():
-    # Guard the reasoning, not just the result. The paper's dataset spans
-    # 20 seconds to at least 24 hours, and the shipped forests' extreme leaf
-    # values are 1.30535 and 6.91424. Under log2 or ln seconds the whole
-    # training range collapses to a couple of seconds up to ~2-17 minutes:
-    # the floor falls under the documented 20 s and the ceiling nowhere near
-    # the documented 24 h. Only log10 spans the documented range.
+def test_log2_and_ln_readings_give_implausible_durations():
+    # Guard the reasoning, not just the result. Under log2 or ln seconds the
+    # forests' extreme leaf values (1.30535, 6.91424) invert to a range of a
+    # couple of seconds up to about two minutes, which no peptide half-life
+    # dataset would span. This is what makes log10 the strongest reading; it
+    # is not proof, since the training targets themselves are undocumented.
     lowest, highest = 1.30535, 6.91424
     assert 2.0 ** lowest < 20.0                  # below the documented floor
     assert 2.0 ** highest < 24 * 3600.0          # far below the documented cap
@@ -123,7 +121,7 @@ def test_accessors_do_not_mix_matrices():
 
 # --- parser -----------------------------------------------------------------
 
-def test_parse_results_converts_to_hours():
+def test_parse_results_names_the_derived_column_for_its_assumption():
     path = _write(_OUTPUT)
     try:
         frame = parse_plifepred2_results(
@@ -131,7 +129,11 @@ def test_parse_results_converts_to_hours():
     finally:
         os.remove(path)
     assert frame["log10_seconds"].tolist() == [3.157266, 3.793472]
-    assert frame["hours"].tolist() == pytest.approx([0.39899, 1.72651], rel=1e-4)
+    # Not "hours": the conversion rests on an inferred transform, and the
+    # column name has to carry that so a QC frame cannot be read as measured.
+    assert "hours" not in frame.columns
+    assert frame["hours_if_log10_seconds"].tolist() == pytest.approx(
+        [0.39899, 1.72651], rel=1e-4)
 
 
 def test_parse_results_restores_input_order():
@@ -306,14 +308,16 @@ def test_end_to_end_matches_the_reference_values():
     assert len(results) == 2
     raw = predictor.last_qc["log10_seconds"].tolist()
     assert raw == pytest.approx([3.1572664, 3.79347232], rel=1e-6)
-    for peptide, result in zip(
-            ["SIINFEKLGGALQAKKY", "GILGFVFTLAAAKKWWWQ"], results):
+    for peptide, result, native in zip(
+            ["SIINFEKLGGALQAKKY", "GILGFVFTLAAAKKWWWQ"], results, raw):
         pred = result.preds[0]
         assert pred.kind == Kind.blood_half_life
         assert pred.peptide == peptide
         assert pred.allele == ""
-        assert pred.value > 0
-        assert pred.value == pred.score
+        # score is the native model output, and by default no duration is
+        # claimed at all.
+        assert pred.score == pytest.approx(native)
+        assert pred.value is None
 
 
 @requires_plifepred2
@@ -323,8 +327,22 @@ def test_end_to_end_scores_follow_their_peptides_when_reordered():
     predictor = PlifePred2()
     forward = predictor.predict(["SIINFEKLGGALQAKKY", "GILGFVFTLAAAKKWWWQ"])
     reverse = predictor.predict(["GILGFVFTLAAAKKWWWQ", "SIINFEKLGGALQAKKY"])
-    assert forward[0].preds[0].value == pytest.approx(reverse[1].preds[0].value)
-    assert forward[1].preds[0].value == pytest.approx(reverse[0].preds[0].value)
+    assert forward[0].preds[0].score == pytest.approx(reverse[1].preds[0].score)
+    assert forward[1].preds[0].score == pytest.approx(reverse[0].preds[0].score)
+
+
+@requires_plifepred2
+def test_end_to_end_hours_require_explicit_opt_in():
+    # The duration is gated because the transform is inferred, not documented.
+    default = PlifePred2().predict(["SIINFEKLGGALQAKKY"])[0].preds[0]
+    assert default.value is None
+
+    opted_in = PlifePred2(assume_log10_seconds=True)
+    pred = opted_in.predict(["SIINFEKLGGALQAKKY"])[0].preds[0]
+    assert pred.value == pytest.approx(half_life_hours(default.score))
+    assert pred.value == pytest.approx(0.39899, rel=1e-4)
+    # score stays the native output either way, so ranking is unaffected.
+    assert pred.score == pytest.approx(default.score)
 
 
 @requires_plifepred2
@@ -340,4 +358,138 @@ def test_end_to_end_minimum_peptide_length_is_accepted():
     peptide = "SIINFEKLGGAL"
     assert len(peptide) == PLIFEPRED2_MIN_PEPTIDE_LENGTH
     results = PlifePred2().predict([peptide])
-    assert results[0].preds[0].value > 0
+    assert results[0].preds[0].score is not None
+
+
+# --- Pfeature workspace isolation (offline, uses a stub extractor) ----------
+
+# Upstream's real pfeature_comp.py reads Data/ by relative path, scatters
+# intermediates into the working directory, and ends with an unscoped
+# glob.glob("sam_allcomp*") + os.remove. This stub reproduces exactly those
+# three behaviours so the isolation can be tested without a real install.
+_DESTRUCTIVE_STUB = '''\
+import argparse, glob, os, sys
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-i"); parser.add_argument("-o"); parser.add_argument("-j")
+args = parser.parse_args()
+
+# 1. Data must be reachable by RELATIVE path, as upstream reads it.
+open(os.path.join("Data", "Schneider-Wrede.csv")).close()
+
+# 2. Upstream scatters intermediates into the working directory.
+for name in ("sam_allcomp.qso_st", "sam_input.csv"):
+    with open(name, "w") as handle:
+        handle.write("scratch\\n")
+
+# 3. Upstream's unscoped wildcard cleanup.
+for path in glob.glob("sam_allcomp*"):
+    os.remove(path)
+
+with open(args.o, "w") as handle:
+    handle.write("QSO1_SC_A\\n1.0\\n")
+'''
+
+
+def _stub_installation(tmp_path):
+    """A Pfeature-shaped installation whose extractor is the stub above."""
+    home = tmp_path / "Standalone"
+    (home / "Data").mkdir(parents=True)
+    for name in ("Schneider-Wrede.csv", "Grantham.csv"):
+        (home / "Data" / name).write_text("Name,A\nA,0\n")
+    (home / "pfeature_comp.py").write_text(_DESTRUCTIVE_STUB)
+    return home
+
+
+def test_pfeature_cleanup_cannot_delete_files_in_the_installation(tmp_path):
+    # Regression for the wildcard cleanup deleting unrelated user files.
+    from mhctools.plifepred2_sidecar import _run_pfeature
+
+    home = _stub_installation(tmp_path)
+    sentinel = home / "sam_allcomp.review_sentinel"
+    sentinel.write_text("do not delete me")
+
+    fasta = tmp_path / "in.fasta"
+    fasta.write_text(">0\nSIINFEKLGGAL\n")
+    out = tmp_path / "qso.csv"
+    _run_pfeature(str(home), fasta, out)
+
+    assert out.exists(), "extraction still has to produce its output"
+    assert sentinel.exists(), "upstream cleanup reached into the installation"
+    assert sentinel.read_text() == "do not delete me"
+
+
+def test_pfeature_leaves_no_intermediates_in_the_installation(tmp_path):
+    from mhctools.plifepred2_sidecar import _run_pfeature
+
+    home = _stub_installation(tmp_path)
+    before = {path.name for path in home.iterdir()}
+
+    fasta = tmp_path / "in.fasta"
+    fasta.write_text(">0\nSIINFEKLGGAL\n")
+    _run_pfeature(str(home), fasta, tmp_path / "qso.csv")
+
+    assert {path.name for path in home.iterdir()} == before
+
+
+def test_pfeature_works_with_a_read_only_installation(tmp_path):
+    import stat
+    from mhctools.plifepred2_sidecar import _run_pfeature
+
+    home = _stub_installation(tmp_path)
+    fasta = tmp_path / "in.fasta"
+    fasta.write_text(">0\nSIINFEKLGGAL\n")
+    out = tmp_path / "qso.csv"
+
+    read_only = stat.S_IRUSR | stat.S_IXUSR
+    paths = [home / "Data", home]
+    original = [path.stat().st_mode for path in paths]
+    for path in paths:
+        path.chmod(read_only)
+    try:
+        _run_pfeature(str(home), fasta, out)
+    finally:
+        for path, mode in zip(paths, original):
+            path.chmod(mode)
+    assert out.exists()
+
+
+def test_concurrent_extractions_do_not_collide_on_one_installation(tmp_path):
+    from concurrent.futures import ThreadPoolExecutor
+    from mhctools.plifepred2_sidecar import _run_pfeature
+
+    home = _stub_installation(tmp_path)
+
+    def run(index):
+        fasta = tmp_path / ("in_%d.fasta" % index)
+        fasta.write_text(">0\nSIINFEKLGGAL\n")
+        out = tmp_path / ("qso_%d.csv" % index)
+        _run_pfeature(str(home), fasta, out)
+        return out.exists()
+
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        assert all(pool.map(run, range(4)))
+
+
+def test_missing_data_directory_is_reported(tmp_path):
+    from mhctools.plifepred2_sidecar import _run_pfeature
+
+    home = tmp_path / "Standalone"
+    home.mkdir()
+    (home / "pfeature_comp.py").write_text(_DESTRUCTIVE_STUB)
+    with pytest.raises(RuntimeError, match="no Data directory"):
+        _run_pfeature(str(home), tmp_path / "in.fasta", tmp_path / "out.csv")
+
+
+def test_value_is_withheld_by_default(tmp_path):
+    # The units gate is a constructor-level contract, checkable without a model.
+    assert _predictor(tmp_path).assume_log10_seconds is False
+
+
+def test_opt_in_is_visible_in_the_repr(tmp_path):
+    plifepred2_home, pfeature_home = _fake_homes(tmp_path)
+    predictor = PlifePred2(
+        plifepred2_home=plifepred2_home,
+        pfeature_home=pfeature_home,
+        assume_log10_seconds=True)
+    assert "assume_log10_seconds=True" in str(predictor)

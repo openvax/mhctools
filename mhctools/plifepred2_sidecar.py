@@ -23,6 +23,7 @@ pointing at checkouts it trusts.
 from argparse import ArgumentParser
 import csv
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -38,31 +39,56 @@ def _parse_args():
 
 
 def _run_pfeature(pfeature_home, fasta_path, features_path):
-    """Run Pfeature's QSO job, returning nothing but writing *features_path*."""
-    script = Path(pfeature_home) / "pfeature_comp.py"
-    command = [
-        sys.executable,
-        # runpy rather than the script path so that the Pfeature directory is
-        # not prepended to sys.path in this process's child.
-        "-c",
-        ("import runpy,sys; sys.argv=sys.argv[1:]; "
-         "runpy.run_path(sys.argv[0],run_name='__main__')"),
-        str(script),
-        "-i", str(fasta_path),
-        "-o", str(features_path),
-        "-j", "QSO",
-    ]
-    process = subprocess.run(
-        command,
-        cwd=str(pfeature_home),
-        capture_output=True,
-        text=True,
-    )
-    if process.returncode != 0:
+    """Run Pfeature's QSO job, returning nothing but writing *features_path*.
+
+    Upstream's script is written to run from its own directory: it reads
+    ``Data/*.csv`` by relative path, scatters intermediates into the working
+    directory, and finishes with an unscoped ``glob.glob("sam_allcomp*")``
+    followed by ``os.remove`` on every match. Running it with the installation
+    as the working directory therefore requires that installation to be
+    writable, deletes any pre-existing ``sam_allcomp*`` files a user happens to
+    have there, and makes concurrent invocations race over shared intermediate
+    filenames.
+
+    So each extraction gets a private workspace with a copy of ``Data``
+    (~600 KB) and runs there. The installation is only ever read, the wildcard
+    cleanup can only reach this invocation's own scratch files, and concurrent
+    calls against one shared installation cannot collide.
+    """
+    pfeature_home = Path(pfeature_home)
+    script = (pfeature_home / "pfeature_comp.py").resolve()
+    data_source = pfeature_home / "Data"
+    if not data_source.is_dir():
         raise RuntimeError(
-            "Pfeature QSO extraction failed (exit %d):\n%s" % (
-                process.returncode,
-                (process.stderr or process.stdout).strip()))
+            "Pfeature installation %r has no Data directory" % str(pfeature_home))
+
+    with tempfile.TemporaryDirectory(prefix="mhctools_pfeature_run_") as run_dir:
+        # copy, not symlink: a symlinked tree would let upstream's cleanup and
+        # intermediate writes reach back into the installation.
+        shutil.copytree(data_source, Path(run_dir) / "Data")
+        command = [
+            sys.executable,
+            # runpy rather than the script path so that the Pfeature directory
+            # is not prepended to sys.path in this process's child.
+            "-c",
+            ("import runpy,sys; sys.argv=sys.argv[1:]; "
+             "runpy.run_path(sys.argv[0],run_name='__main__')"),
+            str(script),
+            "-i", str(Path(fasta_path).resolve()),
+            "-o", str(Path(features_path).resolve()),
+            "-j", "QSO",
+        ]
+        process = subprocess.run(
+            command,
+            cwd=run_dir,
+            capture_output=True,
+            text=True,
+        )
+        if process.returncode != 0:
+            raise RuntimeError(
+                "Pfeature QSO extraction failed (exit %d):\n%s" % (
+                    process.returncode,
+                    (process.stderr or process.stdout).strip()))
 
 
 def main():

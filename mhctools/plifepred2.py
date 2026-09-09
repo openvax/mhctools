@@ -12,33 +12,58 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Wrapper for PlifePred2's natural-peptide blood half-life model.
+"""Wrapper for PlifePred2's natural-peptide half-life model.
 
-How long a free peptide survives incubated in **mammalian whole blood**, in
-hours. That matrix matters and is why this emits ``Kind.blood_half_life`` rather
-than the ``Kind.serum_half_life`` that :mod:`mhctools.peptiverse` emits: serum
-is blood with the cells and clotting factors removed, and peptide stability
-differs measurably between the two. Neither is ``pMHC_stability``, which is
-peptide-MHC complex dissociation, and neither is a cleavage-site map.
+.. warning::
 
-Units
------
-Upstream's README calls the output column ``Halflife`` and describes it as a
-"Predicted probability". It is neither a probability nor a raw duration. Both
-shipped models are ``RandomForestRegressor``, so the ``predict_proba`` branch in
-upstream's CLI is dead code, and the target is ``log10(half-life in seconds)``.
+   **This endpoint's semantics are not established.** PlifePred2 ships no
+   publication, no training data and no target definition, so its units,
+   transform, species and assay matrix are all inferred from the artifacts.
+   By default this wrapper therefore reports only the model's native output as
+   ``score`` and leaves ``value`` empty. Pass ``assume_log10_seconds=True`` to
+   opt in to a half-life in hours, accepting the inference below.
 
-That transform is established rather than assumed. The lineage paper (Mathur et
-al. 2018, PLoS ONE 13(6):e0196829) built its dataset from PEPlife filtered to
-mammalian blood, discarding anything below 20 seconds. Inverting the extreme
-leaf values of the shipped forests under log10-seconds reproduces that floor
-(20.2 s) and yields round durations at the top (exactly 7.000 days for the
-natural model, 95.0 days for the modified one); under log2 or ln the entire
-training range falls below the documented 20-second floor, which is impossible.
+What is actually known
+----------------------
+Both shipped models are ``RandomForestRegressor``. That much is verified by
+loading them, and it is enough to establish one thing: the output is **not** a
+class probability, so upstream's README ("Halflife ... Predicted probability")
+and its CLI's ``predict_proba`` branch are both wrong — the branch is dead code
+and ``model.predict`` always runs. The output is a regression target on some
+monotone-in-half-life scale, which makes it usable for ranking whatever the
+transform turns out to be.
 
-Note that PlifePred2 departs from that paper in two ways, so its numbers are not
-the paper's: the transform is log10 where the paper used log2 (a constant factor
-of ~3.32), and the paper's 24-hour ceiling is gone.
+What is inferred, and how strongly
+----------------------------------
+The evidence for ``log10(half-life in seconds)`` is circumstantial but not
+weak. Inverting the extreme leaf values of the shipped forests under that
+reading gives round durations — the natural model's maximum is 604800.0 s,
+exactly 7.000 days, and the modified model's is 8208000 s, exactly 95.0 days —
+agreeing to about seven significant figures. Under log2 or ln the same extrema
+invert to a few seconds up to a couple of minutes, which no half-life dataset
+would span. The minimum also inverts to 20.2 s, matching the 20-second floor
+documented by the lineage paper (Mathur et al. 2018, PLoS ONE 13(6):e0196829).
+
+That last point is the weakest of the three, and it is worth being precise
+about why. The same forests hold targets out to 7 and 95 days, which violates
+the 24-hour ceiling that paper also documents. So PlifePred2 was trained on a
+*different* dataset, and a filter from the old one cannot independently
+establish the new one's target. The round-number extrema stand on their own;
+the floor agreement is corroboration, not proof.
+
+Note also that the lineage paper states log2, not log10 — anyone carrying
+assumptions across from it will be wrong by a factor of log2(10) ~ 3.32.
+
+What is not established at all
+------------------------------
+The **species and assay matrix**. ``Kind.blood_half_life`` is assigned because
+the lineage paper drew its data from PEPlife filtered to mammalian whole blood,
+and that is the best available guide. But it is inherited from a dataset this
+model demonstrably does not use. Whether PlifePred2's own data is whole blood,
+plasma, serum or a mixture, from which species, and ex vivo or in vivo, is
+unknown. Do not report this as a measured whole-blood property, and do not
+treat it as interchangeable with :mod:`mhctools.peptiverse`'s human-serum
+endpoint. Resolving this needs the authors or a model-specific publication.
 
 Natural peptides only
 ---------------------
@@ -112,8 +137,9 @@ _SECONDS_PER_HOUR = 3600.0
 def half_life_hours(log10_seconds):
     """Convert a raw PlifePred2 prediction to hours.
 
-    The model's target is ``log10(half-life in seconds)``; see the module
-    docstring for how that was established.
+    This applies the **inferred** ``log10(seconds)`` transform; see the module
+    docstring for the evidence and its limits. Upstream documents no target,
+    so a caller reaching for this is accepting that inference.
     """
     return (10.0 ** log10_seconds) / _SECONDS_PER_HOUR
 
@@ -194,6 +220,13 @@ class PlifePred2(AlleleFreePredictor):
         the argument, then ``$PLIFEPRED2_PYTHON``, then the current interpreter.
         Upstream pins ``scikit-learn==1.4.2``; a different version loads the
         forest but warns, so give this its own environment to be exact.
+    assume_log10_seconds : bool
+        Opt in to reporting a half-life in hours by treating the model's output
+        as ``log10(seconds)``. Off by default: that transform is inferred from
+        the shipped forests, not documented by upstream (see the module
+        docstring). While off, ``value`` is left empty and only the native
+        output is reported, in ``score``. Turning it on is an assertion that
+        you accept the inference.
     """
 
     mhc_class = "none"
@@ -202,15 +235,19 @@ class PlifePred2(AlleleFreePredictor):
             self,
             plifepred2_home=None,
             pfeature_home=None,
-            plifepred2_python=None):
+            plifepred2_python=None,
+            assume_log10_seconds=False):
         self.plifepred2_home = _find_plifepred2_home(plifepred2_home)
         self.pfeature_home = _find_pfeature_home(pfeature_home)
         self.plifepred2_python = _resolve_python(plifepred2_python)
+        self.assume_log10_seconds = assume_log10_seconds
         self.last_qc = pd.DataFrame()
 
     def __str__(self):
-        return "PlifePred2(plifepred2_home=%r, pfeature_home=%r)" % (
-            self.plifepred2_home, self.pfeature_home)
+        return ("PlifePred2(plifepred2_home=%r, pfeature_home=%r, "
+                "assume_log10_seconds=%r)") % (
+            self.plifepred2_home, self.pfeature_home,
+            self.assume_log10_seconds)
 
     def _default_pred_kind(self):
         return Kind.blood_half_life
@@ -249,9 +286,14 @@ class PlifePred2(AlleleFreePredictor):
         -------
         list of PeptideResult
             One entry per input peptide, in input order, each holding a single
-            ``Kind.blood_half_life`` prediction with an empty ``allele``. Both
-            ``score`` and ``value`` carry the half-life in **hours**; the raw
-            ``log10(seconds)`` model output is kept in :attr:`last_qc`.
+            ``Kind.blood_half_life`` prediction with an empty ``allele``.
+
+            ``score`` is always the model's **native output** — higher means
+            longer-lived, which is all that is needed to rank. ``value`` is the
+            half-life in hours, and is filled **only** when the predictor was
+            constructed with ``assume_log10_seconds=True``; otherwise it is
+            ``None``, because the transform from the native output to a
+            duration is inferred rather than documented.
         """
         peptide_list = self._normalize_peptides(peptides)
         self._check_peptides(peptide_list)
@@ -263,12 +305,13 @@ class PlifePred2(AlleleFreePredictor):
         return [
             PeptideResult(preds=(Prediction(
                 kind=Kind.blood_half_life,
-                score=hours,
-                value=hours,
+                score=native,
+                value=(half_life_hours(native)
+                       if self.assume_log10_seconds else None),
                 peptide=peptide,
                 predictor_name=self._predictor_name(),
                 predictor_version=self.predictor_version),))
-            for peptide, hours in zip(peptide_list, output["hours"])
+            for peptide, native in zip(peptide_list, output["log10_seconds"])
         ]
 
     def _run_sidecar(self, peptide_list):
@@ -311,7 +354,7 @@ class PlifePred2(AlleleFreePredictor):
                         (process.stderr or process.stdout).strip()))
             output = parse_plifepred2_results(output_path, peptide_list)
 
-        self.last_qc = output.drop(columns=["hours"])
+        self.last_qc = output
         return output
 
 
@@ -326,8 +369,10 @@ def parse_plifepred2_results(filename, peptide_list):
     Returns
     -------
     pandas.DataFrame
-        Sorted by ``__mhctools_id``, with the raw ``log10_seconds`` output and
-        the derived ``hours``.
+        Sorted by ``__mhctools_id``, carrying the model's native output as
+        ``log10_seconds`` and, as ``hours_if_log10_seconds``, what that would
+        mean in hours under the inferred transform. The column is named for
+        its assumption on purpose: nothing upstream documents the target.
     """
     output = pd.read_csv(filename, keep_default_na=False)
     for column in ("__mhctools_id", "peptide", "log10_seconds"):
@@ -358,5 +403,6 @@ def parse_plifepred2_results(filename, peptide_list):
         raise RuntimeError(
             "PlifePred2 returned a non-finite prediction; the feature matrix "
             "is probably misaligned with the model")
-    output["hours"] = output["log10_seconds"].map(half_life_hours)
+    output["hours_if_log10_seconds"] = output["log10_seconds"].map(
+        half_life_hours)
     return output
