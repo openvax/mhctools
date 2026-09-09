@@ -156,7 +156,7 @@ def _find_plifepred2_home(plifepred2_home=None):
             "PlifePred2 not found. Set PLIFEPRED2_HOME or pass "
             "plifepred2_home= to the constructor. `pip install plifepred2` "
             "into an environment and point at its site-packages/plifepred2.")
-    candidate = str(Path(candidate).expanduser())
+    candidate = str(Path(candidate).expanduser().resolve())
     if not Path(candidate, _NATURAL_MODEL).is_file():
         raise FileNotFoundError(
             "%s not found in %r — is this an installed plifepred2 package?"
@@ -176,7 +176,7 @@ def _find_pfeature_home(pfeature_home=None):
             "Pfeature not found. Set PFEATURE_HOME or pass pfeature_home= to "
             "the constructor. Clone https://github.com/raghavagps/Pfeature and "
             "point at its Standalone directory.")
-    candidate = str(Path(candidate).expanduser())
+    candidate = str(Path(candidate).expanduser().resolve())
     if not Path(candidate, "pfeature_comp.py").is_file():
         raise FileNotFoundError(
             "pfeature_comp.py not found in %r — point at Pfeature's Standalone "

@@ -34,6 +34,17 @@ def _parse_args():
     return parser.parse_args()
 
 
+def _verify_tokenized_length(embedder, peptide):
+    """Check the exact residue mask that the pinned WTEmbedder uses."""
+    tokens = embedder._tokenize([peptide])
+    valid = embedder._valid_mask(tokens["input_ids"], tokens["attention_mask"])
+    encoded_length = int(valid.sum().item())
+    if encoded_length != len(peptide):
+        raise RuntimeError(
+            "PeptiVerse tokenizer retained %d of %d residues; refusing to "
+            "score truncated or altered input" % (encoded_length, len(peptide)))
+
+
 def main():
     args = _parse_args()
     home = Path(args.home).resolve()
@@ -54,6 +65,7 @@ def main():
 
     results = []
     for row in rows:
+        _verify_tokenized_length(predictor.wt_embedder, row["peptide"])
         # `predict_property` takes (prop_key, col, input_str) positionally --
         # upstream's README examples pass `mode=`, which is not a parameter of
         # the shipped signature and raises TypeError.

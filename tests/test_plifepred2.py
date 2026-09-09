@@ -486,6 +486,36 @@ def test_value_is_withheld_by_default(tmp_path):
     assert _predictor(tmp_path).assume_log10_seconds is False
 
 
+@pytest.mark.parametrize("via_environment", [False, True])
+def test_relative_asset_homes_survive_directory_changes(
+        tmp_path, monkeypatch, via_environment):
+    from mhctools.plifepred2_sidecar import _run_pfeature
+
+    assets = tmp_path / "model assets"
+    assets.mkdir()
+    model_home, feature_home = _fake_homes(assets)
+    Path(feature_home, "pfeature_comp.py").write_text(_DESTRUCTIVE_STUB)
+    (tmp_path / "nested").mkdir()
+    monkeypatch.chdir(tmp_path)
+    relative_model = "nested/../model assets/plifepred2"
+    relative_features = "nested/../model assets/Standalone"
+    if via_environment:
+        monkeypatch.setenv("PLIFEPRED2_HOME", relative_model)
+        monkeypatch.setenv("PFEATURE_HOME", relative_features)
+        predictor = PlifePred2()
+    else:
+        predictor = PlifePred2(
+            plifepred2_home=relative_model, pfeature_home=relative_features)
+    monkeypatch.chdir(tmp_path / "nested")
+    assert predictor.plifepred2_home == str(Path(model_home).resolve())
+    assert predictor.pfeature_home == str(Path(feature_home).resolve())
+    fasta = tmp_path / "input.fa"
+    fasta.write_text(">0\nSIINFEKLGGAL\n")
+    output = tmp_path / "output.csv"
+    _run_pfeature(predictor.pfeature_home, fasta, output)
+    assert "QSO1_SC_A" in output.read_text()
+
+
 def test_opt_in_is_visible_in_the_repr(tmp_path):
     plifepred2_home, pfeature_home = _fake_homes(tmp_path)
     predictor = PlifePred2(
