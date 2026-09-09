@@ -25,7 +25,7 @@ protein_sequence_dict = {
 
 @pytest.mark.xfail(reason="IEDB server giving 403 errors from GitHub actions runners")
 def test_netmhcpan_iedb():
-    predictor = IedbNetMHCpan(alleles=[DEFAULT_ALLELE])
+    predictor = IedbNetMHCpan(alleles=[DEFAULT_ALLELE], request_timeout=5)
     binding_predictions = predictor.predict_subsequences(
         protein_sequence_dict,
         peptide_lengths=[9])
@@ -40,7 +40,7 @@ def test_netmhcpan_iedb():
 
 @pytest.mark.xfail(reason="IEDB server giving 403 errors from GitHub actions runners")
 def test_netmhcpan_iedb_unsupported_allele():
-    predictor = IedbNetMHCpan(alleles=[DEFAULT_ALLELE, UNSUPPORTED_ALLELE], raise_on_error=False)
+    predictor = IedbNetMHCpan(alleles=[DEFAULT_ALLELE, UNSUPPORTED_ALLELE], raise_on_error=False, request_timeout=5)
     binding_predictions = predictor.predict_subsequences(
         protein_sequence_dict,
         peptide_lengths=[9])
@@ -48,7 +48,7 @@ def test_netmhcpan_iedb_unsupported_allele():
         "Expected 4 binding predictions from %s" % (binding_predictions,)
 
     # check that the error is raised when raise_on_error is left at default (True)
-    predictor = IedbNetMHCpan(alleles=[DEFAULT_ALLELE, UNSUPPORTED_ALLELE])
+    predictor = IedbNetMHCpan(alleles=[DEFAULT_ALLELE, UNSUPPORTED_ALLELE], request_timeout=5)
     with assert_raises(ValueError):
         binding_predictions = predictor.predict_subsequences(
             protein_sequence_dict,

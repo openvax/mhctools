@@ -51,6 +51,7 @@ jobs:
             tests/test_mhc_formats.py \
             tests/test_netchop_parse.py \
             tests/test_process_helpers.py \
+            tests/test_iedb_transport.py \
             tests/test_pred.py \
             tests/test_annotate_table.py \
             tests/test_prime.py \
@@ -72,6 +73,7 @@ jobs:
             tests/test_random.py
 
   integration-netmhc:
+    timeout-minutes: 30
     if: github.repository == 'openvax/mhctools'
     runs-on: ubuntu-22.04
     env:
@@ -146,7 +148,7 @@ jobs:
         run: |
           mkdir -p "$NETMHC_BUNDLE_TMPDIR"
           export PATH="$PATH:$NETMHC_BUNDLE_HOME/bin"
-          ./test.sh
+          ./test.sh -v --durations=15 -o faulthandler_timeout=120
 
   integration-tulip:
     # Exercises the TULIP wrapper end-to-end: mhctools runs in one interpreter
@@ -271,6 +273,8 @@ jobs:
         with:
           path: ${{ env.MHCTOOLS_DATA_DIR }}
           key: mixtcrpred-${{ runner.os }}-${{ hashFiles('mhctools/artifacts.py', 'mhctools/mixtcrpred.py') }}
+          restore-keys: |
+            mixtcrpred-${{ runner.os }}-
 
       - name: Fetch licensed source and one optional Zenodo model
         run: |
