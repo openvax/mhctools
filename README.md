@@ -1035,3 +1035,11 @@ To convert legacy results to the new types:
 preds = collection.to_preds()           # list of Prediction
 pp_list = collection.to_peptide_preds() # list of PeptideResult
 ```
+
+### Per-bond peptidase evidence
+
+`DPP4qPISA` evaluates the published human DPP4 N-terminal triplet model locally.
+`CleavageInput` and `CleavageResult` preserve terminal chemistry, native scores,
+assay provenance and parent-sequence bond coordinates. See the
+[cleavage guide](docs/cleavage.md) for usage and model limits. qPISA scores
+are substrate-depletion estimates, not serum half-lives or probabilities.

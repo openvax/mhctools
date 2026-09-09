@@ -85,5 +85,5 @@ version = { attr = "mhctools.__version__" }
 packages = ["mhctools", "mhctools.cli"]
 
 [tool.setuptools.package-data]
-"mhctools" = ["logging.conf"]
+"mhctools" = ["logging.conf", "data/*.json"]
 "mhctools.cli" = ["logging.conf"]
