@@ -53,6 +53,14 @@ class Kind:
     endolysosomal_cleavage = "endolysosomal_cleavage"
     tap_transport = "tap_transport"
     erap_trimming = "erap_trimming"
+    # Degradation half-life of the free peptide in blood serum, in hours.
+    # Deliberately NOT ``pMHC_stability``, which is the dissociation half-life
+    # of an assembled peptide-MHC complex: different molecule, different assay,
+    # different matrix. A predictor trained on whole blood, plasma, intestinal
+    # fluid or in-vivo PK is also not this kind — it needs its own constant
+    # rather than being folded in here, since nothing else in a ``Prediction``
+    # records the matrix.
+    serum_half_life = "serum_half_life"
 
 
 # Canonical "best direction" for each prediction field. Used by
@@ -76,6 +84,7 @@ VALUE_BEST_DIRECTIONS = {
     Kind.pMHC_affinity: "min",   # IC50 nM
     Kind.pMHC_stability: "max",  # half-life
     Kind.tap_transport: "min",   # predicted TAP-binding affinity, nM
+    Kind.serum_half_life: "max",  # hours in serum
 }
 
 
@@ -284,6 +293,11 @@ class PeptideResult:
     def erap_trimming(self) -> Optional[Prediction]:
         """Best ERAP1 trimming prediction, or None."""
         return self.best_by_score(Kind.erap_trimming)
+
+    @property
+    def serum_half_life(self) -> Optional[Prediction]:
+        """Longest-lived serum half-life prediction, or None."""
+        return self.best_by_score(Kind.serum_half_life)
 
     @property
     def tcr_binding(self) -> Optional[Prediction]:
