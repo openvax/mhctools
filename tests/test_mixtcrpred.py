@@ -200,6 +200,36 @@ def test_fetch_models_downloads_atomically_and_records_hashes(
     assert manifest["models"][MODEL]["md5"] == md5
     assert len(manifest["models"][MODEL]["sha256"]) == 64
 
+    def unavailable(url, timeout):
+        raise OSError("fixture offline")
+
+    monkeypatch.setattr(mixtcrpred, "urlopen", unavailable)
+    # A previously verified checkpoint can be used with no network access.
+    assert mixtcrpred.fetch_models(home, models=[MODEL])[0].status == "ready"
+    with pytest.raises(RuntimeError, match="fixture offline"):
+        mixtcrpred.fetch_models(home, models=[MODEL], refresh_metadata=True)
+
+    path = Path(selected[0].path)
+    # Same size, different contents: size alone must never verify a cache.
+    path.write_bytes(b"x" * len(content))
+    with pytest.raises(RuntimeError, match="does not match its recorded"):
+        mixtcrpred.fetch_models(home, models=[MODEL])
+
+    path.unlink()
+    with pytest.raises(RuntimeError, match="fixture offline"):
+        mixtcrpred.fetch_models(home, models=[MODEL])
+
+
+def test_unrecorded_cached_model_requires_remote_verification(monkeypatch, tmp_path):
+    home = _make_home(tmp_path)
+
+    def unavailable(url, timeout):
+        raise OSError("fixture offline")
+
+    monkeypatch.setattr(mixtcrpred, "urlopen", unavailable)
+    with pytest.raises(RuntimeError, match="fixture offline"):
+        mixtcrpred.fetch_models(home, models=[MODEL])
+
 
 def test_model_catalog_json_is_serializable(tmp_path):
     home = _make_home(tmp_path)

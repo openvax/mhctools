@@ -186,8 +186,8 @@ def _zenodo_files():
             record = json.load(response)
     except (OSError, ValueError) as error:
         raise RuntimeError(
-            "Could not read MixTCRpred model metadata from %s" %
-            ZENODO_API_URL) from error
+            "Could not read MixTCRpred model metadata from %s: %s" %
+            (ZENODO_API_URL, error)) from error
     if str(record.get("id")) != ZENODO_RECORD:
         raise RuntimeError("Zenodo returned unexpected MixTCRpred record")
     return {entry["key"]: entry for entry in record.get("files", ())}
@@ -285,8 +285,14 @@ def fetch_models(
         data_dir=None,
         models=None,
         all_models=False,
-        high_confidence=False):
-    """Fetch selected MixTCRpred weights and return their catalog entries."""
+        high_confidence=False,
+        refresh_metadata=False):
+    """Fetch weights; verify recorded downloads locally unless refreshing.
+
+    An immutable Zenodo record and its saved MD5/SHA-256/size manifest
+    identify existing downloads. Unrecorded weights still require Zenodo
+    verification. ``refresh_metadata=True`` rechecks remote metadata too.
+    """
     home = _resolve_home(mixtcrpred_path, data_dir=data_dir)
     catalog = model_catalog(mixtcrpred_path=home)
     selected = _select_catalog_models(
@@ -297,10 +303,24 @@ def fetch_models(
     )
     if not selected:
         return ()
-    files = _zenodo_files()
     model_dir = home / "pretrained_models"
     manifest = _read_model_manifest(model_dir)
+    pending = []
     for model in selected:
+        path = Path(model.path)
+        recorded = manifest["models"].get(model.name)
+        if refresh_metadata or recorded is None or not path.is_file():
+            pending.append(model)
+            continue
+        md5, sha256 = _hashes(path)
+        if (recorded.get("filename") != path.name or
+                recorded.get("size") != path.stat().st_size or
+                recorded.get("md5") != md5 or recorded.get("sha256") != sha256):
+            raise RuntimeError(
+                "Existing MixTCRpred checkpoint does not match its recorded "
+                "manifest: %s. Move it aside before fetching again." % path)
+    files = _zenodo_files() if pending else {}
+    for model in pending:
         _fetch_one_model(model, files, manifest)
         _write_model_manifest(model_dir, manifest)
     refreshed = {model.name: model for model in model_catalog(mixtcrpred_path=home)}
