@@ -81,17 +81,63 @@ FIELD_BEST_DIRECTIONS = {
     "percentile_rank": "min",
 }
 
-# Per-kind direction for ``value``. ``value`` carries the predictor's
-# raw output unit (IC50 nM for affinity, half-life for stability, ...);
-# whether higher or lower is "better" depends on what the unit means.
-# Add an entry when introducing a new ``value``-bearing kind.
-VALUE_BEST_DIRECTIONS = {
-    Kind.pMHC_affinity: "min",   # IC50 nM
-    Kind.pMHC_stability: "max",  # half-life
-    Kind.tap_transport: "min",   # predicted TAP-binding affinity, nM
-    Kind.serum_half_life: "max",  # hours in serum
-    Kind.blood_half_life: "max",  # hours in whole blood
+# The canonical unit of ``value`` for each kind that has one.
+#
+# ``value`` is always a physical quantity on a LINEAR scale in the unit named
+# here — never a log, never a rescaling, never "whatever upstream printed".
+# Wrappers convert. That rule predates these constants: affinity predictors
+# commonly work in 1-log50k space internally and every affinity wrapper here
+# inverts it to nM before filling ``value`` (see ``parse_stdout``'s
+# ``50000 ** (1 - score)`` salvage and ``caphla._affinity_nm``), so a consumer
+# can compare a NetMHCpan IC50 with an MHCflurry one without asking which
+# transform each applied. Half-life kinds work the same way: PlifePred2 is
+# trained on log10-seconds and PeptiVerse on log1p-hours, and both wrappers
+# invert exactly once and report hours.
+#
+# A predictor's native output is not lost, it just does not belong in a
+# units-bearing field: wrappers keep it in their ``last_qc`` frame
+# (``PlifePred2.last_qc["log10_seconds"]``, for instance).
+#
+# Kind and unit are independent: every prediction has a kind because every
+# prediction measures something, but only some kinds have a unit. A model that
+# emits a bare 0-1 confidence still has a kind -- it fills ``score`` and leaves
+# ``value`` empty. Kinds absent from this mapping are exactly those.
+VALUE_UNITS = {
+    Kind.pMHC_affinity: "nM",
+    Kind.pMHC_stability: "hours",
+    Kind.tap_transport: "nM",
+    Kind.serum_half_life: "hours",
+    Kind.blood_half_life: "hours",
 }
+
+# Per-kind direction for ``value``. Whether higher or lower is "better" depends
+# on what the unit in :data:`VALUE_UNITS` means. Add an entry alongside a
+# ``VALUE_UNITS`` entry when introducing a new ``value``-bearing kind.
+VALUE_BEST_DIRECTIONS = {
+    Kind.pMHC_affinity: "min",   # IC50: tighter binding is a smaller number
+    Kind.pMHC_stability: "max",  # pMHC complex dissociation half-life
+    Kind.tap_transport: "min",   # predicted TAP-binding affinity
+    Kind.serum_half_life: "max",  # survives longer in serum
+    Kind.blood_half_life: "max",  # survives longer in whole blood
+}
+
+
+def value_unit(kind) -> Optional[str]:
+    """Canonical unit of ``value`` for *kind*, or ``None`` if it has no value.
+
+    The unit is always linear — ``"nM"``, ``"hours"`` — never a log-transformed
+    scale. See :data:`VALUE_UNITS`.
+
+    Examples
+    --------
+    >>> value_unit(Kind.pMHC_affinity)
+    'nM'
+    >>> value_unit(Kind.blood_half_life)
+    'hours'
+    >>> value_unit(Kind.immunogenicity) is None
+    True
+    """
+    return VALUE_UNITS.get(kind)
 
 
 def best_direction(kind, field) -> str:

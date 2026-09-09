@@ -11,6 +11,7 @@ from .pred import (
     Pred,
     Prediction,
     VALUE_BEST_DIRECTIONS,
+    VALUE_UNITS,
     best_direction,
     preds_from_rows,
 )
@@ -108,7 +109,7 @@ def __getattr__(name):
     raise AttributeError(
         "module %r has no attribute %r" % (__name__, name))
 
-__version__ = "3.37.0"
+__version__ = "3.38.0"
 
 __all__ = [
     "Prediction",
@@ -120,6 +121,7 @@ __all__ = [
     "MHC_DEPENDENCE_VALUES",
     "FIELD_BEST_DIRECTIONS",
     "VALUE_BEST_DIRECTIONS",
+    "VALUE_UNITS",
     "best_direction",
     "preds_from_rows",
     "MultiSample",
