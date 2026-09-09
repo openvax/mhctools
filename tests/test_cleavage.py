@@ -1,0 +1,61 @@
+"""Coordinate, chemistry and evidence contract regressions."""
+
+from dataclasses import FrozenInstanceError, replace
+import json
+
+import pytest
+
+from mhctools import CleavageInput, CleavageResult, CleavageSite, DPP4qPISA
+
+
+@pytest.mark.parametrize("sequence", ["", "hap", " HAP", "HAP\n", "HAX", "HAP-amide", None])
+def test_exact_canonical_identity(sequence):
+    with pytest.raises(ValueError, match="canonical"):
+        CleavageInput(sequence)
+
+
+def test_immutable_identity_and_explicit_fragment_chemistry():
+    parent = CleavageInput("AAHAEG", n_term="acetylated", source_id="construct", source_start=40)
+    with pytest.raises(FrozenInstanceError):
+        parent.sequence = "HAEG"
+    with pytest.raises(TypeError):
+        parent.fragment(2, 6)
+    with pytest.raises(ValueError, match="preserve chemistry"):
+        parent.fragment(0, 6, n_term="free", c_term="free")
+    fragment = parent.fragment(2, 6, n_term="free", c_term="free")
+    result = DPP4qPISA().predict(fragment)
+    assert result.peptide.sequence == "HAEG"
+    assert result.peptide.source_start == 42
+    assert result.to_dict()["sites"][0]["source_bond"] == 44
+    assert result.sites[0].bond == 2
+    assert json.loads(json.dumps(result.to_dict()))["peptide"]["source_id"] == "construct"
+
+
+@pytest.mark.parametrize("bond", [0, -1, True, 1.5, 3, 4])
+def test_only_real_peptide_bonds(bond):
+    with pytest.raises(ValueError):
+        CleavageResult(CleavageInput("HAP"), DPP4qPISA.model,
+                       (CleavageSite(bond, "scored", "fixture", 2.0),))
+
+
+def test_evidence_types_do_not_convert_to_probabilities():
+    with pytest.raises(ValueError, match="numerical"):
+        CleavageSite(1, "matched", "rule", 1.0)
+    for value in (float("nan"), float("inf"), True, None):
+        with pytest.raises(ValueError, match="finite"):
+            CleavageSite(1, "scored", "model", value)
+    with pytest.raises(ValueError, match="semantics"):
+        CleavageResult(CleavageInput("HAP"), DPP4qPISA.model,
+                       (CleavageSite(1, "matched", "rule"),))
+    motif = replace(DPP4qPISA.model, evidence="motif_rule", score_name=None, score_units=None)
+    with pytest.raises(ValueError, match="semantics"):
+        CleavageResult(CleavageInput("HAP"), motif,
+                       (CleavageSite(1, "scored", "model", 2.0),))
+
+
+def test_duplicate_and_unsupported_sites_rejected():
+    site = CleavageSite(2, "scored", "fixture", 2.0)
+    with pytest.raises(ValueError, match="distinct"):
+        CleavageResult(CleavageInput("HAP"), DPP4qPISA.model, [site, site])
+    with pytest.raises(ValueError, match="Unsupported"):
+        CleavageResult(CleavageInput("HAP"), DPP4qPISA.model, [site], "unknown chemistry")

@@ -47,6 +47,8 @@ from .eramer import ERAMER
 from .deepimmuno import DeepImmuno
 from .peptiverse import PeptiVerse
 from .plifepred2 import PlifePred2
+from .cleavage import CleavageInput, CleavageModel, CleavageSite, CleavageResult
+from .dpp4 import DPP4qPISA
 from .tlimmuno2 import TLimmuno2
 from .processing_predictor import (
     ProcessingPredictor,
@@ -109,7 +111,7 @@ def __getattr__(name):
     raise AttributeError(
         "module %r has no attribute %r" % (__name__, name))
 
-__version__ = "3.39.2"
+__version__ = "3.40.0"
 
 __all__ = [
     "Prediction",
@@ -155,6 +157,11 @@ __all__ = [
     "DeepImmuno",
     "PeptiVerse",
     "PlifePred2",
+    "CleavageInput",
+    "CleavageModel",
+    "CleavageSite",
+    "CleavageResult",
+    "DPP4qPISA",
     "TLimmuno2",
     "MHCflurry",
     "MHCflurry_Affinity",

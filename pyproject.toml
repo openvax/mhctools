@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61", "wheel"]
+requires = ["setuptools>=77.0.3", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -85,5 +85,5 @@ version = { attr = "mhctools.__version__" }
 packages = ["mhctools", "mhctools.cli"]
 
 [tool.setuptools.package-data]
-"mhctools" = ["logging.conf"]
+"mhctools" = ["logging.conf", "data/*.json"]
 "mhctools.cli" = ["logging.conf"]
