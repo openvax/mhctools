@@ -45,6 +45,7 @@ from .calis import Calis
 from .eramer import ERAMER
 from .deepimmuno import DeepImmuno
 from .peptiverse import PeptiVerse
+from .plifepred2 import PlifePred2
 from .tlimmuno2 import TLimmuno2
 from .processing_predictor import (
     ProcessingPredictor,
@@ -107,7 +108,7 @@ def __getattr__(name):
     raise AttributeError(
         "module %r has no attribute %r" % (__name__, name))
 
-__version__ = "3.36.0"
+__version__ = "3.37.0"
 
 __all__ = [
     "Prediction",
@@ -151,6 +152,7 @@ __all__ = [
     "ERAMER",
     "DeepImmuno",
     "PeptiVerse",
+    "PlifePred2",
     "TLimmuno2",
     "MHCflurry",
     "MHCflurry_Affinity",
