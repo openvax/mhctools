@@ -1043,3 +1043,11 @@ pp_list = collection.to_peptide_preds() # list of PeptideResult
 assay provenance and parent-sequence bond coordinates. See the
 [cleavage guide](docs/cleavage.md) for usage and model limits. qPISA scores
 are substrate-depletion estimates, not serum half-lives or probabilities.
+
+The local cleavage panel also provides motif rules for CPN, aminopeptidase P,
+FAP, aminopeptidases A/N, DPP8/9, PREP and ERAP2. An optional `eramer-step`
+model exposes ERAP1's existing length-specific PWM score at the initial
+trimming bond. Discover models with `mhctools cleavage --list-models`, or run
+`mhctools cleavage --sequence RPPGFSPFR --model app2-xp --model cpn-basic`.
+The [guide](docs/cleavage.md) includes a wider candidate inventory and
+prioritized follow-up issues.
