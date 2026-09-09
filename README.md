@@ -243,6 +243,7 @@ The canonical prediction kind strings are defined in `mhctools.pred.Kind`.
 | `endolysosomal_cleavage` | Endolysosomal (MHC-II, cathepsin) C-terminal cleavage score |
 | `tap_transport` | TAP transport / binding score |
 | `erap_trimming` | ERAP1 N-terminal trimming score |
+| `serum_half_life` | Degradation half-life of the free peptide in serum, in hours |
 
 Predictors also expose `kind_support()` so downstream code can tell what MHC
 context is meaningful for each emitted kind:
@@ -294,6 +295,7 @@ Examples:
 | `DeepImmuno` | `immunogenicity` | `single_allele` | `I` |
 | `TLimmuno2` | `immunogenicity` | `single_allele` | `II` |
 | `Calis` | `immunogenicity` | `none` | `I` |
+| `PeptiVerse` | `serum_half_life` | `none` | `none` |
 
 ### TCR predictors (`NetTCR`, `Tulip`, `MixTCRpred`)
 
@@ -653,6 +655,50 @@ results[0].erap_trimming.score
 
 > ⚠️ ERAMER's evaluation is self-reported and ERAP1 trimming is an intrinsically
 > noisy signal; treat the score as a pathway prior, not a validated oracle.
+
+### Serum half-life
+
+| Predictor | Kinds produced | Requires |
+|---|---|---|
+| `PeptiVerse` | Serum half-life (`serum_half_life`) | a PeptiVerse snapshot (`PEPTIVERSE_HOME`) + a torch/transformers Python |
+
+How long a **free peptide** survives in blood serum before proteases degrade it,
+in hours. This is a peptide-drug property rather than an immunological one: it
+speaks to whether a synthesized vaccine peptide is still intact when it reaches
+its destination, not to how it is presented.
+
+It is deliberately a separate kind from `pMHC_stability`, which is the
+dissociation half-life of an assembled peptide-MHC complex — a different
+molecule in a different assay — and from the cleavage kinds, which are
+site-resolved and intracellular. Nothing in a `Prediction` records the assay
+matrix, so the kind string carries it: a predictor trained on whole blood,
+plasma or in-vivo PK is not this kind.
+
+`PeptiVerse` wraps one endpoint of the upstream multi-property platform. Its
+dependencies (torch, `transformers==4.46.0`, xgboost, lightning, and the ESM2 /
+PeptideCLM / ChemBERTa embedding models) stay out of the mhctools environment:
+inference runs in a subprocess under `PEPTIVERSE_PYTHON`.
+
+```python
+from mhctools import PeptiVerse
+
+predictor = PeptiVerse(device="cpu")       # resolves PEPTIVERSE_HOME / ~/PeptiVerse
+results = predictor.predict(["SIINFEKL", "KLGGALQAK"])
+results[0].serum_half_life.value           # hours, higher = longer-lived
+```
+
+Sequence input only. Upstream's SMILES models return a number that is *not* on
+the hours scale (the `expm1` inverse transform is applied only to the sequence
+model), and mhctools has nowhere to record a chemical form, so peptides
+containing non-standard residues are rejected rather than scored as their
+unmodified sequence.
+
+> ⚠️ The sequence half-life model was fit on **130 examples** and evaluated by
+> cross-validation only, from a preprint, with no external test set and no
+> evaluation on long vaccine peptides. Upstream declares Apache-2.0 on its model
+> card and MIT in its README. Checkpoints load through
+> `torch.load(weights_only=False)`, which executes pickled code — point
+> `PEPTIVERSE_HOME` only at a snapshot you trust.
 
 ### Immunogenicity
 
