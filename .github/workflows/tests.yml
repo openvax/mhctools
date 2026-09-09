@@ -275,6 +275,8 @@ jobs:
         with:
           path: ${{ env.MHCTOOLS_DATA_DIR }}
           key: mixtcrpred-${{ runner.os }}-${{ hashFiles('mhctools/artifacts.py', 'mhctools/mixtcrpred.py') }}
+          restore-keys: |
+            mixtcrpred-${{ runner.os }}-
 
       - name: Fetch licensed source and one optional Zenodo model
         run: |
