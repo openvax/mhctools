@@ -78,6 +78,7 @@ _OUTPUT_FIELDS = {
     # Serum half-life of the free peptide, in hours -- distinct from
     # "stability", which is pMHC complex dissociation.
     "serum_half_life": (Kind.serum_half_life, "value"),
+    "blood_half_life": (Kind.blood_half_life, "value"),
 }
 
 

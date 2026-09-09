@@ -61,6 +61,11 @@ class Kind:
     # rather than being folded in here, since nothing else in a ``Prediction``
     # records the matrix.
     serum_half_life = "serum_half_life"
+    # Ex-vivo degradation half-life of the free peptide in whole blood, in
+    # hours. Separate from ``serum_half_life``: serum is blood with the cells
+    # and clotting factors removed, and peptide stability differs measurably
+    # between the two (Jenssen & Aspmo 2008).
+    blood_half_life = "blood_half_life"
 
 
 # Canonical "best direction" for each prediction field. Used by
@@ -85,6 +90,7 @@ VALUE_BEST_DIRECTIONS = {
     Kind.pMHC_stability: "max",  # half-life
     Kind.tap_transport: "min",   # predicted TAP-binding affinity, nM
     Kind.serum_half_life: "max",  # hours in serum
+    Kind.blood_half_life: "max",  # hours in whole blood
 }
 
 
@@ -298,6 +304,11 @@ class PeptideResult:
     def serum_half_life(self) -> Optional[Prediction]:
         """Longest-lived serum half-life prediction, or None."""
         return self.best_by_score(Kind.serum_half_life)
+
+    @property
+    def blood_half_life(self) -> Optional[Prediction]:
+        """Longest-lived whole-blood half-life prediction, or None."""
+        return self.best_by_score(Kind.blood_half_life)
 
     @property
     def tcr_binding(self) -> Optional[Prediction]:

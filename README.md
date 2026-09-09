@@ -244,6 +244,7 @@ The canonical prediction kind strings are defined in `mhctools.pred.Kind`.
 | `tap_transport` | TAP transport / binding score |
 | `erap_trimming` | ERAP1 N-terminal trimming score |
 | `serum_half_life` | Degradation half-life of the free peptide in serum, in hours |
+| `blood_half_life` | Degradation half-life of the free peptide in whole blood, in hours |
 
 Predictors also expose `kind_support()` so downstream code can tell what MHC
 context is meaningful for each emitted kind:
@@ -296,6 +297,7 @@ Examples:
 | `TLimmuno2` | `immunogenicity` | `single_allele` | `II` |
 | `Calis` | `immunogenicity` | `none` | `I` |
 | `PeptiVerse` | `serum_half_life` | `none` | `none` |
+| `PlifePred2` | `blood_half_life` | `none` | `none` |
 
 ### TCR predictors (`NetTCR`, `Tulip`, `MixTCRpred`)
 
@@ -656,11 +658,12 @@ results[0].erap_trimming.score
 > ⚠️ ERAMER's evaluation is self-reported and ERAP1 trimming is an intrinsically
 > noisy signal; treat the score as a pathway prior, not a validated oracle.
 
-### Serum half-life
+### Peptide half-life in blood and serum
 
 | Predictor | Kinds produced | Requires |
 |---|---|---|
 | `PeptiVerse` | Serum half-life (`serum_half_life`) | a PeptiVerse snapshot (`PEPTIVERSE_HOME`) + a torch/transformers Python |
+| `PlifePred2` | Whole-blood half-life (`blood_half_life`) | `plifepred2` (`PLIFEPRED2_HOME`) + a Pfeature checkout (`PFEATURE_HOME`) |
 
 How long a **free peptide** survives in blood serum before proteases degrade it,
 in hours. This is a peptide-drug property rather than an immunological one: it
@@ -699,6 +702,47 @@ unmodified sequence.
 > card and MIT in its README. Checkpoints load through
 > `torch.load(weights_only=False)`, which executes pickled code — point
 > `PEPTIVERSE_HOME` only at a snapshot you trust.
+
+`PlifePred2` predicts the same quantity in **whole blood** rather than serum, so
+it emits a different kind: serum is blood with the cells and clotting factors
+removed, and peptide stability differs measurably between the two. Its training
+data is mammalian rather than specifically human.
+
+```python
+from mhctools import PlifePred2
+
+predictor = PlifePred2()                       # PLIFEPRED2_HOME + PFEATURE_HOME
+results = predictor.predict(["SIINFEKLGGALQAKKY"])
+results[0].blood_half_life.value               # hours, higher = longer-lived
+predictor.last_qc["log10_seconds"]             # the raw model output
+```
+
+Upstream's docs call this column `Halflife` and describe it as a "Predicted
+probability". It is neither a probability nor a raw duration: both shipped
+models are `RandomForestRegressor` (so upstream's `predict_proba` branch is dead
+code) and the target is `log10(half-life in seconds)`. That transform is
+established, not assumed — the lineage paper discarded peptides below 20 seconds,
+and inverting the shipped forests' extreme leaf values under log10-seconds
+reproduces that floor (20.2 s) and gives round durations at the top (exactly
+7.000 days); under log2 or ln the whole training range falls below the
+documented floor.
+
+Natural peptides only, 12–100 residues. Upstream's CLI silently drops
+out-of-range and modified sequences into an `eliminated_sequences.csv` and
+returns a shorter result set; mhctools rejects them instead so a caller never
+gets a quietly truncated answer.
+
+The Linux-only `pfeature_comp` binary that `plifepred2` bundles is **not** used
+— it is a PyInstaller freeze of Pfeature's `pfeature_comp.py`, and that plain
+Python source computes the same descriptor on any platform. Both upstreams are
+GPLv3, so neither is vendored and neither is imported into the mhctools
+interpreter.
+
+> ⚠️ PlifePred2 cites no publication of its own, so its training set is
+> unverified beyond what the artifacts reveal. In the lineage paper the
+> composition-based natural model was the weaker of the pair (r = 0.643 against
+> 0.743), and sequences up to 90% similar were deliberately kept in the data, so
+> reported accuracy is optimistic for novel peptides.
 
 ### Immunogenicity
 
