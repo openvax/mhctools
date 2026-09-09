@@ -11,6 +11,7 @@
 # limitations under the License.
 
 import io
+import math
 
 # pylint: disable=import-error
 from urllib.request import urlopen, Request
@@ -114,7 +115,10 @@ def _parse_iedb_response(response):
         "percentile rank": "rank"})
     return df
 
-def _query_iedb(request_values, url):
+DEFAULT_REQUEST_TIMEOUT = 60.0
+
+
+def _query_iedb(request_values, url, timeout=DEFAULT_REQUEST_TIMEOUT):
     """
     Call into IEDB's web API for MHC binding prediction using request dictionary
     with fields:
@@ -123,14 +127,23 @@ def _query_iedb(request_values, url):
         - "sequence_text"
         - "allele"
 
-    Parse the response into a DataFrame.
+    Parse the response into a DataFrame. ``timeout`` bounds individual
+    blocking socket operations (connection and reads), in seconds; it is
+    not a total deadline for an entire multi-sequence prediction.
     """
     data = urlencode(request_values)
     req = Request(url, data.encode("ascii"))
-    response = urlopen(req).read()
+    with urlopen(req, timeout=timeout) as handle:
+        response = handle.read()
     return _parse_iedb_response(response)
 
 class IedbBasePredictor(BasePredictor):
+    """IEDB web predictor with a configurable socket timeout in seconds.
+
+    ``request_timeout`` defaults to 60 seconds for each blocking connection
+    or read. Timeouts follow the existing ``raise_on_error`` policy.
+    """
+
     def __init__(
             self,
             alleles,
@@ -139,7 +152,13 @@ class IedbBasePredictor(BasePredictor):
             url,
             min_peptide_length=8,
             include_length_in_request=True,
-            raise_on_error=True):
+            raise_on_error=True,
+            request_timeout=DEFAULT_REQUEST_TIMEOUT):
+        if (not isinstance(request_timeout, (int, float))
+                or isinstance(request_timeout, bool)
+                or not math.isfinite(request_timeout) or request_timeout <= 0):
+            raise ValueError("request_timeout must be a finite positive number")
+        self.request_timeout = request_timeout
         BasePredictor.__init__(
             self,
             alleles=alleles,
@@ -234,7 +253,8 @@ class IedbBasePredictor(BasePredictor):
                     request)
 
                 try:
-                    response_df = _query_iedb(request, self.url)
+                    response_df = _query_iedb(
+                        request, self.url, timeout=self.request_timeout)
                     for _, row in response_df.iterrows():
                         binding_predictions.append(
                             BindingPrediction(
@@ -271,12 +291,14 @@ class IedbNetMHCcons(IedbBasePredictor):
             self,
             alleles,
             default_peptide_lengths=[8, 9, 10, 11],
-            raise_on_error=True):
+            raise_on_error=True,
+            request_timeout=DEFAULT_REQUEST_TIMEOUT):
         IedbBasePredictor.__init__(
             self,
             alleles=alleles,
             default_peptide_lengths=default_peptide_lengths,
             raise_on_error=raise_on_error,
+            request_timeout=request_timeout,
             prediction_method="netmhccons",
             url=IEDB_MHC_CLASS_I_URL)
 
@@ -285,12 +307,14 @@ class IedbNetMHCpan(IedbBasePredictor):
             self,
             alleles,
             default_peptide_lengths=[8, 9, 10, 11],
-            raise_on_error=True):
+            raise_on_error=True,
+            request_timeout=DEFAULT_REQUEST_TIMEOUT):
         IedbBasePredictor.__init__(
             self,
             alleles=alleles,
             default_peptide_lengths=default_peptide_lengths,
             raise_on_error=raise_on_error,
+            request_timeout=request_timeout,
             prediction_method="netmhcpan",
             url=IEDB_MHC_CLASS_I_URL)
 
@@ -299,12 +323,14 @@ class IedbSMM(IedbBasePredictor):
             self,
             alleles,
             default_peptide_lengths=[8, 9, 10, 11],
-            raise_on_error=True):
+            raise_on_error=True,
+            request_timeout=DEFAULT_REQUEST_TIMEOUT):
         IedbBasePredictor.__init__(
             self,
             alleles=alleles,
             default_peptide_lengths=default_peptide_lengths,
             raise_on_error=raise_on_error,
+            request_timeout=request_timeout,
             prediction_method="smm",
             url=IEDB_MHC_CLASS_I_URL)
 
@@ -313,12 +339,14 @@ class IedbSMM_PMBEC(IedbBasePredictor):
             self,
             alleles,
             default_peptide_lengths=[8, 9, 10, 11],
-            raise_on_error=True):
+            raise_on_error=True,
+            request_timeout=DEFAULT_REQUEST_TIMEOUT):
         IedbBasePredictor.__init__(
             self,
             alleles=alleles,
             default_peptide_lengths=default_peptide_lengths,
             raise_on_error=raise_on_error,
+            request_timeout=request_timeout,
             prediction_method="smmpmbec",
             url=IEDB_MHC_CLASS_I_URL)
 
@@ -332,7 +360,8 @@ class IedbNetMHCIIpan(IedbBasePredictor):
             alleles,
             default_peptide_lengths=[15, 16, 17, 18, 19, 20],
             raise_on_error=True,
-            url=IEDB_MHC_CLASS_II_URL):
+            url=IEDB_MHC_CLASS_II_URL,
+            request_timeout=DEFAULT_REQUEST_TIMEOUT):
         IedbBasePredictor.__init__(
             self,
             alleles=alleles,
@@ -340,6 +369,7 @@ class IedbNetMHCIIpan(IedbBasePredictor):
             default_peptide_lengths=default_peptide_lengths,
             prediction_method="NetMHCIIpan",
             raise_on_error=raise_on_error,
+            request_timeout=request_timeout,
             url=url,
             min_peptide_length=9,
             include_length_in_request=False)
