@@ -101,21 +101,34 @@ def test_netmhc_stabpan_groups_mixed_length_peptides(monkeypatch):
     ])
 
 
-def test_stability_value_is_half_life_in_hours():
-    # Thalf(h) must land in `value`, the units-bearing field, and not only in
-    # `score` -- Kind.pMHC_stability declares "hours" in VALUE_UNITS.
-    from mhctools.parsing import parse_netmhcstabpan
-    from mhctools.pred import Kind, value_unit
+_STABPAN_FIXTURE = "\n".join([
+    "# NetMHCstabpan version 1.0",
+    "-" * 100,
+    " pos      HLA         peptide    Identity   Prediction  Thalf(h) %Rank_Stab",
+    "-" * 100,
+    "    0  HLA-A*02:01   AAAAAAAAAA   PEPLIST      0.075      0.27      19.00",
+    "-" * 100,
+])
 
-    stdout = "\n".join([
+
+def _zero_half_life_fixture():
+    return "\n".join([
         "# NetMHCstabpan version 1.0",
         "-" * 100,
         " pos      HLA         peptide    Identity   Prediction  Thalf(h) %Rank_Stab",
         "-" * 100,
-        "    0  HLA-A*02:01   AAAAAAAAAA   PEPLIST      0.075      0.27      19.00",
+        "    0  HLA-A*02:01   AAAAAAAAAA   PEPLIST      0.000      0.00      99.00",
         "-" * 100,
     ])
-    predictions = parse_netmhcstabpan(stdout)
+
+
+def test_stability_value_is_half_life_in_hours():
+    # Thalf(h) must reach `value`, the units-bearing field, because
+    # Kind.pMHC_stability declares "hours" in VALUE_UNITS.
+    from mhctools.parsing import parse_netmhcstabpan
+    from mhctools.pred import Kind, value_unit
+
+    predictions = parse_netmhcstabpan(_STABPAN_FIXTURE)
     assert len(predictions) == 1
     pred = predictions[0].to_pred(kind=Kind.pMHC_stability)
     assert pred.kind == Kind.pMHC_stability
@@ -124,19 +137,49 @@ def test_stability_value_is_half_life_in_hours():
     assert value_unit(pred.kind) == "hours"
 
 
-def test_stability_half_life_is_not_salvaged_as_an_affinity():
-    # The 1-log50k salvage in parse_stdout must not fire for a value_index
-    # column: a Thalf of 0 is a real (very unstable) reading, not a missing
-    # IC50 to reconstruct as 50000 ** (1 - score).
+def test_half_life_never_reaches_the_legacy_affinity_field():
+    # Regression: `affinity` is documented as an IC50. A duration written
+    # there silently changes units for every legacy consumer.
+    from mhctools.binding_prediction_collection import BindingPredictionCollection
     from mhctools.parsing import parse_netmhcstabpan
 
-    stdout = "\n".join([
-        "# NetMHCstabpan version 1.0",
-        "-" * 100,
-        " pos      HLA         peptide    Identity   Prediction  Thalf(h) %Rank_Stab",
-        "-" * 100,
-        "    0  HLA-A*02:01   AAAAAAAAAA   PEPLIST      0.000      0.00      99.00",
-        "-" * 100,
-    ])
-    predictions = parse_netmhcstabpan(stdout)
-    assert predictions[0].to_pred().value == 0.0
+    predictions = parse_netmhcstabpan(_STABPAN_FIXTURE)
+    assert predictions[0].affinity is None
+
+    frame = BindingPredictionCollection(predictions).to_dataframe()
+    assert frame["affinity"].isna().all()
+    # The half-life is still there, in the column that has always carried it.
+    assert frame["score"].tolist() == [0.27]
+
+
+def test_legacy_serialization_roundtrip_keeps_affinity_empty():
+    from mhctools.binding_prediction import BindingPrediction
+    from mhctools.parsing import parse_netmhcstabpan
+
+    original = parse_netmhcstabpan(_STABPAN_FIXTURE)[0]
+    restored = BindingPrediction.from_dict(original.to_dict())
+    assert restored.affinity is None
+    assert restored.score == 0.27
+
+
+def test_best_by_value_finds_the_stability_half_life():
+    from mhctools.parsing import parse_netmhcstabpan
+    from mhctools.pred import Kind, PeptideResult
+
+    pred = parse_netmhcstabpan(_STABPAN_FIXTURE)[0].to_pred(
+        kind=Kind.pMHC_stability)
+    result = PeptideResult(preds=(pred,))
+    best = result.best_by_value(Kind.pMHC_stability)
+    assert best is not None, "the registered max-value direction was unreachable"
+    assert best.value == 0.27
+
+
+def test_zero_half_life_is_kept_and_not_reconstructed_as_an_affinity():
+    # A Thalf of 0 is a real reading of a very unstable complex, not a missing
+    # IC50 to rebuild as 50000 ** (1 - score).
+    from mhctools.parsing import parse_netmhcstabpan
+    from mhctools.pred import Kind
+
+    prediction = parse_netmhcstabpan(_zero_half_life_fixture())[0]
+    assert prediction.affinity is None
+    assert prediction.to_pred(kind=Kind.pMHC_stability).value == 0.0

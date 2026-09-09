@@ -61,10 +61,12 @@ class Kind:
     # rather than being folded in here, since nothing else in a ``Prediction``
     # records the matrix.
     serum_half_life = "serum_half_life"
-    # Ex-vivo degradation half-life of the free peptide in whole blood, in
-    # hours. Separate from ``serum_half_life``: serum is blood with the cells
-    # and clotting factors removed, and peptide stability differs measurably
-    # between the two (Jenssen & Aspmo 2008).
+    # Degradation half-life of the free peptide in whole blood, in hours.
+    # Separate from ``serum_half_life``: serum is blood with the cells and
+    # clotting factors removed, and peptide stability differs measurably
+    # between the two (Jenssen & Aspmo 2008). Note that a predictor may emit
+    # this kind with no ``value`` at all when its transform to a duration is
+    # not established -- see :mod:`mhctools.plifepred2`.
     blood_half_life = "blood_half_life"
 
 

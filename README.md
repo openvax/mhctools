@@ -258,7 +258,9 @@ leaves `value` empty. Fill in both wherever the predictor supports it.
   so that ranking works without knowing the unit.
 - **`value`** — present only for the kinds marked above, carrying a physical
   quantity on a **linear** scale in that unit: never a log, never a rescaling,
-  never whatever the upstream tool happened to print.
+  never whatever the upstream tool happened to print. A kind having a unit does
+  not oblige every predictor to fill it — one whose transform to that unit is
+  unresolved should leave `value` empty rather than guess (see `PlifePred2`).
 - **`percentile_rank`** — present when the predictor scores against a background
   distribution. Always lower-is-better.
 
@@ -712,7 +714,7 @@ results[0].erap_trimming.score
 | Predictor | Kinds produced | Requires |
 |---|---|---|
 | `PeptiVerse` | Serum half-life (`serum_half_life`) | a PeptiVerse snapshot (`PEPTIVERSE_HOME`) + a torch/transformers Python |
-| `PlifePred2` | Whole-blood half-life (`blood_half_life`) | `plifepred2` (`PLIFEPRED2_HOME`) + a Pfeature checkout (`PFEATURE_HOME`) |
+| `PlifePred2` | Blood half-life (`blood_half_life`) ⚠️ unresolved semantics | `plifepred2` (`PLIFEPRED2_HOME`) + a Pfeature checkout (`PFEATURE_HOME`) |
 
 How long a **free peptide** survives in blood serum before proteases degrade it,
 in hours. This is a peptide-drug property rather than an immunological one: it
@@ -752,29 +754,52 @@ unmodified sequence.
 > `torch.load(weights_only=False)`, which executes pickled code — point
 > `PEPTIVERSE_HOME` only at a snapshot you trust.
 
-`PlifePred2` predicts the same quantity in **whole blood** rather than serum, so
-it emits a different kind: serum is blood with the cells and clotting factors
-removed, and peptide stability differs measurably between the two. Its training
-data is mammalian rather than specifically human.
+`PlifePred2` targets blood rather than serum, so it emits a different kind —
+serum is blood with the cells and clotting factors removed, and peptide
+stability differs measurably between the two.
+
+> ⚠️ **This endpoint's semantics are not established.** PlifePred2 ships no
+> publication, no training data and no target definition, so its units,
+> transform, species and assay matrix are all inferred from the artifacts. By
+> default the wrapper reports only the model's native output and claims no
+> duration at all.
 
 ```python
 from mhctools import PlifePred2
 
 predictor = PlifePred2()                       # PLIFEPRED2_HOME + PFEATURE_HOME
 results = predictor.predict(["SIINFEKLGGALQAKKY"])
-results[0].blood_half_life.value               # hours, higher = longer-lived
-predictor.last_qc["log10_seconds"]             # the raw model output
+results[0].blood_half_life.score               # native output, higher = longer-lived
+results[0].blood_half_life.value               # None by default
+predictor.last_qc["log10_seconds"]             # the same value, named
+
+# Opt in to a duration, accepting the inference below:
+opted_in = PlifePred2(assume_log10_seconds=True)
+opted_in.predict(["SIINFEKLGGALQAKKY"])[0].blood_half_life.value   # hours
 ```
 
-Upstream's docs call this column `Halflife` and describe it as a "Predicted
-probability". It is neither a probability nor a raw duration: both shipped
-models are `RandomForestRegressor` (so upstream's `predict_proba` branch is dead
-code) and the target is `log10(half-life in seconds)`. That transform is
-established, not assumed — the lineage paper discarded peptides below 20 seconds,
-and inverting the shipped forests' extreme leaf values under log10-seconds
-reproduces that floor (20.2 s) and gives round durations at the top (exactly
-7.000 days); under log2 or ln the whole training range falls below the
-documented floor.
+**What is known.** Both shipped models are `RandomForestRegressor`, verified by
+loading them. So the output is not a class probability — upstream's docs
+("Halflife … Predicted probability") and its CLI's `predict_proba` branch are
+both wrong, and the branch is dead code. Being monotone in half-life, the
+output ranks correctly whatever the transform turns out to be.
+
+**What is inferred.** `log10(half-life in seconds)` is the strongest reading:
+inverting the forests' extreme leaf values under it gives round durations —
+exactly 7.000 days for the natural model, 95.0 days for the modified one — to
+about seven significant figures, where log2 and ln both invert the whole
+training range to a few seconds up to a couple of minutes. The minimum also
+lands on 20.2 s, matching the 20-second floor in the lineage paper. That last
+point is corroboration rather than proof: the same forests hold targets past
+that paper's 24-hour ceiling, so PlifePred2 was trained on a different dataset
+and the old filter cannot establish the new target. Note also that the lineage
+paper states log2, not log10.
+
+**What is not established.** The species and assay matrix. `blood_half_life` is
+assigned from the lineage paper's PEPlife-filtered-to-mammalian-blood dataset —
+the best available guide, but inherited from data this model demonstrably does
+not use. Do not report it as a measured whole-blood property, and do not treat
+it as interchangeable with PeptiVerse's human-serum endpoint.
 
 Natural peptides only, 12–100 residues. Upstream's CLI silently drops
 out-of-range and modified sequences into an `eliminated_sequences.csv` and

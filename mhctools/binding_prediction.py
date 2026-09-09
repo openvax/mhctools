@@ -168,13 +168,27 @@ class BindingPrediction(Serializable):
         kind : Kind
             What this prediction measures. Defaults to pMHC_affinity since
             most BindingPrediction objects represent binding affinity.
+
+        Notes
+        -----
+        ``Prediction.value`` normally comes from ``affinity`` (IC50 nM). The
+        exception is ``pMHC_stability``: NetMHCstabpan has no affinity column
+        and reports ``Thalf(h)`` as its score, so the hours that
+        ``VALUE_UNITS`` promises for that kind are read from ``score``. The
+        legacy ``affinity`` attribute is deliberately left alone -- it is
+        documented as a binding affinity, and writing a duration into it would
+        silently change units for ``predict_peptides`` and ``to_dataframe``
+        callers.
         """
+        value = self.affinity
+        if kind == Kind.pMHC_stability and value is None:
+            value = self.score
         return Prediction(
             kind=kind,
             score=self.score if self.score is not None else 0.0,
             peptide=self.peptide,
             allele=self.allele or "",
-            value=self.affinity,
+            value=value,
             percentile_rank=self.percentile_rank,
             source_sequence_name=self.source_sequence_name,
             offset=self.offset,
