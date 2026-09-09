@@ -12,8 +12,8 @@ the mhctools interpreter. This script runs in whatever interpreter owns them
 
 1. Shells out to Pfeature's ``pfeature_comp.py`` for the quasi-sequence-order
    descriptor. That script reads ``Data/Schneider-Wrede.csv`` and
-   ``Data/Grantham.csv`` by relative path, so it must run with its own
-   directory as the working directory.
+   ``Data/Grantham.csv`` by relative path, so each invocation gets an isolated
+   working directory containing a copy of those resources.
 2. Loads PlifePred2's natural-peptide RandomForest and predicts.
 
 The model is loaded with joblib, which unpickles; the caller is responsible for

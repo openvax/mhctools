@@ -52,6 +52,8 @@ jobs:
             tests/test_netchop_parse.py \
             tests/test_process_helpers.py \
             tests/test_iedb_transport.py \
+            tests/test_peptiverse.py \
+            tests/test_plifepred2.py \
             tests/test_pred.py \
             tests/test_annotate_table.py \
             tests/test_prime.py \

@@ -70,6 +70,7 @@ pickled code. Point ``PEPTIVERSE_HOME`` only at a snapshot you trust.
 """
 
 import os
+import math
 from pathlib import Path
 import shutil
 import subprocess
@@ -84,8 +85,8 @@ from .wrapper_base import AlleleFreePredictor
 #: Upstream revision this wrapper was written and verified against.
 UPSTREAM_REVISION = "8cf0b21dae356278ae96b414a088e4360357d16c"
 
-#: ESM2's positional limit; upstream's WTEmbedder truncates beyond it.
-PEPTIVERSE_MAX_PEPTIDE_LENGTH = 1022
+#: WTEmbedder allows 1022 tokens, including the two ESM special tokens.
+PEPTIVERSE_MAX_PEPTIDE_LENGTH = 1020
 
 _VALID_AMINO_ACIDS = frozenset("ACDEFGHIKLMNPQRSTVWY")
 
@@ -117,7 +118,7 @@ def _find_peptiverse_home(peptiverse_home=None):
             "PeptiVerse not found. Set PEPTIVERSE_HOME or pass "
             "peptiverse_home= to the constructor. Clone from "
             "https://huggingface.co/ChatterjeeLab/PeptiVerse")
-    candidate = str(Path(candidate).expanduser())
+    candidate = str(Path(candidate).expanduser().resolve())
     if not Path(candidate, "inference.py").is_file():
         raise FileNotFoundError(
             "inference.py not found in %r — is this a PeptiVerse snapshot?"
@@ -178,7 +179,7 @@ class PeptiVerse(AlleleFreePredictor):
         diagnostic, not a calibrated confidence interval.
     max_peptide_length : int
         Peptides longer than this are rejected instead of being silently
-        truncated by ESM2. Default 1022.
+        truncated by ESM2. Default 1020 (1022 tokens minus two special tokens).
     """
 
     mhc_class = "none"
@@ -324,9 +325,9 @@ def parse_peptiverse_results(filename, peptide_list):
 
     Every input peptide must come back exactly once, identified by the
     ``__mhctools_id`` the caller assigned, and with the peptide it was scored
-    under unchanged — upstream's embedders truncate or alter unsupported input
-    rather than failing, so a mismatch is an error rather than something to
-    reconcile silently. Duplicate input peptides keep separate rows.
+    under unchanged. This checks the echoed input identity; the sidecar checks
+    the actual tokenized residue count before inference. Duplicate input
+    peptides keep separate rows.
 
     Returns
     -------
@@ -358,4 +359,10 @@ def parse_peptiverse_results(filename, peptide_list):
             "PeptiVerse returned a different peptide than it was given "
             "(id, sent, got): %s" % mismatched[:5])
     output["hours"] = output["hours"].astype(float)
+    invalid = output["hours"].map(lambda value: not math.isfinite(value) or value < 0)
+    if invalid.any():
+        rows = output.loc[invalid, ["__mhctools_id", "peptide", "hours"]]
+        raise RuntimeError(
+            "PeptiVerse returned invalid half-lives (expected finite, "
+            "nonnegative hours): %s" % rows.to_dict("records"))
     return output

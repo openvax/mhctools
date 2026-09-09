@@ -21,7 +21,9 @@ interpreter that has torch + transformers.
 """
 
 import os
+from io import StringIO
 from pathlib import Path
+import sys
 import tempfile
 
 import pytest
@@ -185,6 +187,90 @@ def test_parse_results_rejects_missing_column():
         os.remove(path)
 
 
+@pytest.mark.parametrize("hours", ["nan", "inf", "-inf", "-1.0"])
+def test_parse_rejects_invalid_duration_with_row_context(hours):
+    data = StringIO("__mhctools_id,peptide,hours\n0,SIINFEKL,%s\n" % hours)
+    with pytest.raises(RuntimeError, match="invalid half-lives.*SIINFEKL"):
+        parse_peptiverse_results(data, ["SIINFEKL"])
+
+
+def test_zero_duration_is_preserved():
+    data = StringIO("__mhctools_id,peptide,hours\n0,SIINFEKL,0\n")
+    assert parse_peptiverse_results(data, ["SIINFEKL"])["hours"].tolist() == [0.0]
+
+
+def _stub_inference(tmp_path, hours=1.25, retained_limit=1020):
+    """Run the actual sidecar against a dependency-free upstream-shaped stub."""
+    home = tmp_path / "Pepti Verse"
+    home.mkdir()
+    _fake_home(home)
+    (home / "inference.py").write_text(f'''
+from pathlib import Path
+
+class Mask:
+    def __init__(self, n): self.n = n
+    def sum(self): return self
+    def item(self): return self.n
+
+class Embedder:
+    def _tokenize(self, peptides):
+        return {{"input_ids": peptides[0], "attention_mask": None}}
+    def _valid_mask(self, ids, mask):
+        return Mask(min(len(ids), {retained_limit}))
+
+class PeptiVersePredictor:
+    def __init__(self, manifest_path, classifier_weight_root, device):
+        assert Path(classifier_weight_root) == Path(__file__).resolve().parent
+        self.wt_embedder = Embedder()
+    def predict_property(self, prop, col, peptide, uncertainty):
+        return {{"score": {hours!r}, "emb_tag": "wt"}}
+''')
+    return home
+
+
+@pytest.mark.parametrize("via_environment", [False, True])
+def test_relative_home_survives_caller_and_sidecar_directory_changes(
+        tmp_path, monkeypatch, via_environment):
+    home = _stub_inference(tmp_path)
+    (tmp_path / "nested").mkdir()
+    relative = "nested/../Pepti Verse"
+    monkeypatch.chdir(tmp_path)
+    if via_environment:
+        monkeypatch.setenv("PEPTIVERSE_HOME", relative)
+        predictor = PeptiVerse(peptiverse_python=sys.executable)
+    else:
+        predictor = PeptiVerse(
+            peptiverse_home=relative, peptiverse_python=sys.executable)
+    monkeypatch.chdir(tmp_path / "nested")
+    assert predictor.peptiverse_home == str(home.resolve())
+    peptides = ["A" * 1019 + "K", "A" * 1019 + "R"]
+    results = predictor.predict(peptides)
+    assert [r.peptide for r in results] == peptides
+    assert [r.serum_half_life.value for r in results] == [1.25, 1.25]
+
+
+@pytest.mark.parametrize("hours", ["nan", "inf", "-inf", -1.0])
+def test_public_predict_rejects_invalid_sidecar_duration(tmp_path, hours):
+    home = _stub_inference(tmp_path, hours=hours)
+    predictor = PeptiVerse(peptiverse_home=home, peptiverse_python=sys.executable)
+    with pytest.raises(RuntimeError, match="invalid half-lives"):
+        predictor.predict(["SIINFEKL"])
+
+
+def test_sidecar_checks_actual_tokenizer_residue_count(tmp_path):
+    home = _stub_inference(tmp_path, retained_limit=7)
+    predictor = PeptiVerse(peptiverse_home=home, peptiverse_python=sys.executable)
+    with pytest.raises(RuntimeError, match="retained 7 of 8 residues"):
+        predictor.predict(["SIINFEKL"])
+
+
+@pytest.mark.parametrize("length", [1021, 1022])
+def test_rejects_lengths_that_fit_only_without_special_tokens(tmp_path, length):
+    predictor = PeptiVerse(peptiverse_home=_fake_home(tmp_path))
+    with pytest.raises(ValueError, match="up to 1020 residues"):
+        predictor.predict(["A" * (length - 1) + "K"])
+
+
 # --- construction and validation (no model) ---------------------------------
 
 def _fake_home(tmp_path):
@@ -239,12 +325,12 @@ def test_empty_peptide_is_rejected(tmp_path):
 
 def test_over_long_peptide_is_rejected_rather_than_truncated(tmp_path):
     predictor = PeptiVerse(peptiverse_home=_fake_home(tmp_path))
-    with pytest.raises(ValueError, match="up to 1022 residues"):
+    with pytest.raises(ValueError, match="up to 1020 residues"):
         predictor.predict(["A" * (PEPTIVERSE_MAX_PEPTIDE_LENGTH + 1)])
 
 
 def test_max_peptide_length_cannot_exceed_model_limit(tmp_path):
-    with pytest.raises(ValueError, match="at most 1022 residues"):
+    with pytest.raises(ValueError, match="at most 1020 residues"):
         PeptiVerse(
             peptiverse_home=_fake_home(tmp_path),
             max_peptide_length=PEPTIVERSE_MAX_PEPTIDE_LENGTH + 1)
