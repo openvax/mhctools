@@ -99,3 +99,44 @@ def test_netmhc_stabpan_groups_mixed_length_peptides(monkeypatch):
         ["SIINFEKLL"],
         ["SIINFEKLQY"],
     ])
+
+
+def test_stability_value_is_half_life_in_hours():
+    # Thalf(h) must land in `value`, the units-bearing field, and not only in
+    # `score` -- Kind.pMHC_stability declares "hours" in VALUE_UNITS.
+    from mhctools.parsing import parse_netmhcstabpan
+    from mhctools.pred import Kind, value_unit
+
+    stdout = "\n".join([
+        "# NetMHCstabpan version 1.0",
+        "-" * 100,
+        " pos      HLA         peptide    Identity   Prediction  Thalf(h) %Rank_Stab",
+        "-" * 100,
+        "    0  HLA-A*02:01   AAAAAAAAAA   PEPLIST      0.075      0.27      19.00",
+        "-" * 100,
+    ])
+    predictions = parse_netmhcstabpan(stdout)
+    assert len(predictions) == 1
+    pred = predictions[0].to_pred(kind=Kind.pMHC_stability)
+    assert pred.kind == Kind.pMHC_stability
+    assert pred.value == 0.27
+    assert pred.score == 0.27
+    assert value_unit(pred.kind) == "hours"
+
+
+def test_stability_half_life_is_not_salvaged_as_an_affinity():
+    # The 1-log50k salvage in parse_stdout must not fire for a value_index
+    # column: a Thalf of 0 is a real (very unstable) reading, not a missing
+    # IC50 to reconstruct as 50000 ** (1 - score).
+    from mhctools.parsing import parse_netmhcstabpan
+
+    stdout = "\n".join([
+        "# NetMHCstabpan version 1.0",
+        "-" * 100,
+        " pos      HLA         peptide    Identity   Prediction  Thalf(h) %Rank_Stab",
+        "-" * 100,
+        "    0  HLA-A*02:01   AAAAAAAAAA   PEPLIST      0.000      0.00      99.00",
+        "-" * 100,
+    ])
+    predictions = parse_netmhcstabpan(stdout)
+    assert predictions[0].to_pred().value == 0.0

@@ -723,3 +723,50 @@ def test_best_by_rank_falls_back_to_allele_less():
     assert best is not None
     assert best.allele == ""
     assert best.percentile_rank == 2.0
+
+
+# --- value units ------------------------------------------------------------
+
+def test_value_unit_returns_the_canonical_unit():
+    from mhctools.pred import value_unit
+    assert value_unit(Kind.pMHC_affinity) == "nM"
+    assert value_unit(Kind.tap_transport) == "nM"
+    assert value_unit(Kind.pMHC_stability) == "hours"
+    assert value_unit(Kind.serum_half_life) == "hours"
+    assert value_unit(Kind.blood_half_life) == "hours"
+
+
+def test_value_unit_is_none_for_unitless_kinds():
+    from mhctools.pred import value_unit
+    for kind in (Kind.immunogenicity, Kind.pMHC_presentation,
+                 Kind.antigen_processing, Kind.proteasome_cleavage,
+                 Kind.endolysosomal_cleavage, Kind.erap_trimming,
+                 Kind.pMHC_TCR_binding):
+        assert value_unit(kind) is None, kind
+
+
+def test_every_value_bearing_kind_declares_both_a_unit_and_a_direction():
+    # The two registries describe the same field, so a kind in one and not the
+    # other means `value` is either unitless or has no defined best direction.
+    from mhctools.pred import VALUE_BEST_DIRECTIONS, VALUE_UNITS
+    assert set(VALUE_UNITS) == set(VALUE_BEST_DIRECTIONS)
+
+
+def test_value_units_are_linear_not_log_scaled():
+    # The convention `value` rests on: a linear physical quantity, so that two
+    # predictors of the same kind are comparable without asking which transform
+    # each applied upstream.
+    from mhctools.pred import VALUE_UNITS
+    for kind, unit in VALUE_UNITS.items():
+        assert "log" not in unit.lower(), kind
+        assert unit in ("nM", "hours"), kind
+
+
+def test_half_life_kinds_share_a_unit_but_not_an_identity():
+    # Serum, whole blood and pMHC complex dissociation are all half-lives in
+    # hours, and all still distinct measurements.
+    from mhctools.pred import value_unit
+    half_life_kinds = (
+        Kind.pMHC_stability, Kind.serum_half_life, Kind.blood_half_life)
+    assert len(set(half_life_kinds)) == 3
+    assert {value_unit(k) for k in half_life_kinds} == {"hours"}

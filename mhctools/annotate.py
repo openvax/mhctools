@@ -69,8 +69,8 @@ _OUTPUT_FIELDS = {
     "value": (Kind.pMHC_affinity, "value"),
     "presentation": (Kind.pMHC_presentation, "score"),
     "processing": (Kind.antigen_processing, "score"),
-    # NetMHCstabpan reports half-life (Thalf) in `score`, not `value`
-    # (`parse_netmhcstabpan` sets no ic50), so read it from there.
+    # NetMHCstabpan's Thalf(h) lands in both `score` and `value`; read it from
+    # `score`, which is where this field has always read it.
     "stability": (Kind.pMHC_stability, "score"),
     "immunogenicity": (Kind.immunogenicity, "score"),
     "tap_transport": (Kind.tap_transport, "score"),

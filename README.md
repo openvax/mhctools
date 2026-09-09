@@ -231,20 +231,69 @@ Each `Prediction` has a `kind` string describing what it measures:
 
 The canonical prediction kind strings are defined in `mhctools.pred.Kind`.
 
-| Kind | Meaning |
-|---|---|
-| `pMHC_affinity` | Peptide-MHC binding affinity |
-| `pMHC_presentation` | Likelihood of surface presentation (EL/processing) |
-| `pMHC_stability` | Peptide-MHC complex stability |
-| `pMHC_TCR_binding` | TCR recognition of a peptide-MHC (pMHC:TCR binding) |
-| `immunogenicity` | T-cell immunogenicity |
-| `antigen_processing` | Combined processing score |
-| `proteasome_cleavage` | Proteasomal (MHC-I, cytosolic) C-terminal cleavage score |
-| `endolysosomal_cleavage` | Endolysosomal (MHC-II, cathepsin) C-terminal cleavage score |
-| `tap_transport` | TAP transport / binding score |
-| `erap_trimming` | ERAP1 N-terminal trimming score |
-| `serum_half_life` | Degradation half-life of the free peptide in serum, in hours |
-| `blood_half_life` | Degradation half-life of the free peptide in whole blood, in hours |
+| Kind | Meaning | `value` unit |
+|---|---|---|
+| `pMHC_affinity` | Peptide-MHC binding affinity | `nM` (IC50) |
+| `pMHC_presentation` | Likelihood of surface presentation (EL/processing) | — |
+| `pMHC_stability` | Peptide-MHC complex stability | `hours` (Thalf) |
+| `pMHC_TCR_binding` | TCR recognition of a peptide-MHC (pMHC:TCR binding) | — |
+| `immunogenicity` | T-cell immunogenicity | — |
+| `antigen_processing` | Combined processing score | — |
+| `proteasome_cleavage` | Proteasomal (MHC-I, cytosolic) C-terminal cleavage score | — |
+| `endolysosomal_cleavage` | Endolysosomal (MHC-II, cathepsin) C-terminal cleavage score | — |
+| `tap_transport` | TAP transport / binding score | `nM` |
+| `erap_trimming` | ERAP1 N-terminal trimming score | — |
+| `serum_half_life` | Degradation half-life of the free peptide in serum | `hours` |
+| `blood_half_life` | Degradation half-life of the free peptide in whole blood | `hours` |
+
+#### Units
+
+Kind and unit are independent. Every prediction has a `kind`, because every
+prediction measures *something*; only some kinds have a unit. A model that emits
+a bare 0–1 confidence is still a prediction of a kind — it just fills `score` and
+leaves `value` empty. Fill in both wherever the predictor supports it.
+
+- **`score`** — always present, always higher-is-better, unitless. Often a 0–1
+  confidence; for kinds with no meaningful normalization it repeats the `value`
+  so that ranking works without knowing the unit.
+- **`value`** — present only for the kinds marked above, carrying a physical
+  quantity on a **linear** scale in that unit: never a log, never a rescaling,
+  never whatever the upstream tool happened to print.
+- **`percentile_rank`** — present when the predictor scores against a background
+  distribution. Always lower-is-better.
+
+Affinity is the model to copy: `score` is the 0–1 `1-log50k` confidence and
+`value` is the IC50 in nM, so both are filled and each answers a different
+question.
+
+```python
+from mhctools import Kind
+from mhctools.pred import value_unit
+
+value_unit(Kind.pMHC_affinity)     # 'nM'
+value_unit(Kind.blood_half_life)   # 'hours'
+value_unit(Kind.immunogenicity)    # None
+```
+
+Converting is the wrapper's job, and it long predates the registry: affinity
+predictors commonly work in `1-log50k` space internally and every affinity
+wrapper here inverts it to nM, so a NetMHCpan IC50 and an MHCflurry IC50 are
+directly comparable. Half-life kinds work the same way — PlifePred2 is trained
+on `log10(seconds)` and PeptiVerse on `log1p(hours)`, and both wrappers invert
+exactly once and report hours.
+
+A predictor's native output isn't lost, it just doesn't belong in a
+units-bearing field. Wrappers keep it on their `last_qc` frame:
+
+```python
+predictor.predict(["SIINFEKLGGALQAKKY"])
+predictor.last_qc["log10_seconds"]     # PlifePred2's raw model output
+```
+
+Note that sharing a unit is not sharing a measurement: `pMHC_stability`,
+`serum_half_life` and `blood_half_life` are all half-lives in hours and all
+three are different quantities — complex dissociation, free-peptide degradation
+in serum, and free-peptide degradation in whole blood.
 
 Predictors also expose `kind_support()` so downstream code can tell what MHC
 context is meaningful for each emitted kind:

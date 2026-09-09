@@ -139,7 +139,7 @@ def parse_stdout(
         score_index,
         rank_index=None,
         ic50_index=None,
-
+        value_index=None,
         ignored_value_indices={},
         transforms={}):
     """
@@ -205,6 +205,16 @@ def parse_stdout(
         else:
             ic50 = _try_float(fields[ic50_index])
 
+        # `value_index` fills the same field as `ic50_index` but for kinds
+        # whose value is not an affinity, so it skips the 1-log50k salvage
+        # below -- a half-life in hours must never be reconstructed as if it
+        # were an IC50.
+        if value_index is not None:
+            if ic50_index is not None:
+                raise ValueError(
+                    "pass either ic50_index or value_index, not both")
+            ic50 = _try_float(fields[value_index])
+
         key = str(fields[key_index])
         if sequence_key_mapping:
             original_key = sequence_key_mapping[key]
@@ -215,7 +225,8 @@ def parse_stdout(
 
         # if we have a bad IC50 score we might still get a salvageable
         # log of the score. Strangely, this is necessary sometimes!
-        if ic50_index is not None and (not valid_affinity(ic50)) and np.isfinite(score):
+        if (ic50_index is not None and value_index is None
+                and (not valid_affinity(ic50)) and np.isfinite(score)):
             # pylint: disable=invalid-unary-operand-type
             ic50 = 50000 ** (1 - score)
 
@@ -943,6 +954,10 @@ def parse_netmhcstabpan(
         allele_index=1,
         score_index=5,
         rank_index=6,
+        # Thalf(h) is the half-life in hours, the canonical `value` unit for
+        # Kind.pMHC_stability. It is reported in `score` too, for the callers
+        # and the `stability` output field that have always read it there.
+        value_index=5,
         transforms=transforms)
 
 def parse_netmhciipan43_stdout(
