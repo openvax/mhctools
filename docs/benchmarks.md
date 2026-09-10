@@ -2,6 +2,7 @@
 
 ```sh
 mhctools benchmark --reference-cleavage --out reference-report.json
+mhctools benchmark --reference-cleavage serum --out serum-reference-report.json
 mhctools benchmark --lineage-inventory --out lineage.json
 mhctools benchmark --input measurements-and-predictions.json --out evaluation.json
 mhctools benchmark --input site-measurements.json --model cpn-basic --model dpp9-xp-xa
@@ -71,6 +72,9 @@ stated nominal coverage. Model disagreement is not an uncertainty interval.
 Counts distinguish measurements, source measurements, unique sequences and
 chemical forms. Missing predictions, unsupported chemistry, runtime failures,
 unassessed sites and incompatible/censored records retain their reasons.
+The optional `serum` panel adds 17 source observations, including two experimental
+non-cleavages and two unsupported ACE/amide examples; its activation conditions
+are applied separately to each CPB2 measurement.
 The source-linked starter set reproduces four positive observations (two
 CPN-like plasma observations for bradykinin, aminopeptidase P on RPP and DPP9
 on the RU1 epitope). Eight model/observation combinations are off-enzyme and
