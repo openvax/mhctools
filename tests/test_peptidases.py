@@ -120,7 +120,7 @@ def test_cli_lists_optional_models_without_loading_assets(capsys, monkeypatch):
     monkeypatch.setenv("ERAMER_HOME", "/does-not-exist")
     main(["cleavage", "--list-models"])
     data = json.loads(capsys.readouterr().out)
-    assert len(data["models"]) == 12
+    assert len(data["models"]) == 15
     assert any(m["name"] == "eramer-step" for m in data["models"])
 
 

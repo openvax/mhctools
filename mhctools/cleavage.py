@@ -131,9 +131,15 @@ class CleavageResult:
     model: CleavageModel
     sites: Tuple[CleavageSite, ...] = ()
     unsupported_reason: Optional[str] = None
+    conditions: Tuple[Tuple[str, str], ...] = ()
 
     def __post_init__(self):
         object.__setattr__(self, "sites", tuple(self.sites))
+        conditions = tuple(tuple(pair) for pair in self.conditions)
+        if (any(len(pair) != 2 or not all(isinstance(v, str) for v in pair)
+                for pair in conditions) or len(dict(conditions)) != len(conditions)):
+            raise ValueError("Conditions require distinct string key/value pairs")
+        object.__setattr__(self, "conditions", conditions)
         if self.unsupported_reason is not None and self.sites:
             raise ValueError("Unsupported results cannot contain scored sites")
         bonds = [site.bond for site in self.sites]

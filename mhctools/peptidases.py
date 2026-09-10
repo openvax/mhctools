@@ -4,7 +4,7 @@ Rules flag partial substrate-recognition patterns, not enzyme activity,
 probabilities or whole-peptide stability. Every rule retains its scope.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import re
 from typing import Optional, Tuple
 
@@ -25,6 +25,9 @@ class PeptidaseMotif:
     min_length: int = 2
     max_length: Optional[int] = None
     n_chemistry: Tuple[str, ...] = ("free",)
+    c_chemistry: Tuple[str, ...] = ("free",)
+    requires_activation: bool = False
+    enzyme_state: str = "unknown"
 
     def __post_init__(self):
         if self.topology not in ("n_terminal", "c_terminal", "internal"):
@@ -34,6 +37,8 @@ class PeptidaseMotif:
             raise ValueError("Terminal rule must leave a peptide bond to assess")
         re.compile(self.left)
         re.compile(self.right)
+        if self.enzyme_state not in ("unknown", "active", "zymogen", "inactive"):
+            raise ValueError("enzyme_state must be unknown, active, zymogen or inactive")
 
     def predict(self, peptide):
         """Assess eligible bonds; a non-match is not evidence of resistance."""
@@ -43,14 +48,18 @@ class PeptidaseMotif:
             raise TypeError("Expected CleavageInput or canonical peptide string")
         seq = peptide.sequence
         reason = None
-        if peptide.n_term not in self.n_chemistry or peptide.c_term != "free":
+        conditions = (("enzyme_state", self.enzyme_state),) if self.requires_activation else ()
+        if self.requires_activation and self.enzyme_state != "active":
+            reason = "This rule requires explicitly active %s; supplied state is %s" % (
+                self.model.enzyme, self.enzyme_state)
+        elif peptide.n_term not in self.n_chemistry or peptide.c_term not in self.c_chemistry:
             reason = "Terminal chemistry is outside this rule's documented input domain"
         elif len(seq) < self.min_length:
             reason = "Rule requires at least %d residues" % self.min_length
         elif self.max_length is not None and len(seq) > self.max_length:
             reason = "Rule is limited to peptides of at most %d residues" % self.max_length
         if reason:
-            return CleavageResult(peptide, self.model, unsupported_reason=reason)
+            return CleavageResult(peptide, self.model, unsupported_reason=reason, conditions=conditions)
         if self.topology == "n_terminal":
             bonds = (self.removed,)
         elif self.topology == "c_terminal":
@@ -63,7 +72,7 @@ class PeptidaseMotif:
                      re.match(self.right, seq[bond:]) is not None)
             sites.append(CleavageSite(
                 bond, "matched" if match else "not_matched", self.description))
-        return CleavageResult(peptide, self.model, tuple(sites))
+        return CleavageResult(peptide, self.model, tuple(sites), conditions=conditions)
 
 
 def _rule(name, enzyme, accession, compartments, papers, topology, removed,
@@ -79,6 +88,28 @@ def _rule(name, enzyme, accession, compartments, papers, topology, removed,
 
 
 _RULES = (
+    _rule("ace-dipeptidyl", "ACE", "P12821", ("plasma", "serum", "extracellular"),
+          ("https://doi.org/10.1042/BJ20040634", "https://doi.org/10.1038/srep13742"),
+          "c_terminal", 2, ".", "[^P][^DE]", "Free C-terminal dipeptide: non-Pro followed by non-Asp/Glu",
+          "Human ACE dipeptide hydrolysis; angiotensins and N-acetyl-SDKP",
+          "Ordinary dipeptide recognition only. Domain, chloride, concentration and context affect activity. "
+          "Exceptional endopeptide/tripeptide cleavage (including amidated substance P) is omitted.",
+          min_length=3, n_chemistry=("free", "acetylated")),
+    _rule("mme-hydrophobic", "MME", "P08473", ("extracellular",),
+          ("https://pubmed.ncbi.nlm.nih.gov/6349683/", "https://pubmed.ncbi.nlm.nih.gov/2417254/"),
+          "internal", 0, ".", "[FILY]", "Selected hydrophobic P1-prime preference: Phe/Ile/Leu/Tyr",
+          "Purified human kidney neprilysin cleavage of enkephalin, kinins and angiotensins",
+          "Incomplete preference flag; whole sequence affects site selection. Other residues can be cleaved. "
+          "The 2-30-residue input scope is conservative, not an absolute enzyme size cutoff. "
+          "Membrane exposure and circulating activity are unmodeled.",
+          max_length=30, c_chemistry=("free", "amidated")),
+    _rule("cpb2-basic", "CPB2", "Q96IY4", ("plasma", "serum", "extracellular"),
+          ("https://doi.org/10.1074/jbc.274.49.35046", "https://pmc.ncbi.nlm.nih.gov/articles/PMC2613638/"),
+          "c_terminal", 1, ".", "[KR]", "Activated CPB2 removal of free C-terminal Lys/Arg",
+          "Human plasma-derived active TAFI/CPB2 peptide hydrolysis",
+          "Requires explicit enzyme_state=active. Zymogen abundance does not establish active enzyme. "
+          "Activation, spontaneous inactivation, inhibitors and serum clotting effects are unmodeled.",
+          requires_activation=True),
     _rule("cpn-basic", "CPN1", "P15169", ("plasma", "serum", "extracellular"),
           ("https://doi.org/10.1016/0003-9861(75)90104-6",),
           "c_terminal", 1, ".", "[KR]", "Free C-terminal Lys/Arg removal",
@@ -152,8 +183,10 @@ def cleavage_models(include_optional=False):
     return models
 
 
-def get_cleavage_model(name):
+def get_cleavage_model(name, *, enzyme_state=None):
     """Select an exact model name; never silently substitute another enzyme."""
+    if enzyme_state is not None and name != "cpb2-basic":
+        raise ValueError("Explicit enzyme state is currently supported only for cpb2-basic")
     if name == "dpp4-qpisa":
         return DPP4qPISA()
     if name == "eramer-step":
@@ -161,12 +194,12 @@ def get_cleavage_model(name):
         return ERAMERCleavage()
     for rule in _RULES:
         if rule.model.name == name:
-            return rule
+            return replace(rule, enzyme_state=enzyme_state) if enzyme_state is not None else rule
     raise ValueError("Unknown cleavage model %r; choices: %s" % (
         name, ", ".join(model.name for model in cleavage_models(include_optional=True))))
 
 
-def predict_cleavage(peptide, models=None, compartment=None):
+def predict_cleavage(peptide, models=None, compartment=None, *, enzyme_states=None):
     """Return distinct model results without aggregation or enzyme ranking.
 
     ``compartment`` filters annotated enzyme locations, not assay validation.
@@ -180,9 +213,15 @@ def predict_cleavage(peptide, models=None, compartment=None):
                   if compartment is None or compartment in m.compartments]
     elif isinstance(models, str):
         models = [models]
+    models = tuple(dict.fromkeys(models))
+    enzyme_states = {} if enzyme_states is None else dict(enzyme_states)
+    if set(enzyme_states) - {"CPB2"}:
+        raise ValueError("Explicit enzyme state is currently supported only for CPB2")
+    if enzyme_states and "cpb2-basic" not in models:
+        raise ValueError("CPB2 state supplied without selecting cpb2-basic")
     results = []
-    for name in dict.fromkeys(models):
-        predictor = get_cleavage_model(name)
+    for name in models:
+        predictor = get_cleavage_model(name, enzyme_state=enzyme_states.get("CPB2") if name == "cpb2-basic" else None)
         if compartment is not None and compartment not in predictor.model.compartments:
             raise ValueError("Model %s is not annotated for compartment %s" % (name, compartment))
         results.append(predictor.predict(peptide))

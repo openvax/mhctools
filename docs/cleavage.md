@@ -84,7 +84,7 @@ from mhctools import predict_cleavage
 results = predict_cleavage("TSGPNQ", models=["fap-endo-gp", "prep-pro"])
 ```
 
-The default panel evaluates all 11 built-in models and returns separate
+The default panel evaluates all 14 built-in models and returns separate
 results. `--model` and `--sequence` can be repeated. The JSON output retains
 unmatched and unsupported results, source coordinates, chemistry and model
 provenance. `--source-start` is a zero-based offset shared by the supplied
@@ -100,6 +100,9 @@ inferred. No combination is converted into overall stability.
 | Model | Assessed recognition pattern | Main scope and primary evidence |
 | --- | --- | --- |
 | `dpp4-qpisa` | N-terminal P2-P1\|P1′ score | Human DPP4; quantitative model described above |
+| `ace-dipeptidyl` | C-terminal \|non-Pro–non-Asp/Glu | Ordinary human ACE dipeptide activity; [angiotensin assays](https://doi.org/10.1042/BJ20040634) |
+| `mme-hydrophobic` | Selected P1′ residues Phe/Ile/Leu/Tyr | Human neprilysin; [kidney peptide assays](https://pubmed.ncbi.nlm.nih.gov/6349683/); incomplete whole-sequence specificity |
+| `cpb2-basic` | C-terminal \|Lys/Arg, explicitly active enzyme | Human TAFIa; [chemerin cleavage](https://pmc.ncbi.nlm.nih.gov/articles/PMC2613638/); unknown/zymogen/inactive states abstain |
 | `cpn-basic` | C-terminal \|Lys/Arg | Human plasma CPN; [Oshima et al. 1975](https://doi.org/10.1016/0003-9861(75)90104-6) |
 | `app2-xp` | N-terminal X\|Pro | Human XPNPEP2; [Molinaro et al.](https://pubmed.ncbi.nlm.nih.gov/15361070/) |
 | `fap-dipeptidyl` | N-terminal X-Pro\|non-Pro | Human FAP; [Edosada et al.](https://pubmed.ncbi.nlm.nih.gov/16410248/) |
@@ -116,9 +119,46 @@ The motif models return decisions without numerical scores. For example,
 APP removes the first residue of `RPPGFSPFR` at `R|PPGFSPFR`; DPP-like
 activity would remove two residues and is a separate assessment. FAP's
 endopeptidase rule can also assess an N-acetylated input, supported by its
-blocked-substrate activity. The other initial rules conservatively accept
-free termini only; an unsupported modified input does not establish that
+blocked-substrate activity. ACE also accepts N-acetylation, and MME accepts
+C-amidation. Other rules conservatively accept free termini only;
+an unsupported modified input does not establish that
 its bonds resist enzymatic cleavage.
+
+### Serum and extracellular candidates
+
+```sh
+mhctools cleavage --sequence DRVYIHPFHL --model ace-dipeptidyl --model mme-hydrophobic
+mhctools cleavage --sequence YFPGQFAFSK --model cpb2-basic --enzyme-state CPB2=active
+mhctools benchmark --reference-cleavage serum --out serum-reference.json
+```
+
+In Python, supply `enzyme_states={"CPB2": "active"}` to `predict_cleavage`,
+or `get_cleavage_model("cpb2-basic", enzyme_state="active")`. The result
+records that assumption in `conditions`. CPB2 requires proteolytic activation;
+its presence as a zymogen does not establish activity. `unknown`, `zymogen`
+and `inactive` return no assessed sites. [Activation experiments](https://doi.org/10.1074/jbc.274.49.35046)
+also show that the surrounding coagulation environment matters.
+
+ACE's ordinary rule assesses only the bond before the last two residues.
+It recognizes angiotensin I cleavage at bond 8 and the [N-acetyl-SDKP](https://doi.org/10.1038/srep13742)
+bond 2. It abstains on amidated substance P even though human ACE is known
+to cleave that peptide at bonds 8 and 9 through exceptional processing.
+MME flags selected hydrophobic residues after a bond, including substance P's
+reported bonds 6, 7 and 9; it accepts that peptide's C-terminal amide.
+These [human enzyme observations](https://pubmed.ncbi.nlm.nih.gov/2417254/)
+do not establish a transferable model of all substrates. The MME rule's
+2–30-residue domain is a conservative implementation scope; longer substrates
+can exist. Use the `extracellular` filter to include MME: location annotations
+do not assert that purified-kidney specificity was calibrated in serum.
+
+The packaged serum-candidate reference contains 17 source observations,
+including two explicitly reported non-cleavages. Fifteen are assessable by
+the corresponding rules; the two exceptional ACE/substance-P observations
+abstain. Cross-enzyme combinations are unassessed. The source IDs, chemical
+forms and known or unspecified experimental conditions are retained.
+These small reproduction controls do not establish specificity, serum
+half-life performance, or validity on long peptides. The report explicitly
+shows missing serum-half-life and long-peptide evidence.
 
 ### ERAP1 and existing processing models
 
@@ -153,25 +193,19 @@ The next work is prioritized by useful substrate coverage and evidence:
    non-cleavages, terminal modifications, homologous-sequence leakage checks,
    and coverage/abstention. Purified-enzyme turnover and disappearance of intact
    peptide in serum are separate endpoints.
-2. **ACE, MME/neprilysin and activated CPB2/TAFI**:
-   [#326](https://github.com/openvax/mhctools/issues/326). ACE includes both
-   terminal dipeptide processing and exceptional substrate behavior. MME needs
-   length and local sequence context. CPB2 requires activation state. Human
-   plasma bradykinin data demonstrate [concentration-dependent enzyme contributions](https://pubmed.ncbi.nlm.nih.gov/10749699/);
-   serum carboxypeptidase activity also [differs from plasma](https://pubmed.ncbi.nlm.nih.gov/2760564/).
-3. **TPP2, NPEPPS, THOP1, NLN and XPNPEP1**, plus endosomal **LNPEP/IRAP**:
+2. **TPP2, NPEPPS, THOP1, NLN and XPNPEP1**, plus endosomal **LNPEP/IRAP**:
    [#327](https://github.com/openvax/mhctools/issues/327). N-terminal removal
    of three residues describes TPP2 topology, not a selective substrate model.
    [TPP2 precursor processing](https://pubmed.ncbi.nlm.nih.gov/16849449/)
    and [THOP1/NLN substrate studies](https://pubmed.ncbi.nlm.nih.gov/11284698/)
    are starting evidence. IRAP belongs in an endosomal context, not a default
    ER panel.
-4. **Activated blood and inflammation-associated proteases**: F2/thrombin,
+3. **Activated blood and inflammation-associated proteases**: F2/thrombin,
    PLG/plasmin, KLKB1, ELANE, CTSG, PRTN3 and relevant extracellular cathepsins
    and matrix metalloproteases. Curate activation, inhibitors, tissue exposure,
    and assay conditions before choosing a predictor. A generic Arg/Lys or
    hydrophobic-residue scan would not distinguish these enzymes.
-5. **Other exopeptidases/compartments**: DPP7, DPP2-family annotations,
+4. **Other exopeptidases/compartments**: DPP7, DPP2-family annotations,
    cathepsins C/H, ACE2, carboxypeptidases M/E and lysosomal/endosomal processing
    merit separate domain reviews. Do not infer ER or serum activity merely
    from membership in a peptidase family.

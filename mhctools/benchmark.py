@@ -347,7 +347,9 @@ def predict_cleavage_measurements(measurements, models):
                 continue
             try:
                 n_term, c_term = chemistry[m.chemistry]
-                result = predictor.predict(CleavageInput(m.sequence, n_term, c_term))
+                selected = (get_cleavage_model(name, enzyme_state=dict(m.conditions).get("enzyme_state"))
+                            if name == "cpb2-basic" else predictor)
+                result = selected.predict(CleavageInput(m.sequence, n_term, c_term))
                 site = next((s for s in result.sites if s.bond == m.bond), None)
                 if site is None:
                     predictions.append(BenchmarkPrediction(**kwargs, status="not_assessed",
