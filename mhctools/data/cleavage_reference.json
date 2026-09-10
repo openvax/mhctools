@@ -1,0 +1,121 @@
+{
+  "schema_version": 1,
+  "notice": "Small manually curated factual reference set, offered under CC0-1.0. Positive observations only; CPN assignment is inhibitor-attributed CPN-like plasma activity. These are reproduction controls, not independent validation or negative-label data. No article prose, figures or third-party datasets are redistributed.",
+  "models": [
+    "cpn-basic",
+    "app2-xp",
+    "dpp9-xp-xa"
+  ],
+  "measurements": [
+    {
+      "measurement_id": "cpn-bk-low",
+      "source_measurement_id": "abstract:BK(1-8):nanomolar",
+      "source": "https://pubmed.ncbi.nlm.nih.gov/10749699/",
+      "dataset": "curated-cleavage-references-v1",
+      "study": "https://pubmed.ncbi.nlm.nih.gov/10749699/",
+      "assay": "human plasma with inhibitor attribution",
+      "sequence": "RPPGFSPFR",
+      "chemistry": "linear_L_free",
+      "endpoint": "site_cleavage",
+      "units": "binary",
+      "species": "Homo sapiens",
+      "matrix": "plasma",
+      "value": 1,
+      "split": "reference",
+      "family": "bradykinin",
+      "enzyme": "CPN1",
+      "bond": 8,
+      "conditions": {
+        "substrate_concentration": "nanomolar range",
+        "enzyme_attribution": "CPN-like activity",
+        "pH": "not specified in abstract",
+        "label": "product observed; fractional turnover not used"
+      }
+    },
+    {
+      "measurement_id": "cpn-bk-high",
+      "source_measurement_id": "abstract:BK:micromolar",
+      "source": "https://pubmed.ncbi.nlm.nih.gov/10749699/",
+      "dataset": "curated-cleavage-references-v1",
+      "study": "https://pubmed.ncbi.nlm.nih.gov/10749699/",
+      "assay": "human plasma with inhibitor attribution",
+      "sequence": "RPPGFSPFR",
+      "chemistry": "linear_L_free",
+      "endpoint": "site_cleavage",
+      "units": "binary",
+      "species": "Homo sapiens",
+      "matrix": "plasma",
+      "value": 1,
+      "split": "reference",
+      "family": "bradykinin",
+      "enzyme": "CPN1",
+      "bond": 8,
+      "conditions": {
+        "substrate_concentration": "micromolar range",
+        "enzyme_attribution": "CPN-like activity",
+        "pH": "not specified in abstract",
+        "label": "CPN-like degradation observed; fractional turnover not used"
+      }
+    },
+    {
+      "measurement_id": "app2-rpp",
+      "source_measurement_id": "Arg-Pro-Pro substrate",
+      "source": "https://pubmed.ncbi.nlm.nih.gov/15361070/",
+      "dataset": "curated-cleavage-references-v1",
+      "study": "https://pubmed.ncbi.nlm.nih.gov/15361070/",
+      "assay": "recombinant human membrane aminopeptidase P",
+      "sequence": "RPP",
+      "chemistry": "linear_L_free",
+      "endpoint": "site_cleavage",
+      "units": "binary",
+      "species": "Homo sapiens",
+      "matrix": "purified_enzyme",
+      "value": 1,
+      "split": "reference",
+      "family": "bradykinin",
+      "enzyme": "XPNPEP2",
+      "bond": 1,
+      "conditions": {
+        "substrate_concentration": "not transcribed",
+        "pH": "not transcribed"
+      }
+    },
+    {
+      "measurement_id": "dpp9-ru1",
+      "source_measurement_id": "RU1 epitope VPYGSFKHV",
+      "source": "https://pubmed.ncbi.nlm.nih.gov/19667070/",
+      "dataset": "curated-cleavage-references-v1",
+      "study": "https://pubmed.ncbi.nlm.nih.gov/19667070/",
+      "assay": "human DPP9 peptide cleavage",
+      "sequence": "VPYGSFKHV",
+      "chemistry": "linear_L_free",
+      "endpoint": "site_cleavage",
+      "units": "binary",
+      "species": "Homo sapiens",
+      "matrix": "purified_enzyme",
+      "value": 1,
+      "split": "reference",
+      "family": "RU1",
+      "enzyme": "DPP9",
+      "bond": 2,
+      "conditions": {
+        "substrate_concentration": "not transcribed",
+        "pH": "not transcribed"
+      }
+    }
+  ],
+  "requested_domains": [
+    {
+      "name": "human serum half-life",
+      "endpoint": "serum_half_life",
+      "species": "Homo sapiens",
+      "matrix": "serum"
+    },
+    {
+      "name": "primary human DC cytosolic delivery",
+      "endpoint": "cytosolic_delivery",
+      "species": "Homo sapiens",
+      "cell_type": "primary dendritic cell"
+    }
+  ]
+}

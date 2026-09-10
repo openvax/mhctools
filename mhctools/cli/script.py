@@ -175,6 +175,9 @@ def main(args_list=None):
     if args_list and args_list[0] == "fetch":
         from .artifacts import fetch_main
         return fetch_main(args_list[1:])
+    if args_list and args_list[0] == "benchmark":
+        from .benchmark import main as benchmark_main
+        return benchmark_main(args_list[1:])
     if args_list and args_list[0] == "cleavage":
         from .cleavage import main as cleavage_main
         return cleavage_main(args_list[1:])

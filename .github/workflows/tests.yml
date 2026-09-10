@@ -57,6 +57,7 @@ jobs:
             tests/test_cleavage.py \
             tests/test_dpp4.py \
             tests/test_peptidases.py \
+            tests/test_benchmark.py \
             tests/test_eramer_cleavage.py \
             tests/test_pred.py \
             tests/test_annotate_table.py \
