@@ -88,7 +88,7 @@ def test_prep_length_scope():
 
 def test_compartment_filter_and_explicit_selection():
     results = predict_cleavage("VPYGSFKHV", compartment="cytosol")
-    assert {r.model.enzyme for r in results} == {"DPP8", "DPP9", "PREP"}
+    assert {r.model.enzyme for r in results} == {"DPP8", "DPP9", "PREP", "TPP2", "NPEPPS", "XPNPEP1", "THOP1", "NLN"}
     assert len(predict_cleavage("HAE", models=["dpp4-qpisa", "dpp4-qpisa"])) == 1
     with pytest.raises(ValueError, match="not annotated"):
         predict_cleavage("HAE", models="dpp4-qpisa", compartment="er")
@@ -120,7 +120,7 @@ def test_cli_lists_optional_models_without_loading_assets(capsys, monkeypatch):
     monkeypatch.setenv("ERAMER_HOME", "/does-not-exist")
     main(["cleavage", "--list-models"])
     data = json.loads(capsys.readouterr().out)
-    assert len(data["models"]) == 15
+    assert len(data["models"]) == 21
     assert any(m["name"] == "eramer-step" for m in data["models"])
 
 

@@ -16,7 +16,7 @@ def main(argv=None):
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--input", help="JSON containing measurements and predictions or --model inputs")
     mode.add_argument("--lineage-inventory", action="store_true")
-    mode.add_argument("--reference-cleavage", nargs="?", const="starter", choices=("starter", "serum"),
+    mode.add_argument("--reference-cleavage", nargs="?", const="starter", choices=("starter", "serum", "intracellular"),
                       help="Run a source-linked reproduction panel (default: starter)")
     parser.add_argument("--model", action="append", help="Run an exact cleavage model against site records")
     parser.add_argument("--evaluation", choices=("external_validation", "reproduction"), default="external_validation")
@@ -29,7 +29,8 @@ def main(argv=None):
             result = model_lineage_inventory()
         else:
             if args.reference_cleavage:
-                filename = "cleavage_reference.json" if args.reference_cleavage == "starter" else "serum_cleavage_reference.json"
+                filename = ("cleavage_reference.json" if args.reference_cleavage == "starter"
+                            else args.reference_cleavage + "_cleavage_reference.json")
                 data = json.loads(files("mhctools").joinpath("data/" + filename).read_text())
                 evaluation = "reproduction"
             else:

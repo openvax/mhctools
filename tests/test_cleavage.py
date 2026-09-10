@@ -47,7 +47,8 @@ def test_evidence_types_do_not_convert_to_probabilities():
     with pytest.raises(ValueError, match="semantics"):
         CleavageResult(CleavageInput("HAP"), DPP4qPISA.model,
                        (CleavageSite(1, "matched", "rule"),))
-    motif = replace(DPP4qPISA.model, evidence="motif_rule", score_name=None, score_units=None)
+    motif = replace(DPP4qPISA.model, evidence="motif_rule", score_name=None, score_units=None,
+                    motif_strictness="required", strictness_basis="fixture")
     with pytest.raises(ValueError, match="semantics"):
         CleavageResult(CleavageInput("HAP"), motif,
                        (CleavageSite(1, "scored", "model", 2.0),))
@@ -59,3 +60,27 @@ def test_duplicate_and_unsupported_sites_rejected():
         CleavageResult(CleavageInput("HAP"), DPP4qPISA.model, [site, site])
     with pytest.raises(ValueError, match="Unsupported"):
         CleavageResult(CleavageInput("HAP"), DPP4qPISA.model, [site], "unknown chemistry")
+
+
+def test_motif_strictness_is_graded_and_attributable():
+    motif = replace(DPP4qPISA.model, evidence="motif_rule", score_name=None, score_units=None,
+                    motif_strictness="preferred", strictness_basis="source preference")
+    assert motif.motif_strictness == "preferred"
+    with pytest.raises(ValueError, match="required, preferred or permissive"):
+        replace(motif, motif_strictness="strict")
+    with pytest.raises(ValueError, match="required, preferred or permissive"):
+        replace(motif, motif_strictness=None)
+    with pytest.raises(ValueError, match="observation behind it"):
+        replace(motif, strictness_basis="")
+    # A grade would be meaningless on evidence that is not a recognition pattern.
+    for evidence in ("quantitative_model", "substrate_reference"):
+        with pytest.raises(ValueError, match="Only motif rules"):
+            replace(DPP4qPISA.model, evidence=evidence,
+                    score_name=DPP4qPISA.model.score_name if evidence == "quantitative_model" else None,
+                    score_units=DPP4qPISA.model.score_units if evidence == "quantitative_model" else None,
+                    motif_strictness="required", strictness_basis="fixture")
+
+
+def test_every_model_cites_a_source():
+    with pytest.raises(ValueError, match="cite at least one source"):
+        replace(DPP4qPISA.model, references=())

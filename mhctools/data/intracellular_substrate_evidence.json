@@ -1,0 +1,561 @@
+{
+  "schema_version": 1,
+  "license": "CC0-1.0",
+  "curation_date": "2026-09-10",
+  "notice": "Manually curated exact source observations for intracellular human peptidases whose published specificity is reported as whole-substrate outcomes rather than transferable motifs. A lookup returns the source experiment's result for that exact chemical form only; unseen sequences are never extrapolated. Reported bonds are those the source's product identities pin down, not a complete map of every hydrolysed bond. Assay pH and matrix are the source's, not the cytosolic or endosomal setting the enzyme occupies in cells.",
+  "models": [
+    {
+      "model": {
+        "name": "thop1-observed",
+        "version": "1",
+        "enzyme": "THOP1",
+        "uniprot": "P52888",
+        "species": "Homo sapiens",
+        "compartments": [
+          "cytosol"
+        ],
+        "evidence": "substrate_reference",
+        "references": [
+          "https://pubmed.ncbi.nlm.nih.gov/7755557/",
+          "https://doi.org/10.1042/bj3080145",
+          "https://pmc.ncbi.nlm.nih.gov/articles/PMC1136855/",
+          "https://pubmed.ncbi.nlm.nih.gov/8373360/",
+          "https://www.uniprot.org/uniprotkb/P52888/entry"
+        ],
+        "assay": "Human thimet oligopeptidase hydrolysis of synthetic Gly-Pro-Leu oligomers and of bradykinin, followed by HPLC (Knight, Dando and Barrett 1995, Biochem J 308:145-150)",
+        "limitations": "Exact-sequence lookup over one substrate series plus bradykinin, not a specificity model. The Gly-Pro-Leu oligomers are synthetic repeats, not antigenic peptides, so nothing here transfers to an arbitrary sequence. This catalog holds no reported non-cleavage for this enzyme: every resistant peptide in the source is a hydroxyproline analogue or carries an N-terminal pyroglutamate, and both are outside the canonical-peptide input type, so absence of a record here is not evidence of resistance. The source states that peptides of 18 or more residues cannot be cleaved and that hydrolysis is subject to potent competitive inhibition by the C-terminal product, so observed rates are not turnover in a cell. Whether the enzyme preparation was recombinant is not stated. Reported cleavage of a purified substrate does not establish that this enzyme controls the lifetime of any peptide in the cytosol of an antigen-presenting cell; primary reports disagree about whether mature class I epitopes are good substrates."
+      },
+      "cases": [
+        {
+          "sequence": "GPLGPL",
+          "n_term": "free",
+          "c_term": "free",
+          "substrate_observation": "cleavage_reported",
+          "bonds": [
+            3
+          ],
+          "interpretation": "Source reports the (Gly-Pro-Leu)n oligomers are cleaved only at Leu-Gly bonds, with Gly-Pro-Leu as the single final product, so every internal Leu-Gly bond is hydrolysed",
+          "source": "https://pubmed.ncbi.nlm.nih.gov/7755557/",
+          "source_measurement_id": "knight1995-thop1-gpl2",
+          "conditions": {
+            "pH": "7.8",
+            "temperature_C": "37",
+            "buffer": "50 mM Tris/HCl pH 7.8 with 0.01 percent Brij 35 and 0.1 mM dithiothreitol",
+            "substrate_concentration": "100 uM substrate; enzyme set so that 70-90 percent cleavage occurred over about 2 h",
+            "enzyme_preparation": "human thimet oligopeptidase, homogeneous on SDS/PAGE, specific activity 3.2 units/mg, as purified from erythrocytes by Dando, Brown and Barrett 1993",
+            "readout": "HPLC on a C18 column monitored at 220 nm; products identified by co-chromatography with authentic standards and by amino acid analysis",
+            "terminal_chemistry": "not stated by the source; recorded as the free-terminus synthetic peptide",
+            "substrate": "(Gly-Pro-Leu)2 synthetic oligomer, ordinary proline",
+            "source_location": "Table 1 and Results, cleavage of (GPL)n oligomers"
+          }
+        },
+        {
+          "sequence": "GPLGPLGPL",
+          "n_term": "free",
+          "c_term": "free",
+          "substrate_observation": "cleavage_reported",
+          "bonds": [
+            3,
+            6
+          ],
+          "interpretation": "Source reports the (Gly-Pro-Leu)n oligomers are cleaved only at Leu-Gly bonds, with Gly-Pro-Leu as the single final product, so every internal Leu-Gly bond is hydrolysed",
+          "source": "https://pubmed.ncbi.nlm.nih.gov/7755557/",
+          "source_measurement_id": "knight1995-thop1-gpl3",
+          "conditions": {
+            "pH": "7.8",
+            "temperature_C": "37",
+            "buffer": "50 mM Tris/HCl pH 7.8 with 0.01 percent Brij 35 and 0.1 mM dithiothreitol",
+            "substrate_concentration": "100 uM substrate; enzyme set so that 70-90 percent cleavage occurred over about 2 h",
+            "enzyme_preparation": "human thimet oligopeptidase, homogeneous on SDS/PAGE, specific activity 3.2 units/mg, as purified from erythrocytes by Dando, Brown and Barrett 1993",
+            "readout": "HPLC on a C18 column monitored at 220 nm; products identified by co-chromatography with authentic standards and by amino acid analysis",
+            "terminal_chemistry": "not stated by the source; recorded as the free-terminus synthetic peptide",
+            "substrate": "(Gly-Pro-Leu)3 synthetic oligomer, ordinary proline",
+            "enzyme_concentration": "0.8 nM thimet oligopeptidase for the reported progress curve",
+            "kinetics": "cleaved most rapidly of the series; sequential first-order model that does not discriminate between initial cleavage toward the N or C terminus",
+            "source_location": "Table 1, Figure 1 and Results"
+          }
+        },
+        {
+          "sequence": "GPLGPLGPLGPL",
+          "n_term": "free",
+          "c_term": "free",
+          "substrate_observation": "cleavage_reported",
+          "bonds": [
+            3,
+            6,
+            9
+          ],
+          "interpretation": "Source reports the (Gly-Pro-Leu)n oligomers are cleaved only at Leu-Gly bonds, with Gly-Pro-Leu as the single final product, so every internal Leu-Gly bond is hydrolysed",
+          "source": "https://pubmed.ncbi.nlm.nih.gov/7755557/",
+          "source_measurement_id": "knight1995-thop1-gpl4",
+          "conditions": {
+            "pH": "7.8",
+            "temperature_C": "37",
+            "buffer": "50 mM Tris/HCl pH 7.8 with 0.01 percent Brij 35 and 0.1 mM dithiothreitol",
+            "substrate_concentration": "100 uM substrate; enzyme set so that 70-90 percent cleavage occurred over about 2 h",
+            "enzyme_preparation": "human thimet oligopeptidase, homogeneous on SDS/PAGE, specific activity 3.2 units/mg, as purified from erythrocytes by Dando, Brown and Barrett 1993",
+            "readout": "HPLC on a C18 column monitored at 220 nm; products identified by co-chromatography with authentic standards and by amino acid analysis",
+            "terminal_chemistry": "not stated by the source; recorded as the free-terminus synthetic peptide",
+            "substrate": "(Gly-Pro-Leu)4 synthetic oligomer, ordinary proline",
+            "source_location": "Table 1 and Results"
+          }
+        },
+        {
+          "sequence": "GPLGPLGPLGPLGPL",
+          "n_term": "free",
+          "c_term": "free",
+          "substrate_observation": "cleavage_reported",
+          "bonds": [
+            3,
+            6,
+            9,
+            12
+          ],
+          "interpretation": "Source reports the (Gly-Pro-Leu)n oligomers are cleaved only at Leu-Gly bonds, with Gly-Pro-Leu as the single final product, so every internal Leu-Gly bond is hydrolysed",
+          "source": "https://pubmed.ncbi.nlm.nih.gov/7755557/",
+          "source_measurement_id": "knight1995-thop1-gpl5",
+          "conditions": {
+            "pH": "7.8",
+            "temperature_C": "37",
+            "buffer": "50 mM Tris/HCl pH 7.8 with 0.01 percent Brij 35 and 0.1 mM dithiothreitol",
+            "substrate_concentration": "100 uM substrate; enzyme set so that 70-90 percent cleavage occurred over about 2 h",
+            "enzyme_preparation": "human thimet oligopeptidase, homogeneous on SDS/PAGE, specific activity 3.2 units/mg, as purified from erythrocytes by Dando, Brown and Barrett 1993",
+            "readout": "HPLC on a C18 column monitored at 220 nm; products identified by co-chromatography with authentic standards and by amino acid analysis",
+            "terminal_chemistry": "not stated by the source; recorded as the free-terminus synthetic peptide",
+            "substrate": "(Gly-Pro-Leu)5 synthetic oligomer, ordinary proline, 15 residues",
+            "kinetics": "slowest of the series; rate decreased as substrate size increased",
+            "source_location": "Table 1 and Results"
+          }
+        },
+        {
+          "sequence": "RPPGFSPFR",
+          "n_term": "free",
+          "c_term": "free",
+          "substrate_observation": "cleavage_reported",
+          "bonds": [
+            5
+          ],
+          "interpretation": "Source reports thimet oligopeptidase cleaves bradykinin at the Phe-Ser bond to give the fragments RPPGF and SPFR",
+          "source": "https://pubmed.ncbi.nlm.nih.gov/7755557/",
+          "source_measurement_id": "knight1995-thop1-bradykinin",
+          "conditions": {
+            "pH": "7.8",
+            "temperature_C": "37",
+            "buffer": "50 mM Tris/HCl pH 7.8 with 0.01 percent Brij 35 and 0.1 mM dithiothreitol",
+            "substrate_concentration": "100 uM substrate; enzyme set so that 70-90 percent cleavage occurred over about 2 h",
+            "enzyme_preparation": "human thimet oligopeptidase, homogeneous on SDS/PAGE, specific activity 3.2 units/mg, as purified from erythrocytes by Dando, Brown and Barrett 1993",
+            "readout": "HPLC on a C18 column monitored at 220 nm; products identified by co-chromatography with authentic standards and by amino acid analysis",
+            "terminal_chemistry": "not stated by the source; recorded as the free-terminus synthetic peptide",
+            "substrate": "bradykinin (Sigma)",
+            "enzyme_concentration": "0.8 nM thimet oligopeptidase for the reported progress curve",
+            "kinetics": "Km 1.71 uM with competitive product inhibition, Kp 1.08 uM",
+            "source_location": "Results and Table 4"
+          }
+        }
+      ]
+    },
+    {
+      "model": {
+        "name": "nln-observed",
+        "version": "1",
+        "enzyme": "NLN",
+        "uniprot": "Q9BYT8",
+        "species": "Homo sapiens",
+        "compartments": [
+          "cytosol"
+        ],
+        "evidence": "substrate_reference",
+        "references": [
+          "https://pubmed.ncbi.nlm.nih.gov/39117724/",
+          "https://doi.org/10.1038/s41598-024-67639-w",
+          "https://pmc.ncbi.nlm.nih.gov/articles/PMC11310207/",
+          "https://www.uniprot.org/uniprotkb/Q9BYT8/entry"
+        ],
+        "assay": "Recombinant human neurolysin hydrolysis of a dynorphin A length series quantified by LC-MS, with peptide complexes resolved by X-ray crystallography (Karamyan, Aihara and colleagues 2024, Sci Rep 14:18420)",
+        "limitations": "Exact-sequence lookup over one substrate series, not a specificity model. Neurolysin and thimet oligopeptidase are closely related but are not interchangeable: they cleave neurotensin at distinct sites and their specificities can be swapped by mutating two active-site residues, so neither model's observations may be transferred to the other. Only observations made on the human enzyme are recorded; the widely cited bradykinin, enkephalin and neurotensin results come from rat or species-unspecified preparations and are deliberately excluded. The angiotensin I record is read from electron density in a crystal, not a solution assay. Non-degradation entries mean the source measured no significant loss of peptide against a no-enzyme control in a 45 minute assay, which is not proof that no bond can be cleaved. UniProt annotates this protein as mitochondrial as well as cytosolic, and its human catalytic-activity annotation is inferred from the rat orthologue. Reported substrates do not exceed 17 residues."
+      },
+      "cases": [
+        {
+          "sequence": "YGGFLRRI",
+          "n_term": "free",
+          "c_term": "free",
+          "substrate_observation": "cleavage_reported",
+          "bonds": [
+            5
+          ],
+          "interpretation": "Source reports dynorphin A 1-8 is the best degraded form of the series, with 68.5 percent uncleaved peptide remaining, and its crystal structure shows cleavage between Leu5 and Arg6",
+          "source": "https://pubmed.ncbi.nlm.nih.gov/39117724/",
+          "source_measurement_id": "hines2024-nln-dyna1-8",
+          "conditions": {
+            "pH": "not stated for the LC-MS hydrolysis panel in the retrievable text; enzyme stock buffered at 50 mM Tris pH 7.2, 100 mM NaCl, 0.05 percent Tween 20",
+            "temperature_C": "not stated for the LC-MS hydrolysis panel in the retrievable text",
+            "substrate_concentration": "20 uM peptide with 2 nM recombinant human neurolysin, 45 min incubation",
+            "enzyme_preparation": "recombinant human neurolysin residues Ser38-Pro704 with an N-terminal 6xHis tag expressed in E. coli",
+            "readout": "liquid chromatography-mass spectrometry quantification of remaining uncleaved peptide, n = 4 independent experiments repeated twice",
+            "source_location": "Figure 1 and Figure 5a",
+            "reported_extent": "68.5 percent uncleaved peptide remaining, 95 percent CI 58.9-78.1",
+            "bond_evidence": "bond assigned from the 2.12 A crystal structure of human neurolysin with this peptide, PDB 8VJV"
+          }
+        },
+        {
+          "sequence": "YGGFLRRIR",
+          "n_term": "free",
+          "c_term": "free",
+          "substrate_observation": "cleavage_reported",
+          "bonds": [],
+          "interpretation": "Source reports dynorphin A 1-9 is degraded, with 79.2 percent uncleaved peptide remaining; no cleaved bond is assigned",
+          "source": "https://pubmed.ncbi.nlm.nih.gov/39117724/",
+          "source_measurement_id": "hines2024-nln-dyna1-9",
+          "conditions": {
+            "pH": "not stated for the LC-MS hydrolysis panel in the retrievable text; enzyme stock buffered at 50 mM Tris pH 7.2, 100 mM NaCl, 0.05 percent Tween 20",
+            "temperature_C": "not stated for the LC-MS hydrolysis panel in the retrievable text",
+            "substrate_concentration": "20 uM peptide with 2 nM recombinant human neurolysin, 45 min incubation",
+            "enzyme_preparation": "recombinant human neurolysin residues Ser38-Pro704 with an N-terminal 6xHis tag expressed in E. coli",
+            "readout": "liquid chromatography-mass spectrometry quantification of remaining uncleaved peptide, n = 4 independent experiments repeated twice",
+            "source_location": "Figure 1 and its legend",
+            "reported_extent": "79.2 percent uncleaved peptide remaining, 95 percent CI 72.1-86.3"
+          }
+        },
+        {
+          "sequence": "YGGFLRRIRPKLKWDNQ",
+          "n_term": "free",
+          "c_term": "free",
+          "substrate_observation": "cleavage_reported",
+          "bonds": [],
+          "interpretation": "Source reports dynorphin A 1-17 is degraded, with 87.5 percent uncleaved peptide remaining; no cleaved bond is assigned",
+          "source": "https://pubmed.ncbi.nlm.nih.gov/39117724/",
+          "source_measurement_id": "hines2024-nln-dyna1-17",
+          "conditions": {
+            "pH": "not stated for the LC-MS hydrolysis panel in the retrievable text; enzyme stock buffered at 50 mM Tris pH 7.2, 100 mM NaCl, 0.05 percent Tween 20",
+            "temperature_C": "not stated for the LC-MS hydrolysis panel in the retrievable text",
+            "substrate_concentration": "20 uM peptide with 2 nM recombinant human neurolysin, 45 min incubation",
+            "enzyme_preparation": "recombinant human neurolysin residues Ser38-Pro704 with an N-terminal 6xHis tag expressed in E. coli",
+            "readout": "liquid chromatography-mass spectrometry quantification of remaining uncleaved peptide, n = 4 independent experiments repeated twice",
+            "source_location": "Figure 1 and its legend",
+            "reported_extent": "87.5 percent uncleaved peptide remaining, 95 percent CI 83.3-91.1",
+            "length_note": "17 residues, the largest neurolysin substrate reported in the literature"
+          }
+        },
+        {
+          "sequence": "YGGFLRR",
+          "n_term": "free",
+          "c_term": "free",
+          "substrate_observation": "no_cleavage_detected",
+          "bonds": [],
+          "interpretation": "Source reports this dynorphin A form was not significantly degraded by neurolysin relative to the no-enzyme control; this is a statistical non-difference in one assay, not proof of an uncleavable bond",
+          "source": "https://pubmed.ncbi.nlm.nih.gov/39117724/",
+          "source_measurement_id": "hines2024-nln-dyna1-7",
+          "conditions": {
+            "pH": "not stated for the LC-MS hydrolysis panel in the retrievable text; enzyme stock buffered at 50 mM Tris pH 7.2, 100 mM NaCl, 0.05 percent Tween 20",
+            "temperature_C": "not stated for the LC-MS hydrolysis panel in the retrievable text",
+            "substrate_concentration": "20 uM peptide with 2 nM recombinant human neurolysin, 45 min incubation",
+            "enzyme_preparation": "recombinant human neurolysin residues Ser38-Pro704 with an N-terminal 6xHis tag expressed in E. coli",
+            "readout": "liquid chromatography-mass spectrometry quantification of remaining uncleaved peptide, n = 4 independent experiments repeated twice",
+            "source_location": "Figure 1 and its legend"
+          }
+        },
+        {
+          "sequence": "YGGFLRRIRP",
+          "n_term": "free",
+          "c_term": "free",
+          "substrate_observation": "no_cleavage_detected",
+          "bonds": [],
+          "interpretation": "Source reports this dynorphin A form was not significantly degraded by neurolysin relative to the no-enzyme control; this is a statistical non-difference in one assay, not proof of an uncleavable bond",
+          "source": "https://pubmed.ncbi.nlm.nih.gov/39117724/",
+          "source_measurement_id": "hines2024-nln-dyna1-10",
+          "conditions": {
+            "pH": "not stated for the LC-MS hydrolysis panel in the retrievable text; enzyme stock buffered at 50 mM Tris pH 7.2, 100 mM NaCl, 0.05 percent Tween 20",
+            "temperature_C": "not stated for the LC-MS hydrolysis panel in the retrievable text",
+            "substrate_concentration": "20 uM peptide with 2 nM recombinant human neurolysin, 45 min incubation",
+            "enzyme_preparation": "recombinant human neurolysin residues Ser38-Pro704 with an N-terminal 6xHis tag expressed in E. coli",
+            "readout": "liquid chromatography-mass spectrometry quantification of remaining uncleaved peptide, n = 4 independent experiments repeated twice",
+            "source_location": "Figure 1 and its legend"
+          }
+        },
+        {
+          "sequence": "YGGFLRRIRPK",
+          "n_term": "free",
+          "c_term": "free",
+          "substrate_observation": "no_cleavage_detected",
+          "bonds": [],
+          "interpretation": "Source reports this dynorphin A form was not significantly degraded by neurolysin relative to the no-enzyme control; this is a statistical non-difference in one assay, not proof of an uncleavable bond",
+          "source": "https://pubmed.ncbi.nlm.nih.gov/39117724/",
+          "source_measurement_id": "hines2024-nln-dyna1-11",
+          "conditions": {
+            "pH": "not stated for the LC-MS hydrolysis panel in the retrievable text; enzyme stock buffered at 50 mM Tris pH 7.2, 100 mM NaCl, 0.05 percent Tween 20",
+            "temperature_C": "not stated for the LC-MS hydrolysis panel in the retrievable text",
+            "substrate_concentration": "20 uM peptide with 2 nM recombinant human neurolysin, 45 min incubation",
+            "enzyme_preparation": "recombinant human neurolysin residues Ser38-Pro704 with an N-terminal 6xHis tag expressed in E. coli",
+            "readout": "liquid chromatography-mass spectrometry quantification of remaining uncleaved peptide, n = 4 independent experiments repeated twice",
+            "source_location": "Figure 1 and its legend"
+          }
+        },
+        {
+          "sequence": "YGGFLRRIRPKL",
+          "n_term": "free",
+          "c_term": "free",
+          "substrate_observation": "no_cleavage_detected",
+          "bonds": [],
+          "interpretation": "Source reports this dynorphin A form was not significantly degraded by neurolysin relative to the no-enzyme control; this is a statistical non-difference in one assay, not proof of an uncleavable bond",
+          "source": "https://pubmed.ncbi.nlm.nih.gov/39117724/",
+          "source_measurement_id": "hines2024-nln-dyna1-12",
+          "conditions": {
+            "pH": "not stated for the LC-MS hydrolysis panel in the retrievable text; enzyme stock buffered at 50 mM Tris pH 7.2, 100 mM NaCl, 0.05 percent Tween 20",
+            "temperature_C": "not stated for the LC-MS hydrolysis panel in the retrievable text",
+            "substrate_concentration": "20 uM peptide with 2 nM recombinant human neurolysin, 45 min incubation",
+            "enzyme_preparation": "recombinant human neurolysin residues Ser38-Pro704 with an N-terminal 6xHis tag expressed in E. coli",
+            "readout": "liquid chromatography-mass spectrometry quantification of remaining uncleaved peptide, n = 4 independent experiments repeated twice",
+            "source_location": "Figure 1 and its legend"
+          }
+        },
+        {
+          "sequence": "YGGFLRRIRPKLK",
+          "n_term": "free",
+          "c_term": "free",
+          "substrate_observation": "no_cleavage_detected",
+          "bonds": [],
+          "interpretation": "Source reports this dynorphin A form was not significantly degraded by neurolysin relative to the no-enzyme control; this is a statistical non-difference in one assay, not proof of an uncleavable bond; the source separately reports this form as a potent competitive inhibitor and its crystal structure is uncleaved",
+          "source": "https://pubmed.ncbi.nlm.nih.gov/39117724/",
+          "source_measurement_id": "hines2024-nln-dyna1-13",
+          "conditions": {
+            "pH": "not stated for the LC-MS hydrolysis panel in the retrievable text; enzyme stock buffered at 50 mM Tris pH 7.2, 100 mM NaCl, 0.05 percent Tween 20",
+            "temperature_C": "not stated for the LC-MS hydrolysis panel in the retrievable text",
+            "substrate_concentration": "20 uM peptide with 2 nM recombinant human neurolysin, 45 min incubation",
+            "enzyme_preparation": "recombinant human neurolysin residues Ser38-Pro704 with an N-terminal 6xHis tag expressed in E. coli",
+            "readout": "liquid chromatography-mass spectrometry quantification of remaining uncleaved peptide, n = 4 independent experiments repeated twice",
+            "source_location": "Figure 1, Figure 2 and Figure 5b",
+            "inhibition": "Ki 1.0 uM, 95 percent CI 0.9-1.1, against a quenched fluorogenic substrate",
+            "structure": "uncleaved in the 1.99 A crystal structure, PDB 8VJU"
+          }
+        },
+        {
+          "sequence": "DRVYIHPFHL",
+          "n_term": "free",
+          "c_term": "free",
+          "substrate_observation": "cleavage_reported",
+          "bonds": [
+            4
+          ],
+          "interpretation": "Source reports the crystal structure of human neurolysin with angiotensin I shows the peptide cleaved between Tyr4 and Ile5",
+          "source": "https://pubmed.ncbi.nlm.nih.gov/39117724/",
+          "source_measurement_id": "hines2024-nln-angiotensin-i",
+          "conditions": {
+            "pH": "6.5 crystallization buffer, 50-125 mM Bis-Tris HCl with 17.5-30 percent polyethylene glycol 3350",
+            "temperature_C": "not stated",
+            "substrate_concentration": "1 mM peptide with human neurolysin at about 30 mg/mL, hanging drop vapour diffusion",
+            "enzyme_preparation": "recombinant human neurolysin residues 38-704",
+            "readout": "2.49 A X-ray crystal structure, PDB 8VJW; cleavage read from electron density rather than a solution assay",
+            "source_location": "Figure 5c and Results, angiotensin I bound to hNln",
+            "alternative_site": "the source notes prior work reports cleavage of angiotensin I between Pro7 and Phe8; only this source's own observation is recorded here"
+          }
+        }
+      ]
+    },
+    {
+      "model": {
+        "name": "lnpep-observed",
+        "version": "1",
+        "enzyme": "LNPEP",
+        "uniprot": "Q9UIQ6",
+        "species": "Homo sapiens",
+        "compartments": [
+          "endosome"
+        ],
+        "evidence": "substrate_reference",
+        "references": [
+          "https://pubmed.ncbi.nlm.nih.gov/20592285/",
+          "https://doi.org/10.4049/jimmunol.0902502",
+          "https://pmc.ncbi.nlm.nih.gov/articles/PMC2910840/",
+          "https://www.uniprot.org/uniprotkb/Q9UIQ6/entry"
+        ],
+        "assay": "Soluble recombinant human PLAP/IRAP trimming of antigenic peptide precursors, products identified by reverse-phase separation and mass spectrometry (Georgiadou et al. 2010, J Immunol 185:1584-1592)",
+        "limitations": "Exact-sequence lookup, not a trimming model. The source names this enzyme PLAP; the UniProt gene name is LNPEP and the mouse homolog is called IRAP. Digestions ran at pH 8.0 in Tris buffer with purified enzyme, which is not the acidified endosomal compartment the enzyme is proposed to act in; the paper performs no localization experiment. Reported bonds are those fixed by a single-residue product identity. Where the source detected trimming but no intermediate, cleavage is recorded without a bond rather than assigned to one. Non-detection is that assay's outcome and does not establish resistance elsewhere. The DIRSSVQNKL/DIRSSQVNKL resistant precursor is deliberately excluded pending mhctools issue 332."
+      },
+      "cases": [
+        {
+          "sequence": "LSIINFEKL",
+          "n_term": "free",
+          "c_term": "free",
+          "substrate_observation": "cleavage_reported",
+          "bonds": [
+            1
+          ],
+          "interpretation": "Source reports PLAP generates the epitope SIINFEKL and continues trimming to accumulate IINFEKL, fixing removal of the N-terminal residue",
+          "source": "https://pubmed.ncbi.nlm.nih.gov/20592285/",
+          "source_measurement_id": "georgiadou2010-plap-fig2",
+          "conditions": {
+            "pH": "8.0",
+            "temperature_C": "37",
+            "buffer": "50 mM Tris pH 8.0, 100 mM NaCl",
+            "substrate_concentration": "100 uM peptide with 1-2000 nM enzyme; peptide in excess over enzyme",
+            "enzyme_preparation": "soluble human PLAP from residue 155 expressed in 293F cells, Ni-NTA and anion-exchange purified",
+            "epitope_context": "H2-Kb epitope SIINFEKL",
+            "source_location": "Figure 2 and Table I",
+            "nomenclature": "source calls the enzyme PLAP; UniProt gene name LNPEP"
+          }
+        },
+        {
+          "sequence": "IRLRPGGKKK",
+          "n_term": "free",
+          "c_term": "free",
+          "substrate_observation": "cleavage_reported",
+          "bonds": [
+            1
+          ],
+          "interpretation": "Source reports PLAP accumulates the 9-mer epitope RLRPGGKKK, fixing removal of the single N-terminal residue",
+          "source": "https://pubmed.ncbi.nlm.nih.gov/20592285/",
+          "source_measurement_id": "georgiadou2010-plap-fig3c",
+          "conditions": {
+            "pH": "8.0",
+            "temperature_C": "37",
+            "buffer": "50 mM Tris pH 8.0, 100 mM NaCl",
+            "substrate_concentration": "100 uM peptide with 1-2000 nM enzyme; peptide in excess over enzyme",
+            "enzyme_preparation": "soluble human PLAP from residue 155 expressed in 293F cells, Ni-NTA and anion-exchange purified",
+            "incubation": "2 h",
+            "epitope_context": "HLA-A*03 epitope RLRPGGKKK; natural cross-presented precursor",
+            "smaller_products": "further trimming past the epitope also reported",
+            "source_location": "Figure 3C and Table I",
+            "nomenclature": "source calls the enzyme PLAP; UniProt gene name LNPEP"
+          }
+        },
+        {
+          "sequence": "LSRHHAFSFR",
+          "n_term": "free",
+          "c_term": "free",
+          "substrate_observation": "cleavage_reported",
+          "bonds": [
+            1
+          ],
+          "interpretation": "Source reports PLAP accumulates the 9-mer epitope SRHHAFSFR with no smaller product, fixing removal of the single N-terminal residue",
+          "source": "https://pubmed.ncbi.nlm.nih.gov/20592285/",
+          "source_measurement_id": "georgiadou2010-plap-fig3d",
+          "conditions": {
+            "pH": "8.0",
+            "temperature_C": "37",
+            "buffer": "50 mM Tris pH 8.0, 100 mM NaCl",
+            "substrate_concentration": "100 uM peptide with 1-2000 nM enzyme; peptide in excess over enzyme",
+            "enzyme_preparation": "soluble human PLAP from residue 155 expressed in 293F cells, Ni-NTA and anion-exchange purified",
+            "incubation": "1 h",
+            "epitope_context": "HLA-B*2705 epitope SRHHAFSFR",
+            "reported_rate": "30 pmol/sec/mg for single-residue removal; average error in rate calculation is 20 percent",
+            "source_location": "Figure 3D and Table I",
+            "nomenclature": "source calls the enzyme PLAP; UniProt gene name LNPEP"
+          }
+        },
+        {
+          "sequence": "KSLYNTVATL",
+          "n_term": "free",
+          "c_term": "free",
+          "substrate_observation": "cleavage_reported",
+          "bonds": [
+            1
+          ],
+          "interpretation": "Source reports PLAP accumulates the 9-mer epitope SLYNTVATL with no smaller product, fixing removal of the single N-terminal residue",
+          "source": "https://pubmed.ncbi.nlm.nih.gov/20592285/",
+          "source_measurement_id": "georgiadou2010-plap-fig3e",
+          "conditions": {
+            "pH": "8.0",
+            "temperature_C": "37",
+            "buffer": "50 mM Tris pH 8.0, 100 mM NaCl",
+            "substrate_concentration": "100 uM peptide with 90 nM or 270 nM enzyme; peptide in excess over enzyme",
+            "enzyme_preparation": "soluble human PLAP from residue 155 expressed in 293F cells, Ni-NTA and anion-exchange purified",
+            "incubation": "2 h",
+            "epitope_context": "HLA-A*0201 epitope SLYNTVATL; natural cross-presented precursor",
+            "reported_rate": "2.4 pmol/sec/mg for single-residue removal; average error in rate calculation is 20 percent",
+            "source_location": "Figure 3E and Table I",
+            "nomenclature": "source calls the enzyme PLAP; UniProt gene name LNPEP"
+          }
+        },
+        {
+          "sequence": "SLYNTVATL",
+          "n_term": "free",
+          "c_term": "free",
+          "substrate_observation": "no_cleavage_detected",
+          "bonds": [],
+          "interpretation": "Source reports this epitope was resistant to further trimming by PLAP, in contrast to ERAP1 which degraded it to a 7-mer",
+          "source": "https://pubmed.ncbi.nlm.nih.gov/20592285/",
+          "source_measurement_id": "georgiadou2010-plap-fig3e-product",
+          "conditions": {
+            "pH": "8.0",
+            "temperature_C": "37",
+            "buffer": "50 mM Tris pH 8.0, 100 mM NaCl",
+            "substrate_concentration": "100 uM peptide with 90 nM or 270 nM enzyme; peptide in excess over enzyme",
+            "enzyme_preparation": "soluble human PLAP from residue 155 expressed in 293F cells, Ni-NTA and anion-exchange purified",
+            "incubation": "2 h",
+            "observed_as": "accumulated product of the KSLYNTVATL digestion rather than a separately incubated substrate",
+            "detection_limit": "not stated; resistance is the source's reported outcome under its own conditions",
+            "source_location": "Figure 3E and Table I",
+            "nomenclature": "source calls the enzyme PLAP; UniProt gene name LNPEP"
+          }
+        },
+        {
+          "sequence": "KGYKDGNEYI",
+          "n_term": "free",
+          "c_term": "free",
+          "substrate_observation": "cleavage_reported",
+          "bonds": [
+            1
+          ],
+          "interpretation": "Source reports PLAP accumulates the epitope GYKDGNEYI as an intermediate before further trimming to DGNEYI, fixing removal of the single N-terminal residue",
+          "source": "https://pubmed.ncbi.nlm.nih.gov/20592285/",
+          "source_measurement_id": "georgiadou2010-plap-fig3g",
+          "conditions": {
+            "pH": "8.0",
+            "temperature_C": "37",
+            "buffer": "50 mM Tris pH 8.0, 100 mM NaCl",
+            "substrate_concentration": "100 uM peptide with 1-2000 nM enzyme; peptide in excess over enzyme",
+            "enzyme_preparation": "soluble human PLAP from residue 155 expressed in 293F cells, Ni-NTA and anion-exchange purified",
+            "incubation": "2 h",
+            "epitope_context": "H-2-Kd epitope GYKDGNEYI; natural cross-presented precursor",
+            "smaller_products": "6-mer DGNEYI also accumulated",
+            "reported_rate": "0.66 pmol/sec/mg for single-residue removal; average error in rate calculation is 20 percent",
+            "source_location": "Figure 3G and Table I",
+            "nomenclature": "source calls the enzyme PLAP; UniProt gene name LNPEP"
+          }
+        },
+        {
+          "sequence": "LRVYEKMALY",
+          "n_term": "free",
+          "c_term": "free",
+          "substrate_observation": "cleavage_reported",
+          "bonds": [],
+          "interpretation": "Source reports PLAP trimmed this precursor past the epitope, accumulating 8-mer and 7-mer products without a detectable 9-mer, so no single bond is fixed by the reported products",
+          "source": "https://pubmed.ncbi.nlm.nih.gov/20592285/",
+          "source_measurement_id": "georgiadou2010-plap-fig3a",
+          "conditions": {
+            "pH": "8.0",
+            "temperature_C": "37",
+            "buffer": "50 mM Tris pH 8.0, 100 mM NaCl",
+            "substrate_concentration": "100 uM peptide with 1-2000 nM enzyme; peptide in excess over enzyme",
+            "enzyme_preparation": "soluble human PLAP from residue 155 expressed in 293F cells, Ni-NTA and anion-exchange purified",
+            "incubation": "1 h",
+            "epitope_context": "HLA-A*03 epitope RVYEKMALY; epitope production not detectable for this enzyme",
+            "source_location": "Figure 3A and Table I",
+            "nomenclature": "source calls the enzyme PLAP; UniProt gene name LNPEP"
+          }
+        },
+        {
+          "sequence": "LRVYEKMALR",
+          "n_term": "free",
+          "c_term": "free",
+          "substrate_observation": "cleavage_reported",
+          "bonds": [],
+          "interpretation": "Source reports PLAP trimmed this precursor past the epitope, accumulating 8-mer and 7-mer products without a detectable 9-mer, so no single bond is fixed by the reported products",
+          "source": "https://pubmed.ncbi.nlm.nih.gov/20592285/",
+          "source_measurement_id": "georgiadou2010-plap-fig3b",
+          "conditions": {
+            "pH": "8.0",
+            "temperature_C": "37",
+            "buffer": "50 mM Tris pH 8.0, 100 mM NaCl",
+            "substrate_concentration": "100 uM peptide with 1-2000 nM enzyme; peptide in excess over enzyme",
+            "enzyme_preparation": "soluble human PLAP from residue 155 expressed in 293F cells, Ni-NTA and anion-exchange purified",
+            "incubation": "1 h",
+            "epitope_context": "HLA-A*03 epitope RVYEKMALR; epitope production not detectable for this enzyme",
+            "source_location": "Figure 3B and Table I",
+            "nomenclature": "source calls the enzyme PLAP; UniProt gene name LNPEP"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1045,9 +1045,16 @@ assay provenance and parent-sequence bond coordinates. See the
 are substrate-depletion estimates, not serum half-lives or probabilities.
 
 The local cleavage panel also provides motif rules for CPN, aminopeptidase P,
-FAP, aminopeptidases A/N, DPP8/9, PREP and ERAP2. An optional `eramer-step`
-model exposes ERAP1's existing length-specific PWM score at the initial
-trimming bond. Discover models with `mhctools cleavage --list-models`, or run
+FAP, aminopeptidases A/N, DPP8/9, TPP2, puromycin-sensitive aminopeptidase,
+PREP and ERAP2. Every motif rule states how strict it is — `required`,
+`preferred` or `permissive` — together with the source observation behind that
+grade, so a non-match can be read for what it is worth. Three antigen-processing
+enzymes whose published specificity does not generalize (THOP1, neurolysin and
+endosomal IRAP) ship as exact-sequence source references instead: they return
+what an experiment reported for that precise chemical form and abstain on
+anything else. An optional `eramer-step` model exposes ERAP1's existing
+length-specific PWM score at the initial trimming bond. Discover models with
+`mhctools cleavage --list-models`, or run
 `mhctools cleavage --sequence RPPGFSPFR --model app2-xp --model cpn-basic`.
 The [guide](docs/cleavage.md) includes a wider candidate inventory and
 prioritized follow-up issues.
