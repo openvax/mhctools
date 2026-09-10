@@ -1,0 +1,169 @@
+{
+  "schema_version": 1,
+  "curation_date": "2026-09-09",
+  "notice": "Relationship inventory, not an independently validated benchmark. Unknown row-level lineage remains unknown. No third-party raw datasets are redistributed.",
+  "models": [
+    {
+      "model": "Tan-2024",
+      "source": "https://doi.org/10.1093/bib/bbae350",
+      "provenance": "partial",
+      "datasets": [
+        "PEPlife",
+        "PepTherDia",
+        "THPdb",
+        "primary literature"
+      ],
+      "endpoints": [
+        "human blood natural/modified peptide half-life",
+        "mouse blood natural/modified peptide half-life",
+        "mouse intestine modified peptide half-life"
+      ],
+      "known_relationships": [
+        "PEPlife contributes records to Tan training curation"
+      ],
+      "unresolved": [
+        "Full row-level training/test membership and common source-measurement IDs",
+        "Whether each blood label is in vitro or systemic PK; inspect original assay",
+        "Datasets are stated to be available on request; redistribution rights not established"
+      ]
+    },
+    {
+      "model": "pepADMET",
+      "source": "https://doi.org/10.1021/acs.jcim.5c02518",
+      "provenance": "unknown",
+      "datasets": [],
+      "endpoints": [
+        "19 peptide ADMET endpoints"
+      ],
+      "known_relationships": [
+        "Same research line as Tan 2024; authorship alone does not establish dataset identity"
+      ],
+      "unresolved": [
+        "Exact half-life row overlap with Tan/PEPlife and endpoint-specific split membership",
+        "Local artifacts and redistribution license"
+      ]
+    },
+    {
+      "model": "PEPlife2-associated models",
+      "source": "https://www.mdpi.com/2673-5601/6/2/26",
+      "provenance": "partial",
+      "datasets": [
+        "PEPlife2",
+        "PEPlife"
+      ],
+      "endpoints": [
+        "assay-specific peptide and protein half-life"
+      ],
+      "known_relationships": [
+        "Updated repository of half-life records; repeated sequence entries can represent distinct assay conditions"
+      ],
+      "unresolved": [
+        "Exact model training membership and overlap with Tan/pepADMET",
+        "Which transformations and assay subsets apply to each model"
+      ]
+    },
+    {
+      "model": "POSEIDON",
+      "source": "https://doi.org/10.1186/s13321-024-00810-7",
+      "provenance": "partial",
+      "datasets": [
+        "CPPsite2.0",
+        "POSEIDON CPP_dataset.csv",
+        "POSEIDON CPP_ML.csv"
+      ],
+      "endpoints": [
+        "fluorescence_uptake"
+      ],
+      "known_relationships": [
+        "Recurates CPPsite2.0 primary studies and adds literature data",
+        "ML dataset retains repeated peptides under different conditions",
+        "Shares CPPsite2.0 ancestry with MLCPP2.0 and PerseuCPP"
+      ],
+      "unresolved": [
+        "Row-level overlap across study/family/cell types in a proposed evaluation set",
+        "Fluorescence does not establish cytosolic delivery or antigen presentation"
+      ]
+    },
+    {
+      "model": "MLCPP2.0",
+      "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC12462384/",
+      "provenance": "partial",
+      "datasets": [
+        "CPPsite2.0",
+        "MLCPP2.0 classification",
+        "MLCPP2.0 efficiency"
+      ],
+      "endpoints": [
+        "cpp_classification",
+        "uptake-efficiency classification"
+      ],
+      "known_relationships": [
+        "Training sets are reused and augmented by PerseuCPP"
+      ],
+      "unresolved": [
+        "Not all negative sequences are experimentally verified",
+        "Complete per-assay chemistry and primary measurement lineage"
+      ]
+    },
+    {
+      "model": "PerseuCPP",
+      "source": "https://doi.org/10.1093/bioadv/vbaf213",
+      "provenance": "partial",
+      "datasets": [
+        "CPPsite2.0",
+        "MLCPP2.0 classification",
+        "MLCPP2.0 efficiency"
+      ],
+      "endpoints": [
+        "cpp_classification",
+        "uptake-efficiency classification"
+      ],
+      "known_relationships": [
+        "Classification augments MLCPP2.0 with CPPsite2.0 sequences",
+        "Efficiency classifier uses MLCPP2.0 efficiency data",
+        "Some negatives are artificially generated, not observed failures"
+      ],
+      "unresolved": [
+        "Row-level overlap with POSEIDON and proposed external benchmarks",
+        "Primary DC, cytosolic delivery and in-vivo applicability are not established"
+      ]
+    },
+    {
+      "model": "dpp4-qpisa",
+      "source": "https://doi.org/10.1038/s44320-024-00071-4",
+      "provenance": "partial",
+      "datasets": [
+        "qPISA human DPP4 tryptic HeLa substrate experiment"
+      ],
+      "endpoints": [
+        "substrate_depletion"
+      ],
+      "known_relationships": [
+        "Published Dataset EV2 coefficients are reproduced locally",
+        "Keane 2011 substrates were used in published external comparison; they are not a newly untouched test set"
+      ],
+      "unresolved": [
+        "Full sequence/family overlap audit for a new benchmark",
+        "Human serum/plasma half-life calibration"
+      ]
+    },
+    {
+      "model": "eramer-step",
+      "source": "https://pubmed.ncbi.nlm.nih.gov/38925438/",
+      "provenance": "partial",
+      "datasets": [
+        "ERAMER length-specific PWMs"
+      ],
+      "endpoints": [
+        "ERAP1 intermediate specificity"
+      ],
+      "known_relationships": [
+        "Same external PWM as the ERAMER cascade adapter; agreement is model reproduction"
+      ],
+      "unresolved": [
+        "Independent assay-level holdout membership",
+        "Allotype and chemistry generalization"
+      ]
+    }
+  ]
+}

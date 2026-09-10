@@ -1051,3 +1051,8 @@ trimming bond. Discover models with `mhctools cleavage --list-models`, or run
 `mhctools cleavage --sequence RPPGFSPFR --model app2-xp --model cpn-basic`.
 The [guide](docs/cleavage.md) includes a wider candidate inventory and
 prioritized follow-up issues.
+
+`mhctools benchmark` evaluates source-linked observations in separate assay,
+endpoint and native-unit strata. It reports training overlap, repeated
+measurements, unsupported inputs and missing target-domain evidence. See the
+[benchmark guide](docs/benchmarks.md) and `mhctools benchmark --lineage-inventory`.
