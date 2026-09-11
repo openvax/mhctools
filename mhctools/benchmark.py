@@ -331,16 +331,16 @@ def predict_cleavage_measurements(measurements, models):
     for name in models:
         try:
             predictor = get_cleavage_model(name)
-        except (OSError, ImportError) as error:
+        except (ValueError, OSError, ImportError) as error:
             predictor = None
             failure = str(error)
+        is_reference = predictor is not None and predictor.model.evidence == "substrate_reference"
+        endpoints = ("site_cleavage", "substrate_depletion") if is_reference else ("site_cleavage",)
         for m in measurements:
             kwargs = dict(measurement_id=m.measurement_id, model=name, endpoint=m.endpoint, units=m.units)
             if predictor is None:
                 predictions.append(BenchmarkPrediction(**kwargs, status="failed", reason=failure))
                 continue
-            is_reference = predictor.model.evidence == "substrate_reference"
-            endpoints = ("site_cleavage", "substrate_depletion") if is_reference else ("site_cleavage",)
             if m.endpoint not in endpoints or m.enzyme != predictor.model.enzyme:
                 predictions.append(BenchmarkPrediction(**kwargs, status="not_assessed", reason="Different endpoint or enzyme"))
                 continue
@@ -367,8 +367,13 @@ def predict_cleavage_measurements(measurements, models):
                     continue
                 site = next((s for s in result.sites if s.bond == m.bond), None)
                 if site is None:
-                    predictions.append(BenchmarkPrediction(**kwargs, status="not_assessed",
-                        reason=result.unsupported_reason or "Bond outside model topology"))
+                    if result.unsupported_reason:
+                        reason = result.unsupported_reason
+                    elif is_reference:
+                        reason = "Source reported an outcome for this exact sequence without pinning a bond here"
+                    else:
+                        reason = "Bond outside model topology"
+                    predictions.append(BenchmarkPrediction(**kwargs, status="not_assessed", reason=reason))
                 elif site.status == "scored":
                     predictions.append(BenchmarkPrediction(m.measurement_id, name,
                         "substrate_depletion" if name == "dpp4-qpisa" else "site_cleavage",

@@ -156,3 +156,68 @@ def test_reference_models_abstain_rather_than_reporting_absence():
     with pytest.raises(ValueError, match="Substrate observations require"):
         replace(get_cleavage_model("thop1-observed").predict("RPPGFSPFR"),
                 model=get_cleavage_model("prep-pro").model, sites=())
+
+
+def test_reserved_condition_keys_are_rejected_with_a_clear_cause():
+    from mhctools.substrate_reference import PeptidaseSubstrateReference
+    metadata = dict(name="x-fixture", version="1", enzyme="X", uniprot="P00000",
+                    species="Homo sapiens", compartments=("cytosol",),
+                    evidence="substrate_reference", references=("https://example.org",),
+                    assay="a", limitations="l")
+    for reserved in ("source", "source_measurement_id"):
+        with pytest.raises(ValueError, match="reserved keys"):
+            PeptidaseSubstrateReference(metadata, [dict(
+                sequence="AAAA", n_term="free", c_term="free",
+                conditions={reserved: "collides"}, source="https://example.org",
+                source_measurement_id="m1", bonds=[1], interpretation="i",
+                substrate_observation="cleavage_reported")])
+
+
+def test_one_bad_model_name_does_not_abort_the_whole_batch():
+    measurement = AssayMeasurement(
+        measurement_id="m1", source_measurement_id="m1", source="https://example.org",
+        dataset="d", study="s", assay="a", sequence="RPPGFSPFR", chemistry="linear_L_free",
+        endpoint="site_cleavage", units="binary", species="Homo sapiens",
+        matrix="buffer", value=1, enzyme="XPNPEP1", bond=1)
+    predictions = predict_cleavage_measurements(
+        [measurement], ["totally-bogus-model-name", "app1-xp"])
+    by_model = {p.model: p for p in predictions}
+    assert by_model["totally-bogus-model-name"].status == "failed"
+    assert "Unknown cleavage model" in by_model["totally-bogus-model-name"].reason
+    assert by_model["app1-xp"].status == "scored"
+    assert by_model["app1-xp"].value == 1
+
+
+def test_reference_reason_distinguishes_unpinned_bond_from_no_match():
+    # Dynorphin A 1-9 is degraded (cleavage_reported) but the source pins no bond.
+    unpinned = AssayMeasurement(
+        measurement_id="m2", source_measurement_id="m2", source="https://example.org",
+        dataset="d", study="s", assay="a", sequence="YGGFLRRIR", chemistry="linear_L_free",
+        endpoint="site_cleavage", units="binary", species="Homo sapiens", matrix="buffer",
+        value=1, split="reference", enzyme="NLN", bond=1)
+    prediction = predict_cleavage_measurements([unpinned], ["nln-observed"])[0]
+    assert prediction.status == "not_assessed"
+    assert "without pinning a bond" in prediction.reason
+    assert "topology" not in prediction.reason
+    # A genuinely unmatched motif-rule bond still gets the topology reason.
+    motif = AssayMeasurement(
+        measurement_id="m3", source_measurement_id="m3", source="https://example.org",
+        dataset="d", study="s", assay="a", sequence="AAAA", chemistry="linear_L_free",
+        endpoint="site_cleavage", units="binary", species="Homo sapiens", matrix="buffer",
+        value=0, enzyme="XPNPEP1", bond=3)
+    motif_prediction = predict_cleavage_measurements([motif], ["app1-xp"])[0]
+    assert motif_prediction.reason == "Bond outside model topology"
+
+
+def test_cleavage_models_rejects_a_duplicate_name():
+    import mhctools.peptidases as peptidases_module
+    from dataclasses import replace as dc_replace
+    original = peptidases_module._RULES
+    try:
+        collider = dc_replace(original[0])
+        collider = dc_replace(collider, model=dc_replace(collider.model, name="thop1-observed"))
+        peptidases_module._RULES = original + (collider,)
+        with pytest.raises(ValueError, match="Duplicate cleavage model name"):
+            peptidases_module.cleavage_models()
+    finally:
+        peptidases_module._RULES = original

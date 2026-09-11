@@ -254,6 +254,10 @@ def cleavage_models(include_optional=False):
     """List built-in model metadata without loading optional runtimes."""
     models = (DPP4qPISA.model,) + tuple(rule.model for rule in _RULES) + tuple(
         reference.model for reference in substrate_references())
+    names = [m.name for m in models]
+    if len(set(names)) != len(names):
+        raise ValueError("Duplicate cleavage model name in the built-in panel: %r" % (
+            sorted({n for n in names if names.count(n) > 1}),))
     if include_optional:
         from .eramer_cleavage import ERAMERCleavage
         models += (ERAMERCleavage.model,)

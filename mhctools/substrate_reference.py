@@ -18,12 +18,16 @@ class PeptidaseSubstrateReference:
         self.model = CleavageModel(**metadata)
         if self.model.evidence != "substrate_reference":
             raise ValueError("Reference catalog requires substrate_reference evidence")
+        reserved = {"source", "source_measurement_id"}
         self._cases = {}
         for case in cases:
             peptide = CleavageInput(case["sequence"], case["n_term"], case["c_term"])
             key = (peptide.sequence, peptide.n_term, peptide.c_term)
             if key in self._cases:
                 raise ValueError("Conflicting or repeated chemical form in reference catalog")
+            if reserved & set(case["conditions"]):
+                raise ValueError(
+                    "Case conditions must not use the reserved keys 'source' or 'source_measurement_id'")
             conditions = tuple(sorted(case["conditions"].items())) + (
                 ("source", case["source"]), ("source_measurement_id", case["source_measurement_id"]))
             sites = tuple(CleavageSite(b, "reported", case["interpretation"]) for b in case["bonds"])

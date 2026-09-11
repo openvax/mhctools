@@ -11,6 +11,10 @@ from typing import Optional, Tuple
 
 AMINO_ACIDS = frozenset("ACDEFGHIKLMNPQRSTVWY")
 
+# Which CleavageSite.status values are legal for each CleavageModel.evidence type.
+_ALLOWED_SITE_STATUSES = {"quantitative_model": {"scored"}, "motif_rule": {"matched", "not_matched"},
+                          "substrate_reference": {"reported"}}
+
 
 def _integer(value):
     return isinstance(value, int) and not isinstance(value, bool)
@@ -185,10 +189,8 @@ class CleavageResult:
         if len(set(bonds)) != len(bonds) or any(
                 b >= len(self.peptide.sequence) for b in bonds):
             raise ValueError("Sites must identify distinct internal peptide bonds")
-        allowed = {"quantitative_model": {"scored"}, "motif_rule": {"matched", "not_matched"},
-                   "substrate_reference": {"reported"}}
         for site in self.sites:
-            if site.status not in allowed[self.model.evidence]:
+            if site.status not in _ALLOWED_SITE_STATUSES[self.model.evidence]:
                 raise ValueError("Site values must agree with model evidence semantics")
 
     def to_dict(self):
