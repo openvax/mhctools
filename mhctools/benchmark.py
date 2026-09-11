@@ -6,10 +6,10 @@ model training is performed. User-supplied family assignments are retained.
 
 from collections import Counter, defaultdict
 from dataclasses import asdict, dataclass
-from importlib.resources import files
-import json
 import math
 from typing import Optional, Tuple
+
+from ._resources import load_json_resource
 
 
 ENDPOINTS = frozenset((
@@ -313,7 +313,7 @@ def evaluate_benchmark(measurements, predictions, lineages=(), evaluation="exter
 
 def model_lineage_inventory():
     """Read the curated model/data relationships and unresolved provenance."""
-    return json.loads(files("mhctools").joinpath("data/model_lineage.json").read_text())
+    return load_json_resource("model_lineage.json")
 
 
 def predict_cleavage_measurements(measurements, models):
@@ -331,16 +331,27 @@ def predict_cleavage_measurements(measurements, models):
     for name in models:
         try:
             predictor = get_cleavage_model(name)
-        except (OSError, ImportError) as error:
+        except (ValueError, OSError, ImportError) as error:
             predictor = None
             failure = str(error)
+        is_reference = predictor is not None and predictor.model.evidence == "substrate_reference"
+        endpoints = ("site_cleavage", "substrate_depletion") if is_reference else ("site_cleavage",)
         for m in measurements:
             kwargs = dict(measurement_id=m.measurement_id, model=name, endpoint=m.endpoint, units=m.units)
             if predictor is None:
                 predictions.append(BenchmarkPrediction(**kwargs, status="failed", reason=failure))
                 continue
-            if m.endpoint != "site_cleavage" or m.enzyme != predictor.model.enzyme:
+            if m.endpoint not in endpoints:
                 predictions.append(BenchmarkPrediction(**kwargs, status="not_assessed", reason="Different endpoint or enzyme"))
+                continue
+            if m.enzyme != predictor.model.enzyme:
+                predictions.append(BenchmarkPrediction(**kwargs, status="not_assessed",
+                    reason="Measurement has no enzyme label to match against a model" if m.enzyme is None
+                    else "Different endpoint or enzyme"))
+                continue
+            if is_reference and (m.split != "reference" or m.units != "binary"):
+                predictions.append(BenchmarkPrediction(**kwargs, status="not_assessed",
+                    reason="Source observations support binary reproduction checks only, not external prediction"))
                 continue
             if m.chemistry not in chemistry:
                 predictions.append(BenchmarkPrediction(**kwargs, status="unsupported", reason="Unrepresented chemistry"))
@@ -348,18 +359,34 @@ def predict_cleavage_measurements(measurements, models):
             try:
                 n_term, c_term = chemistry[m.chemistry]
                 selected = (get_cleavage_model(name, enzyme_state=dict(m.conditions).get("enzyme_state"))
-                            if name == "cpb2-basic" else predictor)
+                            if getattr(predictor, "requires_activation", False) else predictor)
                 result = selected.predict(CleavageInput(m.sequence, n_term, c_term))
+                if is_reference and m.endpoint == "substrate_depletion":
+                    if result.substrate_observation is None:
+                        predictions.append(BenchmarkPrediction(**kwargs, status="not_assessed",
+                            reason=result.unsupported_reason or "No whole-substrate observation"))
+                    else:
+                        predictions.append(BenchmarkPrediction(**kwargs,
+                            value=int(result.substrate_observation == "cleavage_reported"), scale="decision",
+                            reason="Source observation lookup for reproduction; binary detection label, not fractional depletion"))
+                    continue
                 site = next((s for s in result.sites if s.bond == m.bond), None)
                 if site is None:
-                    predictions.append(BenchmarkPrediction(**kwargs, status="not_assessed",
-                        reason=result.unsupported_reason or "Bond outside model topology"))
+                    if result.unsupported_reason:
+                        reason = result.unsupported_reason
+                    elif is_reference and result.substrate_observation == "no_cleavage_detected":
+                        reason = "Source reported no cleavage for this exact sequence"
+                    elif is_reference:
+                        reason = "Source reported an outcome for this exact sequence without pinning a bond here"
+                    else:
+                        reason = "Bond outside model topology"
+                    predictions.append(BenchmarkPrediction(**kwargs, status="not_assessed", reason=reason))
                 elif site.status == "scored":
                     predictions.append(BenchmarkPrediction(m.measurement_id, name,
-                        "substrate_depletion" if name == "dpp4-qpisa" else "site_cleavage",
-                        result.model.score_units, site.score))
+                        result.model.scored_endpoint, result.model.score_units, site.score))
                 else:
-                    predictions.append(BenchmarkPrediction(**kwargs, value=int(site.status == "matched"), scale="decision"))
+                    predictions.append(BenchmarkPrediction(**kwargs, value=int(site.status in ("matched", "reported")), scale="decision",
+                        reason="Source observation lookup for reproduction" if is_reference else None))
             except (ValueError, TypeError, RuntimeError, OSError, ImportError) as error:
                 predictions.append(BenchmarkPrediction(**kwargs, status="failed", reason=str(error)))
     return tuple(predictions)

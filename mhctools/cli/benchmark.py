@@ -3,12 +3,20 @@
 import argparse
 import json
 from pathlib import Path
-from importlib.resources import files
 
+from mhctools._resources import load_json_resource
 from mhctools.benchmark import (
     AssayMeasurement, BenchmarkPrediction, ModelLineage, evaluate_benchmark,
     model_lineage_inventory, predict_cleavage_measurements,
 )
+
+#: Single source of truth mapping a --reference-cleavage choice to its packaged
+#: data file, so the two can never drift apart.
+REFERENCE_PANELS = {
+    "starter": "cleavage_reference.json",
+    "serum": "serum_cleavage_reference.json",
+    "intracellular": "intracellular_cleavage_reference.json",
+}
 
 
 def main(argv=None):
@@ -16,7 +24,7 @@ def main(argv=None):
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--input", help="JSON containing measurements and predictions or --model inputs")
     mode.add_argument("--lineage-inventory", action="store_true")
-    mode.add_argument("--reference-cleavage", nargs="?", const="starter", choices=("starter", "serum"),
+    mode.add_argument("--reference-cleavage", nargs="?", const="starter", choices=tuple(REFERENCE_PANELS),
                       help="Run a source-linked reproduction panel (default: starter)")
     parser.add_argument("--model", action="append", help="Run an exact cleavage model against site records")
     parser.add_argument("--evaluation", choices=("external_validation", "reproduction"), default="external_validation")
@@ -29,8 +37,8 @@ def main(argv=None):
             result = model_lineage_inventory()
         else:
             if args.reference_cleavage:
-                filename = "cleavage_reference.json" if args.reference_cleavage == "starter" else "serum_cleavage_reference.json"
-                data = json.loads(files("mhctools").joinpath("data/" + filename).read_text())
+                filename = REFERENCE_PANELS[args.reference_cleavage]
+                data = load_json_resource(filename)
                 evaluation = "reproduction"
             else:
                 data = json.loads(Path(args.input).read_text())

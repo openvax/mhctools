@@ -16,7 +16,7 @@ def main(argv=None):
     parser.add_argument("--list-models", action="store_true")
     parser.add_argument("--sequence", action="append", help="Canonical linear L-peptide; repeat for multiple inputs")
     parser.add_argument("--model", action="append", help="Exact model name; repeat to select multiple models")
-    parser.add_argument("--compartment", help="Filter enzyme locations: serum, plasma, extracellular, cytosol, er")
+    parser.add_argument("--compartment", help="Filter enzyme locations: serum, plasma, extracellular, cytosol, er, endosome")
     parser.add_argument("--n-term", choices=("free", "acetylated", "unknown"), default="free")
     parser.add_argument("--c-term", choices=("free", "amidated", "unknown"), default="free")
     parser.add_argument("--source-id")
