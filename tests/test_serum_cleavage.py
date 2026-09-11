@@ -84,3 +84,19 @@ def test_serum_cli_preserves_activation_and_reference_report(capsys):
     assert all(d["measurement_count"] == 0 for d in report["requested_domains"])
     with pytest.raises(SystemExit):
         main(["cleavage", "--sequence", "AK", "--enzyme-state", "CPB2=active", "--enzyme-state", "CPB2=zymogen"])
+
+
+def test_enzyme_state_gate_is_driven_by_requires_activation_not_a_name():
+    # get_cleavage_model checks each rule's own requires_activation flag,
+    # not a hardcoded "cpb2-basic" literal, so this generalizes correctly
+    # if a second activation-gated enzyme is ever curated.
+    from mhctools import get_cleavage_model
+    with pytest.raises(ValueError, match="only supported for models that require activation"):
+        get_cleavage_model("cpn-basic", enzyme_state="active")
+    with pytest.raises(ValueError, match="not supported for dpp4-qpisa"):
+        get_cleavage_model("dpp4-qpisa", enzyme_state="active")
+    with pytest.raises(ValueError, match="not supported for source-reference models"):
+        get_cleavage_model("thop1-observed", enzyme_state="active")
+    # cpb2-basic itself is unaffected by the generalization.
+    active = get_cleavage_model("cpb2-basic", enzyme_state="active")
+    assert dict(active.predict("YFPGQFAFSK").conditions)["enzyme_state"] == "active"

@@ -263,19 +263,31 @@ def cleavage_models(include_optional=False):
 
 
 def get_cleavage_model(name, *, enzyme_state=None):
-    """Select an exact model name; never silently substitute another enzyme."""
-    if enzyme_state is not None and name != "cpb2-basic":
-        raise ValueError("Explicit enzyme state is currently supported only for cpb2-basic")
+    """Select an exact model name; never silently substitute another enzyme.
+
+    ``enzyme_state`` is accepted only for a rule that declares
+    ``requires_activation``; which rule that is can change as new activation-
+    gated enzymes are curated, so this is checked per rule, not by name.
+    """
     if name == "dpp4-qpisa":
+        if enzyme_state is not None:
+            raise ValueError("Explicit enzyme state is not supported for dpp4-qpisa")
         return DPP4qPISA()
     if name == "eramer-step":
+        if enzyme_state is not None:
+            raise ValueError("Explicit enzyme state is not supported for eramer-step")
         from .eramer_cleavage import ERAMERCleavage
         return ERAMERCleavage()
     for rule in _RULES:
         if rule.model.name == name:
+            if enzyme_state is not None and not rule.requires_activation:
+                raise ValueError(
+                    "Explicit enzyme state is only supported for models that require activation")
             return replace(rule, enzyme_state=enzyme_state) if enzyme_state is not None else rule
     for reference in substrate_references():
         if reference.model.name == name:
+            if enzyme_state is not None:
+                raise ValueError("Explicit enzyme state is not supported for source-reference models")
             return reference
     raise ValueError("Unknown cleavage model %r; choices: %s" % (
         name, ", ".join(model.name for model in cleavage_models(include_optional=True))))

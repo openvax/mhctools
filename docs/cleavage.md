@@ -89,14 +89,15 @@ for result in predict_cleavage(peptide, compartment="cytosol"):
 Two model shapes contribute to that track differently, and a caller building
 one has to model both:
 
-- **Internal topology** (`mme-hydrophobic`, `fap-endo-gp`, `prep-pro`,
-  `eramer-step`) assesses every internal bond of whatever peptide it is
-  given in one `predict()` call. Calling it once on the full input already
-  produces a multi-position run of track entries.
-- **Terminal topology** (the aminopeptidases, carboxypeptidases, DPP-family
-  and `dpp4-qpisa`) only ever assesses the *currently exposed* end of its
-  input. It cannot tell you whether a bond in the middle of a long precursor
-  is a plausible trimming stop; it can only assess a candidate fragment you
+- **Internal topology** (`mme-hydrophobic`, `fap-endo-gp`, `prep-pro`)
+  assesses every internal bond of whatever peptide it is given in one
+  `predict()` call. Calling it once on the full input already produces a
+  multi-position run of track entries.
+- **Terminal topology** (the aminopeptidases, carboxypeptidases, DPP-family,
+  `dpp4-qpisa` and `eramer-step`) only ever assesses the *currently exposed*
+  end of its input — always exactly one bond, regardless of peptide length.
+  It cannot tell you whether a bond in the middle of a long precursor is a
+  plausible trimming stop; it can only assess a candidate fragment you
   supply. To extend a track with these models, model the hypothesized
   trimming step explicitly with `parent.fragment(start, end, n_term=...,
   c_term=...)` and predict on that fragment. Its `source_bond` still lands

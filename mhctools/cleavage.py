@@ -11,7 +11,10 @@ from typing import Optional, Tuple
 
 AMINO_ACIDS = frozenset("ACDEFGHIKLMNPQRSTVWY")
 
-# Which CleavageSite.status values are legal for each CleavageModel.evidence type.
+# The single source of truth for which CleavageModel.evidence values exist
+# and which CleavageSite.status values each one legally carries. Keying the
+# evidence-membership check off these same keys (below, in CleavageModel)
+# means a future evidence type only needs adding here once.
 _ALLOWED_SITE_STATUSES = {"quantitative_model": {"scored"}, "motif_rule": {"matched", "not_matched"},
                           "substrate_reference": {"reported"}}
 
@@ -130,7 +133,7 @@ class CleavageModel:
     def __post_init__(self):
         object.__setattr__(self, "compartments", tuple(self.compartments))
         object.__setattr__(self, "references", tuple(self.references))
-        if self.evidence not in ("motif_rule", "quantitative_model", "substrate_reference"):
+        if self.evidence not in _ALLOWED_SITE_STATUSES:
             raise ValueError("Unknown cleavage evidence type")
         if not self.references:
             raise ValueError("Every model must cite at least one source")
@@ -215,6 +218,7 @@ class CleavageResult:
                 b >= len(self.peptide.sequence) for b in bonds):
             raise ValueError("Sites must identify distinct internal peptide bonds")
         for site in self.sites:
+            # self.model is a validated CleavageModel, so this lookup cannot miss.
             if site.status not in _ALLOWED_SITE_STATUSES[self.model.evidence]:
                 raise ValueError("Site values must agree with model evidence semantics")
 

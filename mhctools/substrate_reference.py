@@ -1,5 +1,6 @@
 """Exact human substrate observations, explicitly separate from predictions."""
 
+from dataclasses import replace
 from functools import lru_cache
 
 from ._resources import load_json_resource
@@ -11,6 +12,14 @@ from .cleavage import (
 _REQUIRED_CASE_FIELDS = ("sequence", "n_term", "c_term", "conditions", "source",
                          "source_measurement_id", "bonds", "interpretation",
                          "substrate_observation")
+
+
+def _require_fields(mapping, required, description):
+    """Raise a clear ValueError naming exactly what a catalog entry is missing."""
+    missing = [field for field in required if field not in mapping]
+    if missing:
+        raise ValueError("%s is missing required fields: %s" % (
+            description, ", ".join(missing)))
 
 
 class PeptidaseSubstrateReference:
@@ -27,10 +36,8 @@ class PeptidaseSubstrateReference:
         reserved = {"source", "source_measurement_id"}
         self._cases = {}
         for index, case in enumerate(cases):
-            missing = [field for field in _REQUIRED_CASE_FIELDS if field not in case]
-            if missing:
-                raise ValueError("Reference catalog case %d for %r is missing required "
-                                 "fields: %s" % (index, self.model.name, ", ".join(missing)))
+            _require_fields(case, _REQUIRED_CASE_FIELDS,
+                            "Reference catalog case %d for %r" % (index, self.model.name))
             peptide = CleavageInput(case["sequence"], case["n_term"], case["c_term"])
             key = (peptide.sequence, peptide.n_term, peptide.c_term)
             if key in self._cases:
@@ -52,8 +59,10 @@ class PeptidaseSubstrateReference:
         if result is None:
             return CleavageResult(peptide, self.model, unsupported_reason=
                 "No exact sequence/chemical-form observation in this source reference; no extrapolation")
-        return CleavageResult(peptide, self.model, result.sites, conditions=result.conditions,
-                              substrate_observation=result.substrate_observation)
+        # replace() carries every field of the cached result forward, so a
+        # future CleavageResult field is never silently dropped by rebinding
+        # only peptide here.
+        return replace(result, peptide=peptide)
 
 
 @lru_cache(maxsize=None)
@@ -62,9 +71,5 @@ def substrate_references():
     data = load_json_resource("intracellular_substrate_evidence.json")
     models = data["models"]
     for index, item in enumerate(models):
-        missing = [field for field in ("model", "cases") if field not in item]
-        if missing:
-            raise ValueError(
-                "Reference catalog entry %d is missing required fields: %s" % (
-                    index, ", ".join(missing)))
+        _require_fields(item, ("model", "cases"), "Reference catalog entry %d" % index)
     return tuple(PeptidaseSubstrateReference(item["model"], item["cases"]) for item in models)

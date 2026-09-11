@@ -177,3 +177,21 @@ def test_position_track_spans_internal_scan_and_fragment_cascade():
     # One combined track, addressable by absolute parent position, carrying
     # evidence from models with entirely different assessment strategies.
     assert set(track) == set(range(1, len(parent.sequence)))
+
+
+def test_compartment_help_text_matches_the_real_compartment_set(capsys):
+    # The --compartment help text is a hand-maintained string, not derived
+    # from cleavage_models() at runtime (that would force loading the whole
+    # motif/reference-catalog panel on every CLI invocation just to render
+    # --help). This test is the guardrail instead: it fails the moment a
+    # compartment is added or removed without updating the help text.
+    from mhctools.peptidases import cleavage_models
+    real_compartments = {c for m in cleavage_models() for c in m.compartments}
+    with pytest.raises(SystemExit):
+        main(["cleavage", "--help"])
+    help_text = " ".join(capsys.readouterr().out.split())
+    marker = "Filter enzyme locations:"
+    assert marker in help_text
+    listed_text = help_text.split(marker, 1)[1].split(" --", 1)[0]
+    listed = {token.strip(" ,.") for token in listed_text.split(",")}
+    assert listed == real_compartments

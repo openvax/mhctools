@@ -1,19 +1,18 @@
 """Source-observation, abstention and provenance regressions for intracellular candidates."""
 
 from dataclasses import replace
-from importlib.resources import files
 import json
 
 import pytest
 
 from mhctools import CleavageInput, cleavage_models, get_cleavage_model, predict_cleavage
+from mhctools._resources import load_json_resource
 from mhctools.benchmark import AssayMeasurement, evaluate_benchmark, predict_cleavage_measurements
 from mhctools.cli.script import main
 
 
 def _panel():
-    return json.loads(files("mhctools").joinpath(
-        "data/intracellular_cleavage_reference.json").read_text())
+    return load_json_resource("intracellular_cleavage_reference.json")
 
 
 def test_source_reference_returns_observations_without_extrapolating():
@@ -51,8 +50,7 @@ def test_reported_non_cleavage_never_becomes_a_site_label():
 
 def test_disputed_source_sequence_is_excluded_from_curation():
     # Georgiadou 2010 prints two different resistant precursors; see mhctools issue 332.
-    catalog = json.loads(files("mhctools").joinpath(
-        "data/intracellular_substrate_evidence.json").read_text())
+    catalog = load_json_resource("intracellular_substrate_evidence.json")
     panel = _panel()
     curated = {c["sequence"] for entry in catalog["models"] for c in entry["cases"]}
     curated |= {m["sequence"] for m in panel["measurements"]}
@@ -295,3 +293,34 @@ def test_substrate_depletion_abstains_with_the_unmatched_sequence_reason():
     prediction = predict_cleavage_measurements([measurement], ["thop1-observed"])[0]
     assert prediction.status == "not_assessed"
     assert "No exact sequence" in prediction.reason
+
+
+def test_site_cleavage_reason_distinguishes_no_cleavage_from_unpinned_cleavage():
+    # A reference case reporting NO cleavage at all must not be described
+    # with language implying cleavage happened without a pinned bond.
+    resistant = AssayMeasurement(
+        measurement_id="m1", source_measurement_id="m1", source="https://example.org",
+        dataset="d", study="s", assay="a", sequence="YGGFLRRIRPKLK", chemistry="linear_L_free",
+        endpoint="site_cleavage", units="binary", species="Homo sapiens", matrix="buffer",
+        value=0, split="reference", enzyme="NLN", bond=1)
+    prediction = predict_cleavage_measurements([resistant], ["nln-observed"])[0]
+    assert prediction.status == "not_assessed"
+    assert prediction.reason == "Source reported no cleavage for this exact sequence"
+    assert "without pinning" not in prediction.reason
+
+
+def test_substrate_depletion_without_an_enzyme_label_gets_an_accurate_reason():
+    # AssayMeasurement permits enzyme=None outside the site_cleavage endpoint;
+    # that must not be reported the same way as a genuine enzyme mismatch.
+    no_enzyme = AssayMeasurement(
+        measurement_id="m1", source_measurement_id="m1", source="https://example.org",
+        dataset="d", study="s", assay="a", sequence="GPLGPL", chemistry="linear_L_free",
+        endpoint="substrate_depletion", units="binary", species="Homo sapiens",
+        matrix="buffer", value=1, split="reference")
+    prediction = predict_cleavage_measurements([no_enzyme], ["thop1-observed"])[0]
+    assert prediction.status == "not_assessed"
+    assert prediction.reason == "Measurement has no enzyme label to match against a model"
+    # A genuine mismatch still gets the original, distinct reason.
+    wrong_enzyme = replace(no_enzyme, measurement_id="m2", enzyme="NLN")
+    mismatch = predict_cleavage_measurements([wrong_enzyme], ["thop1-observed"])[0]
+    assert mismatch.reason == "Different endpoint or enzyme"

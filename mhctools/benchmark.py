@@ -341,8 +341,13 @@ def predict_cleavage_measurements(measurements, models):
             if predictor is None:
                 predictions.append(BenchmarkPrediction(**kwargs, status="failed", reason=failure))
                 continue
-            if m.endpoint not in endpoints or m.enzyme != predictor.model.enzyme:
+            if m.endpoint not in endpoints:
                 predictions.append(BenchmarkPrediction(**kwargs, status="not_assessed", reason="Different endpoint or enzyme"))
+                continue
+            if m.enzyme != predictor.model.enzyme:
+                predictions.append(BenchmarkPrediction(**kwargs, status="not_assessed",
+                    reason="Measurement has no enzyme label to match against a model" if m.enzyme is None
+                    else "Different endpoint or enzyme"))
                 continue
             if is_reference and (m.split != "reference" or m.units != "binary"):
                 predictions.append(BenchmarkPrediction(**kwargs, status="not_assessed",
@@ -369,6 +374,8 @@ def predict_cleavage_measurements(measurements, models):
                 if site is None:
                     if result.unsupported_reason:
                         reason = result.unsupported_reason
+                    elif is_reference and result.substrate_observation == "no_cleavage_detected":
+                        reason = "Source reported no cleavage for this exact sequence"
                     elif is_reference:
                         reason = "Source reported an outcome for this exact sequence without pinning a bond here"
                     else:
