@@ -131,3 +131,49 @@ def test_cli_invalid_requests_fail(args):
     with pytest.raises(SystemExit) as error:
         main(["cleavage"] + args)
     assert error.value.code == 2
+
+
+def test_position_track_spans_internal_scan_and_fragment_cascade():
+    """Locks in the coordinate contract a downstream tool (e.g. vaxrank)
+    needs to overlay cleavage evidence from several models as one track
+    indexed by position in a full parent sequence.
+
+    Internal-topology models (here, neprilysin) assess every bond of
+    whatever peptide they are given in a single predict() call. Terminal-
+    topology models (here, CPN1) only ever assess the CURRENTLY exposed
+    end of their input; to ask about an internal position of a longer
+    precursor, the caller models that trimming step explicitly via
+    ``fragment()`` and reads the result's ``source_bond``, which still maps
+    back to the parent's absolute coordinates. Both modes must resolve into
+    the same coordinate system so their evidence can share one track.
+    """
+    parent = CleavageInput("RPPGFSPFRSSRQ", source_id="precursor")
+    track = {}
+
+    def record(result):
+        for site in result.to_dict()["sites"]:
+            track.setdefault(site["source_bond"], []).append((result.model.name, site["status"]))
+
+    # Mode 1: internal topology scans the whole input directly.
+    internal = get_cleavage_model("mme-hydrophobic").predict(parent)
+    assert internal.unsupported_reason is None
+    assert len(internal.sites) == len(parent.sequence) - 1
+    record(internal)
+    assert track[4] == [("mme-hydrophobic", "matched")]
+    assert track[7] == [("mme-hydrophobic", "matched")]
+    assert track[1] == [("mme-hydrophobic", "not_matched")]
+
+    # Mode 2: terminal topology requires an explicit fragment cascade step.
+    # Here, a hypothesized prior trimming exposes residues 10-13 (SSRQ).
+    fragment = parent.fragment(9, len(parent.sequence), n_term="free", c_term="free")
+    trimmed = get_cleavage_model("cpn-basic").predict(fragment)
+    assert trimmed.unsupported_reason is None
+    record(trimmed)
+    # The fragment's local bond 3 (its own last internal bond) lands on the
+    # parent's absolute position 12 -- the same coordinate space as mode 1.
+    assert trimmed.sites[0].bond == 3
+    assert track[12] == [("mme-hydrophobic", "not_matched"), ("cpn-basic", "not_matched")]
+
+    # One combined track, addressable by absolute parent position, carrying
+    # evidence from models with entirely different assessment strategies.
+    assert set(track) == set(range(1, len(parent.sequence)))

@@ -113,3 +113,28 @@ def test_coerce_peptide_is_shared_by_every_predictor():
         coerce_peptide(None)
     for predictor in (DPP4qPISA(),):
         assert predictor.predict("HAE").sites[0].bond == 2
+
+
+def test_non_quantitative_evidence_rejects_numerical_scores():
+    # Pre-existing CleavageModel.__post_init__ branch, previously untested:
+    # a motif-rule model must not carry score fields either.
+    from mhctools import get_cleavage_model
+    motif_model = get_cleavage_model("app1-xp").model
+    with pytest.raises(ValueError, match="does not have numerical scores"):
+        replace(motif_model, score_name="x")
+    with pytest.raises(ValueError, match="does not have numerical scores"):
+        replace(motif_model, score_units="x")
+
+
+def test_substrate_observation_invariants_are_enforced():
+    from mhctools import get_cleavage_model
+    reference_model = get_cleavage_model("thop1-observed").model
+    peptide = CleavageInput("RPPGFSPFR")
+    # A whole-substrate non-cleavage cannot also carry a per-bond site label.
+    with pytest.raises(ValueError, match="Whole-substrate non-cleavage must not create site labels"):
+        CleavageResult(peptide, reference_model, (CleavageSite(5, "reported", "fixture"),),
+                       substrate_observation="no_cleavage_detected")
+    # An unsupported result (no exact chemical-form match) cannot carry an observation either.
+    with pytest.raises(ValueError, match="Unsupported inputs cannot carry substrate observations"):
+        CleavageResult(peptide, reference_model, unsupported_reason="no match",
+                       substrate_observation="cleavage_reported")

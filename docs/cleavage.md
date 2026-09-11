@@ -70,6 +70,49 @@ known recognition pattern; a non-match does not establish resistance.
 `unsupported_reason` means the input could not be assessed and carries no
 score. These states must remain separate in downstream displays and ranking.
 
+### Building a position track for a full sequence
+
+A downstream tool (topiary, vaxrank) that wants to overlay cleavage evidence
+from several models onto one parent sequence, as a track indexed by
+position, reads `source_bond` from `to_dict()["sites"]` and keys everything
+on it. That coordinate is `source_start + bond`, so it is the same absolute
+number no matter which model or which fragment produced the site:
+
+```python
+track = {}
+for result in predict_cleavage(peptide, compartment="cytosol"):
+    for site in result.to_dict()["sites"]:
+        track.setdefault(site["source_bond"], []).append(
+            {"model": result.model.name, "status": site["status"], "score": site["score"]})
+```
+
+Two model shapes contribute to that track differently, and a caller building
+one has to model both:
+
+- **Internal topology** (`mme-hydrophobic`, `fap-endo-gp`, `prep-pro`,
+  `eramer-step`) assesses every internal bond of whatever peptide it is
+  given in one `predict()` call. Calling it once on the full input already
+  produces a multi-position run of track entries.
+- **Terminal topology** (the aminopeptidases, carboxypeptidases, DPP-family
+  and `dpp4-qpisa`) only ever assesses the *currently exposed* end of its
+  input. It cannot tell you whether a bond in the middle of a long precursor
+  is a plausible trimming stop; it can only assess a candidate fragment you
+  supply. To extend a track with these models, model the hypothesized
+  trimming step explicitly with `parent.fragment(start, end, n_term=...,
+  c_term=...)` and predict on that fragment. Its `source_bond` still lands
+  on the parent's absolute coordinates, so it merges into the same track —
+  but producing a track over a whole precursor this way means enumerating
+  candidate fragments yourself; the model does not search for them.
+
+The same rule applies to `substrate_reference` evidence (THOP1, neurolysin,
+IRAP): it never invents a bond, so a source case that reports degradation
+without pinning one contributes no track entry, not a guessed position.
+
+Because motif and source-reference models never emit numerical scores, and
+because `not_matched`/`no_cleavage_detected` are not probabilities of
+resistance, a track built this way is evidence to overlay and inspect, not a
+single per-position score to rank or threshold.
+
 ## Model panel and JSON command
 
 ```sh

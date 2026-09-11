@@ -250,3 +250,48 @@ def test_reference_panel_filenames_are_a_single_source_of_truth():
         assert "measurements" in data and "notice" in data, choice
     with pytest.raises(SystemExit):
         main(["benchmark", "--reference-cleavage", "not-a-real-choice"])
+
+
+def test_reference_construction_rejects_wrong_evidence_type():
+    from mhctools.substrate_reference import PeptidaseSubstrateReference
+    metadata = dict(name="x-fixture", version="1", enzyme="X", uniprot="P00000",
+                    species="Homo sapiens", compartments=("cytosol",), evidence="motif_rule",
+                    references=("https://example.org",), assay="a", limitations="l",
+                    motif_strictness="required", strictness_basis="b")
+    with pytest.raises(ValueError, match="requires substrate_reference evidence"):
+        PeptidaseSubstrateReference(metadata, [])
+
+
+def test_reference_construction_rejects_a_duplicate_chemical_form():
+    from mhctools.substrate_reference import PeptidaseSubstrateReference
+    metadata = dict(name="x-fixture", version="1", enzyme="X", uniprot="P00000",
+                    species="Homo sapiens", compartments=("cytosol",),
+                    evidence="substrate_reference", references=("https://example.org",),
+                    assay="a", limitations="l")
+    case = dict(sequence="AAAA", n_term="free", c_term="free", conditions={},
+               source="https://example.org", source_measurement_id="m1", bonds=[1],
+               interpretation="i", substrate_observation="cleavage_reported")
+    with pytest.raises(ValueError, match="Conflicting or repeated chemical form"):
+        PeptidaseSubstrateReference(metadata, [case, dict(case, source_measurement_id="m2")])
+
+
+def test_substrate_references_rejects_a_malformed_top_level_entry(monkeypatch):
+    from mhctools import substrate_reference as substrate_reference_module
+    monkeypatch.setattr(substrate_reference_module, "load_json_resource",
+                        lambda name: {"models": [{"cases": []}]})  # missing "model" key
+    with pytest.raises(ValueError, match="missing required fields"):
+        substrate_reference_module.substrate_references.__wrapped__()
+
+
+def test_substrate_depletion_abstains_with_the_unmatched_sequence_reason():
+    # No curated THOP1 case uses this sequence; the source lookup abstains,
+    # and predict_cleavage_measurements must surface that abstention reason
+    # rather than inventing "No whole-substrate observation" out of nothing.
+    measurement = AssayMeasurement(
+        measurement_id="m1", source_measurement_id="m1", source="https://example.org",
+        dataset="d", study="s", assay="a", sequence="WWWWWWWWWWWWWWWWWWWW",
+        chemistry="linear_L_free", endpoint="substrate_depletion", units="binary",
+        species="Homo sapiens", matrix="buffer", value=1, split="reference", enzyme="THOP1")
+    prediction = predict_cleavage_measurements([measurement], ["thop1-observed"])[0]
+    assert prediction.status == "not_assessed"
+    assert "No exact sequence" in prediction.reason
