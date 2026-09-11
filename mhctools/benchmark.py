@@ -6,10 +6,10 @@ model training is performed. User-supplied family assignments are retained.
 
 from collections import Counter, defaultdict
 from dataclasses import asdict, dataclass
-from importlib.resources import files
-import json
 import math
 from typing import Optional, Tuple
+
+from ._resources import load_json_resource
 
 
 ENDPOINTS = frozenset((
@@ -313,7 +313,7 @@ def evaluate_benchmark(measurements, predictions, lineages=(), evaluation="exter
 
 def model_lineage_inventory():
     """Read the curated model/data relationships and unresolved provenance."""
-    return json.loads(files("mhctools").joinpath("data/model_lineage.json").read_text())
+    return load_json_resource("model_lineage.json")
 
 
 def predict_cleavage_measurements(measurements, models):
@@ -354,7 +354,7 @@ def predict_cleavage_measurements(measurements, models):
             try:
                 n_term, c_term = chemistry[m.chemistry]
                 selected = (get_cleavage_model(name, enzyme_state=dict(m.conditions).get("enzyme_state"))
-                            if name == "cpb2-basic" else predictor)
+                            if getattr(predictor, "requires_activation", False) else predictor)
                 result = selected.predict(CleavageInput(m.sequence, n_term, c_term))
                 if is_reference and m.endpoint == "substrate_depletion":
                     if result.substrate_observation is None:
@@ -376,8 +376,7 @@ def predict_cleavage_measurements(measurements, models):
                     predictions.append(BenchmarkPrediction(**kwargs, status="not_assessed", reason=reason))
                 elif site.status == "scored":
                     predictions.append(BenchmarkPrediction(m.measurement_id, name,
-                        "substrate_depletion" if name == "dpp4-qpisa" else "site_cleavage",
-                        result.model.score_units, site.score))
+                        result.model.scored_endpoint, result.model.score_units, site.score))
                 else:
                     predictions.append(BenchmarkPrediction(**kwargs, value=int(site.status in ("matched", "reported")), scale="decision",
                         reason="Source observation lookup for reproduction" if is_reference else None))

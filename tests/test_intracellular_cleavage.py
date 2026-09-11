@@ -221,3 +221,32 @@ def test_cleavage_models_rejects_a_duplicate_name():
             peptidases_module.cleavage_models()
     finally:
         peptidases_module._RULES = original
+
+
+def test_malformed_catalog_case_raises_a_clear_error_not_a_keyerror():
+    from mhctools.substrate_reference import PeptidaseSubstrateReference
+    metadata = dict(name="x-fixture", version="1", enzyme="X", uniprot="P00000",
+                    species="Homo sapiens", compartments=("cytosol",),
+                    evidence="substrate_reference", references=("https://example.org",),
+                    assay="a", limitations="l")
+    complete_case = dict(sequence="AAAA", n_term="free", c_term="free", conditions={},
+                         source="https://example.org", source_measurement_id="m1",
+                         bonds=[1], interpretation="i", substrate_observation="cleavage_reported")
+    for missing_field in complete_case:
+        broken = {k: v for k, v in complete_case.items() if k != missing_field}
+        with pytest.raises(ValueError, match="missing required fields") as excinfo:
+            PeptidaseSubstrateReference(metadata, [broken])
+        assert missing_field in str(excinfo.value)
+    # A well-formed case still works, proving the loop above isn't vacuous.
+    PeptidaseSubstrateReference(metadata, [complete_case])
+
+
+def test_reference_panel_filenames_are_a_single_source_of_truth():
+    from mhctools.cli.benchmark import REFERENCE_PANELS
+    from mhctools._resources import load_json_resource
+    assert set(REFERENCE_PANELS) == {"starter", "serum", "intracellular"}
+    for choice, filename in REFERENCE_PANELS.items():
+        data = load_json_resource(filename)
+        assert "measurements" in data and "notice" in data, choice
+    with pytest.raises(SystemExit):
+        main(["benchmark", "--reference-cleavage", "not-a-real-choice"])

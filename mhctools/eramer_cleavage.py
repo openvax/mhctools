@@ -5,7 +5,8 @@ import hashlib
 from io import BytesIO
 from pathlib import Path
 
-from .cleavage import CleavageInput, CleavageModel, CleavageResult, CleavageSite
+from .cleavage import (
+    CleavageModel, CleavageResult, CleavageSite, coerce_peptide)
 from .eramer import _find_pwm_path, _specificity, load_pwm
 
 
@@ -26,7 +27,8 @@ class ERAMERCleavage:
         limitations=("Requires separately fetched ERAMER PWM and openpyxl. "
                      "Single intermediate score; not a probability, kinetic rate or cascade average. "
                      "No allotype, enzyme exposure or MHC protection model."),
-        score_name="intermediate_pwm_specificity", score_units="native ERAMER specificity")
+        score_name="intermediate_pwm_specificity", score_units="native ERAMER specificity",
+        scored_endpoint="site_cleavage")
 
     def __init__(self, eramer_home=None, pwm_path=None):
         path = Path(_find_pwm_path(eramer_home, pwm_path)).expanduser().resolve()
@@ -36,10 +38,7 @@ class ERAMERCleavage:
 
     def predict(self, peptide):
         """Assess only the initial N-terminal bond; fragments require new input."""
-        if isinstance(peptide, str):
-            peptide = CleavageInput(peptide)
-        if not isinstance(peptide, CleavageInput):
-            raise TypeError("Expected CleavageInput or canonical peptide string")
+        peptide = coerce_peptide(peptide)
         if peptide.n_term != "free" or peptide.c_term != "free":
             return CleavageResult(peptide, self.model, unsupported_reason="ERAMER requires unmodified free termini")
         length = len(peptide.sequence)

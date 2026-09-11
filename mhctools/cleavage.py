@@ -20,6 +20,19 @@ def _integer(value):
     return isinstance(value, int) and not isinstance(value, bool)
 
 
+def coerce_peptide(peptide):
+    """Accept a canonical peptide string or pass a :class:`CleavageInput` through.
+
+    Every predictor's ``predict`` entry point does exactly this coercion;
+    sharing it keeps the accepted-input contract identical everywhere.
+    """
+    if isinstance(peptide, str):
+        peptide = CleavageInput(peptide)
+    if not isinstance(peptide, CleavageInput):
+        raise TypeError("Expected CleavageInput or canonical peptide string")
+    return peptide
+
+
 @dataclass(frozen=True)
 class CleavageInput:
     """Linear, canonical L-peptide; defaults explicitly assume free termini.
@@ -90,6 +103,12 @@ class CleavageModel:
     ``strictness_basis`` names the source observation behind that grade, so
     the grade is attributable rather than an opinion. Both fields belong to
     motif rules only; scored models and source references carry neither.
+
+    ``scored_endpoint`` names the :mod:`mhctools.benchmark` endpoint that a
+    ``quantitative_model``'s native score answers (for example
+    ``substrate_depletion`` or ``site_cleavage``), so a caller maps a scored
+    site to the right measurement type from the model's own declaration
+    rather than a hardcoded model name. Only quantitative models carry it.
     """
 
     name: str
@@ -104,6 +123,7 @@ class CleavageModel:
     limitations: str
     score_name: Optional[str] = None
     score_units: Optional[str] = None
+    scored_endpoint: Optional[str] = None
     motif_strictness: Optional[str] = None
     strictness_basis: Optional[str] = None
 
@@ -117,8 +137,13 @@ class CleavageModel:
         if self.evidence == "quantitative_model":
             if not self.score_name or not self.score_units:
                 raise ValueError("Quantitative models must name their native score and units")
+            if not self.scored_endpoint:
+                raise ValueError(
+                    "Quantitative models must name the benchmark endpoint their score answers")
         elif self.score_name is not None or self.score_units is not None:
             raise ValueError("Non-quantitative evidence does not have numerical scores")
+        elif self.scored_endpoint is not None:
+            raise ValueError("Only quantitative models carry a benchmark endpoint for their score")
         if self.evidence == "motif_rule":
             if self.motif_strictness not in ("required", "preferred", "permissive"):
                 raise ValueError(

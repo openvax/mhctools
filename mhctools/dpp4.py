@@ -5,16 +5,15 @@ no upstream R code or C. elegans DPF-3 coefficients are incorporated.
 """
 
 from functools import lru_cache
-from importlib.resources import files
-import json
 
-from .cleavage import CleavageInput, CleavageModel, CleavageResult, CleavageSite
+from ._resources import load_json_resource
+from .cleavage import (
+    CleavageModel, CleavageResult, CleavageSite, coerce_peptide)
 
 
 @lru_cache(maxsize=1)
 def _parameters():
-    resource = files("mhctools").joinpath("data/dpp4_qpisa.json")
-    return json.loads(resource.read_text(encoding="utf-8"))["parameters"]
+    return load_json_resource("dpp4_qpisa.json")["parameters"]
 
 
 class DPP4qPISA:
@@ -38,14 +37,12 @@ class DPP4qPISA:
                      "A supported triplet is not necessarily experimentally observed. "
                      "No kinetics or successive-cleavage prediction."),
         score_name="predicted_log2_substrate_depletion",
-        score_units="log2 fold change (buffer control / DPP4-treated)")
+        score_units="log2 fold change (buffer control / DPP4-treated)",
+        scored_endpoint="substrate_depletion")
 
     def predict(self, peptide):
         """Assess only bond 2 of a :class:`CleavageInput` or canonical string."""
-        if isinstance(peptide, str):
-            peptide = CleavageInput(peptide)
-        if not isinstance(peptide, CleavageInput):
-            raise TypeError("Expected CleavageInput or canonical peptide string")
+        peptide = coerce_peptide(peptide)
         reason = None
         if peptide.n_term != "free":
             reason = "DPP4 requires an exposed free N terminus"

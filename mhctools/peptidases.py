@@ -8,7 +8,8 @@ from dataclasses import dataclass, replace
 import re
 from typing import Optional, Tuple
 
-from .cleavage import CleavageInput, CleavageModel, CleavageResult, CleavageSite
+from .cleavage import (
+    CleavageModel, CleavageResult, CleavageSite, coerce_peptide)
 from .dpp4 import DPP4qPISA
 from .substrate_reference import substrate_references
 
@@ -43,10 +44,7 @@ class PeptidaseMotif:
 
     def predict(self, peptide):
         """Assess eligible bonds; a non-match is not evidence of resistance."""
-        if isinstance(peptide, str):
-            peptide = CleavageInput(peptide)
-        if not isinstance(peptide, CleavageInput):
-            raise TypeError("Expected CleavageInput or canonical peptide string")
+        peptide = coerce_peptide(peptide)
         seq = peptide.sequence
         reason = None
         conditions = (("enzyme_state", self.enzyme_state),) if self.requires_activation else ()
@@ -76,8 +74,8 @@ class PeptidaseMotif:
         return CleavageResult(peptide, self.model, tuple(sites), conditions=conditions)
 
 
-def _rule(name, enzyme, accession, compartments, papers, topology, removed,
-          left, right, description, assay, limitations, *, strictness, basis, **kwargs):
+def _rule(*, name, enzyme, accession, compartments, papers, topology, removed,
+          left, right, description, assay, limitations, strictness, basis, **kwargs):
     metadata = CleavageModel(
         name=name, version="1", enzyme=enzyme, uniprot=accession,
         species="Homo sapiens", compartments=compartments, evidence="motif_rule",
@@ -90,21 +88,21 @@ def _rule(name, enzyme, accession, compartments, papers, topology, removed,
 
 
 _RULES = (
-    _rule("app1-xp", "XPNPEP1", "Q9NQW7", ("cytosol",),
-          ("https://pubmed.ncbi.nlm.nih.gov/11106490/", "https://doi.org/10.1074/jbc.M710274200"),
-          "n_terminal", 1, ".", "P", "Exposed N-terminal X|Pro",
-          "Recombinant human cytosolic aminopeptidase P; RPP and bradykinin hydrolysis",
-          "Removes the first residue. Manganese dependence and full substrate context affect activity; "
+    _rule(name="app1-xp", enzyme="XPNPEP1", accession="Q9NQW7", compartments=("cytosol",),
+          papers=("https://pubmed.ncbi.nlm.nih.gov/11106490/", "https://doi.org/10.1074/jbc.M710274200"),
+          topology="n_terminal", removed=1, left=".", right="P", description="Exposed N-terminal X|Pro",
+          assay="Recombinant human cytosolic aminopeptidase P; RPP and bradykinin hydrolysis",
+          limitations="Removes the first residue. Manganese dependence and full substrate context affect activity; "
           "distinct from extracellular XPNPEP2 and dipeptidyl processing.",
           strictness="required",
           basis="Aminopeptidase P is defined by hydrolysis of the X-Pro bond; the source reports "
                 "the recombinant human cytosolic enzyme hydrolysing the X-Pro bond of bradykinin "
                 "and substance P."),
-    _rule("tpp2-tripeptidyl", "TPP2", "P29144", ("cytosol",),
-          ("https://doi.org/10.4049/jimmunol.169.8.4161",),
-          "n_terminal", 3, "..[^P]", "[^P]", "Exposed tripeptide with non-Pro P1 and P1-prime",
-          "Immunopurified human TPP2 processing of RU1 antigen precursors",
-          "Partial proline constraint, not proof of turnover for every matching peptide. "
+    _rule(name="tpp2-tripeptidyl", enzyme="TPP2", accession="P29144", compartments=("cytosol",),
+          papers=("https://doi.org/10.4049/jimmunol.169.8.4161",),
+          topology="n_terminal", removed=3, left="..[^P]", right="[^P]", description="Exposed tripeptide with non-Pro P1 and P1-prime",
+          assay="Immunopurified human TPP2 processing of RU1 antigen precursors",
+          limitations="Partial proline constraint, not proof of turnover for every matching peptide. "
           "Assembly, other residues and longer substrate context are unmodeled. "
           "Not bacterial Xaa-Xaa-Pro tripeptidase specificity and not an endopeptidase model.",
           min_length=4,
@@ -112,138 +110,138 @@ _RULES = (
           basis="Removing an N-terminal tripeptide is this enzyme's topology, not a selective "
                 "substrate rule. The proline constraints are partial and the source does not "
                 "establish turnover of every matching peptide."),
-    _rule("npepps-n-terminal", "NPEPPS", "P55786", ("cytosol",),
-          ("https://doi.org/10.4049/jimmunol.169.8.4161",),
-          "n_terminal", 1, "[^GP]", "[^GP]", "Exposed first bond lacking poor Gly/Pro contexts",
-          "Human puromycin-sensitive aminopeptidase processing of RU1 precursors",
-          "Broad, low-specificity context flag only. Gly-containing bonds can be slowly cleaved; "
+    _rule(name="npepps-n-terminal", enzyme="NPEPPS", accession="P55786", compartments=("cytosol",),
+          papers=("https://doi.org/10.4049/jimmunol.169.8.4161",),
+          topology="n_terminal", removed=1, left="[^GP]", right="[^GP]", description="Exposed first bond lacking poor Gly/Pro contexts",
+          assay="Human puromycin-sensitive aminopeptidase processing of RU1 precursors",
+          limitations="Broad, low-specificity context flag only. Gly-containing bonds can be slowly cleaved; "
           "non-matches do not establish resistance. Other residues, competing aminopeptidases "
           "and full precursor sequence affect processing.",
           strictness="permissive",
           basis="Puromycin-sensitive aminopeptidase acts broadly; the Gly/Pro exclusion is a weak "
                 "context flag and Gly-containing bonds can still be cleaved slowly."),
-    _rule("ace-dipeptidyl", "ACE", "P12821", ("plasma", "serum", "extracellular"),
-          ("https://doi.org/10.1042/BJ20040634", "https://doi.org/10.1038/srep13742"),
-          "c_terminal", 2, ".", "[^P][^DE]", "Free C-terminal dipeptide: non-Pro followed by non-Asp/Glu",
-          "Human ACE dipeptide hydrolysis; angiotensins and N-acetyl-SDKP",
-          "Ordinary dipeptide recognition only. Domain, chloride, concentration and context affect activity. "
+    _rule(name="ace-dipeptidyl", enzyme="ACE", accession="P12821", compartments=("plasma", "serum", "extracellular"),
+          papers=("https://doi.org/10.1042/BJ20040634", "https://doi.org/10.1038/srep13742"),
+          topology="c_terminal", removed=2, left=".", right="[^P][^DE]", description="Free C-terminal dipeptide: non-Pro followed by non-Asp/Glu",
+          assay="Human ACE dipeptide hydrolysis; angiotensins and N-acetyl-SDKP",
+          limitations="Ordinary dipeptide recognition only. Domain, chloride, concentration and context affect activity. "
           "Exceptional endopeptide/tripeptide cleavage (including amidated substance P) is omitted.",
           min_length=3, n_chemistry=("free", "acetylated"),
           strictness="required",
           basis="Within the ordinary dipeptidyl-carboxypeptidase route the source's angiotensin "
                 "series requires a free C-terminal dipeptide with non-Pro at P1-prime. "
                 "Exceptional endopeptidase cleavages are outside this rule."),
-    _rule("mme-hydrophobic", "MME", "P08473", ("extracellular",),
-          ("https://pubmed.ncbi.nlm.nih.gov/6349683/", "https://pubmed.ncbi.nlm.nih.gov/2417254/"),
-          "internal", 0, ".", "[FILY]", "Selected hydrophobic P1-prime preference: Phe/Ile/Leu/Tyr",
-          "Purified human kidney neprilysin cleavage of enkephalin, kinins and angiotensins",
-          "Incomplete preference flag; whole sequence affects site selection. Other residues can be cleaved. "
+    _rule(name="mme-hydrophobic", enzyme="MME", accession="P08473", compartments=("extracellular",),
+          papers=("https://pubmed.ncbi.nlm.nih.gov/6349683/", "https://pubmed.ncbi.nlm.nih.gov/2417254/"),
+          topology="internal", removed=0, left=".", right="[FILY]", description="Selected hydrophobic P1-prime preference: Phe/Ile/Leu/Tyr",
+          assay="Purified human kidney neprilysin cleavage of enkephalin, kinins and angiotensins",
+          limitations="Incomplete preference flag; whole sequence affects site selection. Other residues can be cleaved. "
           "The 2-30-residue input scope is conservative, not an absolute enzyme size cutoff. "
           "Membrane exposure and circulating activity are unmodeled.",
           max_length=30, c_chemistry=("free", "amidated"),
           strictness="preferred",
           basis="The source reports a preference for hydrophobic residues after the scissile "
                 "bond, and other residues are also cleaved, so a non-match is weak evidence."),
-    _rule("cpb2-basic", "CPB2", "Q96IY4", ("plasma", "serum", "extracellular"),
-          ("https://doi.org/10.1074/jbc.274.49.35046", "https://pmc.ncbi.nlm.nih.gov/articles/PMC2613638/"),
-          "c_terminal", 1, ".", "[KR]", "Activated CPB2 removal of free C-terminal Lys/Arg",
-          "Human plasma-derived active TAFI/CPB2 peptide hydrolysis",
-          "Requires explicit enzyme_state=active. Zymogen abundance does not establish active enzyme. "
+    _rule(name="cpb2-basic", enzyme="CPB2", accession="Q96IY4", compartments=("plasma", "serum", "extracellular"),
+          papers=("https://doi.org/10.1074/jbc.274.49.35046", "https://pmc.ncbi.nlm.nih.gov/articles/PMC2613638/"),
+          topology="c_terminal", removed=1, left=".", right="[KR]", description="Activated CPB2 removal of free C-terminal Lys/Arg",
+          assay="Human plasma-derived active TAFI/CPB2 peptide hydrolysis",
+          limitations="Requires explicit enzyme_state=active. Zymogen abundance does not establish active enzyme. "
           "Activation, spontaneous inactivation, inhibitors and serum clotting effects are unmodeled.",
           requires_activation=True,
           strictness="required",
           basis="Basic carboxypeptidase activity requires a free C-terminal Lys or Arg. The grade "
                 "covers recognition only and still presumes an explicitly activated enzyme."),
-    _rule("cpn-basic", "CPN1", "P15169", ("plasma", "serum", "extracellular"),
-          ("https://doi.org/10.1016/0003-9861(75)90104-6",),
-          "c_terminal", 1, ".", "[KR]", "Free C-terminal Lys/Arg removal",
-          "Human plasma CPN peptide-substrate assays",
-          "Penultimate residues affect rates; Lys and Arg are not kinetically equivalent.",
+    _rule(name="cpn-basic", enzyme="CPN1", accession="P15169", compartments=("plasma", "serum", "extracellular"),
+          papers=("https://doi.org/10.1016/0003-9861(75)90104-6",),
+          topology="c_terminal", removed=1, left=".", right="[KR]", description="Free C-terminal Lys/Arg removal",
+          assay="Human plasma CPN peptide-substrate assays",
+          limitations="Penultimate residues affect rates; Lys and Arg are not kinetically equivalent.",
           strictness="required",
           basis="Carboxypeptidase N removes a free C-terminal Lys or Arg; penultimate residues "
                 "change the rate but not the requirement."),
-    _rule("app2-xp", "XPNPEP2", "O43895", ("plasma", "extracellular"),
-          ("https://pubmed.ncbi.nlm.nih.gov/15361070/",),
-          "n_terminal", 1, ".", "P", "Exposed N-terminal X|Pro",
-          "Recombinant human membrane aminopeptidase P and kinin substrates",
-          "Removes the FIRST residue; this is not DPP-like dipeptide removal.",
+    _rule(name="app2-xp", enzyme="XPNPEP2", accession="O43895", compartments=("plasma", "extracellular"),
+          papers=("https://pubmed.ncbi.nlm.nih.gov/15361070/",),
+          topology="n_terminal", removed=1, left=".", right="P", description="Exposed N-terminal X|Pro",
+          assay="Recombinant human membrane aminopeptidase P and kinin substrates",
+          limitations="Removes the FIRST residue; this is not DPP-like dipeptide removal.",
           strictness="required",
           basis="Aminopeptidase P is defined by hydrolysis of the X-Pro bond; the source's kinin "
                 "substrates all carry proline in the second position."),
-    _rule("fap-dipeptidyl", "FAP", "Q12884", ("extracellular", "plasma"),
-          ("https://pubmed.ncbi.nlm.nih.gov/16410248/",),
-          "n_terminal", 2, ".P", "[^P]", "Exposed N-terminal X-Pro|non-Pro",
-          "Purified human FAP dipeptide substrate profiling",
-          "Dipeptidyl activity only; P2 preferences and whole-peptide context omitted.",
+    _rule(name="fap-dipeptidyl", enzyme="FAP", accession="Q12884", compartments=("extracellular", "plasma"),
+          papers=("https://pubmed.ncbi.nlm.nih.gov/16410248/",),
+          topology="n_terminal", removed=2, left=".P", right="[^P]", description="Exposed N-terminal X-Pro|non-Pro",
+          assay="Purified human FAP dipeptide substrate profiling",
+          limitations="Dipeptidyl activity only; P2 preferences and whole-peptide context omitted.",
           min_length=3,
           strictness="required",
           basis="FAP dipeptidyl activity requires proline in the second position; the source's "
                 "profiling is built on X-Pro dipeptide substrates."),
-    _rule("fap-endo-gp", "FAP", "Q12884", ("extracellular", "plasma"),
-          ("https://pubmed.ncbi.nlm.nih.gov/16480718/",
+    _rule(name="fap-endo-gp", enzyme="FAP", accession="Q12884", compartments=("extracellular", "plasma"),
+          papers=("https://pubmed.ncbi.nlm.nih.gov/16480718/",
            "https://pubmed.ncbi.nlm.nih.gov/16410248/",
            "https://pubmed.ncbi.nlm.nih.gov/22750443/"),
-          "internal", 0, "GP", "[^P]", "Gly-Pro|non-Pro endopeptidase recognition",
-          "Human FAP substrate profiling around alpha-2-antiplasmin cleavage site",
-          "P3 preferences and accessibility omitted; independent of dipeptidyl activity.",
+          topology="internal", removed=0, left="GP", right="[^P]", description="Gly-Pro|non-Pro endopeptidase recognition",
+          assay="Human FAP substrate profiling around alpha-2-antiplasmin cleavage site",
+          limitations="P3 preferences and accessibility omitted; independent of dipeptidyl activity.",
           min_length=3, n_chemistry=("free", "acetylated"),
           strictness="required",
           basis="The source's endopeptidase profiling establishes Gly-Pro before the scissile "
                 "bond and a non-proline after it; P3 preferences and accessibility remain "
                 "unmodeled."),
-    _rule("enpep-acidic", "ENPEP", "Q07075", ("extracellular",),
-          ("https://pubmed.ncbi.nlm.nih.gov/23888046/",),
-          "n_terminal", 1, "[DE]", ".", "Exposed N-terminal Asp/Glu|X",
-          "Human aminopeptidase A structural/substrate specificity experiments",
-          "Calcium-dependent preference; enzyme exposure and calcium are not modeled.",
+    _rule(name="enpep-acidic", enzyme="ENPEP", accession="Q07075", compartments=("extracellular",),
+          papers=("https://pubmed.ncbi.nlm.nih.gov/23888046/",),
+          topology="n_terminal", removed=1, left="[DE]", right=".", description="Exposed N-terminal Asp/Glu|X",
+          assay="Human aminopeptidase A structural/substrate specificity experiments",
+          limitations="Calcium-dependent preference; enzyme exposure and calcium are not modeled.",
           strictness="preferred",
           basis="Aminopeptidase A prefers an acidic N-terminal residue and the preference is "
                 "calcium dependent, so a non-match does not exclude slower cleavage."),
-    _rule("anpep-ala", "ANPEP", "P15144", ("extracellular",),
-          ("https://pubmed.ncbi.nlm.nih.gov/22932899/",),
-          "n_terminal", 1, "A", ".", "Preferred N-terminal Ala|X",
-          "Human aminopeptidase N structural/biochemical specificity",
-          "Only an Ala preference flag. Broad alternative substrates and X-Pro dipeptide removal omitted.",
+    _rule(name="anpep-ala", enzyme="ANPEP", accession="P15144", compartments=("extracellular",),
+          papers=("https://pubmed.ncbi.nlm.nih.gov/22932899/",),
+          topology="n_terminal", removed=1, left="A", right=".", description="Preferred N-terminal Ala|X",
+          assay="Human aminopeptidase N structural/biochemical specificity",
+          limitations="Only an Ala preference flag. Broad alternative substrates and X-Pro dipeptide removal omitted.",
           strictness="permissive",
           basis="Aminopeptidase N acts broadly; alanine is a favoured first residue but many "
                 "other N-termini are cleaved, so a match adds little."),
-    _rule("dpp8-xp-xa", "DPP8", "Q6V1X1", ("cytosol",),
-          ("https://pubmed.ncbi.nlm.nih.gov/11012666/",
+    _rule(name="dpp8-xp-xa", enzyme="DPP8", accession="Q6V1X1", compartments=("cytosol",),
+          papers=("https://pubmed.ncbi.nlm.nih.gov/11012666/",
            "https://pmc.ncbi.nlm.nih.gov/articles/PMC3656252/"),
-          "n_terminal", 2, ".[PA]", "[^P]", "Exposed X-(Pro/Ala)|non-Pro",
-          "Human DPP8 biochemical characterization and substrate degradomics",
-          "Qualitative rule only; DPP4 and C. elegans DPF-3 coefficients are inapplicable.",
+          topology="n_terminal", removed=2, left=".[PA]", right="[^P]", description="Exposed X-(Pro/Ala)|non-Pro",
+          assay="Human DPP8 biochemical characterization and substrate degradomics",
+          limitations="Qualitative rule only; DPP4 and C. elegans DPF-3 coefficients are inapplicable.",
           min_length=3,
           strictness="required",
           basis="Dipeptidyl peptidase activity requires proline or alanine in the second "
                 "position; the source's degradomics substrates share that constraint."),
-    _rule("dpp9-xp-xa", "DPP9", "Q86TI2", ("cytosol",),
-          ("https://pubmed.ncbi.nlm.nih.gov/19667070/",
+    _rule(name="dpp9-xp-xa", enzyme="DPP9", accession="Q86TI2", compartments=("cytosol",),
+          papers=("https://pubmed.ncbi.nlm.nih.gov/19667070/",
            "https://pmc.ncbi.nlm.nih.gov/articles/PMC3656252/"),
-          "n_terminal", 2, ".[PA]", "[^P]", "Exposed X-(Pro/Ala)|non-Pro",
-          "Human DPP9 peptide/antigen processing assays and substrate degradomics",
-          "Shared recognition pattern with DPP8 does not imply identical substrate rates.",
+          topology="n_terminal", removed=2, left=".[PA]", right="[^P]", description="Exposed X-(Pro/Ala)|non-Pro",
+          assay="Human DPP9 peptide/antigen processing assays and substrate degradomics",
+          limitations="Shared recognition pattern with DPP8 does not imply identical substrate rates.",
           min_length=3,
           strictness="required",
           basis="Dipeptidyl peptidase activity requires proline or alanine in the second "
                 "position; the source's antigen-processing and degradomics substrates share that "
                 "constraint."),
-    _rule("prep-pro", "PREP", "P48147", ("cytosol", "extracellular", "serum"),
-          ("https://pubmed.ncbi.nlm.nih.gov/22750443/",),
-          "internal", 0, ".P", ".", "Internal post-proline X-Pro|X recognition",
-          "Recombinant human POP/FAP peptide substrate profiling",
-          "Conservative 4-30-residue model domain; not an absolute enzyme size cutoff. "
+    _rule(name="prep-pro", enzyme="PREP", accession="P48147", compartments=("cytosol", "extracellular", "serum"),
+          papers=("https://pubmed.ncbi.nlm.nih.gov/22750443/",),
+          topology="internal", removed=0, left=".P", right=".", description="Internal post-proline X-Pro|X recognition",
+          assay="Recombinant human POP/FAP peptide substrate profiling",
+          limitations="Conservative 4-30-residue model domain; not an absolute enzyme size cutoff. "
           "Weaker non-Pro cleavage and flanking charge preferences omitted; abundance unmodeled.",
           min_length=4, max_length=30,
           strictness="required",
           basis="Prolyl oligopeptidase requires proline before the scissile bond; documented "
                 "weaker non-proline cleavage is outside this rule's scope."),
-    _rule("erap2-basic", "ERAP2", "Q6P179", ("er",),
-          ("https://pubmed.ncbi.nlm.nih.gov/12799365/",
+    _rule(name="erap2-basic", enzyme="ERAP2", accession="Q6P179", compartments=("er",),
+          papers=("https://pubmed.ncbi.nlm.nih.gov/12799365/",
            "https://pubmed.ncbi.nlm.nih.gov/26381406/"),
-          "n_terminal", 1, "[RK]", ".", "Preferred exposed N-terminal Arg/Lys|X",
-          "Human ERAP2 biochemical specificity and peptide-complex structures",
-          "A basic-residue preference flag only; length, allotype and internal sequence affect trimming.",
+          topology="n_terminal", removed=1, left="[RK]", right=".", description="Preferred exposed N-terminal Arg/Lys|X",
+          assay="Human ERAP2 biochemical specificity and peptide-complex structures",
+          limitations="A basic-residue preference flag only; length, allotype and internal sequence affect trimming.",
           strictness="preferred",
           basis="The source reports a basic-residue preference at the N terminus rather than a "
                 "requirement; ERAP2 trims many other residues more slowly."),

@@ -1,10 +1,16 @@
 """Exact human substrate observations, explicitly separate from predictions."""
 
 from functools import lru_cache
-from importlib.resources import files
-import json
 
-from .cleavage import CleavageInput, CleavageModel, CleavageResult, CleavageSite
+from ._resources import load_json_resource
+from .cleavage import (
+    CleavageInput, CleavageModel, CleavageResult, CleavageSite, coerce_peptide)
+
+
+#: Fields every entry in a reference catalog's ``cases`` list must carry.
+_REQUIRED_CASE_FIELDS = ("sequence", "n_term", "c_term", "conditions", "source",
+                         "source_measurement_id", "bonds", "interpretation",
+                         "substrate_observation")
 
 
 class PeptidaseSubstrateReference:
@@ -20,7 +26,11 @@ class PeptidaseSubstrateReference:
             raise ValueError("Reference catalog requires substrate_reference evidence")
         reserved = {"source", "source_measurement_id"}
         self._cases = {}
-        for case in cases:
+        for index, case in enumerate(cases):
+            missing = [field for field in _REQUIRED_CASE_FIELDS if field not in case]
+            if missing:
+                raise ValueError("Reference catalog case %d for %r is missing required "
+                                 "fields: %s" % (index, self.model.name, ", ".join(missing)))
             peptide = CleavageInput(case["sequence"], case["n_term"], case["c_term"])
             key = (peptide.sequence, peptide.n_term, peptide.c_term)
             if key in self._cases:
@@ -37,10 +47,7 @@ class PeptidaseSubstrateReference:
 
     def predict(self, peptide):
         """Return source observations for an exact match, preserving source offsets."""
-        if isinstance(peptide, str):
-            peptide = CleavageInput(peptide)
-        if not isinstance(peptide, CleavageInput):
-            raise TypeError("Expected CleavageInput or canonical peptide string")
+        peptide = coerce_peptide(peptide)
         result = self._cases.get((peptide.sequence, peptide.n_term, peptide.c_term))
         if result is None:
             return CleavageResult(peptide, self.model, unsupported_reason=
@@ -52,5 +59,12 @@ class PeptidaseSubstrateReference:
 @lru_cache(maxsize=None)
 def substrate_references():
     """Load the small packaged factual catalog; no external weights or runtime."""
-    data = json.loads(files("mhctools").joinpath("data/intracellular_substrate_evidence.json").read_text())
-    return tuple(PeptidaseSubstrateReference(item["model"], item["cases"]) for item in data["models"])
+    data = load_json_resource("intracellular_substrate_evidence.json")
+    models = data["models"]
+    for index, item in enumerate(models):
+        missing = [field for field in ("model", "cases") if field not in item]
+        if missing:
+            raise ValueError(
+                "Reference catalog entry %d is missing required fields: %s" % (
+                    index, ", ".join(missing)))
+    return tuple(PeptidaseSubstrateReference(item["model"], item["cases"]) for item in models)
