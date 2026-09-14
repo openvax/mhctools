@@ -82,8 +82,9 @@ Homepage = "https://github.com/openvax/mhctools"
 version = { attr = "mhctools.__version__" }
 
 [tool.setuptools]
-packages = ["mhctools", "mhctools.cli"]
+packages = ["mhctools", "mhctools.cli", "mhctools.data"]
 
 [tool.setuptools.package-data]
-"mhctools" = ["logging.conf", "data/*.json"]
+"mhctools" = ["logging.conf"]
 "mhctools.cli" = ["logging.conf"]
+"mhctools.data" = ["*.json"]

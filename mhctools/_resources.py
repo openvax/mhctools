@@ -11,4 +11,4 @@ import json
 
 def load_json_resource(filename):
     """Parse one JSON file packaged under ``mhctools/data/<filename>``."""
-    return json.loads(files("mhctools").joinpath("data/" + filename).read_text(encoding="utf-8"))
+    return json.loads(files("mhctools.data").joinpath(filename).read_text(encoding="utf-8"))
