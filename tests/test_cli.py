@@ -11,10 +11,53 @@
 # limitations under the License.
 
 import tempfile
+from argparse import ArgumentParser
 from os import remove
 
-from mhctools.cli.script import parse_args, run_predictor
+import pytest
+
+from mhctools.cli.script import add_output_args, parse_args, run_predictor
 from .common import eq_
+
+
+def test_repeated_sequence_options_accumulate():
+    args = parse_args([
+        "--mhc-predictor", "random",
+        "--sequence", "SIINFEKL",
+        "--sequence", "GILGFVFTL", "AAAAAAAAA",
+        "--mhc-alleles", "HLA-A*02:01"])
+    assert args.sequence == ["SIINFEKL", "GILGFVFTL", "AAAAAAAAA"]
+    assert [prediction.peptide for prediction in run_predictor(args)] == [
+        "SIINFEKL", "GILGFVFTL", "AAAAAAAAA"]
+
+
+@pytest.mark.parametrize("second_source", [
+    ["--input-peptides-file", "peptides.txt"],
+    ["--input-fasta-file", "proteins.fasta"],
+])
+def test_sequence_rejects_competing_input_source(second_source):
+    with pytest.raises(SystemExit) as error:
+        parse_args([
+            "--mhc-predictor", "random",
+            "--sequence", "SIINFEKL",
+            *second_source,
+            "--mhc-alleles", "HLA-A*02:01"])
+    assert error.value.code == 2
+
+
+def test_sequence_requires_at_least_one_value():
+    with pytest.raises(SystemExit) as error:
+        parse_args([
+            "--mhc-predictor", "random",
+            "--sequence",
+            "--mhc-alleles", "HLA-A*02:01"])
+    assert error.value.code == 2
+
+
+def test_add_output_args_uses_supplied_parser():
+    parser = ArgumentParser()
+    add_output_args(parser)
+    assert parser.parse_args(["--output-csv", "out.csv"]).output_csv == "out.csv"
 
 def test_peptides_without_subsequences():
     peptide = "SIINFEKLQY"
@@ -55,6 +98,29 @@ def test_peptides_file_without_subsequences():
     eq_(binding_predictions[0].peptide, peptide)
     remove(f.name)
 
+
+def test_peptides_file_ignores_blank_and_whitespace_only_lines(tmp_path):
+    path = tmp_path / "peptides.txt"
+    path.write_text("SIINFEKL\n\n   \nGILGFVFTL\n")
+    args = parse_args([
+        "--mhc-predictor", "random",
+        "--input-peptides-file", str(path),
+        "--mhc-alleles", "HLA-A*02:01"])
+    binding_predictions = run_predictor(args)
+    assert [prediction.peptide for prediction in binding_predictions] == [
+        "SIINFEKL", "GILGFVFTL"]
+
+
+def test_peptides_file_rejects_no_sequences(tmp_path):
+    path = tmp_path / "peptides.txt"
+    path.write_text("\n   \n")
+    args = parse_args([
+        "--mhc-predictor", "random",
+        "--input-peptides-file", str(path),
+        "--mhc-alleles", "HLA-A*02:01"])
+    with pytest.raises(ValueError, match="No peptide sequences found"):
+        run_predictor(args)
+
 def test_peptides_file_with_subsequences():
     peptide = "SIINFEKLQY"
     with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
@@ -71,4 +137,3 @@ def test_peptides_file_with_subsequences():
     eq_(binding_predictions[0].peptide, peptide[:9])
     eq_(binding_predictions[1].peptide, peptide[1:10])
     remove(f.name)
-

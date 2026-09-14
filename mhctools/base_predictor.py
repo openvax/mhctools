@@ -478,7 +478,7 @@ class BasePredictor(object):
                         p, len(p), min_length))
             elif check_max_length and len(p) > max_length:
                 raise ValueError(
-                    "Peptide '%s' too long (%d chars), must be at least %d" % (
+                    "Peptide '%s' too long (%d chars), must be at most %d" % (
                         p, len(p), max_length))
 
     def predict_subsequences(

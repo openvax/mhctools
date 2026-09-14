@@ -30,11 +30,13 @@ arg_parser = make_mhc_arg_parser(
 
 def add_input_args(arg_parser):
     input_group = arg_parser.add_argument_group("Inputs")
-    input_group.add_argument(
+    input_source = input_group.add_mutually_exclusive_group()
+    input_source.add_argument(
         "--sequence",
-        nargs="*",
+        action="extend",
+        nargs="+",
         help=(
-            "Peptide sequences"))
+            "Peptide sequences; may be repeated"))
     input_group.add_argument(
         "--extract-subsequences",
         default=False,
@@ -43,10 +45,10 @@ def add_input_args(arg_parser):
             "Extract subsequences from peptides supplied by --sequence or "
             "--input-peptides-file, lengths specified by "
             "--mhc-peptide-lengths argument."))
-    input_group.add_argument(
+    input_source.add_argument(
         "--input-peptides-file",
-        help="Path to file with one peptide per line")
-    input_group.add_argument(
+        help="Path to file with one peptide per line; blank lines are ignored")
+    input_source.add_argument(
         "--input-fasta-file",
         help="Path to FASTA file which contains protein sequences")
     return input_group
@@ -77,7 +79,7 @@ def add_filter_args(parser):
     return filter_group
 
 def add_output_args(parser):
-    output_group = arg_parser.add_argument_group("Outputs")
+    output_group = parser.add_argument_group("Outputs")
     output_group.add_argument("--output-csv", default=None)
     return output_group
 
@@ -118,7 +120,11 @@ def _run_single_predictor(predictor, args):
             return predictor.predict_peptides(args.sequence)
     elif args.input_peptides_file:
         with open(args.input_peptides_file) as f:
-            peptides = [line.strip() for line in f if line]
+            peptides = [line.strip() for line in f if line.strip()]
+        if not peptides:
+            raise ValueError(
+                "No peptide sequences found in file: %s" % (
+                    args.input_peptides_file,))
         if args.extract_subsequences:
             return predictor.predict_subsequences(peptides)
         else:

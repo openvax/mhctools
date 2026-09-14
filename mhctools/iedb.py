@@ -83,7 +83,7 @@ def _parse_iedb_response(response):
     """
     if len(response) == 0:
         raise ValueError("Empty response from IEDB!")
-    df = pd.read_csv(io.BytesIO(response), delim_whitespace=True, header=0)
+    df = pd.read_csv(io.BytesIO(response), sep=r"\s+", header=0)
 
     # pylint doesn't realize that df is a DataFrame, so tell is
     assert isinstance(df, pd.DataFrame)
