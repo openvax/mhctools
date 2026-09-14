@@ -153,7 +153,7 @@ r.stability                    # None (predictor doesn't produce it)
 if r.affinity:
     r.affinity.value            # IC50 in nM
     r.affinity.percentile_rank  # 0-100, lower = better
-    r.affinity.score            # ~0-1, higher = better
+    r.affinity.score            # predictor-specific scale, higher = better
     r.affinity.allele           # best allele for this kind
 
 # by rank instead of score
@@ -451,7 +451,7 @@ from mhctools import Prediction
 
 pred = Prediction(
     kind="pMHC_affinity",
-    score=0.85,           # ~0-1, higher = better
+    score=0.85,           # predictor-specific scale, higher = better
     peptide="SIINFEKL",
     allele="HLA-A*02:01",
     value=120.5,          # IC50 in nM
@@ -463,8 +463,8 @@ pred = Prediction(
 )
 ```
 
-`score` is always higher-is-better. `value` is in native units (nM for
-affinity, hours for stability). `percentile_rank` is always optional,
+`score` is always higher-is-better. `value` is in canonical physical units
+(nM for affinity, hours for stability). `percentile_rank` is always optional,
 0-100, lower = stronger.
 
 ## Supported predictors

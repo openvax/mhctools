@@ -545,7 +545,7 @@ def _safe_float(fields, index):
 
 
 def _affinity_score(ic50, raw_score):
-    """Compute a higher-is-better score (~0-1) from IC50 or raw log score.
+    """Compute a higher-is-better score from IC50 or raw log score.
 
     If IC50 is valid, compute 1 - log(IC50)/log(50000).
     Otherwise fall back to raw_score (already higher-is-better for NetMHC tools).
