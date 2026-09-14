@@ -5,6 +5,7 @@
 #       http://www.apache.org/licenses/LICENSE-2.0
 
 import json
+from importlib.resources import files
 from pathlib import Path
 import subprocess
 import sys
@@ -16,6 +17,21 @@ from mhctools import artifacts
 from mhctools.artifacts import ArtifactStatus, artifact_status, fetch, list_artifacts
 from mhctools.cli import artifacts as artifact_cli
 from mhctools.cli.script import main
+
+
+def test_curated_json_files_are_explicit_package_resources():
+    resources = files("mhctools.data")
+    assert {
+        resource.name for resource in resources.iterdir()
+        if resource.name.endswith(".json")
+    } == {
+        "cleavage_reference.json",
+        "dpp4_qpisa.json",
+        "intracellular_cleavage_reference.json",
+        "intracellular_substrate_evidence.json",
+        "model_lineage.json",
+        "serum_cleavage_reference.json",
+    }
 
 
 def test_list_includes_native_and_packaged_artifacts():
