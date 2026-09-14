@@ -194,9 +194,10 @@ df = predictor.predict_dataframe(["SIINFEKL"], sample_name="pat001")
 df = predictor.predict_proteins_dataframe({"TP53": "MEEPQ..."}, sample_name="pat001")
 ```
 
-Columns: `sample_name`, `peptide`, `n_flank`, `c_flank`,
-`source_sequence_name`, `offset`, `predictor_name`, `predictor_version`,
-`allele`, `kind`, `score`, `value`, `percentile_rank`.
+Columns (`mhctools.pred.COLUMNS`): `sample_name`, `peptide`, `n_flank`,
+`c_flank`, `source_sequence_name`, `offset`, `predictor_name`,
+`predictor_version`, `allele`, `tcr`, `kind`, `score`, `value`,
+`percentile_rank`.
 
 ### Multi-sample predictions
 
@@ -480,8 +481,8 @@ affinity, hours for stability). `percentile_rank` is always optional,
 | `NetMHCIIpan` / `NetMHCIIpan43` | affinity or presentation | [NetMHCIIpan](https://services.healthtech.dtu.dk/services/NetMHCIIpan-4.3/) |
 | `NetMHCcons` | affinity | [NetMHCcons](https://services.healthtech.dtu.dk/services/NetMHCcons-1.1/) |
 | `NetMHCstabpan` | stability | [NetMHCstabpan](https://services.healthtech.dtu.dk/services/NetMHCstabpan-1.0/) |
-| `MHCflurry` | affinity + presentation + processing | `pip install mhcflurry` + `mhctools fetch mhcflurry` |
-| `MHCflurry_Affinity` | affinity | `pip install mhcflurry` + `mhctools fetch mhcflurry-affinity` |
+| `MHCflurry` | affinity + presentation + processing | `mhctools fetch mhcflurry` |
+| `MHCflurry_Affinity` | affinity | `mhctools fetch mhcflurry-affinity` |
 | `BigMHC` | presentation or immunogenicity | `mhctools fetch bigmhc --accept-license` + PyTorch, or set `BIGMHC_DIR` |
 | `CapHLA` / `CapHLA_EL` / `CapHLA_BA` | presentation + affinity (class I and II) | `pip install "mhctools[caphla]"` + `mhctools fetch caphla` |
 | `MixMHCpred` | presentation (class I) | [MixMHCpred](https://github.com/GfellerLab/MixMHCpred) |
@@ -1030,32 +1031,7 @@ annotated = annotate_table(
     allele_column="hla")
 ```
 
-## Legacy API
-
-The old `predict_peptides()` and `predict_subsequences()` methods still work
-and return `BindingPredictionCollection` objects:
-
-```python
-predictor = NetMHCpan(alleles=["A*02:01"])
-collection = predictor.predict_subsequences(
-    {"1L2Y": "NLYIQWLKDGGPSSGRPPPS"},
-    peptide_lengths=[9],
-)
-df = collection.to_dataframe()
-
-for bp in collection:
-    if bp.affinity < 100:
-        print("Strong binder: %s" % bp)
-```
-
-To convert legacy results to the new types:
-
-```python
-preds = collection.to_preds()           # list of Prediction
-pp_list = collection.to_peptide_preds() # list of PeptideResult
-```
-
-### Per-bond peptidase evidence
+## Per-bond peptidase evidence
 
 `DPP4qPISA` evaluates the published human DPP4 N-terminal triplet model locally.
 `CleavageInput` and `CleavageResult` preserve terminal chemistry, native scores,
@@ -1082,3 +1058,28 @@ prioritized follow-up issues.
 endpoint and native-unit strata. It reports training overlap, repeated
 measurements, unsupported inputs and missing target-domain evidence. See the
 [benchmark guide](docs/benchmarks.md) and `mhctools benchmark --lineage-inventory`.
+
+## Legacy API
+
+The old `predict_peptides()` and `predict_subsequences()` methods still work
+and return `BindingPredictionCollection` objects:
+
+```python
+predictor = NetMHCpan(alleles=["A*02:01"])
+collection = predictor.predict_subsequences(
+    {"1L2Y": "NLYIQWLKDGGPSSGRPPPS"},
+    peptide_lengths=[9],
+)
+df = collection.to_dataframe()
+
+for bp in collection:
+    if bp.affinity < 100:
+        print("Strong binder: %s" % bp)
+```
+
+To convert legacy results to the new types:
+
+```python
+preds = collection.to_preds()           # list of Prediction
+pp_list = collection.to_peptide_preds() # list of PeptideResult
+```
