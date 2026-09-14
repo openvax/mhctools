@@ -253,9 +253,13 @@ prediction measures *something*; only some kinds have a unit. A model that emits
 a bare 0–1 confidence is still a prediction of a kind — it just fills `score` and
 leaves `value` empty. Fill in both wherever the predictor supports it.
 
-- **`score`** — always present, always higher-is-better, unitless. Often a 0–1
-  confidence; for kinds with no meaningful normalization it repeats the `value`
-  so that ranking works without knowing the unit.
+- **`score`** — always present and uses higher-is-better ordering, but its scale
+  and units are predictor-specific. It may be a probability, an uncalibrated
+  model output, a transformed estimate, or a copy of `value`; consult the
+  predictor's documentation before comparing or thresholding it. For example,
+  PeptiVerse repeats its predicted hours in both `score` and `value`, while
+  PlifePred2 keeps its unresolved native output in `score` and leaves `value`
+  empty unless its inferred conversion is explicitly enabled.
 - **`value`** — present only for the kinds marked above, carrying a physical
   quantity on a **linear** scale in that unit: never a log, never a rescaling,
   never whatever the upstream tool happened to print. A kind having a unit does
@@ -264,9 +268,10 @@ leaves `value` empty. Fill in both wherever the predictor supports it.
 - **`percentile_rank`** — present when the predictor scores against a background
   distribution. Always lower-is-better.
 
-Affinity is the model to copy: `score` is the 0–1 `1-log50k` confidence and
-`value` is the IC50 in nM, so both are filled and each answers a different
-question.
+For affinity predictions, `score` is commonly the monotone `1-log50k`
+rescaling and `value` is the estimated IC50 in nM. The rescaling is useful for
+ordering predictions; it is not a calibrated probability or confidence, and
+it is not inherently bounded to 0–1.
 
 ```python
 from mhctools import Kind
@@ -280,9 +285,11 @@ value_unit(Kind.immunogenicity)    # None
 Converting is the wrapper's job, and it long predates the registry: affinity
 predictors commonly work in `1-log50k` space internally and every affinity
 wrapper here inverts it to nM, so a NetMHCpan IC50 and an MHCflurry IC50 are
-directly comparable. Half-life kinds work the same way — PlifePred2 is trained
-on `log10(seconds)` and PeptiVerse on `log1p(hours)`, and both wrappers invert
-exactly once and report hours.
+directly comparable. PeptiVerse's upstream sequence model applies its
+`log1p(hours)` inverse and the wrapper reports hours. PlifePred2's target
+transform and assay provenance remain unresolved, so the wrapper reports only
+the native score by default; `assume_log10_seconds=True` opts into the inferred
+conversion to hours.
 
 A predictor's native output isn't lost, it just doesn't belong in a
 units-bearing field. Wrappers keep it on their `last_qc` frame:
@@ -296,6 +303,11 @@ Note that sharing a unit is not sharing a measurement: `pMHC_stability`,
 `serum_half_life` and `blood_half_life` are all half-lives in hours and all
 three are different quantities — complex dissociation, free-peptide degradation
 in serum, and free-peptide degradation in whole blood.
+
+Higher-is-better is only a numerical selection convention within a documented
+endpoint. It does not mean that a larger score is universally better for a
+vaccine, and it does not make scores from different predictors or endpoints
+interchangeable.
 
 Predictors also expose `kind_support()` so downstream code can tell what MHC
 context is meaningful for each emitted kind:
@@ -963,6 +975,11 @@ results = predictor.predict(["LLWNGPMAV", "GILGFVFTL"], [tcr])
 mhctools --sequence SIINFEKL SIINFEKLQ --mhc-predictor netmhc --mhc-alleles A0201
 ```
 
+`--sequence` may be repeated; all occurrences accumulate. Alternatively, use
+`--input-peptides-file` for one peptide per line (blank lines are ignored), or
+`--input-fasta-file` for protein sequences. Select exactly one of these three
+input sources.
+
 ### Automatically extract peptides as subsequences of specified length
 
 ```sh
@@ -993,6 +1010,8 @@ Each `--predictor` spec is `NAME[:OUTPUT_COLUMN[:FIELD]]`, where `FIELD` is
 `percentile_rank`; higher for `score`). Rows may hold several alleles per cell
 (whitespace-, comma-, or semicolon-separated); the best one per peptide is
 chosen and recorded in a `<OUTPUT_COLUMN>_best_allele` provenance column.
+Missing or blank peptide/allele cells remain unscored; they are never converted
+to literal sequence or allele strings and sent to a predictor.
 Pass `--predictor-info info.csv` to also write a sidecar describing each
 column's `score_field` and `higher_is_better`.
 

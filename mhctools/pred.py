@@ -74,8 +74,9 @@ class Kind:
 # downstream aggregators (e.g. "best across alleles" or "best across
 # methods") and by the :class:`PeptideResult` ``.best_*`` accessors.
 #
-# - ``score``: every kind that uses score normalizes higher = better
-#   (binding strength, presentation likelihood, immunogenicity, ...).
+# - ``score``: every kind uses higher = better as its numerical ordering
+#   convention (binding strength, presentation likelihood, immunogenicity,
+#   ...). Its scale and units remain predictor-specific.
 # - ``percentile_rank``: 0 means best, smaller is better, every kind.
 # - ``value``: kind-dependent — see :data:`VALUE_BEST_DIRECTIONS`.
 FIELD_BEST_DIRECTIONS = {
@@ -92,18 +93,20 @@ FIELD_BEST_DIRECTIONS = {
 # inverts it to nM before filling ``value`` (see ``parse_stdout``'s
 # ``50000 ** (1 - score)`` salvage and ``caphla._affinity_nm``), so a consumer
 # can compare a NetMHCpan IC50 with an MHCflurry one without asking which
-# transform each applied. Half-life kinds work the same way: PlifePred2 is
-# trained on log10-seconds and PeptiVerse on log1p-hours, and both wrappers
-# invert exactly once and report hours.
+# transform each applied. PeptiVerse reports the hours produced by its
+# upstream sequence model. PlifePred2's target transform and units are not
+# established, so its wrapper leaves ``value`` empty unless a caller opts in
+# to the inferred log10-seconds conversion.
 #
 # A predictor's native output is not lost, it just does not belong in a
 # units-bearing field: wrappers keep it in their ``last_qc`` frame
 # (``PlifePred2.last_qc["log10_seconds"]``, for instance).
 #
 # Kind and unit are independent: every prediction has a kind because every
-# prediction measures something, but only some kinds have a unit. A model that
-# emits a bare 0-1 confidence still has a kind -- it fills ``score`` and leaves
-# ``value`` empty. Kinds absent from this mapping are exactly those.
+# prediction measures something, but only some kinds have a canonical unit for
+# ``value``. ``score`` has predictor-specific semantics and may itself carry
+# units. Kinds absent from this mapping are exactly those without a canonical
+# ``value`` unit.
 VALUE_UNITS = {
     Kind.pMHC_affinity: "nM",
     Kind.pMHC_stability: "hours",

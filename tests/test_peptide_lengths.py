@@ -17,7 +17,10 @@ NetMHCIIpan allows 9mer or longer. So far only MHCflurry has a max
 length (of 15mer).
 """
 
-from mhctools import NetMHCIIpan, NetMHC
+import pytest
+
+from mhctools import NetMHC, NetMHCIIpan
+from mhctools.base_predictor import BasePredictor
 from .common import eq_, assert_raises
 
 
@@ -40,3 +43,12 @@ def test_class1_7mer_failure():
     netmhc = NetMHC(alleles=["HLA-A0201"])
     with assert_raises(ValueError):
         netmhc.predict_peptides(["A" * 7])
+
+
+def test_overlong_peptide_error_reports_maximum_bound():
+    predictor = BasePredictor(
+        alleles=["HLA-A*02:01"],
+        default_peptide_lengths=[9],
+        max_peptide_length=10)
+    with pytest.raises(ValueError, match="must be at most 10"):
+        predictor._check_peptide_inputs(["A" * 11])

@@ -189,21 +189,26 @@ def parse_annotation_spec(token):
 
 
 def _normalize_peptide(peptide):
-    """Canonicalize a peptide for matching: strip whitespace, uppercase.
+    """Canonicalize a peptide for matching; preserve missing cells as missing.
 
     Predictions are joined back to rows by exact peptide string, and some
     predictors uppercase/strip the peptides they echo. Normalizing both the
     values sent to the predictor and the per-row lookup key the same way keeps
     a table written ``siinfekl`` (or with stray whitespace) from silently
     missing every prediction. Amino-acid sequences are canonically uppercase,
-    so this never loses information.
+    so this never loses information. Missing and blank cells return ``None``
+    and are not sent to a predictor; in particular, a CSV ``NaN`` must never
+    become the apparently valid amino-acid sequence ``"NAN"``.
     """
-    return str(peptide).strip().upper()
+    if peptide is None or pd.isna(peptide):
+        return None
+    normalized = str(peptide).strip().upper()
+    return normalized or None
 
 
 def _split_alleles(cell, allele_sep):
     """Split one table cell into a list of normalized allele names."""
-    if cell is None or (isinstance(cell, float) and pd.isna(cell)):
+    if cell is None or pd.isna(cell):
         return []
     tokens = [t for t in allele_sep.split(str(cell).strip()) if t]
     # Normalize + de-dup while preserving order.
@@ -334,7 +339,8 @@ def annotate_table(
     else:
         row_alleles = [[] for _ in peptides]
 
-    union_peptides = list(dict.fromkeys(peptides))
+    union_peptides = list(dict.fromkeys(
+        peptide for peptide in peptides if peptide is not None))
     union_alleles = sorted({a for alleles in row_alleles for a in alleles})
 
     for spec in specs:

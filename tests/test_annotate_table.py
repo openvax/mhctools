@@ -120,6 +120,26 @@ def _table():
     })
 
 
+class _EchoPredictor:
+    """Record inputs and score every peptide/allele pair it receives."""
+
+    def __init__(self, alleles):
+        self.alleles = list(alleles or [])
+        self.calls = []
+
+    def predict(self, peptides):
+        self.calls.append(list(peptides))
+        return [PeptideResult(preds=tuple(
+            Prediction(
+                kind=Kind.pMHC_affinity,
+                peptide=peptide,
+                allele=allele,
+                score=0.5,
+                value=100.0,
+                predictor_name="echo")
+            for allele in self.alleles)) for peptide in peptides]
+
+
 def test_affinity_picks_lowest_ic50():
     out = annotate_table(
         _table(),
@@ -219,6 +239,42 @@ def test_empty_allele_cell_yields_nan():
     assert out.iloc[0]["aff"] == 100.0
     assert math.isnan(out.iloc[1]["aff"])
     assert out.iloc[1]["aff_best_allele"] is None
+
+
+@pytest.mark.parametrize("missing", [float("nan"), pd.NA, None, "   "])
+def test_missing_peptide_cell_is_not_sent_to_predictor(missing):
+    predictor = _EchoPredictor(["HLA-A*02:01"])
+    df = pd.DataFrame({
+        "peptide": [missing, "SIINFEKL"],
+        "hla": ["HLA-A*02:01", "HLA-A*02:01"],
+    })
+    out = annotate_table(
+        df, [AnnotationSpec(predictor, "aff", field="affinity")],
+        allele_column="hla")
+    assert predictor.calls == [["SIINFEKL"]]
+    assert math.isnan(out.iloc[0]["aff"])
+    assert out.iloc[0]["aff_best_allele"] is None
+    assert out.iloc[1]["aff"] == 100.0
+
+
+def test_pandas_missing_allele_is_not_passed_to_factory():
+    built_with = []
+
+    def factory(alleles):
+        built_with.append(alleles)
+        return _EchoPredictor(alleles)
+
+    df = pd.DataFrame({
+        "peptide": ["SIINFEKL", "GILGFVFTL"],
+        "hla": pd.Series([pd.NA, "HLA-A*02:01"], dtype="string"),
+    })
+    out = annotate_table(
+        df, [AnnotationSpec(factory, "aff", field="affinity")],
+        allele_column="hla")
+    assert built_with == [["HLA-A*02:01"]]
+    assert math.isnan(out.iloc[0]["aff"])
+    assert out.iloc[0]["aff_best_allele"] is None
+    assert out.iloc[1]["aff"] == 100.0
 
 
 def test_column_collision_raises():
