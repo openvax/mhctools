@@ -331,7 +331,12 @@ def predict_cleavage_measurements(measurements, models):
     for name in models:
         try:
             predictor = get_cleavage_model(name)
-        except (ValueError, OSError, ImportError) as error:
+        except Exception as error:
+            # Deliberately broad: resolving one named model can load an
+            # external asset (e.g. eramer-step's PWM workbook), and one bad
+            # model must never abort predictions for every other model in
+            # the batch, regardless of what exception type that asset's own
+            # loader raises.
             predictor = None
             failure = str(error)
         is_reference = predictor is not None and predictor.model.evidence == "substrate_reference"
@@ -387,6 +392,9 @@ def predict_cleavage_measurements(measurements, models):
                 else:
                     predictions.append(BenchmarkPrediction(**kwargs, value=int(site.status in ("matched", "reported")), scale="decision",
                         reason="Source observation lookup for reproduction" if is_reference else None))
-            except (ValueError, TypeError, RuntimeError, OSError, ImportError) as error:
+            except Exception as error:
+                # Same reasoning as above: a per-bond predict() call can also
+                # touch an external asset, and one bad measurement/model
+                # pairing must not abort the batch.
                 predictions.append(BenchmarkPrediction(**kwargs, status="failed", reason=str(error)))
     return tuple(predictions)

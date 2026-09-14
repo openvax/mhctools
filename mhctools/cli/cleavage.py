@@ -44,7 +44,13 @@ def main(argv=None):
                 for prediction in predict_cleavage(CleavageInput(
                     seq, args.n_term, args.c_term, args.source_id, args.source_start),
                     models=args.model, compartment=args.compartment, enzyme_states=states)]}
-        except (ValueError, TypeError, OSError, ImportError) as error:
+        except Exception as error:
+            # Deliberately broad: this is the CLI's user-facing error
+            # boundary. Resolving or running a named model can load an
+            # external asset (e.g. eramer-step's PWM workbook), and any
+            # failure there should exit cleanly with parser.error() rather
+            # than a raw traceback, regardless of the exception type raised
+            # by that asset's own loader.
             parser.error(str(error))
     result["schema_version"] = 1
     output = json.dumps(result, indent=2, allow_nan=False) + "\n"

@@ -138,3 +138,12 @@ def test_substrate_observation_invariants_are_enforced():
     with pytest.raises(ValueError, match="Unsupported inputs cannot carry substrate observations"):
         CleavageResult(peptide, reference_model, unsupported_reason="no match",
                        substrate_observation="cleavage_reported")
+
+
+def test_references_must_be_source_urls():
+    with pytest.raises(ValueError, match="must be a source URL"):
+        replace(DPP4qPISA.model, references=("not-a-url",))
+    with pytest.raises(ValueError, match="must be a source URL"):
+        replace(DPP4qPISA.model, references=("",))
+    # Both schemes are accepted, matching AssayMeasurement.source's own check.
+    assert replace(DPP4qPISA.model, references=("http://example.org",)).references == ("http://example.org",)

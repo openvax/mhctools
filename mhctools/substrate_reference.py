@@ -1,6 +1,6 @@
 """Exact human substrate observations, explicitly separate from predictions."""
 
-from dataclasses import replace
+from dataclasses import fields as dataclass_fields, MISSING, replace
 from functools import lru_cache
 
 from ._resources import load_json_resource
@@ -12,6 +12,13 @@ from .cleavage import (
 _REQUIRED_CASE_FIELDS = ("sequence", "n_term", "c_term", "conditions", "source",
                          "source_measurement_id", "bonds", "interpretation",
                          "substrate_observation")
+
+#: Fields a catalog entry's "model" object must carry, derived directly from
+#: CleavageModel's own required (no-default) fields so this can never drift
+#: out of step with the model schema it validates against.
+_REQUIRED_MODEL_FIELDS = tuple(
+    f.name for f in dataclass_fields(CleavageModel)
+    if f.default is MISSING and f.default_factory is MISSING)
 
 
 def _require_fields(mapping, required, description):
@@ -30,6 +37,8 @@ class PeptidaseSubstrateReference:
     """
 
     def __init__(self, metadata, cases):
+        _require_fields(metadata, _REQUIRED_MODEL_FIELDS,
+                        "Reference catalog model %r" % metadata.get("name", "<unnamed>"))
         self.model = CleavageModel(**metadata)
         if self.model.evidence != "substrate_reference":
             raise ValueError("Reference catalog requires substrate_reference evidence")
