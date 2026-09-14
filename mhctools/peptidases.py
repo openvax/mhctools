@@ -252,43 +252,55 @@ def cleavage_models(include_optional=False):
     """List built-in model metadata without loading optional runtimes."""
     models = (DPP4qPISA.model,) + tuple(rule.model for rule in _RULES) + tuple(
         reference.model for reference in substrate_references())
+    if include_optional:
+        # Reading ERAMERCleavage.model (a class attribute) does not load the
+        # external PWM asset; only constructing ERAMERCleavage() does that.
+        from .eramer_cleavage import ERAMERCleavage
+        models += (ERAMERCleavage.model,)
     names = [m.name for m in models]
     if len(set(names)) != len(names):
         raise ValueError("Duplicate cleavage model name in the built-in panel: %r" % (
             sorted({n for n in names if names.count(n) > 1}),))
-    if include_optional:
-        from .eramer_cleavage import ERAMERCleavage
-        models += (ERAMERCleavage.model,)
     return models
 
 
 def get_cleavage_model(name, *, enzyme_state=None):
     """Select an exact model name; never silently substitute another enzyme.
 
+    Every source of models (the two scored singletons, the motif rules, and
+    the reference catalog) is checked for ``name`` before any is returned, so
+    a collision raises here too, not only when a caller happens to also call
+    ``cleavage_models()``.
+
     ``enzyme_state`` is accepted only for a rule that declares
     ``requires_activation``; which rule that is can change as new activation-
     gated enzymes are curated, so this is checked per rule, not by name.
     """
-    if name == "dpp4-qpisa":
+    matches = [rule for rule in _RULES if rule.model.name == name]
+    matches += [reference for reference in substrate_references() if reference.model.name == name]
+    is_dpp4 = name == "dpp4-qpisa"
+    is_eramer = name == "eramer-step"
+    if len(matches) + is_dpp4 + is_eramer > 1:
+        raise ValueError("Duplicate cleavage model name %r in the built-in panel" % name)
+    if is_dpp4 or is_eramer:
         if enzyme_state is not None:
-            raise ValueError("Explicit enzyme state is not supported for dpp4-qpisa")
-        return DPP4qPISA()
-    if name == "eramer-step":
-        if enzyme_state is not None:
-            raise ValueError("Explicit enzyme state is not supported for eramer-step")
+            raise ValueError("Explicit enzyme state is not supported for %s" % name)
+        if is_dpp4:
+            return DPP4qPISA()
         from .eramer_cleavage import ERAMERCleavage
         return ERAMERCleavage()
-    for rule in _RULES:
-        if rule.model.name == name:
-            if enzyme_state is not None and not rule.requires_activation:
+    if matches:
+        [candidate] = matches
+        if isinstance(candidate, PeptidaseMotif):
+            if enzyme_state is not None and not candidate.requires_activation:
                 raise ValueError(
                     "Explicit enzyme state is only supported for models that require activation")
-            return replace(rule, enzyme_state=enzyme_state) if enzyme_state is not None else rule
-    for reference in substrate_references():
-        if reference.model.name == name:
-            if enzyme_state is not None:
-                raise ValueError("Explicit enzyme state is not supported for source-reference models")
-            return reference
+            return replace(candidate, enzyme_state=enzyme_state) if enzyme_state is not None else candidate
+        # Otherwise candidate is a PeptidaseSubstrateReference: an exact
+        # source lookup, with no activation state of its own to select.
+        if enzyme_state is not None:
+            raise ValueError("Explicit enzyme state is not supported for source-reference models")
+        return candidate
     raise ValueError("Unknown cleavage model %r; choices: %s" % (
         name, ", ".join(model.name for model in cleavage_models(include_optional=True))))
 
@@ -309,13 +321,22 @@ def predict_cleavage(peptide, models=None, compartment=None, *, enzyme_states=No
         models = [models]
     models = tuple(dict.fromkeys(models))
     enzyme_states = {} if enzyme_states is None else dict(enzyme_states)
-    if set(enzyme_states) - {"CPB2"}:
-        raise ValueError("Explicit enzyme state is currently supported only for CPB2")
-    if enzyme_states and "cpb2-basic" not in models:
-        raise ValueError("CPB2 state supplied without selecting cpb2-basic")
+    # Which enzyme each activation-gated rule belongs to, driven by each
+    # rule's own requires_activation flag rather than a hardcoded name, so
+    # this generalizes automatically as more such rules are curated.
+    activatable = {rule.model.enzyme: rule.model.name for rule in _RULES if rule.requires_activation}
+    if set(enzyme_states) - set(activatable):
+        raise ValueError(
+            "Explicit enzyme state is only supported for enzymes that require activation: %s" % (
+                ", ".join(sorted(activatable)) or "none"))
+    for enzyme, state_model in activatable.items():
+        if enzyme in enzyme_states and state_model not in models:
+            raise ValueError("%s state supplied without selecting %s" % (enzyme, state_model))
     results = []
     for name in models:
-        predictor = get_cleavage_model(name, enzyme_state=enzyme_states.get("CPB2") if name == "cpb2-basic" else None)
+        rule_enzyme = next((rule.model.enzyme for rule in _RULES if rule.model.name == name), None)
+        state = enzyme_states.get(rule_enzyme) if rule_enzyme in activatable else None
+        predictor = get_cleavage_model(name, enzyme_state=state)
         if compartment is not None and compartment not in predictor.model.compartments:
             raise ValueError("Model %s is not annotated for compartment %s" % (name, compartment))
         results.append(predictor.predict(peptide))

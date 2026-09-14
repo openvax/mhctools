@@ -137,6 +137,8 @@ class CleavageModel:
             raise ValueError("Unknown cleavage evidence type")
         if not self.references:
             raise ValueError("Every model must cite at least one source")
+        if not all(isinstance(r, str) and r.startswith(("https://", "http://")) for r in self.references):
+            raise ValueError("Every reference must be a source URL")
         if self.evidence == "quantitative_model":
             if not self.score_name or not self.score_units:
                 raise ValueError("Quantitative models must name their native score and units")

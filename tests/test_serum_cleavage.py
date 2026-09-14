@@ -1,12 +1,12 @@
 """Source-observation, activation, and chemistry regressions for serum candidates."""
 
 from dataclasses import replace
-from importlib.resources import files
 import json
 
 import pytest
 
 from mhctools import CleavageInput, get_cleavage_model, predict_cleavage
+from mhctools._resources import load_json_resource
 from mhctools.benchmark import AssayMeasurement, evaluate_benchmark, predict_cleavage_measurements
 from mhctools.cli.script import main
 
@@ -59,7 +59,7 @@ def test_cpb2_active_is_separate_from_cpn():
 
 
 def test_serum_reference_observations_and_abstentions():
-    data = json.loads(files("mhctools").joinpath("data/serum_cleavage_reference.json").read_text())
+    data = load_json_resource("serum_cleavage_reference.json")
     measurements = [AssayMeasurement(**m) for m in data["measurements"]]
     predictions = predict_cleavage_measurements(measurements, data["models"])
     report = evaluate_benchmark(measurements, predictions, evaluation="reproduction")

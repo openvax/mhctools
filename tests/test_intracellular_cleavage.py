@@ -324,3 +324,70 @@ def test_substrate_depletion_without_an_enzyme_label_gets_an_accurate_reason():
     wrong_enzyme = replace(no_enzyme, measurement_id="m2", enzyme="NLN")
     mismatch = predict_cleavage_measurements([wrong_enzyme], ["thop1-observed"])[0]
     assert mismatch.reason == "Different endpoint or enzyme"
+
+
+def test_get_cleavage_model_detects_collisions_independently_of_cleavage_models():
+    # get_cleavage_model() must never silently first-match a colliding name;
+    # it used to only be caught if a caller happened to also call
+    # cleavage_models(), which get_cleavage_model() itself never did.
+    import mhctools.peptidases as peptidases_module
+    from dataclasses import replace as dc_replace
+    original = peptidases_module._RULES
+    try:
+        collider = dc_replace(original[0])
+        collider = dc_replace(collider, model=dc_replace(collider.model, name="thop1-observed"))
+        peptidases_module._RULES = original + (collider,)
+        with pytest.raises(ValueError, match="Duplicate cleavage model name"):
+            peptidases_module.get_cleavage_model("thop1-observed")
+    finally:
+        peptidases_module._RULES = original
+
+
+def test_eramer_step_collisions_are_caught_too():
+    # eramer-step is appended after cleavage_models()'s original dedup check
+    # and resolved via its own hardcoded branch in get_cleavage_model(),
+    # so a collision with that specific name needed its own coverage.
+    import mhctools.peptidases as peptidases_module
+    from dataclasses import replace as dc_replace
+    original = peptidases_module._RULES
+    try:
+        collider = dc_replace(original[0])
+        collider = dc_replace(collider, model=dc_replace(collider.model, name="eramer-step"))
+        peptidases_module._RULES = original + (collider,)
+        with pytest.raises(ValueError, match="Duplicate cleavage model name"):
+            peptidases_module.get_cleavage_model("eramer-step")
+        with pytest.raises(ValueError, match="Duplicate cleavage model name"):
+            peptidases_module.cleavage_models(include_optional=True)
+    finally:
+        peptidases_module._RULES = original
+
+
+def test_nested_model_metadata_gets_a_clear_error_not_a_raw_typeerror():
+    from mhctools.substrate_reference import PeptidaseSubstrateReference
+    incomplete = dict(name="x", version="1", enzyme="X", uniprot="P00000",
+                      species="Homo sapiens", compartments=("cytosol",),
+                      evidence="substrate_reference")  # missing references/assay/limitations
+    with pytest.raises(ValueError, match="missing required fields") as excinfo:
+        PeptidaseSubstrateReference(incomplete, [])
+    for field in ("references", "assay", "limitations"):
+        assert field in str(excinfo.value)
+
+
+def test_predict_cleavage_enzyme_states_is_driven_by_requires_activation():
+    # A hypothetical second activation-gated enzyme must be accepted by name
+    # without editing predict_cleavage() itself.
+    import mhctools.peptidases as peptidases_module
+    from dataclasses import replace as dc_replace
+    original = peptidases_module._RULES
+    npepps = next(r for r in original if r.model.name == "npepps-n-terminal")
+    try:
+        activated = dc_replace(npepps, requires_activation=True)
+        peptidases_module._RULES = tuple(
+            activated if r.model.name == "npepps-n-terminal" else r for r in original)
+        results = predict_cleavage("MKTAYIAKQ", models="npepps-n-terminal",
+                                   enzyme_states={"NPEPPS": "active"})
+        assert dict(results[0].conditions) == {"enzyme_state": "active"}
+        with pytest.raises(ValueError, match="only supported for enzymes that require activation"):
+            predict_cleavage("MKTAYIAKQ", enzyme_states={"BOGUS": "active"})
+    finally:
+        peptidases_module._RULES = original
