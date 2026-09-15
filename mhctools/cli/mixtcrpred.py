@@ -18,7 +18,10 @@ def main(args_list=None):
             "Score a paired-alpha/beta TCR table with one pMHC-specific "
             "MixTCRpred model."),
     )
-    parser.add_argument("--model", required=True)
+    parser.add_argument(
+        "--model", required=True,
+        help="pMHC model name, e.g. 'A0201_GILGFVFTL' "
+             "(see `mhctools ls mixtcrpred --models`)")
     parser.add_argument("--input", required=True, help="Input TCR CSV")
     parser.add_argument("--out", required=True, help="Output annotated CSV")
     parser.add_argument(
@@ -27,7 +30,9 @@ def main(args_list=None):
     parser.add_argument(
         "--mixtcrpred-python",
         help="Python with the MixTCRpred optional dependencies")
-    parser.add_argument("--batch-size", type=int, default=256)
+    parser.add_argument(
+        "--batch-size", type=int, default=256,
+        help="TCRs scored per upstream invocation (default: %(default)s)")
     args = parser.parse_args(args_list)
 
     # Keep heavyweight/optional predictor imports out of ordinary CLI startup.
