@@ -33,7 +33,9 @@ from .optional_backend import (
     BackendSpec,
     backend_inventory,
     inspect_artifact,
+    prediction_cache_key,
 )
+from .peptide_input import PeptideContext, PeptideInput
 from .iedb import (
     IedbNetMHCcons,
     IedbNetMHCpan,
@@ -126,6 +128,8 @@ __version__ = "3.44.8"
 __all__ = [
     "Prediction",
     "MeasurementContext",
+    "PeptideContext",
+    "PeptideInput",
     "Pred",  # backward compat alias
     "PeptideResult",
     "PeptidePreds",  # backward compat alias
@@ -153,6 +157,7 @@ __all__ = [
     "BackendSpec",
     "backend_inventory",
     "inspect_artifact",
+    "prediction_cache_key",
     "BindingPrediction",
     "BindingPredictionCollection",
     "set_log_level",

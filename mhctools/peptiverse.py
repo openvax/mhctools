@@ -32,10 +32,9 @@ embeddings), and this wrapper does not use them, for two reasons. First,
 ``inference.py`` applies the ``expm1`` inverse transform only when
 ``col == "wt"`` and the model name contains ``log``, so the SMILES models return
 an untransformed number that is *not* on the hours scale the sequence model
-reports — pooling them into one field would mix units. Second, mhctools
-identifies a peptide by its residue sequence and has nowhere to record a
-chemical form, so a modified construct would silently be reported under its
-unmodified sequence. Modified peptides are rejected rather than misattributed.
+reports — pooling them into one field would mix units. Second, this adapter
+does not consume the exact chemical form now carried by ``PeptideInput``.
+Modified inputs are therefore rejected rather than reduced to sequence.
 
 Installation
 ------------
@@ -79,13 +78,15 @@ import tempfile
 
 import pandas as pd
 
-from .pred import Kind, PeptideResult, Prediction
 from .optional_backend import (
     BackendSpec,
     backend_inventory,
     inspect_artifact,
+    prediction_cache_key,
     run_python_sidecar,
 )
+from .peptide_input import coerce_peptide_inputs, sequence_only_chemistry_error
+from .pred import Kind, MeasurementContext, PeptideResult, Prediction
 from .wrapper_base import AlleleFreePredictor
 
 #: Upstream revision this wrapper was written and verified against.
@@ -225,7 +226,8 @@ def _find_esm_home(peptiverse_home, peptiverse_esm_home=None):
     return str(Path(candidate).expanduser().resolve())
 
 
-def _artifact_inventory(peptiverse_home, esm_home, max_peptide_length):
+def _artifact_inventory(
+        peptiverse_home, esm_home, max_peptide_length, device=None):
     artifacts = []
     root = Path(peptiverse_home)
     for relative, (role, expected_sha256, serialization) in (
@@ -267,6 +269,7 @@ def _artifact_inventory(peptiverse_home, esm_home, max_peptide_length):
         artifacts=artifacts,
         settings={
             "embedding_model": "facebook/esm2_t33_650M_UR50D",
+            "device": device or "auto",
             "max_peptide_length": max_peptide_length,
             "model_variant": "transformer_wt_log",
             "output_units": "hours",
@@ -363,7 +366,8 @@ class PeptiVerse(AlleleFreePredictor):
         self.artifact_inventory = _artifact_inventory(
             self.peptiverse_home,
             self.peptiverse_esm_home,
-            self.max_peptide_length)
+            self.max_peptide_length,
+            self.device)
         self.artifact_inventory.require_usable(
             allow_unverified=allow_unverified_assets)
         self.last_qc = pd.DataFrame()
@@ -400,8 +404,39 @@ class PeptiVerse(AlleleFreePredictor):
                     "scored as their unmodified sequence."
                     % (peptide, "".join(sorted(invalid))))
 
-    def predict(self, peptides):
+    def _input_error(self, peptide_input):
+        error = sequence_only_chemistry_error(peptide_input)
+        if error:
+            return error
+        try:
+            self._check_peptides([peptide_input.sequence])
+        except ValueError as error:
+            return str(error)
+        return None
+
+    def _measurement_context(self, status="available", detail=None):
+        return MeasurementContext(
+            estimate_type="ml_predicted",
+            status=status,
+            analyte="free parent peptide",
+            matrix="human serum",
+            unit="hours" if status == "available" else None,
+            transform="linear" if status == "available" else None,
+            score_semantics=(
+                "same linear half-life in hours as value"
+                if status == "available" else None),
+            detail=detail,
+        )
+
+    def predict(self, peptides, on_unsupported="raise"):
         """Predict serum half-life for a list of peptides.
+
+        Inputs may be strings (the backward-compatible shorthand for a
+        canonical unmodified L-peptide with free termini) or exact
+        :class:`~mhctools.peptide_input.PeptideInput` records. Modified forms
+        are never reduced to sequence. By default the first unsupported input
+        raises; ``on_unsupported="record"`` returns an explicit unavailable
+        prediction in that position and scores the supported remainder.
 
         Returns
         -------
@@ -413,23 +448,52 @@ class PeptiVerse(AlleleFreePredictor):
             ``score`` repeats it so that rank-based consumers work without
             knowing the unit.
         """
-        peptide_list = self._normalize_peptides(peptides)
-        self._check_peptides(peptide_list)
-        if not peptide_list:
+        if on_unsupported not in ("raise", "record"):
+            raise ValueError("on_unsupported must be 'raise' or 'record'")
+        peptide_inputs = coerce_peptide_inputs(peptides)
+        errors = [self._input_error(item) for item in peptide_inputs]
+        if on_unsupported == "raise" and any(errors):
+            index = next(i for i, error in enumerate(errors) if error)
+            raise ValueError(f"Input {index} is unsupported: {errors[index]}")
+        supported = [
+            item for item, error in zip(peptide_inputs, errors) if not error]
+        if not peptide_inputs:
             self.last_qc = pd.DataFrame()
             return []
 
-        output = self._run_sidecar(peptide_list)
-        return [
-            PeptideResult(preds=(Prediction(
-                kind=Kind.serum_half_life,
-                score=hours,
-                value=hours,
-                peptide=peptide,
-                predictor_name=self._predictor_name(),
-                predictor_version=self.predictor_version),))
-            for peptide, hours in zip(peptide_list, output["hours"])
-        ]
+        if supported:
+            output = self._run_sidecar(
+                [item.sequence for item in supported])
+        else:
+            self.last_qc = pd.DataFrame()
+            output = pd.DataFrame(columns=["hours"])
+        hours = iter(output["hours"])
+        results = []
+        for peptide_input, error in zip(peptide_inputs, errors):
+            common = {
+                "kind": Kind.serum_half_life,
+                "peptide": peptide_input.sequence,
+                "predictor_name": self._predictor_name(),
+                "predictor_version": self.predictor_version,
+                "peptide_input": peptide_input,
+                "cache_key": prediction_cache_key(
+                    peptide_input, self.artifact_inventory),
+            }
+            if error:
+                prediction = Prediction(
+                    score=None,
+                    measurement_context=self._measurement_context(
+                        status="unsupported", detail=error),
+                    **common)
+            else:
+                value = next(hours)
+                prediction = Prediction(
+                    score=value,
+                    value=value,
+                    measurement_context=self._measurement_context(),
+                    **common)
+            results.append(PeptideResult(preds=(prediction,)))
+        return results
 
     def _run_sidecar(self, peptide_list):
         with tempfile.TemporaryDirectory(prefix="mhctools_peptiverse_") as tmp:

@@ -31,6 +31,40 @@ These labels prevent file discovery from being presented as reproduced
 inference. A dataset, training script, interactive design program, web-only
 service, or checkpoint for another endpoint cannot satisfy this contract.
 
+## Exact input and cache identity
+
+The pre-existing fields were intentionally split across several surfaces:
+
+| Existing surface | Fields retained before this contract | Remaining role |
+|---|---|---|
+| `Prediction` | peptide, flanks, source name/offset, allele/TCR, predictor name/version | output and source-occurrence projection |
+| `CleavageInput` | sequence, terminal chemistry, source name/start | cleavage-specific linear peptide input |
+| `AssayMeasurement` | free-text chemistry, species, matrix, cell type, conditions | benchmark source record, not predictor input |
+| `BackendInventory` | code/model/feature files and output-affecting settings | backend content identity |
+
+`PeptideInput` is the shared, versioned input record for reviewed PK and uptake
+adapters. It keeps the canonical L-peptide sequence, terminal chemistry and
+attachments separate from occurrence/source provenance and from a nested
+`PeptideContext`. The context can describe route, formulation, cargo,
+administered and released material, measured analyte, study, assay species,
+matrix, cell type/subtype, maturation state, readout, timepoint, and additional
+conditions. Missing fields are serialized as `null`; they are not filled with
+physiological defaults or inferred from a patient.
+
+Plain strings remain a backward-compatible shorthand for an unmodified
+canonical L-peptide with free termini. When an exact input names terminal
+modification or an attachment that a sequence-only adapter cannot consume, the
+adapter rejects it instead of stripping the chemistry. With
+`on_unsupported="record"`, reviewed adapters preserve its batch position as an
+explicit unsupported result and score the supported remainder.
+
+`prediction_cache_key()` hashes the input's chemical form and descriptive
+model context together with `BackendInventory.identity_sha256`, which already
+contains exact model/code/feature assets and output-affecting settings. Source
+occurrence IDs, genes, and offsets remain on the returned record but do not
+poison inference reuse: repeated occurrences may share a cache key while still
+appearing once per occurrence in ordered output.
+
 `run_python_sidecar()` supplies the shared runtime boundary. It runs a reviewed,
 noninteractive Python prediction entry point under the selected isolated
 interpreter, disables user-site imports, activates standard offline modes,

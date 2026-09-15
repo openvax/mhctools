@@ -70,9 +70,9 @@ Natural peptides only
 Upstream ships a second model for modified peptides. It is not wrapped. Its
 modification flags (D-amino acid, terminal modifications, cyclization, PTM) are
 applied uniformly to every sequence in one invocation rather than per peptide,
-and mhctools identifies a peptide by its residue sequence with nowhere to record
-a chemical form — so a batch of differently modified constructs would be
-mislabelled. Peptides with non-standard residues are rejected instead.
+and this adapter does not consume the exact per-input chemical form carried by
+``PeptideInput``. Modified inputs and non-standard residues are rejected rather
+than reduced to the natural-peptide sequence model.
 
 Installation
 ------------
@@ -112,13 +112,15 @@ import tempfile
 
 import pandas as pd
 
-from .pred import Kind, PeptideResult, Prediction
 from .optional_backend import (
     BackendSpec,
     backend_inventory,
     inspect_artifact,
+    prediction_cache_key,
     run_python_sidecar,
 )
+from .peptide_input import coerce_peptide_inputs, sequence_only_chemistry_error
+from .pred import Kind, MeasurementContext, PeptideResult, Prediction
 from .wrapper_base import AlleleFreePredictor
 
 #: Upstream package version this wrapper was written and verified against.
@@ -384,8 +386,46 @@ class PlifePred2(AlleleFreePredictor):
                     "are rejected rather than scored as their unmodified "
                     "sequence." % (peptide, "".join(sorted(invalid))))
 
-    def predict(self, peptides):
+    def _input_error(self, peptide_input):
+        error = sequence_only_chemistry_error(peptide_input)
+        if error:
+            return error
+        try:
+            self._check_peptides([peptide_input.sequence])
+        except ValueError as error:
+            return str(error)
+        return None
+
+    def _measurement_context(self, status="available", detail=None):
+        return MeasurementContext(
+            estimate_type="ml_predicted",
+            status=status,
+            analyte="free parent peptide",
+            matrix=None,
+            unit=(
+                "hours"
+                if status == "available" and self.assume_log10_seconds
+                else None),
+            transform=(
+                "linear"
+                if status == "available" and self.assume_log10_seconds
+                else None),
+            score_semantics=(
+                "native regression output; target transform and assay "
+                "context unresolved"
+                if status == "available" else None),
+            detail=detail,
+        )
+
+    def predict(self, peptides, on_unsupported="raise"):
         """Predict whole-blood half-life for a list of peptides.
+
+        Inputs may be strings (the backward-compatible shorthand for a
+        canonical unmodified L-peptide with free termini) or exact
+        :class:`~mhctools.peptide_input.PeptideInput` records. Modified forms
+        are never reduced to sequence. By default the first unsupported input
+        raises; ``on_unsupported="record"`` returns an explicit unavailable
+        prediction in that position and scores the supported remainder.
 
         Returns
         -------
@@ -400,24 +440,53 @@ class PlifePred2(AlleleFreePredictor):
             ``None``, because the transform from the native output to a
             duration is inferred rather than documented.
         """
-        peptide_list = self._normalize_peptides(peptides)
-        self._check_peptides(peptide_list)
-        if not peptide_list:
+        if on_unsupported not in ("raise", "record"):
+            raise ValueError("on_unsupported must be 'raise' or 'record'")
+        peptide_inputs = coerce_peptide_inputs(peptides)
+        errors = [self._input_error(item) for item in peptide_inputs]
+        if on_unsupported == "raise" and any(errors):
+            index = next(i for i, error in enumerate(errors) if error)
+            raise ValueError(f"Input {index} is unsupported: {errors[index]}")
+        supported = [
+            item for item, error in zip(peptide_inputs, errors) if not error]
+        if not peptide_inputs:
             self.last_qc = pd.DataFrame()
             return []
 
-        output = self._run_sidecar(peptide_list)
-        return [
-            PeptideResult(preds=(Prediction(
-                kind=Kind.blood_half_life,
-                score=native,
-                value=(half_life_hours(native)
-                       if self.assume_log10_seconds else None),
-                peptide=peptide,
-                predictor_name=self._predictor_name(),
-                predictor_version=self.predictor_version),))
-            for peptide, native in zip(peptide_list, output["log10_seconds"])
-        ]
+        if supported:
+            output = self._run_sidecar(
+                [item.sequence for item in supported])
+        else:
+            self.last_qc = pd.DataFrame()
+            output = pd.DataFrame(columns=["log10_seconds"])
+        native_values = iter(output["log10_seconds"])
+        results = []
+        for peptide_input, error in zip(peptide_inputs, errors):
+            common = {
+                "kind": Kind.blood_half_life,
+                "peptide": peptide_input.sequence,
+                "predictor_name": self._predictor_name(),
+                "predictor_version": self.predictor_version,
+                "peptide_input": peptide_input,
+                "cache_key": prediction_cache_key(
+                    peptide_input, self.artifact_inventory),
+            }
+            if error:
+                prediction = Prediction(
+                    score=None,
+                    measurement_context=self._measurement_context(
+                        status="unsupported", detail=error),
+                    **common)
+            else:
+                native = next(native_values)
+                prediction = Prediction(
+                    score=native,
+                    value=(half_life_hours(native)
+                           if self.assume_log10_seconds else None),
+                    measurement_context=self._measurement_context(),
+                    **common)
+            results.append(PeptideResult(preds=(prediction,)))
+        return results
 
     def _run_sidecar(self, peptide_list):
         with tempfile.TemporaryDirectory(prefix="mhctools_plifepred2_") as tmp:

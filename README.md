@@ -750,9 +750,9 @@ its destination, not to how it is presented.
 It is deliberately a separate kind from `pMHC_stability`, which is the
 dissociation half-life of an assembled peptide-MHC complex — a different
 molecule in a different assay — and from the cleavage kinds, which are
-site-resolved and intracellular. Nothing in a `Prediction` records the assay
-matrix, so the kind string carries it: a predictor trained on whole blood,
-plasma or in-vivo PK is not this kind.
+site-resolved and intracellular. The kind string carries endpoint identity;
+`MeasurementContext` separately preserves explicit matrix and analyte metadata.
+A predictor trained on whole blood, plasma or in-vivo PK is not this kind.
 
 `PeptiVerse` wraps one endpoint of the upstream multi-property platform. Its
 dependencies (torch, `transformers==4.46.0`, xgboost, lightning, and ESM2) stay
@@ -771,19 +771,27 @@ export PEPTIVERSE_ESM_HOME=/models/esm2_t33_650M_UR50D
 ```
 
 ```python
-from mhctools import PeptiVerse
+from mhctools import PeptideContext, PeptideInput, PeptiVerse
 
 predictor = PeptiVerse(device="cpu")       # resolves PEPTIVERSE_HOME / ~/PeptiVerse
-results = predictor.predict(["SIINFEKL", "KLGGALQAK"])
+exact_input = PeptideInput(
+    "SIINFEKL",
+    occurrence_id="sample-1:occurrence-2",
+    context=PeptideContext(matrix="serum", assay_species="Homo sapiens"),
+)
+results = predictor.predict([exact_input, "KLGGALQAK"])
 results[0].serum_half_life.value           # hours, higher = longer-lived
+results[0].serum_half_life.peptide_input   # exact chemistry + context
+results[0].serum_half_life.cache_key       # input + assets + settings
 predictor.artifact_inventory.to_dict()     # exact files, hashes, capability
 ```
 
 Sequence input only. Upstream's SMILES models return a number that is *not* on
 the hours scale (the `expm1` inverse transform is applied only to the sequence
-model), and mhctools has nowhere to record a chemical form, so peptides
-containing non-standard residues are rejected rather than scored as their
-unmodified sequence.
+model). Although mhctools records exact chemical form, this adapter does not
+consume it, so terminal modifications, attachments, and non-standard residues
+are rejected rather than scored as their unmodified sequence. Pass
+`on_unsupported="record"` to retain unsupported entries in a mixed batch.
 
 > ⚠️ The sequence half-life model was fit on **130 examples** and evaluated by
 > cross-validation only, from a preprint, with no external test set and no

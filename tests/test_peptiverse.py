@@ -28,7 +28,7 @@ import tempfile
 
 import pytest
 
-from mhctools import Kind, PeptiVerse
+from mhctools import Kind, PeptideContext, PeptideInput, PeptiVerse
 from mhctools.peptiverse import (
     PEPTIVERSE_MAX_PEPTIDE_LENGTH,
     _HALF_LIFE_MANIFEST,
@@ -270,6 +270,46 @@ def test_relative_home_survives_caller_and_sidecar_directory_changes(
         for result in results)
 
 
+def test_contextual_inputs_preserve_order_duplicates_and_partial_failure(
+        tmp_path):
+    predictor = PeptiVerse(
+        peptiverse_home=_stub_inference(tmp_path),
+        peptiverse_python=sys.executable,
+        allow_unverified_assets=True)
+    context = PeptideContext(matrix="serum", assay_species="Homo sapiens")
+    inputs = [
+        PeptideInput("SIINFEKL", occurrence_id="first", context=context),
+        PeptideInput(
+            "SIINFEKL", c_term="amidated", occurrence_id="unsupported",
+            context=context),
+        PeptideInput("SIINFEKL", occurrence_id="second", context=context),
+    ]
+
+    results = predictor.predict(inputs, on_unsupported="record")
+    predictions = [result.preds[0] for result in results]
+
+    assert [pred.peptide_input.occurrence_id for pred in predictions] == [
+        "first", "unsupported", "second"]
+    assert [pred.measurement_context.status for pred in predictions] == [
+        "available", "unsupported", "available"]
+    assert predictions[1].score is None
+    assert predictions[1].value is None
+    assert "C-terminal chemistry" in predictions[1].measurement_context.detail
+    assert predictions[0].cache_key == predictions[2].cache_key
+    assert predictions[1].cache_key != predictions[0].cache_key
+    assert predictions[0].peptide_input.record_identity_sha256 != \
+        predictions[2].peptide_input.record_identity_sha256
+    assert predictions[0].measurement_context.matrix == "human serum"
+
+
+def test_contextual_modified_input_is_rejected_by_default(tmp_path):
+    predictor = PeptiVerse(
+        peptiverse_home=_fake_home(tmp_path),
+        allow_unverified_assets=True)
+    with pytest.raises(ValueError, match="unsupported C-terminal chemistry"):
+        predictor.predict([PeptideInput("SIINFEKL", c_term="amidated")])
+
+
 @pytest.mark.parametrize("hours", ["nan", "inf", "-inf", -1.0])
 def test_public_predict_rejects_invalid_sidecar_duration(tmp_path, hours):
     home = _stub_inference(tmp_path, hours=hours)
@@ -432,6 +472,20 @@ def test_predictor_version_carries_actual_asset_identity(tmp_path):
         peptiverse_home=home,
         allow_unverified_assets=True)
     assert replacement.predictor_version != first_version
+
+
+def test_output_affecting_device_setting_changes_backend_identity(tmp_path):
+    home = _fake_home(tmp_path)
+    cpu = PeptiVerse(
+        peptiverse_home=home,
+        device="cpu",
+        allow_unverified_assets=True)
+    cuda = PeptiVerse(
+        peptiverse_home=home,
+        device="cuda",
+        allow_unverified_assets=True)
+    assert cpu.artifact_inventory.identity_sha256 != \
+        cuda.artifact_inventory.identity_sha256
 
 
 def test_missing_esm_snapshot_is_reported(tmp_path, monkeypatch):
