@@ -19,7 +19,7 @@ class NetMHCpan3(BaseCommandlinePredictor):
             self,
             alleles=None,
             default_peptide_lengths=[9],
-            program_name="netMHCpan",
+            program_name="netMHCpan-3.0",
             process_limit=-1,
             extra_flags=[],
             max_peptides_per_file=10 ** 4,

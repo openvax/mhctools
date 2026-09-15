@@ -17,7 +17,7 @@ class NetMHC4(BaseCommandlinePredictor):
     def __init__(
             self,
             alleles=None,
-            program_name="netMHC",
+            program_name="netMHC-4.0",
             process_limit=0,
             default_peptide_lengths=[9]):
         BaseCommandlinePredictor.__init__(

@@ -107,7 +107,7 @@ class NetMHCIIpan3(NetMHCIIpanBase):
             self,
             alleles=None,
             default_peptide_lengths=[15, 16, 17, 18, 19, 20],
-            program_name="netMHCIIpan",
+            program_name="netMHCIIpan-3.0",
             process_limit=-1,
             extra_flags=[]):
         NetMHCIIpanBase.__init__(
@@ -128,7 +128,7 @@ class NetMHCIIpan4(NetMHCIIpanBase):
             self,
             alleles=None,
             default_peptide_lengths=[15, 16, 17, 18, 19, 20],
-            program_name="netMHCIIpan",
+            program_name="netMHCIIpan-4.0",
             process_limit=-1,
             mode="elution_score",
             extra_flags=[]):
@@ -163,7 +163,7 @@ class NetMHCIIpan4_EL(NetMHCIIpan4):
             self,
             alleles=None,
             default_peptide_lengths=[15, 16, 17, 18, 19, 20],
-            program_name="netMHCIIpan",
+            program_name="netMHCIIpan-4.0",
             process_limit=-1,
             extra_flags=[]):
         NetMHCIIpan4.__init__(
@@ -184,7 +184,7 @@ class NetMHCIIpan4_BA(NetMHCIIpan4):
             self,
             alleles=None,
             default_peptide_lengths=[15, 16, 17, 18, 19, 20],
-            program_name="netMHCIIpan",
+            program_name="netMHCIIpan-4.0",
             process_limit=-1,
             extra_flags=[]):
         NetMHCIIpan4.__init__(
@@ -238,7 +238,7 @@ class NetMHCIIpan43(NetMHCIIpanBase):
             self,
             alleles=None,
             default_peptide_lengths=[15, 16, 17, 18, 19, 20],
-            program_name="netMHCIIpan",
+            program_name="netMHCIIpan-4.3",
             process_limit=-1,
             mode="elution_score",
             extra_flags=[]):
@@ -272,7 +272,7 @@ class NetMHCIIpan43_EL(NetMHCIIpan43):
             self,
             alleles=None,
             default_peptide_lengths=[15, 16, 17, 18, 19, 20],
-            program_name="netMHCIIpan",
+            program_name="netMHCIIpan-4.3",
             process_limit=-1,
             extra_flags=[]):
         NetMHCIIpan43.__init__(
@@ -293,7 +293,7 @@ class NetMHCIIpan43_BA(NetMHCIIpan43):
             self,
             alleles=None,
             default_peptide_lengths=[15, 16, 17, 18, 19, 20],
-            program_name="netMHCIIpan",
+            program_name="netMHCIIpan-4.3",
             process_limit=-1,
             extra_flags=[]):
         NetMHCIIpan43.__init__(
