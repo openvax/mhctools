@@ -12,6 +12,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass, fields
 from typing import Optional
 
@@ -61,6 +62,9 @@ class Kind:
     # rather than being folded in here, since nothing else in a ``Prediction``
     # records the matrix.
     serum_half_life = "serum_half_life"
+    # Ex-vivo degradation half-life in plasma. Plasma and serum are different
+    # assay matrices and neither is an in-vivo elimination half-life.
+    plasma_half_life = "plasma_half_life"
     # Degradation half-life of the free peptide in whole blood, in hours.
     # Separate from ``serum_half_life``: serum is blood with the cells and
     # clotting factors removed, and peptide stability differs measurably
@@ -68,6 +72,130 @@ class Kind:
     # this kind with no ``value`` at all when its transform to a duration is
     # not established -- see :mod:`mhctools.plifepred2`.
     blood_half_life = "blood_half_life"
+    # In-vivo terminal elimination half-life. This is neither ex-vivo peptide
+    # degradation in serum/plasma nor pMHC dissociation stability.
+    systemic_elimination_half_life = "systemic_elimination_half_life"
+    # Pharmacokinetic quantities whose units and interpretation depend on the
+    # study and therefore live in MeasurementContext rather than VALUE_UNITS.
+    systemic_clearance = "systemic_clearance"
+    distribution_volume = "distribution_volume"
+    systemic_exposure = "systemic_exposure"
+    # CPP class confidence and quantitative uptake are deliberately distinct.
+    cpp_classification = "cpp_classification"
+    cellular_uptake = "cellular_uptake"
+    tissue_concentration = "tissue_concentration"
+
+
+CONTEXT_DEPENDENT_KINDS = frozenset((
+    Kind.plasma_half_life,
+    Kind.systemic_elimination_half_life,
+    Kind.systemic_clearance,
+    Kind.distribution_volume,
+    Kind.systemic_exposure,
+    Kind.cpp_classification,
+    Kind.cellular_uptake,
+    Kind.tissue_concentration,
+))
+"""Kinds for which mhctools intentionally defines no universal ordering."""
+
+PHYSICAL_VALUE_KINDS = CONTEXT_DEPENDENT_KINDS - {Kind.cpp_classification}
+"""Context-dependent endpoints that require a units-bearing value."""
+
+
+ESTIMATE_TYPE_VALUES = frozenset((
+    "observed",
+    "fitted",
+    "simulated",
+    "ml_predicted",
+))
+"""How an endpoint value was obtained."""
+
+
+RESULT_STATUS_VALUES = frozenset((
+    "available",
+    "unsupported",
+    "missing",
+    "out_of_domain",
+    "failed",
+))
+"""Availability states for a result, independent of estimate type."""
+
+
+CONCENTRATION_BASIS_VALUES = frozenset(("total", "unbound"))
+PK_SCOPE_VALUES = frozenset(("systemic", "apparent"))
+
+
+@dataclass(frozen=True)
+class MeasurementContext:
+    """Versioned semantics for PK, uptake, and tissue measurements.
+
+    ``unit`` and ``transform`` describe :attr:`Prediction.value`; the stored
+    physical value remains linear, so ``transform`` must currently be
+    ``"linear"`` when a value is present. Predictor-native or confidence
+    outputs belong in ``score`` and are identified by ``score_semantics``.
+    Unknown descriptive fields are represented by ``None``, never by a
+    plausible biological default.
+    """
+
+    estimate_type: str
+    status: str = "available"
+    analyte: str | None = None
+    compartment: str | None = None
+    matrix: str | None = None
+    unit: str | None = None
+    transform: str | None = None
+    score_semantics: str | None = None
+    class_label: str | None = None
+    concentration_basis: str | None = None
+    pk_scope: str | None = None
+    timepoint: float | None = None
+    time_unit: str | None = None
+    time_origin: str | None = None
+    series_id: str | None = None
+    detail: str | None = None
+    schema_version: int = 1
+
+    def __post_init__(self):
+        if self.schema_version != 1:
+            raise ValueError(
+                f"Unsupported MeasurementContext schema_version "
+                f"{self.schema_version!r}")
+        if self.estimate_type not in ESTIMATE_TYPE_VALUES:
+            raise ValueError(
+                f"estimate_type must be one of "
+                f"{sorted(ESTIMATE_TYPE_VALUES)}, got {self.estimate_type!r}")
+        if self.status not in RESULT_STATUS_VALUES:
+            raise ValueError(
+                f"status must be one of {sorted(RESULT_STATUS_VALUES)}, "
+                f"got {self.status!r}")
+        if (self.concentration_basis is not None and
+                self.concentration_basis not in CONCENTRATION_BASIS_VALUES):
+            raise ValueError(
+                "concentration_basis must be 'total' or 'unbound', got "
+                f"{self.concentration_basis!r}")
+        if self.pk_scope is not None and self.pk_scope not in PK_SCOPE_VALUES:
+            raise ValueError(
+                "pk_scope must be 'systemic' or 'apparent', got "
+                f"{self.pk_scope!r}")
+        time_fields = (self.timepoint, self.time_unit, self.time_origin,
+                       self.series_id)
+        if any(v is not None for v in time_fields) and not all(
+                v is not None for v in time_fields):
+            raise ValueError(
+                "timepoint, time_unit, time_origin and series_id must be "
+                "provided together")
+
+    def to_dict(self):
+        """Serialize to a JSON-friendly dictionary."""
+        return asdict(self)
+
+    @classmethod
+    def from_dict(cls, value):
+        """Deserialize a context while ignoring forward-compatible fields."""
+        if isinstance(value, cls):
+            return value
+        valid = {f.name for f in fields(cls)}
+        return cls(**{k: v for k, v in value.items() if k in valid})
 
 
 # Canonical "best direction" for each prediction field. Used by
@@ -153,6 +281,10 @@ def best_direction(kind, field) -> str:
     ``ValueError`` for an unknown ``field``, or for ``value`` on a kind with no
     registered direction.
     """
+    if kind in CONTEXT_DEPENDENT_KINDS:
+        raise ValueError(
+            f"best_direction is context-dependent for {kind!r}; mhctools "
+            "does not define a biological ranking policy for this endpoint")
     direction = FIELD_BEST_DIRECTIONS.get(field)
     if direction is not None:
         return direction
@@ -190,6 +322,7 @@ COLUMNS = (
     "score",
     "value",
     "percentile_rank",
+    "measurement_context",
 )
 
 
@@ -197,7 +330,7 @@ COLUMNS = (
 class Prediction:
     """Single prediction from one model on one peptide."""
     kind: str
-    score: float
+    score: float | None
     peptide: str = ""
     allele: str = ""
     tcr: str = ""
@@ -209,6 +342,46 @@ class Prediction:
     offset: int = 0
     predictor_name: str = ""
     predictor_version: str = ""
+    measurement_context: MeasurementContext | None = None
+
+    def __post_init__(self):
+        context = self.measurement_context
+        if isinstance(context, Mapping):
+            context = MeasurementContext.from_dict(context)
+            object.__setattr__(self, "measurement_context", context)
+        if self.kind in CONTEXT_DEPENDENT_KINDS and context is None:
+            raise ValueError(
+                f"{self.kind} predictions require MeasurementContext")
+        if context is None:
+            return
+        if context.status == "available":
+            if self.score is None and self.value is None:
+                raise ValueError(
+                    "available predictions require score or value")
+            if self.kind in PHYSICAL_VALUE_KINDS and self.value is None:
+                raise ValueError(
+                    f"{self.kind} requires a quantitative value")
+        elif self.score is not None or self.value is not None:
+            raise ValueError(
+                f"{context.status} predictions cannot carry score or value")
+        if self.value is not None:
+            if not context.unit:
+                raise ValueError(
+                    "measurement_context.unit is required when value is set")
+            if context.transform != "linear":
+                raise ValueError(
+                    "Prediction.value must use the linear transform")
+        if self.kind in CONTEXT_DEPENDENT_KINDS and self.allele:
+            raise ValueError(
+                f"{self.kind} is MHC-independent and cannot carry an allele")
+        if self.kind == Kind.cpp_classification and self.value is not None:
+            raise ValueError(
+                "cpp_classification confidence belongs in score, not value")
+        if (self.kind == Kind.cpp_classification and
+                context.status == "available" and
+                (not context.class_label or not context.score_semantics)):
+            raise ValueError(
+                "cpp_classification requires class_label and score_semantics")
 
     def __repr__(self):
         parts = [self.peptide or "?", self.kind]
@@ -216,7 +389,8 @@ class Prediction:
             parts.insert(1, self.allele)
         if self.tcr:
             parts.insert(1, self.tcr)
-        parts.append("score=%.4g" % self.score)
+        if self.score is not None:
+            parts.append("score=%.4g" % self.score)
         if self.value is not None:
             parts.append("value=%.4g" % self.value)
         if self.percentile_rank is not None:
@@ -244,6 +418,9 @@ class Prediction:
             "score": self.score,
             "value": self.value,
             "percentile_rank": self.percentile_rank,
+            "measurement_context": (
+                self.measurement_context.to_dict()
+                if self.measurement_context is not None else None),
         }
 
     def to_dict(self):
@@ -254,7 +431,12 @@ class Prediction:
     def from_dict(cls, d):
         """Deserialize from a dict (as produced by :meth:`to_dict`)."""
         valid = {f.name for f in fields(cls)}
-        return cls(**{k: v for k, v in d.items() if k in valid})
+        values = {k: v for k, v in d.items() if k in valid}
+        context = values.get("measurement_context")
+        if context is not None:
+            values["measurement_context"] = MeasurementContext.from_dict(
+                context)
+        return cls(**values)
 
 
 @dataclass(repr=False)
