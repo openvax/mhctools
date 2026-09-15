@@ -149,6 +149,21 @@ Path(sys.argv[1]).write_text("ok")
     assert output.read_text() == "ok"
 
 
+def test_sidecar_executes_exactly_once(tmp_path):
+    output = tmp_path / "executions.txt"
+    sidecar = tmp_path / "sidecar.py"
+    _write_sidecar(sidecar, """
+import sys
+from pathlib import Path
+with Path(sys.argv[1]).open("a") as result:
+    result.write("executed\\n")
+""")
+    run_python_sidecar(
+        "fixture", sys.executable, sidecar, [output],
+        environment=os.environ.copy(), timeout=5)
+    assert output.read_text().splitlines() == ["executed"]
+
+
 def test_sidecar_blocks_socket_connections(tmp_path):
     sidecar = tmp_path / "sidecar.py"
     _write_sidecar(sidecar, """
