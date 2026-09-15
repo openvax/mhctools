@@ -90,22 +90,23 @@ def test_log2_and_ln_readings_give_implausible_durations():
 
 # --- kind semantics ---------------------------------------------------------
 
-def test_blood_half_life_is_distinct_from_serum_and_pmhc_stability():
-    assert Kind.blood_half_life == "blood_half_life"
-    assert Kind.blood_half_life != Kind.serum_half_life
-    assert Kind.blood_half_life != Kind.pMHC_stability
+def test_peptide_half_life_is_distinct_from_pmhc_stability():
+    assert Kind.peptide_half_life == "peptide_half_life"
+    assert Kind.peptide_half_life != Kind.pMHC_stability
 
 
-def test_blood_half_life_value_direction_is_max():
-    assert VALUE_BEST_DIRECTIONS[Kind.blood_half_life] == "max"
-    assert best_direction(Kind.blood_half_life, "value") == "max"
+def test_peptide_half_life_has_no_context_free_best_direction():
+    assert VALUE_BEST_DIRECTIONS[Kind.peptide_half_life] == "max"
+    with pytest.raises(ValueError, match="context-dependent"):
+        best_direction(Kind.peptide_half_life, "value")
 
 
-def test_annotate_exposes_blood_half_life_separately_from_serum():
+def test_annotate_matrix_aliases_target_generic_peptide_half_life():
     from mhctools.annotate import _OUTPUT_FIELDS, output_field_tokens
     assert "blood_half_life" in output_field_tokens()
-    assert _OUTPUT_FIELDS["blood_half_life"] == (Kind.blood_half_life, "value")
-    assert _OUTPUT_FIELDS["serum_half_life"] != _OUTPUT_FIELDS["blood_half_life"]
+    assert _OUTPUT_FIELDS["blood_half_life"] == (
+        Kind.peptide_half_life, "value")
+    assert _OUTPUT_FIELDS["serum_half_life"] == _OUTPUT_FIELDS["blood_half_life"]
 
 
 def test_accessors_do_not_mix_matrices():
@@ -266,8 +267,8 @@ def _predictor(tmp_path):
 
 def test_supported_kinds_and_mhc_context(tmp_path):
     predictor = _predictor(tmp_path)
-    assert predictor.supported_kinds == (Kind.blood_half_life,)
-    support = predictor.kind_support()[Kind.blood_half_life]
+    assert predictor.supported_kinds == (Kind.peptide_half_life,)
+    support = predictor.kind_support()[Kind.peptide_half_life]
     assert support["mhc_dependence"] == "none"
     assert support["mhc_class"] == "none"
 
@@ -372,8 +373,10 @@ def test_prediction_carries_identity_and_records_completed_inference(
     assert predictor.artifact_inventory.inference_status == "reproduced"
     assert len(results) == 2
     assert all(
-        result.blood_half_life.predictor_version == predictor.predictor_version
+        result.peptide_half_life.predictor_version == predictor.predictor_version
         for result in results)
+    assert (results[0].peptide_half_life.measurement_context is
+            results[1].peptide_half_life.measurement_context)
 
 
 def test_contextual_inputs_get_distinct_cache_keys_and_preserve_context(
@@ -453,7 +456,7 @@ def test_end_to_end_matches_the_reference_values():
     for peptide, result, native in zip(
             ["SIINFEKLGGALQAKKY", "GILGFVFTLAAAKKWWWQ"], results, raw):
         pred = result.preds[0]
-        assert pred.kind == Kind.blood_half_life
+        assert pred.kind == Kind.peptide_half_life
         assert pred.peptide == peptide
         assert pred.allele == ""
         # score is the native model output, and by default no duration is
@@ -493,7 +496,7 @@ def test_end_to_end_dataframe_has_the_standard_columns():
     from mhctools.pred import COLUMNS
     frame = PlifePred2().predict_dataframe(["SIINFEKLGGALQAKKY"])
     assert list(frame.columns) == list(COLUMNS)
-    assert frame["kind"].tolist() == [Kind.blood_half_life]
+    assert frame["kind"].tolist() == [Kind.peptide_half_life]
 
 
 @requires_plifepred2

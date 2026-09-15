@@ -75,10 +75,11 @@ _OUTPUT_FIELDS = {
     "immunogenicity": (Kind.immunogenicity, "score"),
     "tap_transport": (Kind.tap_transport, "score"),
     "erap_trimming": (Kind.erap_trimming, "score"),
-    # Serum half-life of the free peptide, in hours -- distinct from
-    # "stability", which is pMHC complex dissociation.
-    "serum_half_life": (Kind.serum_half_life, "value"),
-    "blood_half_life": (Kind.blood_half_life, "value"),
+    # Parent-peptide half-life. Matrix-specific names remain CLI conveniences;
+    # the prediction's MeasurementContext carries the actual matrix.
+    "peptide_half_life": (Kind.peptide_half_life, "value"),
+    "serum_half_life": (Kind.peptide_half_life, "value"),
+    "blood_half_life": (Kind.peptide_half_life, "value"),
 }
 
 
@@ -119,6 +120,7 @@ class AnnotationSpec:
     best_allele_column: Optional[str] = None
     kind: Optional[str] = _dc_field(default=None, init=False)
     prediction_field: str = _dc_field(default="", init=False)
+    matrix: Optional[str] = _dc_field(default=None, init=False)
 
     def __post_init__(self):
         if self.field not in _OUTPUT_FIELDS:
@@ -126,6 +128,10 @@ class AnnotationSpec:
                 "Unknown output field %r. Available: %s"
                 % (self.field, ", ".join(output_field_tokens())))
         self.kind, self.prediction_field = _OUTPUT_FIELDS[self.field]
+        self.matrix = {
+            "serum_half_life": "serum",
+            "blood_half_life": "whole blood",
+        }.get(self.field)
 
     def resolved_best_allele_column(self):
         return self.best_allele_column or ("%s_best_allele" % self.output_column)
@@ -144,7 +150,19 @@ class AnnotationSpec:
 
     def direction_op(self):
         """``max`` or ``min`` callable for reducing candidate predictions."""
+        if self.kind == Kind.peptide_half_life:
+            return max
         return reduce_op(self.kind, self.prediction_field)
+
+    def matches_context(self, prediction):
+        """Whether a prediction satisfies this field's context selector."""
+        if self.matrix is None:
+            return True
+        observed = prediction.measurement_context.matrix
+        if observed is None:
+            return False
+        observed = observed.lower()
+        return observed == self.matrix or observed.endswith(" " + self.matrix)
 
 
 def parse_annotation_spec(token):
@@ -238,6 +256,8 @@ def _build_lookup(results, spec):
     by_peptide = {}
     for peptide_result in results:
         for pred in peptide_result.filter(kind=spec.kind):
+            if not spec.matches_context(pred):
+                continue
             if getattr(pred, spec.prediction_field) is None:
                 continue
             target, key = (
@@ -253,6 +273,12 @@ def _build_lookup(results, spec):
                     "instead of %r."
                     % (spec.field, existing.kind, pred.kind,
                        pred.peptide, pred.allele, spec.field))
+            if (existing is not None
+                    and existing.measurement_context != pred.measurement_context):
+                raise ValueError(
+                    "Ambiguous %r field: predictor emits multiple measurement "
+                    "contexts for peptide %r allele %r"
+                    % (spec.field, pred.peptide, pred.allele))
             target[key] = pred
     return by_pair, by_peptide
 

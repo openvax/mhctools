@@ -14,6 +14,8 @@ from .pred import (
     VALUE_BEST_DIRECTIONS,
     VALUE_UNITS,
     best_direction,
+    canonical_kind,
+    intern_measurement_context,
     preds_from_rows,
 )
 from .sample import MultiSample
@@ -140,6 +142,8 @@ __all__ = [
     "VALUE_BEST_DIRECTIONS",
     "VALUE_UNITS",
     "best_direction",
+    "canonical_kind",
+    "intern_measurement_context",
     "preds_from_rows",
     "MultiSample",
     "TCR",

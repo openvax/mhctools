@@ -56,26 +56,23 @@ def _write(text):
 
 # --- kind semantics (no model, no network) ----------------------------------
 
-def test_serum_half_life_is_not_pmhc_stability():
-    # The whole point of the new kind: a serum half-life must never land in the
-    # field NetMHCstabpan writes, which is pMHC complex dissociation.
-    assert Kind.serum_half_life != Kind.pMHC_stability
-    assert Kind.serum_half_life == "serum_half_life"
+def test_peptide_half_life_is_not_pmhc_stability():
+    assert Kind.peptide_half_life != Kind.pMHC_stability
+    assert Kind.peptide_half_life == "peptide_half_life"
 
 
-def test_serum_half_life_value_direction_is_max():
-    # Hours in serum: longer-lived is "better", same as pMHC stability but for
-    # an unrelated reason, so it needs its own registered direction.
-    assert VALUE_BEST_DIRECTIONS[Kind.serum_half_life] == "max"
-    assert best_direction(Kind.serum_half_life, "value") == "max"
-    assert best_direction(Kind.serum_half_life, "score") == "max"
+def test_peptide_half_life_has_no_context_free_best_direction():
+    assert VALUE_BEST_DIRECTIONS[Kind.peptide_half_life] == "max"
+    with pytest.raises(ValueError, match="context-dependent"):
+        best_direction(Kind.peptide_half_life, "value")
 
 
 def test_annotate_exposes_serum_half_life_as_a_units_bearing_field():
     from mhctools.annotate import _OUTPUT_FIELDS, output_field_tokens
     assert "serum_half_life" in output_field_tokens()
     # `value` and not `score`, because hours are the meaningful quantity.
-    assert _OUTPUT_FIELDS["serum_half_life"] == (Kind.serum_half_life, "value")
+    assert _OUTPUT_FIELDS["serum_half_life"] == (
+        Kind.peptide_half_life, "value")
 
 
 def test_peptide_result_accessor():
@@ -268,6 +265,8 @@ def test_relative_home_survives_caller_and_sidecar_directory_changes(
     assert all(
         result.serum_half_life.predictor_version == predictor.predictor_version
         for result in results)
+    assert (results[0].peptide_half_life.measurement_context is
+            results[1].peptide_half_life.measurement_context)
 
 
 def test_contextual_inputs_preserve_order_duplicates_and_partial_failure(
@@ -399,8 +398,8 @@ def test_supported_kinds_and_mhc_context(tmp_path):
     predictor = PeptiVerse(
         peptiverse_home=_fake_home(tmp_path),
         allow_unverified_assets=True)
-    assert predictor.supported_kinds == (Kind.serum_half_life,)
-    support = predictor.kind_support()[Kind.serum_half_life]
+    assert predictor.supported_kinds == (Kind.peptide_half_life,)
+    support = predictor.kind_support()[Kind.peptide_half_life]
     assert support["mhc_dependence"] == "none"
     assert support["mhc_class"] == "none"
 
@@ -515,7 +514,7 @@ def test_end_to_end_returns_hours():
     for peptide, result in zip(peptides, results):
         assert len(result.preds) == 1
         pred = result.preds[0]
-        assert pred.kind == Kind.serum_half_life
+        assert pred.kind == Kind.peptide_half_life
         assert pred.peptide == peptide
         assert pred.allele == ""
         assert pred.predictor_name == "peptiverse"
@@ -540,7 +539,7 @@ def test_end_to_end_dataframe_has_the_standard_columns():
     predictor = PeptiVerse(device="cpu")
     frame = predictor.predict_dataframe(["SIINFEKL"])
     assert list(frame.columns) == list(COLUMNS)
-    assert frame["kind"].tolist() == [Kind.serum_half_life]
+    assert frame["kind"].tolist() == [Kind.peptide_half_life]
 
 
 @requires_peptiverse

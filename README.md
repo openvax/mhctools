@@ -243,10 +243,7 @@ The canonical prediction kind strings are defined in `mhctools.pred.Kind`.
 | `endolysosomal_cleavage` | Endolysosomal (MHC-II, cathepsin) C-terminal cleavage score | — |
 | `tap_transport` | TAP transport / binding score | `nM` |
 | `erap_trimming` | ERAP1 N-terminal trimming score | — |
-| `serum_half_life` | Degradation half-life of the free peptide in serum | `hours` |
-| `plasma_half_life` | Degradation half-life of the free peptide in plasma | context-defined |
-| `blood_half_life` | Degradation half-life of the free peptide in whole blood | `hours` |
-| `systemic_elimination_half_life` | In-vivo terminal elimination half-life | context-defined |
+| `peptide_half_life` | Parent-peptide half-life; matrix and systemic scope live in context | `hours` |
 | `systemic_clearance` | Systemic or apparent clearance | context-defined |
 | `distribution_volume` | Systemic or apparent distribution volume | context-defined |
 | `systemic_exposure` | Systemic exposure, such as AUC | context-defined |
@@ -286,7 +283,7 @@ from mhctools import Kind
 from mhctools.pred import value_unit
 
 value_unit(Kind.pMHC_affinity)     # 'nM'
-value_unit(Kind.blood_half_life)   # 'hours'
+value_unit(Kind.peptide_half_life) # 'hours'
 value_unit(Kind.immunogenicity)    # None
 ```
 
@@ -307,20 +304,21 @@ predictor.predict(["SIINFEKLGGALQAKKY"])
 predictor.last_qc["log10_seconds"]     # PlifePred2's raw model output
 ```
 
-Note that sharing a unit is not sharing a measurement: `pMHC_stability`,
-`serum_half_life` and `blood_half_life` are all half-lives in hours and all
-three are different quantities — complex dissociation, free-peptide degradation
-in serum, and free-peptide degradation in whole blood.
+Note that sharing a unit is not sharing a measurement: `pMHC_stability` is the
+lifetime of a peptide-MHC complex, while `peptide_half_life` is the lifetime of
+the parent peptide. Serum, plasma, whole blood, cellular, and systemic settings
+share the latter kind and remain distinct through `MeasurementContext`.
 
 Higher-is-better is only a numerical selection convention within a documented
 endpoint. It does not mean that a larger score is universally better for a
 vaccine, and it does not make scores from different predictors or endpoints
 interchangeable.
 
-PK, uptake, and tissue-exposure kinds require a versioned
-`MeasurementContext`. Their units, transforms, analytes, compartments, time
-origins, estimate types, and availability states remain explicit, and mhctools
-defines no universal best direction for them. See
+Every prediction carries a small immutable `MeasurementContext`; ordinary
+predictors get a shared default automatically, while assay-specific wrappers
+fill only the fields they know. Equal contexts are interned and reused. PK,
+uptake, tissue, and peptide-half-life results add explicit units, matrices,
+compartments, scope, or time identity as needed. See
 [Peptide PK, uptake, and tissue-exposure results](docs/exposure-results.md).
 
 Predictors also expose `kind_support()` so downstream code can tell what MHC
@@ -373,8 +371,8 @@ Examples:
 | `DeepImmuno` | `immunogenicity` | `single_allele` | `I` |
 | `TLimmuno2` | `immunogenicity` | `single_allele` | `II` |
 | `Calis` | `immunogenicity` | `none` | `I` |
-| `PeptiVerse` | `serum_half_life` | `none` | `none` |
-| `PlifePred2` | `blood_half_life` | `none` | `none` |
+| `PeptiVerse` | `peptide_half_life` | `none` | `none` |
+| `PlifePred2` | `peptide_half_life` | `none` | `none` |
 
 ### TCR predictors (`NetTCR`, `Tulip`, `MixTCRpred`)
 
@@ -735,24 +733,22 @@ results[0].erap_trimming.score
 > ⚠️ ERAMER's evaluation is self-reported and ERAP1 trimming is an intrinsically
 > noisy signal; treat the score as a pathway prior, not a validated oracle.
 
-### Peptide half-life in blood and serum
+### Peptide half-life
 
 | Predictor | Kinds produced | Requires |
 |---|---|---|
-| `PeptiVerse` | Serum half-life (`serum_half_life`) | pinned PeptiVerse + ESM2 snapshots (`PEPTIVERSE_HOME`, `PEPTIVERSE_ESM_HOME`) + a torch/transformers Python |
-| `PlifePred2` | Blood half-life (`blood_half_life`) ⚠️ unresolved semantics | `plifepred2==1.0` (`PLIFEPRED2_HOME`) + pinned Pfeature (`PFEATURE_HOME`) |
+| `PeptiVerse` | Parent-peptide half-life in human serum | pinned PeptiVerse + ESM2 snapshots (`PEPTIVERSE_HOME`, `PEPTIVERSE_ESM_HOME`) + a torch/transformers Python |
+| `PlifePred2` | Parent-peptide half-life, matrix unknown ⚠️ | `plifepred2==1.0` (`PLIFEPRED2_HOME`) + pinned Pfeature (`PFEATURE_HOME`) |
 
-How long a **free peptide** survives in blood serum before proteases degrade it,
-in hours. This is a peptide-drug property rather than an immunological one: it
-speaks to whether a synthesized vaccine peptide is still intact when it reaches
-its destination, not to how it is presented.
+`peptide_half_life` records how long the parent peptide persists, in hours. Its
+context distinguishes a defined solution, serum/plasma/whole blood, cellular
+compartments, and systemic in-vivo PK without multiplying kind strings.
 
 It is deliberately a separate kind from `pMHC_stability`, which is the
 dissociation half-life of an assembled peptide-MHC complex — a different
 molecule in a different assay — and from the cleavage kinds, which are
-site-resolved and intracellular. The kind string carries endpoint identity;
-`MeasurementContext` separately preserves explicit matrix and analyte metadata.
-A predictor trained on whole blood, plasma or in-vivo PK is not this kind.
+site-resolved and intracellular. `MeasurementContext` preserves the matrix,
+compartment, analyte, and systemic scope when they are known.
 
 `PeptiVerse` wraps one endpoint of the upstream multi-property platform. Its
 dependencies (torch, `transformers==4.46.0`, xgboost, lightning, and ESM2) stay
@@ -780,7 +776,7 @@ exact_input = PeptideInput(
     context=PeptideContext(matrix="serum", assay_species="Homo sapiens"),
 )
 results = predictor.predict([exact_input, "KLGGALQAK"])
-results[0].serum_half_life.value           # hours, higher = longer-lived
+results[0].peptide_half_life.value         # hours, higher = longer-lived
 results[0].serum_half_life.peptide_input   # exact chemistry + context
 results[0].serum_half_life.cache_key       # input + assets + settings
 predictor.artifact_inventory.to_dict()     # exact files, hashes, capability
@@ -802,10 +798,6 @@ are rejected rather than scored as their unmodified sequence. Pass
 > serialization; matching a checksum establishes identity, not safety. Use
 > only snapshots you trust.
 
-`PlifePred2` targets blood rather than serum, so it emits a different kind —
-serum is blood with the cells and clotting factors removed, and peptide
-stability differs measurably between the two.
-
 > ⚠️ **This endpoint's semantics are not established.** PlifePred2 ships no
 > publication, no training data and no target definition, so its units,
 > transform, species and assay matrix are all inferred from the artifacts. By
@@ -817,14 +809,14 @@ from mhctools import PlifePred2
 
 predictor = PlifePred2()                       # PLIFEPRED2_HOME + PFEATURE_HOME
 results = predictor.predict(["SIINFEKLGGALQAKKY"])
-results[0].blood_half_life.score               # native output, higher = longer-lived
-results[0].blood_half_life.value               # None by default
+results[0].peptide_half_life.score             # native output, higher = longer-lived
+results[0].peptide_half_life.value             # None by default
 predictor.artifact_inventory.to_dict()         # exact files, hashes, capability
 predictor.last_qc["log10_seconds"]             # the same value, named
 
 # Opt in to a duration, accepting the inference below:
 opted_in = PlifePred2(assume_log10_seconds=True)
-opted_in.predict(["SIINFEKLGGALQAKKY"])[0].blood_half_life.value   # hours
+opted_in.predict(["SIINFEKLGGALQAKKY"])[0].peptide_half_life.value # hours
 ```
 
 **What is known.** Both shipped models are `RandomForestRegressor`, verified by
@@ -844,11 +836,10 @@ that paper's 24-hour ceiling, so PlifePred2 was trained on a different dataset
 and the old filter cannot establish the new target. Note also that the lineage
 paper states log2, not log10.
 
-**What is not established.** The species and assay matrix. `blood_half_life` is
-assigned from the lineage paper's PEPlife-filtered-to-mammalian-blood dataset —
-the best available guide, but inherited from data this model demonstrably does
-not use. Do not report it as a measured whole-blood property, and do not treat
-it as interchangeable with PeptiVerse's human-serum endpoint.
+**What is not established.** The species and assay matrix. The result therefore
+uses generic `peptide_half_life` with `matrix=None`; do not report it as a
+measured whole-blood property or treat it as interchangeable with PeptiVerse's
+human-serum endpoint.
 
 Natural peptides only, 12–100 residues. Upstream's CLI silently drops
 out-of-range and modified sequences into an `eliminated_sequences.csv` and

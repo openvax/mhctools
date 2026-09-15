@@ -31,7 +31,7 @@ from mhctools import (
     RandomBindingPredictor,
 )
 from mhctools.annotate import parse_annotation_spec, output_field_tokens
-from mhctools.pred import Kind, PeptideResult, Prediction
+from mhctools.pred import Kind, MeasurementContext, PeptideResult, Prediction
 
 
 # A fixed (peptide, allele) -> (affinity nM, score, percentile_rank) table.
@@ -109,6 +109,25 @@ class _ProcessingFixturePredictor:
                     predictor_name="processing-fixture"))
             results.append(PeptideResult(preds=tuple(preds)))
         return results
+
+
+class _HalfLifeFixturePredictor:
+    def predict(self, peptides):
+        return [PeptideResult(preds=tuple(
+            Prediction(
+                kind=Kind.peptide_half_life,
+                peptide=peptide,
+                score=value,
+                value=value,
+                measurement_context=MeasurementContext(
+                    estimate_type="ml_predicted",
+                    analyte="parent peptide",
+                    matrix=matrix,
+                    unit="hours",
+                    transform="linear"))
+            for matrix, value in (("human serum", 2.0),
+                                  ("whole blood", 5.0))))
+            for peptide in peptides]
 
 
 def _table():
@@ -203,6 +222,28 @@ def test_multiple_specs_appended_independently():
     assert "sc" in out.columns
     # add_best_allele=False suppresses the provenance column
     assert "sc_best_allele" not in out.columns
+
+
+def test_half_life_aliases_select_the_context_not_a_separate_kind():
+    table = pd.DataFrame({"peptide": ["SIINFEKL"]})
+    out = annotate_table(table, [
+        AnnotationSpec(
+            _HalfLifeFixturePredictor(), "serum", field="serum_half_life"),
+        AnnotationSpec(
+            _HalfLifeFixturePredictor(), "blood", field="blood_half_life"),
+    ])
+
+    assert out.iloc[0]["serum"] == 2.0
+    assert out.iloc[0]["blood"] == 5.0
+
+
+def test_generic_half_life_annotation_rejects_mixed_contexts():
+    table = pd.DataFrame({"peptide": ["SIINFEKL"]})
+    with pytest.raises(ValueError, match="multiple measurement contexts"):
+        annotate_table(table, [AnnotationSpec(
+            _HalfLifeFixturePredictor(),
+            "half_life",
+            field="peptide_half_life")])
 
 
 def test_missing_allele_yields_nan():
