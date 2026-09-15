@@ -248,7 +248,8 @@ def add_mhc_args(arg_parser):
     mhc_options_arg_group.add_argument(
         "--mhc-peptide-lengths",
         type=parse_int_list,
-        help="Lengths of epitopes to consider for binding prediction")
+        help="Peptide lengths to predict, e.g. '9' or '8-11' or '8,9,10'. "
+             "Defaults to each predictor's own supported lengths.")
 
     mhc_options_arg_group.add_argument(
         "--mhc-epitope-lengths",
@@ -262,7 +263,10 @@ def add_mhc_args(arg_parser):
     mhc_options_arg_group.add_argument(
         "--mhc-alleles",
         default="",
-        help="Comma or space separated list of allele (default HLA-A*02:01)")
+        help="Comma or space separated list of alleles, e.g. "
+             "'HLA-A*02:01,HLA-B*07:02'. Required (here or via "
+             "--mhc-alleles-file) for every allele-specific predictor; "
+             "there is no default allele.")
 
     mhc_options_arg_group.add_argument(
         "--do-not-raise-on-error",

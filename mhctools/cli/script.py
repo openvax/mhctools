@@ -75,7 +75,10 @@ def add_filter_args(parser):
 
 def add_output_args(parser):
     output_group = parser.add_argument_group("Outputs")
-    output_group.add_argument("--output-csv", default=None)
+    output_group.add_argument(
+        "--output-csv",
+        default=None,
+        help="Write the prediction table to this CSV path")
     return output_group
 
 add_input_args(arg_parser)

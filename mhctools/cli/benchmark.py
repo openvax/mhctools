@@ -20,15 +20,23 @@ REFERENCE_PANELS = {
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(prog="mhctools benchmark")
+    parser = argparse.ArgumentParser(
+        prog="mhctools benchmark",
+        description="Evaluate supplied measurements and predictions without "
+                    "merging assay scales. Writes a JSON report.")
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--input", help="JSON containing measurements and predictions or --model inputs")
-    mode.add_argument("--lineage-inventory", action="store_true")
+    mode.add_argument("--lineage-inventory", action="store_true",
+                      help="Report the curated model/dataset relationship "
+                           "inventory and exit")
     mode.add_argument("--reference-cleavage", nargs="?", const="starter", choices=tuple(REFERENCE_PANELS),
                       help="Run a source-linked reproduction panel (default: starter)")
     parser.add_argument("--model", action="append", help="Run an exact cleavage model against site records")
-    parser.add_argument("--evaluation", choices=("external_validation", "reproduction"), default="external_validation")
-    parser.add_argument("--out")
+    parser.add_argument("--evaluation", choices=("external_validation", "reproduction"), default="external_validation",
+                       help="How to label the run for --input data "
+                            "(default: %(default)s). --reference-cleavage is "
+                            "always reported as reproduction.")
+    parser.add_argument("--out", help="Write JSON to this path instead of stdout")
     args = parser.parse_args(argv)
     try:
         if args.lineage_inventory:

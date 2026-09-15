@@ -97,7 +97,10 @@ def fetch_main(args_list=None):
     )
     parser.add_argument("name", help="Artifact or predictor name")
     parser.add_argument(
-        "--version", help="Specific upstream artifact release to fetch")
+        "--version",
+        help="Upstream artifact release or pinned revision to fetch; this is "
+             "not the mhctools version. Defaults to the revision this "
+             "mhctools release was tested against.")
     parser.add_argument(
         "--data-dir",
         help="Override MHCTOOLS_DATA_DIR for mhctools-managed artifacts")
@@ -108,7 +111,8 @@ def fetch_main(args_list=None):
     selection = parser.add_mutually_exclusive_group()
     selection.add_argument(
         "--model", dest="models", action="append", metavar="NAME",
-        help="Fetch one model weight; repeat for multiple models")
+        help="Fetch one model weight; repeat for multiple models "
+             "(mixtcrpred only)")
     selection.add_argument(
         "--all-models", action="store_true",
         help="Fetch every available model weight (mixtcrpred only)")

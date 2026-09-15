@@ -12,16 +12,37 @@ from mhctools.peptidases import cleavage_models, predict_cleavage
 def main(argv=None):
     parser = argparse.ArgumentParser(
         prog="mhctools cleavage",
-        description="Report peptidase motif evidence and native model scores per bond.")
-    parser.add_argument("--list-models", action="store_true")
+        description="Report peptidase motif evidence and native model scores "
+                    "per bond, as JSON.")
+    parser.add_argument("--list-models", action="store_true",
+                        help="List the curated cleavage models with their "
+                             "enzymes, compartments and evidence, then exit")
     parser.add_argument("--sequence", action="append", help="Canonical linear L-peptide; repeat for multiple inputs")
-    parser.add_argument("--model", action="append", help="Exact model name; repeat to select multiple models")
+    parser.add_argument("--model", action="append",
+                        help="Exact model name (see --list-models); repeat to "
+                             "select multiple models. Defaults to every "
+                             "always-available model for --compartment; "
+                             "models needing a fetched asset (eramer-step) "
+                             "must be named explicitly.")
     parser.add_argument("--compartment", help="Filter enzyme locations: serum, plasma, extracellular, cytosol, er, endosome")
-    parser.add_argument("--n-term", choices=("free", "acetylated", "unknown"), default="free")
-    parser.add_argument("--c-term", choices=("free", "amidated", "unknown"), default="free")
-    parser.add_argument("--source-id")
-    parser.add_argument("--source-start", type=int, default=0)
-    parser.add_argument("--enzyme-state", action="append", default=[], help="Explicit CPB2=active, zymogen, inactive or unknown")
+    parser.add_argument("--n-term", choices=("free", "acetylated", "unknown"), default="free",
+                        help="N-terminal chemistry of the input peptide "
+                             "(default: %(default)s)")
+    parser.add_argument("--c-term", choices=("free", "amidated", "unknown"), default="free",
+                        help="C-terminal chemistry of the input peptide "
+                             "(default: %(default)s)")
+    parser.add_argument("--source-id",
+                        help="Identifier of the protein the peptide came from, "
+                             "echoed back in the report")
+    parser.add_argument("--source-start", type=int, default=0,
+                        help="Offset of the peptide within --source-id, used "
+                             "to report source coordinates "
+                             "(default: %(default)s)")
+    parser.add_argument("--enzyme-state", action="append", default=[],
+                        metavar="ENZYME=STATE",
+                        help="Declare one enzyme's state, e.g. "
+                             "'CPB2=active'; STATE is active, zymogen, "
+                             "inactive or unknown. Repeat per enzyme.")
     parser.add_argument("--out", help="Write JSON to this path instead of stdout")
     args = parser.parse_args(argv)
     if args.list_models:
