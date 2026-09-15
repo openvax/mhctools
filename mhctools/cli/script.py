@@ -14,14 +14,9 @@
 
 import sys
 
-import pandas as pd
 from pyensembl.fasta import parse_fasta_dictionary
 
 from .args import make_mhc_arg_parser, predictors_from_args
-from mhctools.logging import get_logger
-
-
-logger = get_logger(__name__)
 
 
 arg_parser = make_mhc_arg_parser(
@@ -155,6 +150,26 @@ def apply_filters(df, args):
     return df
 
 
+def format_predictions(df):
+    """Render a prediction DataFrame as an aligned, index-free text table.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Prediction table from
+        :meth:`BindingPredictionCollection.to_dataframe`.
+
+    Returns
+    -------
+    str
+        Every row and column of ``df``, with floats trimmed to six
+        significant digits, or a short notice when ``df`` is empty.
+    """
+    if len(df) == 0:
+        return "No predictions."
+    return df.to_string(index=False, float_format=lambda value: "%.6g" % value)
+
+
 def main(args_list=None):
     """
     Script to make pMHC binding predictions from amino acid sequences.
@@ -201,10 +216,14 @@ def main(args_list=None):
     df = apply_filters(df, args)
     n_after = len(df)
     if n_before != n_after:
-        logger.info(
-            "Filtered %d → %d predictions", n_before, n_after)
-    pd.set_option('display.max_columns', None)
-    logger.info('\n%s', df)
+        # Keep the note off stdout so the table stays machine-readable.
+        print("Filtered %d -> %d predictions" % (n_before, n_after),
+              file=sys.stderr)
     if args.output_csv:
+        # Don't also dump the table to a terminal the user redirected to a
+        # file; a proteome-wide scan is millions of rows.
         df.to_csv(args.output_csv, index=False)
-        print("Wrote: %s" % args.output_csv)
+        print("Wrote: %s (%d rows, %d columns)" % (
+            args.output_csv, len(df), len(df.columns)))
+    else:
+        print(format_predictions(df))

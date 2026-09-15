@@ -14,10 +14,54 @@ import tempfile
 from argparse import ArgumentParser
 from os import remove
 
+import pandas as pd
 import pytest
 
-from mhctools.cli.script import add_output_args, parse_args, run_predictor
+from mhctools.cli.script import (
+    add_output_args,
+    format_predictions,
+    main,
+    parse_args,
+    run_predictor,
+)
 from .common import eq_
+
+
+def test_main_prints_prediction_table(capsys):
+    """Without --output-csv the predictions must reach stdout (not a logger)."""
+    main([
+        "--mhc-predictor", "random",
+        "--sequence", "SIINFEKL",
+        "--mhc-alleles", "HLA-A*02:01"])
+    stdout = capsys.readouterr().out
+    assert "SIINFEKL" in stdout
+    assert "peptide" in stdout
+    assert "allele" in stdout
+
+
+def test_main_with_output_csv_reports_the_file(capsys, tmp_path):
+    output_csv = tmp_path / "predictions.csv"
+    main([
+        "--mhc-predictor", "random",
+        "--sequence", "SIINFEKL",
+        "--mhc-alleles", "HLA-A*02:01",
+        "--output-csv", str(output_csv)])
+    assert "Wrote: %s" % output_csv in capsys.readouterr().out
+    assert list(pd.read_csv(output_csv).peptide) == ["SIINFEKL"]
+
+
+def test_format_predictions_has_no_index_column_and_short_floats():
+    df = pd.DataFrame({
+        "peptide": ["SIINFEKL"],
+        "affinity": [11927.161441410432],
+    })
+    lines = format_predictions(df).splitlines()
+    assert lines[0].split() == ["peptide", "affinity"]
+    assert lines[1].split() == ["SIINFEKL", "11927.2"]
+
+
+def test_format_predictions_when_empty():
+    assert format_predictions(pd.DataFrame({"peptide": []})) == "No predictions."
 
 
 def test_repeated_sequence_options_accumulate():
