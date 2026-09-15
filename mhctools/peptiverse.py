@@ -39,18 +39,19 @@ unmodified sequence. Modified peptides are rejected rather than misattributed.
 
 Installation
 ------------
-Snapshot the upstream model repository (git-lfs; roughly 3 GB) and point
-``PEPTIVERSE_HOME`` at it::
+Snapshot the upstream model repository and the pinned ESM2 model, then point
+``PEPTIVERSE_HOME`` and ``PEPTIVERSE_ESM_HOME`` at them::
 
     git clone https://huggingface.co/ChatterjeeLab/PeptiVerse
     cd PeptiVerse && git checkout 8cf0b21dae356278ae96b414a088e4360357d16c
+    huggingface-cli download facebook/esm2_t33_650M_UR50D \
+        --revision 08e4846e537177426273712802403f7ba8261b6c \
+        --local-dir /models/esm2_t33_650M_UR50D
 
 The upstream stack (torch, transformers==4.46.0, xgboost, lightning) is kept out
-of the mhctools environment: inference runs in a subprocess under
-``PEPTIVERSE_PYTHON``. Constructing upstream's predictor also instantiates ESM2
-(``esm2_t33_650M_UR50D``), PeptideCLM and ChemBERTa, which are fetched from the
-HuggingFace hub on first use and cached — so the first call needs network access
-even though prediction itself does not.
+of the mhctools environment: inference runs offline in a subprocess under
+``PEPTIVERSE_PYTHON``. The wrapper supplies the local ESM2 snapshot and prevents
+upstream from constructing its unused PeptideCLM and ChemBERTa embedders.
 
 Provenance and limits
 ---------------------
@@ -73,17 +74,23 @@ import os
 import math
 from pathlib import Path
 import shutil
-import subprocess
 import sys
 import tempfile
 
 import pandas as pd
 
 from .pred import Kind, PeptideResult, Prediction
+from .optional_backend import (
+    BackendSpec,
+    backend_inventory,
+    inspect_artifact,
+    run_python_sidecar,
+)
 from .wrapper_base import AlleleFreePredictor
 
 #: Upstream revision this wrapper was written and verified against.
 UPSTREAM_REVISION = "8cf0b21dae356278ae96b414a088e4360357d16c"
+ESM2_REVISION = "08e4846e537177426273712802403f7ba8261b6c"
 
 #: WTEmbedder allows 1022 tokens, including the two ESM special tokens.
 PEPTIVERSE_MAX_PEPTIDE_LENGTH = 1020
@@ -93,12 +100,77 @@ _VALID_AMINO_ACIDS = frozenset("ACDEFGHIKLMNPQRSTVWY")
 # A one-row manifest in upstream's format. Restricting it to Halflife (with the
 # SMILES column blanked out with "-") makes `_load_all_best_models` load the
 # single sequence half-life model rather than every property's best model.
-# "Transformer" resolves to transformer_wt_log, whose output is expm1'd by
-# upstream into hours.
+# Name the exact variant. Upstream's generic "Transformer" alias silently falls
+# back from transformer_wt_log to transformer_wt when the expected directory is
+# absent, which changes the output transform and invalidates provenance.
 _HALF_LIFE_MANIFEST = (
     "Properties, Best_Model_WT, Best_Model_SMILES, Type, "
     "Threshold_WT, Threshold_SMILES,\n"
-    "Halflife, Transformer, -, Regression, -, -,\n"
+    "Halflife, Transformer_WT_Log, -, Regression, -, -,\n"
+)
+
+_MODEL_DIRECTORY = Path("training_classifiers/half_life/transformer_wt_log")
+
+_PEPTIVERSE_ARTIFACTS = {
+    "inference.py": (
+        "inference_and_feature_code",
+        "b899369f020cc73f939a7113fd9aff471a923b109e77ae88c22aa706e66d119a",
+        "python_source"),
+    str(_MODEL_DIRECTORY / "best_model.pt"): (
+        "half_life_model_weights",
+        "d05a90b794ed45246cf2778e677f5ef312db90131c0b39367b3102fde59b09fa",
+        "torch_pickle"),
+    str(_MODEL_DIRECTORY / "best_params.json"): (
+        "model_configuration",
+        "b5fc9465638ad21e554310e8a03650c12dc7ea46febac7c75dea34251fa96b84",
+        "json"),
+    str(_MODEL_DIRECTORY / "mapie_calibration.joblib"): (
+        "uncertainty_calibration",
+        "bc801e894da7d65c906d8c5d4a14dd680d6ca1ed28eb681ed01666a8fc34b66e",
+        "joblib_pickle"),
+}
+
+_ESM2_ARTIFACTS = {
+    "config.json": (
+        "embedding_model_configuration",
+        "539095c22efc52a09d6147074ba4ca119f76a890df5901213b2b55f7d2f96b2b",
+        "json"),
+    "tokenizer_config.json": (
+        "tokenizer_configuration",
+        "7e9161ecdb548ec45a41cbc6b24aa4476fdd418461f491c4207baa99419a29ad",
+        "json"),
+    "special_tokens_map.json": (
+        "tokenizer_configuration",
+        "3aedcd4211c0d43aec4e607ff60a63255f3174ead795e997350f09a5f8cd9ee1",
+        "json"),
+    "vocab.txt": (
+        "tokenizer_vocabulary",
+        "0b82cc0a7c7cf9e567b1e5892d793285b9fbae822c964ca48696f7db44598e03",
+        "text"),
+}
+
+_ESM2_WEIGHT_ARTIFACTS = {
+    "model.safetensors": (
+        "a08adabb949fa67ad3c14b509d04fd60368b35007b0095e3358f81200c4f4db0",
+        "safetensors"),
+    "pytorch_model.bin": (
+        "c874668852c7275a159e2c7ceb6069671d7b1ba2c7b52f59600b34ce0f721008",
+        "torch_pickle"),
+}
+
+PEPTIVERSE_BACKEND_SPEC = BackendSpec(
+    name="peptiverse",
+    endpoint="human_serum_half_life_hours",
+    developed_against="peptiverse@%s+esm2@%s" % (
+        UPSTREAM_REVISION, ESM2_REVISION),
+    license="PeptiVerse: Apache-2.0/MIT ambiguity; ESM2: MIT",
+    serialization="torch pickle checkpoint + safetensors/torch weights",
+    entry_point="prediction_only",
+    # The conformance path is covered on Linux/macOS and Python 3.10-3.12, but
+    # real-model inference remains an opt-in smoke test, so do not advertise a
+    # validated runtime combination here yet.
+    supported_platforms=(),
+    supported_interpreters=(),
 )
 
 
@@ -123,12 +195,82 @@ def _find_peptiverse_home(peptiverse_home=None):
         raise FileNotFoundError(
             "inference.py not found in %r — is this a PeptiVerse snapshot?"
             % candidate)
-    weights = Path(candidate, "training_classifiers", "half_life")
+    weights = Path(candidate) / _MODEL_DIRECTORY
     if not weights.is_dir():
         raise FileNotFoundError(
-            "training_classifiers/half_life not found in %r — the snapshot is "
-            "missing its half-life weights (git-lfs not pulled?)" % candidate)
+            "%s not found in %r — the exact log-scale half-life model is "
+            "required; mhctools will not fall back to another variant"
+            % (_MODEL_DIRECTORY, candidate))
     return candidate
+
+
+def _find_esm_home(peptiverse_home, peptiverse_esm_home=None):
+    """Resolve a local snapshot of the pinned ESM2 feature model."""
+    candidate = peptiverse_esm_home or os.environ.get("PEPTIVERSE_ESM_HOME")
+    if not candidate:
+        colocated = Path(peptiverse_home) / "esm2_t33_650M_UR50D"
+        if colocated.is_dir():
+            candidate = colocated
+    if not candidate:
+        cached = (
+            Path.home() / ".cache" / "huggingface" / "hub" /
+            "models--facebook--esm2_t33_650M_UR50D" / "snapshots" /
+            ESM2_REVISION)
+        if cached.is_dir():
+            candidate = cached
+    if not candidate:
+        raise FileNotFoundError(
+            "Pinned ESM2 snapshot not found. Set PEPTIVERSE_ESM_HOME or pass "
+            "peptiverse_esm_home=; inference is offline and will not download it")
+    return str(Path(candidate).expanduser().resolve())
+
+
+def _artifact_inventory(peptiverse_home, esm_home, max_peptide_length):
+    artifacts = []
+    root = Path(peptiverse_home)
+    for relative, (role, expected_sha256, serialization) in (
+            _PEPTIVERSE_ARTIFACTS.items()):
+        artifacts.append(inspect_artifact(
+            name="peptiverse/%s" % relative,
+            role=role,
+            path=root / relative,
+            expected_sha256=expected_sha256,
+            serialization=serialization))
+
+    esm_root = Path(esm_home)
+    for relative, (role, expected_sha256, serialization) in (
+            _ESM2_ARTIFACTS.items()):
+        artifacts.append(inspect_artifact(
+            name="esm2/%s" % relative,
+            role=role,
+            path=esm_root / relative,
+            expected_sha256=expected_sha256,
+            serialization=serialization))
+
+    # Transformers prefers safetensors when both formats are present. Inventory
+    # only the file it will actually load, while accepting the pinned PyTorch
+    # alternative when safetensors was not provisioned.
+    weight_name = "model.safetensors"
+    if not (esm_root / weight_name).is_file() and (
+            esm_root / "pytorch_model.bin").is_file():
+        weight_name = "pytorch_model.bin"
+    expected_sha256, serialization = _ESM2_WEIGHT_ARTIFACTS[weight_name]
+    artifacts.append(inspect_artifact(
+        name="esm2/%s" % weight_name,
+        role="embedding_model_weights",
+        path=esm_root / weight_name,
+        expected_sha256=expected_sha256,
+        serialization=serialization))
+
+    return backend_inventory(
+        spec=PEPTIVERSE_BACKEND_SPEC,
+        artifacts=artifacts,
+        settings={
+            "embedding_model": "facebook/esm2_t33_650M_UR50D",
+            "max_peptide_length": max_peptide_length,
+            "model_variant": "transformer_wt_log",
+            "output_units": "hours",
+        })
 
 
 def _resolve_python(peptiverse_python=None):
@@ -158,6 +300,11 @@ class PeptiVerse(AlleleFreePredictor):
     peptiverse_python : str, optional
         Interpreter that has PeptiVerse's dependencies. Resolved from the
         argument, then ``$PEPTIVERSE_PYTHON``, then the current interpreter.
+    peptiverse_esm_home : str, optional
+        Local snapshot of ``facebook/esm2_t33_650M_UR50D`` at the pinned
+        revision. Resolved from the argument, ``$PEPTIVERSE_ESM_HOME``, a
+        directory colocated under ``PEPTIVERSE_HOME``, then the exact revision
+        in the HuggingFace cache. It is never downloaded during prediction.
     device : str, optional
         Passed to upstream (``"cpu"``, ``"cuda"``, ...). Default lets upstream
         choose: CUDA when available, otherwise CPU.
@@ -180,6 +327,12 @@ class PeptiVerse(AlleleFreePredictor):
     max_peptide_length : int
         Peptides longer than this are rejected instead of being silently
         truncated by ESM2. Default 1020 (1022 tokens minus two special tokens).
+    allow_unverified_assets : bool
+        Permit explicitly supplied files whose checksums differ from the pinned
+        inventory. False by default. The actual content identity is still
+        recorded in :attr:`artifact_inventory` and every prediction.
+    subprocess_timeout : float, optional
+        Maximum seconds allowed for the isolated inference process.
     """
 
     mhc_class = "none"
@@ -188,19 +341,31 @@ class PeptiVerse(AlleleFreePredictor):
             self,
             peptiverse_home=None,
             peptiverse_python=None,
+            peptiverse_esm_home=None,
             device=None,
             uncertainty=False,
-            max_peptide_length=PEPTIVERSE_MAX_PEPTIDE_LENGTH):
+            max_peptide_length=PEPTIVERSE_MAX_PEPTIDE_LENGTH,
+            allow_unverified_assets=False,
+            subprocess_timeout=3600):
         if max_peptide_length > PEPTIVERSE_MAX_PEPTIDE_LENGTH:
             raise ValueError(
                 "ESM2 accepts at most %d residues; max_peptide_length cannot "
                 "exceed that (got %d)"
                 % (PEPTIVERSE_MAX_PEPTIDE_LENGTH, max_peptide_length))
         self.peptiverse_home = _find_peptiverse_home(peptiverse_home)
+        self.peptiverse_esm_home = _find_esm_home(
+            self.peptiverse_home, peptiverse_esm_home)
         self.peptiverse_python = _resolve_python(peptiverse_python)
         self.device = device
         self.uncertainty = uncertainty
         self.max_peptide_length = max_peptide_length
+        self.subprocess_timeout = subprocess_timeout
+        self.artifact_inventory = _artifact_inventory(
+            self.peptiverse_home,
+            self.peptiverse_esm_home,
+            self.max_peptide_length)
+        self.artifact_inventory.require_usable(
+            allow_unverified=allow_unverified_assets)
         self.last_qc = pd.DataFrame()
 
     def __str__(self):
@@ -215,7 +380,7 @@ class PeptiVerse(AlleleFreePredictor):
 
     @property
     def predictor_version(self):
-        return "%s:transformer_wt_log" % UPSTREAM_REVISION
+        return self.artifact_inventory.predictor_version
 
     def _check_peptides(self, peptides):
         for peptide in peptides:
@@ -279,43 +444,29 @@ class PeptiVerse(AlleleFreePredictor):
             }).to_csv(input_path, index=False)
 
             sidecar = Path(__file__).with_name("peptiverse_sidecar.py")
-            command = [
-                self.peptiverse_python,
-                # Run through runpy rather than passing the script path
-                # directly: that would put mhctools/ on sys.path[0], where
-                # mhctools/logging.py shadows the stdlib logging module that
-                # torch imports.
-                "-c",
-                (
-                    "import runpy,sys; sys.argv=sys.argv[1:]; "
-                    "runpy.run_path(sys.argv[0],run_name='__main__')"
-                ),
-                str(sidecar),
+            arguments = [
                 "--home", self.peptiverse_home,
+                "--esm-home", self.peptiverse_esm_home,
                 "--manifest", str(manifest_path),
                 "--input", str(input_path),
                 "--output", str(output_path),
                 "--device", self.device or "",
             ]
             if self.uncertainty:
-                command.append("--uncertainty")
+                arguments.append("--uncertainty")
 
-            environment = os.environ.copy()
-            environment["PYTHONNOUSERSITE"] = "1"
-            process = subprocess.run(
-                command,
+            run_python_sidecar(
+                backend_name="PeptiVerse",
+                python=self.peptiverse_python,
+                sidecar=sidecar,
+                args=arguments,
                 cwd=self.peptiverse_home,
-                env=environment,
-                capture_output=True,
-                text=True,
+                timeout=self.subprocess_timeout,
             )
-            if process.returncode != 0:
-                raise RuntimeError(
-                    "PeptiVerse inference failed (exit %d):\n%s" % (
-                        process.returncode,
-                        (process.stderr or process.stdout).strip()))
             output = parse_peptiverse_results(output_path, peptide_list)
 
+        self.artifact_inventory = (
+            self.artifact_inventory.with_inference_reproduced())
         self.last_qc = output.drop(columns=["hours"])
         return output
 

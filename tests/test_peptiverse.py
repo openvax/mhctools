@@ -32,6 +32,7 @@ from mhctools import Kind, PeptiVerse
 from mhctools.peptiverse import (
     PEPTIVERSE_MAX_PEPTIDE_LENGTH,
     _HALF_LIFE_MANIFEST,
+    _MODEL_DIRECTORY,
     parse_peptiverse_results,
 )
 from mhctools.pred import VALUE_BEST_DIRECTIONS, best_direction
@@ -102,9 +103,9 @@ def test_manifest_selects_only_the_half_life_sequence_model():
     assert "Best_Model_WT" in header and "Best_Model_SMILES" in header
     fields = [field.strip() for field in row.split(",")]
     assert fields[0] == "Halflife"
-    # "Transformer" resolves upstream to transformer_wt_log, the only half-life
-    # variant whose output is expm1'd into hours.
-    assert fields[1] == "Transformer"
+    # The exact name prevents upstream's generic Transformer alias from falling
+    # back to transformer_wt, whose output has different provenance and units.
+    assert fields[1] == "Transformer_WT_Log"
     # SMILES model blanked: its output is not on the hours scale.
     assert fields[2] == "-"
     assert fields[3] == "Regression"
@@ -199,7 +200,11 @@ def test_zero_duration_is_preserved():
     assert parse_peptiverse_results(data, ["SIINFEKL"])["hours"].tolist() == [0.0]
 
 
-def _stub_inference(tmp_path, hours=1.25, retained_limit=1020):
+def _stub_inference(
+        tmp_path,
+        hours=1.25,
+        retained_limit=1020,
+        model_name="transformer_wt_log"):
     """Run the actual sidecar against a dependency-free upstream-shaped stub."""
     home = tmp_path / "Pepti Verse"
     home.mkdir()
@@ -219,9 +224,17 @@ class Embedder:
         return Mask(min(len(ids), {retained_limit}))
 
 class PeptiVersePredictor:
-    def __init__(self, manifest_path, classifier_weight_root, device):
+    def __init__(self, manifest_path, classifier_weight_root, esm_name, device):
         assert Path(classifier_weight_root) == Path(__file__).resolve().parent
+        assert Path(esm_name) == Path(classifier_weight_root) / "esm2_t33_650M_UR50D"
         self.wt_embedder = Embedder()
+        artifact = Path(classifier_weight_root) / {str(_MODEL_DIRECTORY)!r} / "best_model.pt"
+        self.meta = {{("halflife", "wt"): {{
+            "artifact": str(artifact),
+            "model_name": {model_name!r},
+            "emb_tag": "wt",
+            "kind": "torch_ckpt",
+        }}}}
     def predict_property(self, prop, col, peptide, uncertainty):
         return {{"score": {hours!r}, "emb_tag": "wt"}}
 ''')
@@ -237,36 +250,62 @@ def test_relative_home_survives_caller_and_sidecar_directory_changes(
     monkeypatch.chdir(tmp_path)
     if via_environment:
         monkeypatch.setenv("PEPTIVERSE_HOME", relative)
-        predictor = PeptiVerse(peptiverse_python=sys.executable)
+        predictor = PeptiVerse(
+            peptiverse_python=sys.executable,
+            allow_unverified_assets=True)
     else:
         predictor = PeptiVerse(
-            peptiverse_home=relative, peptiverse_python=sys.executable)
+            peptiverse_home=relative,
+            peptiverse_python=sys.executable,
+            allow_unverified_assets=True)
     monkeypatch.chdir(tmp_path / "nested")
     assert predictor.peptiverse_home == str(home.resolve())
     peptides = ["A" * 1019 + "K", "A" * 1019 + "R"]
     results = predictor.predict(peptides)
     assert [r.peptide for r in results] == peptides
     assert [r.serum_half_life.value for r in results] == [1.25, 1.25]
+    assert predictor.artifact_inventory.inference_status == "reproduced"
+    assert all(
+        result.serum_half_life.predictor_version == predictor.predictor_version
+        for result in results)
 
 
 @pytest.mark.parametrize("hours", ["nan", "inf", "-inf", -1.0])
 def test_public_predict_rejects_invalid_sidecar_duration(tmp_path, hours):
     home = _stub_inference(tmp_path, hours=hours)
-    predictor = PeptiVerse(peptiverse_home=home, peptiverse_python=sys.executable)
+    predictor = PeptiVerse(
+        peptiverse_home=home,
+        peptiverse_python=sys.executable,
+        allow_unverified_assets=True)
     with pytest.raises(RuntimeError, match="invalid half-lives"):
         predictor.predict(["SIINFEKL"])
 
 
 def test_sidecar_checks_actual_tokenizer_residue_count(tmp_path):
     home = _stub_inference(tmp_path, retained_limit=7)
-    predictor = PeptiVerse(peptiverse_home=home, peptiverse_python=sys.executable)
+    predictor = PeptiVerse(
+        peptiverse_home=home,
+        peptiverse_python=sys.executable,
+        allow_unverified_assets=True)
     with pytest.raises(RuntimeError, match="retained 7 of 8 residues"):
+        predictor.predict(["SIINFEKL"])
+
+
+def test_sidecar_rejects_unexpected_loaded_model_metadata(tmp_path):
+    home = _stub_inference(tmp_path, model_name="transformer_wt")
+    predictor = PeptiVerse(
+        peptiverse_home=home,
+        peptiverse_python=sys.executable,
+        allow_unverified_assets=True)
+    with pytest.raises(RuntimeError, match="Unexpected PeptiVerse.*metadata"):
         predictor.predict(["SIINFEKL"])
 
 
 @pytest.mark.parametrize("length", [1021, 1022])
 def test_rejects_lengths_that_fit_only_without_special_tokens(tmp_path, length):
-    predictor = PeptiVerse(peptiverse_home=_fake_home(tmp_path))
+    predictor = PeptiVerse(
+        peptiverse_home=_fake_home(tmp_path),
+        allow_unverified_assets=True)
     with pytest.raises(ValueError, match="up to 1020 residues"):
         predictor.predict(["A" * (length - 1) + "K"])
 
@@ -276,7 +315,16 @@ def test_rejects_lengths_that_fit_only_without_special_tokens(tmp_path, length):
 def _fake_home(tmp_path):
     """A directory shaped enough like a snapshot to pass resolution."""
     (tmp_path / "inference.py").write_text("")
-    (tmp_path / "training_classifiers" / "half_life").mkdir(parents=True)
+    model_dir = tmp_path / _MODEL_DIRECTORY
+    model_dir.mkdir(parents=True)
+    for name in ("best_model.pt", "best_params.json", "mapie_calibration.joblib"):
+        (model_dir / name).write_text("fake " + name)
+    esm_dir = tmp_path / "esm2_t33_650M_UR50D"
+    esm_dir.mkdir()
+    for name in (
+            "config.json", "tokenizer_config.json", "special_tokens_map.json",
+            "vocab.txt", "model.safetensors"):
+        (esm_dir / name).write_text("fake " + name)
     return str(tmp_path)
 
 
@@ -294,12 +342,23 @@ def test_home_without_inference_is_reported(tmp_path):
 
 def test_home_without_weights_is_reported(tmp_path):
     (tmp_path / "inference.py").write_text("")
-    with pytest.raises(FileNotFoundError, match="half_life not found"):
+    with pytest.raises(FileNotFoundError, match="transformer_wt_log not found"):
+        PeptiVerse(peptiverse_home=str(tmp_path))
+
+
+def test_generic_transformer_fallback_is_not_accepted(tmp_path):
+    (tmp_path / "inference.py").write_text("")
+    fallback = tmp_path / "training_classifiers" / "half_life" / "transformer_wt"
+    fallback.mkdir(parents=True)
+    (fallback / "best_model.pt").write_text("different model")
+    with pytest.raises(FileNotFoundError, match="will not fall back"):
         PeptiVerse(peptiverse_home=str(tmp_path))
 
 
 def test_supported_kinds_and_mhc_context(tmp_path):
-    predictor = PeptiVerse(peptiverse_home=_fake_home(tmp_path))
+    predictor = PeptiVerse(
+        peptiverse_home=_fake_home(tmp_path),
+        allow_unverified_assets=True)
     assert predictor.supported_kinds == (Kind.serum_half_life,)
     support = predictor.kind_support()[Kind.serum_half_life]
     assert support["mhc_dependence"] == "none"
@@ -307,24 +366,32 @@ def test_supported_kinds_and_mhc_context(tmp_path):
 
 
 def test_empty_peptide_list_returns_nothing(tmp_path):
-    predictor = PeptiVerse(peptiverse_home=_fake_home(tmp_path))
+    predictor = PeptiVerse(
+        peptiverse_home=_fake_home(tmp_path),
+        allow_unverified_assets=True)
     assert predictor.predict([]) == []
 
 
 def test_modified_residues_are_rejected_not_silently_stripped(tmp_path):
-    predictor = PeptiVerse(peptiverse_home=_fake_home(tmp_path))
+    predictor = PeptiVerse(
+        peptiverse_home=_fake_home(tmp_path),
+        allow_unverified_assets=True)
     with pytest.raises(ValueError, match="unmodified sequence"):
         predictor.predict(["SIINFEKLB"])
 
 
 def test_empty_peptide_is_rejected(tmp_path):
-    predictor = PeptiVerse(peptiverse_home=_fake_home(tmp_path))
+    predictor = PeptiVerse(
+        peptiverse_home=_fake_home(tmp_path),
+        allow_unverified_assets=True)
     with pytest.raises(ValueError, match="Empty peptide"):
         predictor.predict([""])
 
 
 def test_over_long_peptide_is_rejected_rather_than_truncated(tmp_path):
-    predictor = PeptiVerse(peptiverse_home=_fake_home(tmp_path))
+    predictor = PeptiVerse(
+        peptiverse_home=_fake_home(tmp_path),
+        allow_unverified_assets=True)
     with pytest.raises(ValueError, match="up to 1020 residues"):
         predictor.predict(["A" * (PEPTIVERSE_MAX_PEPTIDE_LENGTH + 1)])
 
@@ -333,20 +400,47 @@ def test_max_peptide_length_cannot_exceed_model_limit(tmp_path):
     with pytest.raises(ValueError, match="at most 1020 residues"):
         PeptiVerse(
             peptiverse_home=_fake_home(tmp_path),
-            max_peptide_length=PEPTIVERSE_MAX_PEPTIDE_LENGTH + 1)
+            max_peptide_length=PEPTIVERSE_MAX_PEPTIDE_LENGTH + 1,
+            allow_unverified_assets=True)
 
 
 def test_missing_python_is_reported(tmp_path):
     with pytest.raises(FileNotFoundError, match="Python does not exist"):
         PeptiVerse(
             peptiverse_home=_fake_home(tmp_path),
-            peptiverse_python="/nonexistent/python")
+            peptiverse_python="/nonexistent/python",
+            allow_unverified_assets=True)
 
 
-def test_predictor_version_pins_the_upstream_revision(tmp_path):
-    predictor = PeptiVerse(peptiverse_home=_fake_home(tmp_path))
-    assert predictor.predictor_version.startswith("8cf0b21")
-    assert predictor.predictor_version.endswith("transformer_wt_log")
+def test_unverified_assets_are_rejected_by_default(tmp_path):
+    with pytest.raises(RuntimeError, match="mismatch artifacts"):
+        PeptiVerse(peptiverse_home=_fake_home(tmp_path))
+
+
+def test_predictor_version_carries_actual_asset_identity(tmp_path):
+    home = Path(_fake_home(tmp_path))
+    predictor = PeptiVerse(
+        peptiverse_home=home,
+        allow_unverified_assets=True)
+    first_version = predictor.predictor_version
+    assert "developed-against=peptiverse@8cf0b21" in first_version
+    assert ";assets-sha256=" in first_version
+    assert first_version.endswith(";status=mismatch")
+
+    (home / _MODEL_DIRECTORY / "best_model.pt").write_text("replacement")
+    replacement = PeptiVerse(
+        peptiverse_home=home,
+        allow_unverified_assets=True)
+    assert replacement.predictor_version != first_version
+
+
+def test_missing_esm_snapshot_is_reported(tmp_path, monkeypatch):
+    home = Path(_fake_home(tmp_path))
+    esm = home / "esm2_t33_650M_UR50D"
+    esm.rename(home / "removed-esm")
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path / "empty"))
+    with pytest.raises(FileNotFoundError, match="will not download"):
+        PeptiVerse(peptiverse_home=home)
 
 
 # --- end-to-end (opt-in; needs a real snapshot) -----------------------------

@@ -7,13 +7,13 @@
 """Isolated runtime bridge to a user-provided PeptiVerse snapshot.
 
 Runs in the interpreter that owns PeptiVerse's dependency stack (torch,
-transformers, xgboost, the ESM2 / PeptideCLM / ChemBERTa embedding models) so
-none of it has to be importable from the mhctools environment.
+transformers, xgboost and ESM2) so none of it has to be importable from the
+mhctools environment.
 
 Only the half-life endpoint is exposed. The manifest written by the caller lists
-``Halflife`` and nothing else, so ``PeptiVersePredictor`` loads one model
-instead of the nine it would otherwise pull in for hemolysis, solubility,
-permeability, toxicity, non-fouling and binding affinity.
+``Halflife`` and nothing else, and names the exact ``transformer_wt_log``
+variant. The two SMILES embedders are replaced before construction because this
+sequence-only endpoint never uses them.
 """
 
 from argparse import ArgumentParser
@@ -26,6 +26,7 @@ import sys
 def _parse_args():
     parser = ArgumentParser()
     parser.add_argument("--home", required=True)
+    parser.add_argument("--esm-home", required=True)
     parser.add_argument("--manifest", required=True)
     parser.add_argument("--input", required=True)
     parser.add_argument("--output", required=True)
@@ -52,13 +53,36 @@ def main():
 
     # Imported only inside this subprocess; these modules belong to the
     # separately licensed upstream snapshot, not to mhctools.
-    from inference import PeptiVersePredictor
+    import inference
 
-    predictor = PeptiVersePredictor(
+    class _UnusedEmbedder:
+        def __init__(self, *args, **kwargs):
+            pass
+
+    # Upstream eagerly constructs these two large remote models even when the
+    # manifest contains no SMILES endpoint. They cannot affect WT half-life
+    # inference, so prevent both the load and any attempted hub access.
+    inference.SMILESEmbedder = _UnusedEmbedder
+    inference.ChemBERTaEmbedder = _UnusedEmbedder
+
+    predictor = inference.PeptiVersePredictor(
         manifest_path=args.manifest,
         classifier_weight_root=str(home),
+        esm_name=str(Path(args.esm_home).resolve()),
         device=args.device or None,
     )
+
+    meta = predictor.meta.get(("halflife", "wt"))
+    expected_artifact = (
+        home / "training_classifiers" / "half_life" /
+        "transformer_wt_log" / "best_model.pt").resolve()
+    if not meta or Path(meta.get("artifact", "")).resolve() != expected_artifact:
+        raise RuntimeError(
+            "PeptiVerse loaded %r instead of exact artifact %s"
+            % (None if not meta else meta.get("artifact"), expected_artifact))
+    if (meta.get("model_name"), meta.get("emb_tag"), meta.get("kind")) != (
+            "transformer_wt_log", "wt", "torch_ckpt"):
+        raise RuntimeError("Unexpected PeptiVerse half-life model metadata: %r" % meta)
 
     with open(args.input, newline="") as handle:
         rows = list(csv.DictReader(handle))
