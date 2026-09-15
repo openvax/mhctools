@@ -26,6 +26,13 @@ from .artifacts import (
     list_artifacts,
     managed_path,
 )
+from .optional_backend import (
+    ArtifactIdentity,
+    BackendInventory,
+    BackendSpec,
+    backend_inventory,
+    inspect_artifact,
+)
 from .iedb import (
     IedbNetMHCcons,
     IedbNetMHCpan,
@@ -113,7 +120,7 @@ def __getattr__(name):
     raise AttributeError(
         "module %r has no attribute %r" % (__name__, name))
 
-__version__ = "3.44.4"
+__version__ = "3.44.5"
 
 __all__ = [
     "Prediction",
@@ -139,6 +146,11 @@ __all__ = [
     "fetch",
     "list_artifacts",
     "managed_path",
+    "ArtifactIdentity",
+    "BackendInventory",
+    "BackendSpec",
+    "backend_inventory",
+    "inspect_artifact",
     "BindingPrediction",
     "BindingPredictionCollection",
     "set_log_level",
