@@ -31,6 +31,7 @@ from mhctools import (
     RandomBindingPredictor,
 )
 from mhctools.annotate import parse_annotation_spec, output_field_tokens
+from mhctools.cli.annotate_table import _write_predictor_info, main as cli_main
 from mhctools.pred import Kind, MeasurementContext, PeptideResult, Prediction
 
 
@@ -506,6 +507,7 @@ def test_parse_spec_full():
     assert spec.field == "affinity"
     assert spec.kind == Kind.pMHC_affinity
     assert spec.prediction_field == "value"
+    assert spec.units == "nM"
 
 
 def test_parse_spec_defaults_column_and_field():
@@ -571,6 +573,7 @@ def test_stability_token_reads_score_not_value():
     # NetMHCstabpan never populates, so the column was always NaN.
     spec = parse_annotation_spec("netmhcstabpan:stab:stability")
     assert (spec.kind, spec.prediction_field) == (Kind.pMHC_stability, "score")
+    assert spec.units == "hours"
 
     out = annotate_table(
         _table(),
@@ -578,6 +581,42 @@ def test_stability_token_reads_score_not_value():
                         field="stability")],
         allele_column="hla")
     assert list(out["stab"]) == [12.5, 12.5]  # not NaN
+
+
+def test_predictor_info_includes_units(tmp_path):
+    path = tmp_path / "predictors.csv"
+    specs = [
+        AnnotationSpec(_factory, "aff", field="affinity"),
+        AnnotationSpec(_factory, "score", field="score"),
+        AnnotationSpec(_factory, "rank", field="percentile_rank"),
+        AnnotationSpec(_factory, "stab", field="stability"),
+    ]
+    _write_predictor_info(path, ["a", "b", "c", "d"], specs)
+    info = pd.read_csv(path, keep_default_na=False)
+    assert list(info.columns) == [
+        "predictor", "output_column", "score_field", "units",
+        "higher_is_better"]
+    assert list(info.units) == ["nM", "", "percentile", "hours"]
+
+
+def test_predict_table_csv_uses_six_significant_digits(monkeypatch, tmp_path):
+    input_path = tmp_path / "input.csv"
+    output_path = tmp_path / "output.csv"
+    pd.DataFrame({"peptide": ["SIINFEKL"]}).to_csv(input_path, index=False)
+    monkeypatch.setattr(
+        "mhctools.cli.annotate_table.annotate_table",
+        lambda *args, **kwargs: pd.DataFrame({
+            "peptide": ["SIINFEKL"],
+            "score": [0.02069018702171587],
+        }))
+    cli_main([
+        "--input", str(input_path),
+        "--out", str(output_path),
+        "--predictor", "random:score:score",
+    ])
+    text = output_path.read_text()
+    assert "0.0206902" in text
+    assert "0.02069018702171587" not in text
 
 
 # --- generic score/rank token is rejected on multi-kind predictors ----------

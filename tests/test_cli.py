@@ -18,6 +18,7 @@ import pandas as pd
 import pytest
 
 import mhctools.cli.script as cli_script
+from mhctools import BindingPrediction, BindingPredictionCollection
 
 from mhctools.cli.script import (
     add_output_args,
@@ -50,6 +51,30 @@ def test_main_with_output_csv_reports_the_file(capsys, tmp_path):
         "--output-csv", str(output_csv)])
     assert "Wrote: %s" % output_csv in capsys.readouterr().out
     assert list(pd.read_csv(output_csv).peptide) == ["SIINFEKL"]
+
+
+def test_output_csv_uses_six_significant_digits(monkeypatch, tmp_path):
+    output_csv = tmp_path / "predictions.csv"
+    prediction = BindingPrediction(
+        peptide="SIINFEKL",
+        allele="HLA-A*02:01",
+        score=0.1324615620076658,
+        affinity=11927.161441410432,
+        percentile_rank=6.296000000000002)
+    monkeypatch.setattr(
+        cli_script,
+        "run_predictor",
+        lambda args: BindingPredictionCollection([prediction]))
+    main([
+        "--mhc-predictor", "random",
+        "--sequence", "SIINFEKL",
+        "--mhc-alleles", "HLA-A*02:01",
+        "--output-csv", str(output_csv)])
+    text = output_csv.read_text()
+    assert "0.132462" in text
+    assert "11927.2" in text
+    assert "6.296" in text
+    assert "0.1324615620076658" not in text
 
 
 def test_format_predictions_has_no_index_column_and_short_floats():
@@ -106,6 +131,63 @@ def test_repeated_sequence_options_accumulate():
     assert args.sequence == ["SIINFEKL", "GILGFVFTL", "AAAAAAAAA"]
     assert [prediction.peptide for prediction in run_predictor(args)] == [
         "SIINFEKL", "GILGFVFTL", "AAAAAAAAA"]
+
+
+def test_plain_peptide_coordinates_and_method_name_are_normalized(monkeypatch):
+    class FixturePredictor:
+        def predict_peptides(self, peptides):
+            return [BindingPrediction(
+                peptide=peptide,
+                allele="HLA-A*02:01",
+                source_sequence_name="PEPLIST",
+                offset=-1,
+                prediction_method_name="netMHCpan") for peptide in peptides]
+
+    monkeypatch.setattr(
+        cli_script, "predictors_from_args", lambda args: [FixturePredictor()])
+    args = parse_args([
+        "--mhc-predictor", "netmhcpan42-ba",
+        "--sequence", "SIINFEKL",
+        "--mhc-alleles", "HLA-A*02:01"])
+    prediction = run_predictor(args)[0]
+    assert prediction.source_sequence_name == ""
+    assert prediction.offset == 0
+    assert prediction.prediction_method_name == "netmhcpan42-ba"
+
+
+def test_source_predictions_are_sorted_by_source_and_offset(monkeypatch):
+    class FixturePredictor:
+        def predict_peptides(self, peptides):
+            raise AssertionError("extract mode must call predict_subsequences")
+
+        def predict_subsequences(self, sequences):
+            return [
+                BindingPrediction(
+                    peptide="BBBBBBBBB", allele="HLA-A*02:01",
+                    source_sequence_name="protein-b", offset=2),
+                BindingPrediction(
+                    peptide="AAAAAAAAA", allele="HLA-A*02:01",
+                    source_sequence_name="protein-a", offset=4),
+                BindingPrediction(
+                    peptide="CCCCCCCCC", allele="HLA-A*02:01",
+                    source_sequence_name="protein-a", offset=1),
+            ]
+
+    monkeypatch.setattr(
+        cli_script, "predictors_from_args", lambda args: [FixturePredictor()])
+    args = parse_args([
+        "--mhc-predictor", "netmhcpan42-ba",
+        "--sequence", "AAAAAAAAAA",
+        "--extract-subsequences",
+        "--mhc-alleles", "HLA-A*02:01"])
+    predictions = run_predictor(args)
+    assert [
+        (prediction.source_sequence_name, prediction.offset)
+        for prediction in predictions
+    ] == [("protein-a", 1), ("protein-a", 4), ("protein-b", 2)]
+    assert all(
+        prediction.prediction_method_name == "netmhcpan42-ba"
+        for prediction in predictions)
 
 
 @pytest.mark.parametrize("second_source", [

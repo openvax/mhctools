@@ -16,7 +16,11 @@ import sys
 
 from pyensembl.fasta import parse_fasta_dictionary
 
-from .args import make_mhc_arg_parser, predictors_from_args
+from .args import (
+    _flatten_predictor_names,
+    make_mhc_arg_parser,
+    predictors_from_args,
+)
 from .errors import CLI_ERROR_TYPES, cli_error_message
 
 
@@ -79,7 +83,10 @@ def add_output_args(parser):
     output_group.add_argument(
         "--output-csv",
         default=None,
-        help="Write the prediction table to this CSV path")
+        help=(
+            "Write the prediction table to this CSV path. affinity is IC50 "
+            "in nM; percentile_rank is a percentile; score is "
+            "predictor-specific."))
     return output_group
 
 add_input_args(arg_parser)
@@ -137,10 +144,26 @@ def _run_single_predictor(predictor, args):
 def run_predictor(args):
     from mhctools.binding_prediction_collection import BindingPredictionCollection
     predictors = predictors_from_args(args)
+    predictor_names = _flatten_predictor_names(args)
+    has_source_coordinates = bool(
+        args.input_fasta_file or args.extract_subsequences)
     all_predictions = []
-    for predictor in predictors:
+    for predictor_name, predictor in zip(predictor_names, predictors):
         results = _run_single_predictor(predictor, args)
-        all_predictions.extend(results)
+        for prediction in results:
+            updates = {"prediction_method_name": predictor_name}
+            if not has_source_coordinates:
+                # Names such as PEPLIST / Sequence and row-number offsets are
+                # scratch-file details emitted by some wrapped tools. Plain
+                # peptide input has no source coordinates, so expose the same
+                # representation regardless of predictor.
+                updates.update(source_sequence_name="", offset=0)
+            all_predictions.append(prediction.clone_with_updates(**updates))
+    if has_source_coordinates:
+        all_predictions.sort(key=lambda prediction: (
+            prediction.source_sequence_name or "",
+            prediction.offset,
+        ))
     return BindingPredictionCollection(all_predictions)
 
 def apply_filters(df, args):
@@ -227,7 +250,7 @@ def main(args_list=None):
         if args.output_csv:
             # Don't also dump the table to a terminal the user redirected to a
             # file; a proteome-wide scan is millions of rows.
-            df.to_csv(args.output_csv, index=False)
+            df.to_csv(args.output_csv, index=False, float_format="%.6g")
             print("Wrote: %s (%d rows, %d columns)" % (
                 args.output_csv, len(df), len(df.columns)))
         else:
