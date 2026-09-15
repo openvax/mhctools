@@ -18,6 +18,7 @@ from argparse import ArgumentParser
 import json
 
 from ..artifacts import fetch, list_artifacts
+from .errors import cli_error_message
 
 
 def _print_table(statuses):
@@ -133,7 +134,7 @@ def fetch_main(args_list=None):
             high_confidence=args.high_confidence,
         )
     except (RuntimeError, ValueError) as error:
-        parser.error(str(error))
+        parser.error(cli_error_message(error))
     if args.json:
         print(json.dumps(status.to_dict(), indent=2))
     else:

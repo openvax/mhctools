@@ -30,6 +30,7 @@ from ..annotate import (
 )
 from ..pred import best_direction
 from ..logging import get_logger
+from .errors import CLI_ERROR_TYPES, predictor_error_message
 
 
 logger = get_logger(__name__)
@@ -101,27 +102,31 @@ def _write_predictor_info(path, raw_specs, specs):
 
 
 def main(args_list=None):
-    args = make_arg_parser().parse_args(args_list)
+    parser = make_arg_parser()
+    args = parser.parse_args(args_list)
 
-    df = pd.read_csv(args.input)
-    logger.info("Read %d rows, %d columns from %s",
-                len(df), len(df.columns), args.input)
+    try:
+        df = pd.read_csv(args.input)
+        logger.info("Read %d rows, %d columns from %s",
+                    len(df), len(df.columns), args.input)
 
-    specs = [parse_annotation_spec(token) for token in args.predictors]
+        specs = [parse_annotation_spec(token) for token in args.predictors]
 
-    annotated = annotate_table(
-        df,
-        specs,
-        peptide_column=args.peptide_column,
-        allele_column=args.alleles_column,
-        overwrite=args.overwrite)
+        annotated = annotate_table(
+            df,
+            specs,
+            peptide_column=args.peptide_column,
+            allele_column=args.alleles_column,
+            overwrite=args.overwrite)
 
-    annotated.to_csv(args.out, index=False)
-    print("Wrote: %s (%d rows, %d columns)"
-          % (args.out, len(annotated), len(annotated.columns)))
+        annotated.to_csv(args.out, index=False)
+        print("Wrote: %s (%d rows, %d columns)"
+              % (args.out, len(annotated), len(annotated.columns)))
 
-    if args.predictor_info:
-        _write_predictor_info(args.predictor_info, args.predictors, specs)
+        if args.predictor_info:
+            _write_predictor_info(args.predictor_info, args.predictors, specs)
+    except CLI_ERROR_TYPES as error:
+        parser.error(predictor_error_message(error, args.predictors))
 
 
 if __name__ == "__main__":
