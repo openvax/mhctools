@@ -10,6 +10,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import inspect
+import os
+import subprocess
+import sys
 import tempfile
 from argparse import ArgumentParser
 from os import remove
@@ -22,12 +26,21 @@ from mhctools import BindingPrediction, BindingPredictionCollection
 
 from mhctools.cli.script import (
     add_output_args,
+    arg_parser,
     format_predictions,
     main,
     parse_args,
     run_predictor,
 )
 from .common import eq_
+
+
+def _argument_help(parser, option):
+    """Return the help string argparse renders for `option`."""
+    for action in parser._actions:
+        if option in action.option_strings:
+            return action.help
+    raise AssertionError("no such option: %s" % option)
 
 
 def test_main_prints_prediction_table(capsys):
@@ -77,6 +90,21 @@ def test_output_csv_uses_six_significant_digits(monkeypatch, tmp_path):
     assert "0.1324615620076658" not in text
 
 
+def test_mhc_peptide_lengths_help_matches_the_real_default():
+    """The help promises each predictor's *default* lengths, not its supported
+    range: omitting --mhc-peptide-lengths gives 9-mers only from the NetMHC
+    family, even though those predictors accept 8-mers and longer."""
+    from mhctools import NetMHC4, NetMHCcons, NetMHCpan42_BA
+
+    for cls in (NetMHC4, NetMHCcons, NetMHCpan42_BA):
+        default = inspect.signature(cls).parameters[
+            "default_peptide_lengths"].default
+        assert default == [9], cls.__name__
+
+    help_text = _argument_help(arg_parser, "--mhc-peptide-lengths")
+    assert "own default lengths" in help_text
+
+
 def test_format_predictions_has_no_index_column_and_short_floats():
     df = pd.DataFrame({
         "peptide": ["SIINFEKL"],
@@ -88,7 +116,75 @@ def test_format_predictions_has_no_index_column_and_short_floats():
 
 
 def test_format_predictions_when_empty():
-    assert format_predictions(pd.DataFrame({"peptide": []})) == "No predictions."
+    assert format_predictions(pd.DataFrame({"peptide": []})) == ""
+
+
+def test_empty_result_notice_goes_to_stderr(monkeypatch, capsys):
+    """stdout carries the table and nothing else, so no rows means no stdout."""
+    monkeypatch.setattr(
+        cli_script, "run_predictor", lambda args: BindingPredictionCollection([]))
+    main([
+        "--mhc-predictor", "random",
+        "--sequence", "SIINFEKL",
+        "--mhc-alleles", "HLA-A*02:01"])
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert "No predictions." in captured.err
+
+
+def test_write_stdout_exits_quietly_when_the_reader_closed_the_pipe(monkeypatch):
+    """BrokenPipeError is an OSError, so it must never reach CLI_ERROR_TYPES."""
+    read_fd, write_fd = os.pipe()
+    os.close(read_fd)
+
+    class ClosedPipe:
+        def write(self, text):
+            raise BrokenPipeError(32, "Broken pipe")
+
+        def flush(self):
+            raise BrokenPipeError(32, "Broken pipe")
+
+        def fileno(self):
+            return write_fd
+
+    monkeypatch.setattr(sys, "stdout", ClosedPipe())
+    try:
+        with pytest.raises(SystemExit) as exit_info:
+            cli_script.write_stdout("a table nobody is reading")
+    finally:
+        os.close(write_fd)
+    assert exit_info.value.code == 0
+
+
+def test_prediction_table_survives_a_reader_that_stops_early(tmp_path):
+    """`mhctools ... | head -2`: no traceback, no usage dump, exit 0.
+
+    Needs more output than a pipe buffer holds (~64KB), otherwise the write
+    succeeds outright and the closed reader is never noticed.
+    """
+    peptides = tmp_path / "peptides.txt"
+    peptides.write_text("".join(
+        "SIINFEK%s%s\n" % (first, second)
+        for first in "ACDEFGHIKLMNPQRSTVWY"
+        for second in "ACDEFGHIKLMNPQRSTVWY"))
+    producer = subprocess.Popen(
+        [sys.executable, "-c", "from mhctools.cli.script import main; main()",
+         "--mhc-predictor", "random",
+         "--input-peptides-file", str(peptides),
+         "--mhc-alleles", "HLA-A*02:01"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE)
+    header = producer.stdout.readline().decode()
+    # Walk away mid-table, the way head/less do.
+    producer.stdout.close()
+    stderr = producer.stderr.read().decode()
+    producer.stderr.close()
+    producer.wait(timeout=300)
+    assert "peptide" in header
+    assert "BrokenPipeError" not in stderr
+    assert "usage:" not in stderr
+    assert stderr == ""
+    assert producer.returncode == 0
 
 
 @pytest.mark.parametrize("error", [

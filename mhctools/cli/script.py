@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import sys
 
 from pyensembl.fasta import parse_fasta_dictionary
@@ -190,11 +191,36 @@ def format_predictions(df):
     -------
     str
         Every row and column of ``df``, with floats trimmed to six
-        significant digits, or a short notice when ``df`` is empty.
+        significant digits. An empty ``df`` renders as the empty string:
+        "no predictions" is a message for the user, not table content, so
+        it belongs on stderr with the other notices.
     """
     if len(df) == 0:
-        return "No predictions."
-    return df.to_string(index=False, float_format=lambda value: "%.6g" % value)
+        return ""
+    return df.to_string(index=False, float_format="%.6g")
+
+
+def write_stdout(text):
+    """Write ``text`` to stdout, tolerating a reader that has stopped reading.
+
+    ``mhctools ... | head`` closes the pipe while we are still writing, which
+    surfaces as :class:`BrokenPipeError`. Left alone it escapes as a
+    traceback (or, since the whole command body sits behind
+    ``except CLI_ERROR_TYPES`` and ``BrokenPipeError`` is an ``OSError``, as
+    an argparse usage dump that reads like the user mistyped something).
+    Redirecting stdout to devnull before exiting also suppresses the second
+    "Exception ignored" report the interpreter would emit at shutdown while
+    flushing the same dead pipe.
+
+    A reader that stops early is asking us to stop, not reporting a failure,
+    so this exits 0.
+    """
+    try:
+        print(text)
+        sys.stdout.flush()
+    except BrokenPipeError:
+        os.dup2(os.open(os.devnull, os.O_WRONLY), sys.stdout.fileno())
+        sys.exit(0)
 
 
 def main(args_list=None):
@@ -251,9 +277,13 @@ def main(args_list=None):
             # Don't also dump the table to a terminal the user redirected to a
             # file; a proteome-wide scan is millions of rows.
             df.to_csv(args.output_csv, index=False, float_format="%.6g")
-            print("Wrote: %s (%d rows, %d columns)" % (
+            write_stdout("Wrote: %s (%d rows, %d columns)" % (
                 args.output_csv, len(df), len(df.columns)))
+        elif len(df) == 0:
+            # Same reason the filter note goes to stderr: stdout carries the
+            # table and nothing else, so an empty result leaves it empty.
+            print("No predictions.", file=sys.stderr)
         else:
-            print(format_predictions(df))
+            write_stdout(format_predictions(df))
     except CLI_ERROR_TYPES as error:
         arg_parser.error(cli_error_message(error))
