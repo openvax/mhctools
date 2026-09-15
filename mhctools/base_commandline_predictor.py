@@ -15,7 +15,7 @@
 from collections import defaultdict
 import logging
 from multiprocessing import cpu_count
-from subprocess import check_output
+from subprocess import CalledProcessError, check_output
 import tempfile
 
 from typechecks import require_string, require_integer, require_iterable_of
@@ -63,6 +63,27 @@ _supported_alleles_cache = {}
 # e.g. many non-human BoLA/Mamu names). The raw_name is the predictor's own
 # spelling, which is what must be passed back on the command line.
 _normalized_supported_cache = {}
+
+
+def _read_command_outputs(commands):
+    outputs = []
+    for output_file in commands:
+        output_file.seek(0)
+        outputs.append(output_file.read())
+        output_file.close()
+    return outputs
+
+
+def _output_tail(outputs, max_lines=12, max_chars=2000):
+    lines = [
+        line.rstrip()
+        for output in outputs
+        for line in output.splitlines()
+        if line.strip()
+    ]
+    if not lines:
+        return "(empty output)"
+    return "\n".join(lines[-max_lines:])[-max_chars:]
 
 
 def _unique_in_order(values):
@@ -556,15 +577,19 @@ class BaseCommandlinePredictor(BasePredictor):
         with CleanupFiles(
                 filenames=filenames_to_delete,
                 directories=temp_dir_list):
-            run_multiple_commands_redirect_stdout(
-                commands,
-                print_commands=True,
-                process_limit=self.process_limit)
-            for output_file, command in commands.items():
-                # subprocess wrote via its own fd; no flush/fsync needed
-                output_file.seek(0)
-                file_contents = output_file.read()
-                output_file.close()
+            try:
+                run_multiple_commands_redirect_stdout(
+                    commands,
+                    print_commands=True,
+                    process_limit=self.process_limit,
+                    redirect_stderr_to_stdout=True)
+            except CalledProcessError as error:
+                outputs = _read_command_outputs(commands)
+                raise RuntimeError(
+                    "%s\nPredictor output tail:\n%s" % (
+                        error, _output_tail(outputs))) from error
+            outputs = _read_command_outputs(commands)
+            for file_contents in outputs:
                 binding_predictions.extend(
                     self.parse_output_fn(
                         stdout=file_contents,
@@ -572,7 +597,9 @@ class BaseCommandlinePredictor(BasePredictor):
                         prediction_method_name=self.program_name))
 
         if len(binding_predictions) == 0:
-            logger.warning("No binding predictions from %s" % self.program_name)
+            raise ValueError(
+                "No parseable predictions from %s. Predictor output tail:\n%s"
+                % (self.program_name, _output_tail(outputs)))
         return BindingPredictionCollection(binding_predictions)
 
     def _run_commands_and_collect_preds(
@@ -591,15 +618,19 @@ class BaseCommandlinePredictor(BasePredictor):
         with CleanupFiles(
                 filenames=filenames_to_delete,
                 directories=temp_dir_list):
-            run_multiple_commands_redirect_stdout(
-                commands,
-                print_commands=True,
-                process_limit=self.process_limit)
-            for output_file, command in commands.items():
-                # subprocess wrote via its own fd; no flush/fsync needed
-                output_file.seek(0)
-                file_contents = output_file.read()
-                output_file.close()
+            try:
+                run_multiple_commands_redirect_stdout(
+                    commands,
+                    print_commands=True,
+                    process_limit=self.process_limit,
+                    redirect_stderr_to_stdout=True)
+            except CalledProcessError as error:
+                outputs = _read_command_outputs(commands)
+                raise RuntimeError(
+                    "%s\nPredictor output tail:\n%s" % (
+                        error, _output_tail(outputs))) from error
+            outputs = _read_command_outputs(commands)
+            for file_contents in outputs:
                 all_preds.extend(
                     self.parse_to_preds_fn(
                         stdout=file_contents,
@@ -607,7 +638,9 @@ class BaseCommandlinePredictor(BasePredictor):
                         predictor_name=self.program_name))
 
         if len(all_preds) == 0:
-            logger.warning("No predictions from %s" % self.program_name)
+            raise ValueError(
+                "No parseable predictions from %s. Predictor output tail:\n%s"
+                % (self.program_name, _output_tail(outputs)))
 
         # Group by (peptide, offset, source) into PeptideResult
         groups = defaultdict(list)

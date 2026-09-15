@@ -17,6 +17,8 @@ from os import remove
 import pandas as pd
 import pytest
 
+import mhctools.cli.script as cli_script
+
 from mhctools.cli.script import (
     add_output_args,
     format_predictions,
@@ -62,6 +64,37 @@ def test_format_predictions_has_no_index_column_and_short_floats():
 
 def test_format_predictions_when_empty():
     assert format_predictions(pd.DataFrame({"peptide": []})) == "No predictions."
+
+
+@pytest.mark.parametrize("error", [
+    ValueError("bad input"),
+    OSError("bad file"),
+    ImportError("bad optional dependency"),
+])
+def test_main_formats_expected_user_errors(monkeypatch, capsys, error):
+    monkeypatch.setattr(cli_script, "run_predictor", lambda args: (_ for _ in ()).throw(error))
+    with pytest.raises(SystemExit) as raised:
+        main([
+            "--mhc-predictor", "random",
+            "--sequence", "SIINFEKL",
+            "--mhc-alleles", "HLA-A*02:01"])
+    assert raised.value.code == 2
+    stderr = capsys.readouterr().err
+    assert str(error) in stderr
+    assert "Traceback" not in stderr
+
+
+def test_main_missing_input_file_has_no_traceback(capsys, tmp_path):
+    missing = tmp_path / "missing.txt"
+    with pytest.raises(SystemExit) as raised:
+        main([
+            "--mhc-predictor", "random",
+            "--input-peptides-file", str(missing),
+            "--mhc-alleles", "HLA-A*02:01"])
+    assert raised.value.code == 2
+    stderr = capsys.readouterr().err
+    assert str(missing) in stderr
+    assert "Traceback" not in stderr
 
 
 def test_repeated_sequence_options_accumulate():

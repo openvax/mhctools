@@ -13,7 +13,7 @@
 import errno
 import logging
 import os
-from subprocess import Popen, CalledProcessError
+from subprocess import Popen, CalledProcessError, STDOUT
 import time
 from multiprocessing import cpu_count
 
@@ -33,6 +33,7 @@ class AsyncProcess(object):
             self,
             args,
             suppress_stderr=False,
+            redirect_stderr_to_stdout=False,
             redirect_stdout_file=None,
             cwd=None,
             env=None):
@@ -40,6 +41,7 @@ class AsyncProcess(object):
         self.cmd = args[0]
         self.args = args
         self.suppress_stderr = suppress_stderr
+        self.redirect_stderr_to_stdout = redirect_stderr_to_stdout
         self.redirect_stdout_file = redirect_stdout_file
         # cwd/env are passed straight through to Popen (None = inherit); used by
         # wrappers around tools that hardcode relative paths or need extra env.
@@ -52,7 +54,12 @@ class AsyncProcess(object):
             stdout = (
                 self.redirect_stdout_file if self.redirect_stdout_file
                 else devnull)
-            stderr = devnull if self.suppress_stderr else None
+            if self.suppress_stderr:
+                stderr = devnull
+            elif self.redirect_stderr_to_stdout:
+                stderr = STDOUT
+            else:
+                stderr = None
             delay = _POPEN_BASE_DELAY
             for attempt in range(_POPEN_MAX_RETRIES):
                 try:

@@ -17,6 +17,7 @@ import sys
 from pyensembl.fasta import parse_fasta_dictionary
 
 from .args import make_mhc_arg_parser, predictors_from_args
+from .errors import CLI_ERROR_TYPES, cli_error_message
 
 
 arg_parser = make_mhc_arg_parser(
@@ -213,20 +214,23 @@ def main(args_list=None):
         return mixtcrpred_main(args_list[1:])
 
     args = parse_args(args_list)
-    binding_predictions = run_predictor(args)
-    df = binding_predictions.to_dataframe()
-    n_before = len(df)
-    df = apply_filters(df, args)
-    n_after = len(df)
-    if n_before != n_after:
-        # Keep the note off stdout so the table stays machine-readable.
-        print("Filtered %d -> %d predictions" % (n_before, n_after),
-              file=sys.stderr)
-    if args.output_csv:
-        # Don't also dump the table to a terminal the user redirected to a
-        # file; a proteome-wide scan is millions of rows.
-        df.to_csv(args.output_csv, index=False)
-        print("Wrote: %s (%d rows, %d columns)" % (
-            args.output_csv, len(df), len(df.columns)))
-    else:
-        print(format_predictions(df))
+    try:
+        binding_predictions = run_predictor(args)
+        df = binding_predictions.to_dataframe()
+        n_before = len(df)
+        df = apply_filters(df, args)
+        n_after = len(df)
+        if n_before != n_after:
+            # Keep the note off stdout so the table stays machine-readable.
+            print("Filtered %d -> %d predictions" % (n_before, n_after),
+                  file=sys.stderr)
+        if args.output_csv:
+            # Don't also dump the table to a terminal the user redirected to a
+            # file; a proteome-wide scan is millions of rows.
+            df.to_csv(args.output_csv, index=False)
+            print("Wrote: %s (%d rows, %d columns)" % (
+                args.output_csv, len(df), len(df.columns)))
+        else:
+            print(format_predictions(df))
+    except CLI_ERROR_TYPES as error:
+        arg_parser.error(cli_error_message(error))
