@@ -263,6 +263,9 @@ class BasePredictor(object):
             offset=context.offset,
             predictor_name=pred.predictor_name,
             predictor_version=pred.predictor_version,
+            measurement_context=pred.measurement_context,
+            peptide_input=pred.peptide_input,
+            cache_key=pred.cache_key,
         )
 
     def predict_proteins(self, sequence_dict, peptide_lengths=None):

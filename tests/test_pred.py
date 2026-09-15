@@ -732,6 +732,7 @@ def test_value_unit_returns_the_canonical_unit():
     assert value_unit(Kind.pMHC_affinity) == "nM"
     assert value_unit(Kind.tap_transport) == "nM"
     assert value_unit(Kind.pMHC_stability) == "hours"
+    assert value_unit(Kind.peptide_half_life) == "hours"
     assert value_unit(Kind.serum_half_life) == "hours"
     assert value_unit(Kind.blood_half_life) == "hours"
 
@@ -762,11 +763,8 @@ def test_value_units_are_linear_not_log_scaled():
         assert unit in ("nM", "hours"), kind
 
 
-def test_half_life_kinds_share_a_unit_but_not_an_identity():
-    # Serum, whole blood and pMHC complex dissociation are all half-lives in
-    # hours, and all still distinct measurements.
+def test_parent_peptide_and_pmhc_half_lives_remain_distinct():
     from mhctools.pred import value_unit
-    half_life_kinds = (
-        Kind.pMHC_stability, Kind.serum_half_life, Kind.blood_half_life)
-    assert len(set(half_life_kinds)) == 3
+    half_life_kinds = (Kind.pMHC_stability, Kind.peptide_half_life)
+    assert len(set(half_life_kinds)) == 2
     assert {value_unit(k) for k in half_life_kinds} == {"hours"}

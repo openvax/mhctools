@@ -15,8 +15,8 @@
 """Wrapper for PeptiVerse's serum half-life endpoint.
 
 PeptiVerse is a multi-property peptide platform; this wrapper deliberately
-exposes **one** of its endpoints — the degradation half-life of a free peptide
-in human serum, in hours — and emits ``Kind.serum_half_life``.
+exposes **one** of its endpoints — parent-peptide half-life in human serum, in
+hours — and emits ``Kind.peptide_half_life`` with that matrix in its context.
 
 That is not ``Kind.pMHC_stability``. NetMHCstabpan measures how long an
 assembled peptide-MHC complex holds together; this measures how long the free
@@ -377,7 +377,7 @@ class PeptiVerse(AlleleFreePredictor):
             self.peptiverse_home, self.device)
 
     def _default_pred_kind(self):
-        return Kind.serum_half_life
+        return Kind.peptide_half_life
 
     def _predictor_name(self):
         return "peptiverse"
@@ -418,7 +418,7 @@ class PeptiVerse(AlleleFreePredictor):
         return MeasurementContext(
             estimate_type="ml_predicted",
             status=status,
-            analyte="free parent peptide",
+            analyte="parent peptide",
             matrix="human serum",
             unit="hours" if status == "available" else None,
             transform="linear" if status == "available" else None,
@@ -442,7 +442,8 @@ class PeptiVerse(AlleleFreePredictor):
         -------
         list of PeptideResult
             One entry per input peptide, in input order, each holding a single
-            ``Kind.serum_half_life`` prediction with an empty ``allele``. Both
+            ``Kind.peptide_half_life`` prediction with an empty ``allele``.
+            Its measurement context identifies human serum. Both
             ``score`` and ``value`` carry the predicted half-life in **hours**
             (higher = longer-lived); ``value`` is the units-bearing field and
             ``score`` repeats it so that rank-based consumers work without
@@ -471,7 +472,7 @@ class PeptiVerse(AlleleFreePredictor):
         results = []
         for peptide_input, error in zip(peptide_inputs, errors):
             common = {
-                "kind": Kind.serum_half_life,
+                "kind": Kind.peptide_half_life,
                 "peptide": peptide_input.sequence,
                 "predictor_name": self._predictor_name(),
                 "predictor_version": self.predictor_version,

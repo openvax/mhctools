@@ -30,26 +30,23 @@ def _context(**updates):
 
 def test_endpoint_kinds_are_distinct_and_no_ambiguous_delivery_score_exists():
     kinds = {
-        Kind.systemic_elimination_half_life,
+        Kind.peptide_half_life,
         Kind.systemic_clearance,
         Kind.distribution_volume,
         Kind.systemic_exposure,
         Kind.cpp_classification,
         Kind.cellular_uptake,
         Kind.tissue_concentration,
-        Kind.serum_half_life,
-        Kind.plasma_half_life,
-        Kind.blood_half_life,
         Kind.pMHC_stability,
     }
-    assert len(kinds) == 11
+    assert len(kinds) == 8
     assert not hasattr(Kind, "delivery_score")
 
 
 def test_measurement_context_json_and_prediction_round_trip():
     context = _context()
     prediction = Prediction(
-        kind=Kind.systemic_elimination_half_life,
+        kind=Kind.peptide_half_life,
         score=0.72,
         value=4.5,
         peptide="SIINFEKL",
@@ -65,6 +62,41 @@ def test_measurement_context_json_and_prediction_round_trip():
     assert restored.measurement_context.schema_version == 1
     assert restored.measurement_context.pk_scope == "systemic"
     assert restored.measurement_context.unit == "hours"
+
+
+def test_old_half_life_kinds_canonicalize_and_recover_context():
+    serum = Prediction(
+        kind=Kind.serum_half_life, score=2.0, value=2.0)
+    systemic = Prediction(
+        kind=Kind.systemic_elimination_half_life, score=3.0, value=3.0)
+
+    assert serum.kind == Kind.peptide_half_life
+    assert serum.measurement_context.matrix == "serum"
+    assert systemic.kind == Kind.peptide_half_life
+    assert systemic.measurement_context.pk_scope == "systemic"
+    assert systemic.measurement_context.compartment == "systemic circulation"
+
+
+def test_contexts_are_automatic_and_interned_across_prediction_kinds():
+    affinity = Prediction(
+        kind=Kind.pMHC_affinity, score=0.8, value=100.0)
+    affinity_again = Prediction(
+        kind=Kind.pMHC_affinity, score=0.7, value=200.0)
+    presentation = Prediction(kind=Kind.pMHC_presentation, score=0.9)
+
+    assert affinity.measurement_context is affinity_again.measurement_context
+    assert affinity.measurement_context.unit == "nM"
+    assert affinity.measurement_context.transform == "linear"
+    assert presentation.measurement_context.estimate_type == "ml_predicted"
+    assert presentation.measurement_context.unit is None
+
+
+def test_context_interning_survives_json_round_trip():
+    prediction = Prediction(kind=Kind.pMHC_presentation, score=0.9)
+    restored = Prediction.from_dict(
+        json.loads(json.dumps(prediction.to_dict())))
+
+    assert restored.measurement_context is prediction.measurement_context
 
 
 def test_time_series_identity_and_dataframe_preserve_every_occurrence():

@@ -56,12 +56,10 @@ assumptions across from it will be wrong by a factor of log2(10) ~ 3.32.
 
 What is not established at all
 ------------------------------
-The **species and assay matrix**. ``Kind.blood_half_life`` is assigned because
-the lineage paper drew its data from PEPlife filtered to mammalian whole blood,
-and that is the best available guide. But it is inherited from a dataset this
-model demonstrably does not use. Whether PlifePred2's own data is whole blood,
-plasma, serum or a mixture, from which species, and ex vivo or in vivo, is
-unknown. Do not report this as a measured whole-blood property, and do not
+   The **species and assay matrix**. Whether PlifePred2's data is whole blood,
+   plasma, serum or a mixture, from which species, and ex vivo or in vivo, is
+   unknown. The wrapper therefore uses generic ``Kind.peptide_half_life`` with
+   no invented matrix. Do not report this as a measured whole-blood property or
 treat it as interchangeable with :mod:`mhctools.peptiverse`'s human-serum
 endpoint. Resolving this needs the authors or a model-specific publication.
 
@@ -176,7 +174,7 @@ _PFEATURE_ARTIFACTS = {
 
 PLIFEPRED2_BACKEND_SPEC = BackendSpec(
     name="plifepred2",
-    endpoint="undocumented_blood_half_life_native_regression",
+    endpoint="peptide_half_life_unknown_matrix_native_regression",
     developed_against="plifepred2@%s+pfeature@%s" % (
         UPSTREAM_VERSION, PFEATURE_REVISION),
     license="PlifePred2: GPL-3.0; Pfeature: GPL-3.0",
@@ -297,7 +295,7 @@ def _resolve_python(plifepred2_python=None):
 
 
 class PlifePred2(AlleleFreePredictor):
-    """Whole-blood half-life predictions from local PlifePred2 + Pfeature.
+    """Peptide half-life predictions from local PlifePred2 + Pfeature.
 
     Parameters
     ----------
@@ -357,7 +355,7 @@ class PlifePred2(AlleleFreePredictor):
             self.assume_log10_seconds)
 
     def _default_pred_kind(self):
-        return Kind.blood_half_life
+        return Kind.peptide_half_life
 
     def _predictor_name(self):
         return "plifepred2"
@@ -400,7 +398,7 @@ class PlifePred2(AlleleFreePredictor):
         return MeasurementContext(
             estimate_type="ml_predicted",
             status=status,
-            analyte="free parent peptide",
+            analyte="parent peptide",
             matrix=None,
             unit=(
                 "hours"
@@ -418,7 +416,7 @@ class PlifePred2(AlleleFreePredictor):
         )
 
     def predict(self, peptides, on_unsupported="raise"):
-        """Predict whole-blood half-life for a list of peptides.
+        """Predict peptide half-life for a list of peptides.
 
         Inputs may be strings (the backward-compatible shorthand for a
         canonical unmodified L-peptide with free termini) or exact
@@ -431,7 +429,8 @@ class PlifePred2(AlleleFreePredictor):
         -------
         list of PeptideResult
             One entry per input peptide, in input order, each holding a single
-            ``Kind.blood_half_life`` prediction with an empty ``allele``.
+            ``Kind.peptide_half_life`` prediction with an empty ``allele`` and
+            an unspecified matrix because upstream's assay mixture is unknown.
 
             ``score`` is always the model's **native output** — higher means
             longer-lived, which is all that is needed to rank. ``value`` is the
@@ -463,7 +462,7 @@ class PlifePred2(AlleleFreePredictor):
         results = []
         for peptide_input, error in zip(peptide_inputs, errors):
             common = {
-                "kind": Kind.blood_half_life,
+                "kind": Kind.peptide_half_life,
                 "peptide": peptide_input.sequence,
                 "predictor_name": self._predictor_name(),
                 "predictor_version": self.predictor_version,

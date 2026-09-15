@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass, fields
+from functools import lru_cache
 from typing import Optional
 
 import pandas as pd
@@ -56,26 +57,18 @@ class Kind:
     endolysosomal_cleavage = "endolysosomal_cleavage"
     tap_transport = "tap_transport"
     erap_trimming = "erap_trimming"
-    # Degradation half-life of the free peptide in blood serum, in hours.
-    # Deliberately NOT ``pMHC_stability``, which is the dissociation half-life
-    # of an assembled peptide-MHC complex: different molecule, different assay,
-    # different matrix. A predictor trained on whole blood, plasma, intestinal
-    # fluid or in-vivo PK is also not this kind — it needs its own constant
-    # rather than being folded in here, since nothing else in a ``Prediction``
-    # records the matrix.
+    # Half-life of the parent peptide. MeasurementContext distinguishes a
+    # defined solution, serum/plasma/whole blood, a cellular compartment, and
+    # systemic in-vivo PK. This is deliberately distinct from pMHC_stability,
+    # whose analyte is the assembled peptide-MHC complex.
+    peptide_half_life = "peptide_half_life"
+
+    # Deprecated input spellings retained for old callers and serialized data.
+    # Prediction canonicalizes them to peptide_half_life and recovers the
+    # matrix or systemic scope that used to be embedded in the kind.
     serum_half_life = "serum_half_life"
-    # Ex-vivo degradation half-life in plasma. Plasma and serum are different
-    # assay matrices and neither is an in-vivo elimination half-life.
     plasma_half_life = "plasma_half_life"
-    # Degradation half-life of the free peptide in whole blood, in hours.
-    # Separate from ``serum_half_life``: serum is blood with the cells and
-    # clotting factors removed, and peptide stability differs measurably
-    # between the two (Jenssen & Aspmo 2008). Note that a predictor may emit
-    # this kind with no ``value`` at all when its transform to a duration is
-    # not established -- see :mod:`mhctools.plifepred2`.
     blood_half_life = "blood_half_life"
-    # In-vivo terminal elimination half-life. This is neither ex-vivo peptide
-    # degradation in serum/plasma nor pMHC dissociation stability.
     systemic_elimination_half_life = "systemic_elimination_half_life"
     # Pharmacokinetic quantities whose units and interpretation depend on the
     # study and therefore live in MeasurementContext rather than VALUE_UNITS.
@@ -89,8 +82,7 @@ class Kind:
 
 
 CONTEXT_DEPENDENT_KINDS = frozenset((
-    Kind.plasma_half_life,
-    Kind.systemic_elimination_half_life,
+    Kind.peptide_half_life,
     Kind.systemic_clearance,
     Kind.distribution_volume,
     Kind.systemic_exposure,
@@ -100,7 +92,11 @@ CONTEXT_DEPENDENT_KINDS = frozenset((
 ))
 """Kinds for which mhctools intentionally defines no universal ordering."""
 
-PHYSICAL_VALUE_KINDS = CONTEXT_DEPENDENT_KINDS - {Kind.cpp_classification}
+PHYSICAL_VALUE_KINDS = CONTEXT_DEPENDENT_KINDS - {
+    Kind.cpp_classification,
+    # May expose only a native score when conversion to a duration is unknown.
+    Kind.peptide_half_life,
+}
 """Context-dependent endpoints that require a units-bearing value."""
 
 
@@ -129,14 +125,15 @@ PK_SCOPE_VALUES = frozenset(("systemic", "apparent"))
 
 @dataclass(frozen=True)
 class MeasurementContext:
-    """Versioned semantics for PK, uptake, and tissue measurements.
+    """Versioned semantics shared by every prediction.
 
     ``unit`` and ``transform`` describe :attr:`Prediction.value`; the stored
     physical value remains linear, so ``transform`` must currently be
     ``"linear"`` when a value is present. Predictor-native or confidence
     outputs belong in ``score`` and are identified by ``score_semantics``.
-    Unknown descriptive fields are represented by ``None``, never by a
-    plausible biological default.
+    Ordinary model outputs receive a small cached default; assay-specific
+    wrappers fill only the fields they actually know. Unknown descriptive
+    fields are ``None``, never a plausible biological default.
     """
 
     estimate_type: str
@@ -195,9 +192,18 @@ class MeasurementContext:
     def from_dict(cls, value):
         """Deserialize a context while ignoring forward-compatible fields."""
         if isinstance(value, cls):
-            return value
+            return intern_measurement_context(value)
         valid = {f.name for f in fields(cls)}
-        return cls(**{k: v for k, v in value.items() if k in valid})
+        return intern_measurement_context(
+            cls(**{k: v for k, v in value.items() if k in valid}))
+
+
+@lru_cache(maxsize=4096)
+def intern_measurement_context(context):
+    """Return a shared instance for an immutable measurement context."""
+    if not isinstance(context, MeasurementContext):
+        raise TypeError("context must be a MeasurementContext")
+    return context
 
 
 # Canonical "best direction" for each prediction field. Used by
@@ -241,8 +247,7 @@ VALUE_UNITS = {
     Kind.pMHC_affinity: "nM",
     Kind.pMHC_stability: "hours",
     Kind.tap_transport: "nM",
-    Kind.serum_half_life: "hours",
-    Kind.blood_half_life: "hours",
+    Kind.peptide_half_life: "hours",
 }
 
 # Per-kind direction for ``value``. Whether higher or lower is "better" depends
@@ -252,9 +257,69 @@ VALUE_BEST_DIRECTIONS = {
     Kind.pMHC_affinity: "min",   # IC50: tighter binding is a smaller number
     Kind.pMHC_stability: "max",  # pMHC complex dissociation half-life
     Kind.tap_transport: "min",   # predicted TAP-binding affinity
-    Kind.serum_half_life: "max",  # survives longer in serum
-    Kind.blood_half_life: "max",  # survives longer in whole blood
+    Kind.peptide_half_life: "max",
 }
+
+
+_LEGACY_HALF_LIFE_CONTEXT = {
+    Kind.serum_half_life: {"matrix": "serum"},
+    Kind.plasma_half_life: {"matrix": "plasma"},
+    Kind.blood_half_life: {"matrix": "whole blood"},
+    Kind.systemic_elimination_half_life: {
+        "compartment": "systemic circulation",
+        "pk_scope": "systemic",
+    },
+}
+
+
+def canonical_kind(kind):
+    """Return the canonical kind for a current or legacy spelling."""
+    if kind in _LEGACY_HALF_LIFE_CONTEXT:
+        return Kind.peptide_half_life
+    return kind
+
+
+def _matches_legacy_half_life_context(prediction, kind):
+    expected = _LEGACY_HALF_LIFE_CONTEXT[kind]
+    context = prediction.measurement_context
+    matrix = expected.get("matrix")
+    if matrix is not None:
+        observed = context.matrix
+        if observed is None:
+            return False
+        observed = observed.lower()
+        if observed != matrix and not observed.endswith(" " + matrix):
+            return False
+    return all(
+        key == "matrix" or getattr(context, key) == value
+        for key, value in expected.items())
+
+
+@lru_cache(maxsize=256)
+def _default_measurement_context(kind, value_is_present, status="available"):
+    """Return the small shared context used by ordinary model predictions."""
+    unit = VALUE_UNITS.get(kind) if value_is_present else None
+    return intern_measurement_context(MeasurementContext(
+        estimate_type="ml_predicted",
+        status=status,
+        unit=unit,
+        transform="linear" if unit is not None else None,
+    ))
+
+
+@lru_cache(maxsize=64)
+def _legacy_half_life_measurement_context(
+        kind, value_is_present, status="available"):
+    """Recover context that an old half-life kind encoded in its name."""
+    return intern_measurement_context(MeasurementContext(
+        estimate_type="ml_predicted",
+        status=status,
+        analyte="parent peptide",
+        unit="hours" if status == "available" and value_is_present else None,
+        transform=(
+            "linear" if status == "available" and value_is_present else None),
+        **_LEGACY_HALF_LIFE_CONTEXT[kind],
+    ))
 
 
 def value_unit(kind) -> Optional[str]:
@@ -267,12 +332,12 @@ def value_unit(kind) -> Optional[str]:
     --------
     >>> value_unit(Kind.pMHC_affinity)
     'nM'
-    >>> value_unit(Kind.blood_half_life)
+    >>> value_unit(Kind.peptide_half_life)
     'hours'
     >>> value_unit(Kind.immunogenicity) is None
     True
     """
-    return VALUE_UNITS.get(kind)
+    return VALUE_UNITS.get(canonical_kind(kind))
 
 
 def best_direction(kind, field) -> str:
@@ -283,6 +348,7 @@ def best_direction(kind, field) -> str:
     ``ValueError`` for an unknown ``field``, or for ``value`` on a kind with no
     registered direction.
     """
+    kind = canonical_kind(kind)
     if kind in CONTEXT_DEPENDENT_KINDS:
         raise ValueError(
             f"best_direction is context-dependent for {kind!r}; mhctools "
@@ -351,14 +417,31 @@ class Prediction:
     cache_key: str | None = None
 
     def __post_init__(self):
+        original_kind = self.kind
+        object.__setattr__(self, "kind", canonical_kind(original_kind))
+
         context = self.measurement_context
         if isinstance(context, Mapping):
             context = MeasurementContext.from_dict(context)
-            object.__setattr__(self, "measurement_context", context)
         elif context is not None and not isinstance(context, MeasurementContext):
             raise TypeError(
                 "measurement_context must be MeasurementContext, a mapping, "
                 "or None")
+        elif context is not None:
+            context = intern_measurement_context(context)
+        else:
+            status = (
+                "available"
+                if self.score is not None or self.value is not None
+                else "missing")
+            if original_kind in _LEGACY_HALF_LIFE_CONTEXT:
+                context = _legacy_half_life_measurement_context(
+                    original_kind, self.value is not None, status)
+            else:
+                context = _default_measurement_context(
+                    self.kind, self.value is not None, status)
+        object.__setattr__(self, "measurement_context", context)
+
         peptide_input = self.peptide_input
         if isinstance(peptide_input, Mapping):
             peptide_input = PeptideInput.from_dict(peptide_input)
@@ -391,11 +474,6 @@ class Prediction:
                 raise ValueError("cache_key must be a nonempty string or None")
             if peptide_input is None:
                 raise ValueError("cache_key requires peptide_input")
-        if self.kind in CONTEXT_DEPENDENT_KINDS and context is None:
-            raise ValueError(
-                f"{self.kind} predictions require MeasurementContext")
-        if context is None:
-            return
         if context.status == "available":
             if self.score is None and self.value is None:
                 raise ValueError(
@@ -582,15 +660,52 @@ class PeptideResult:
         """Best ERAP1 trimming prediction, or None."""
         return self.best_by_score(Kind.erap_trimming)
 
+    def _half_life_for_matrix(self, matrix) -> Optional[Prediction]:
+        """Best peptide half-life restricted to one specimen matrix."""
+        matrix = matrix.lower()
+        candidates = [
+            pred for pred in self.preds
+            if pred.kind == Kind.peptide_half_life
+            and pred.score is not None
+            and pred.measurement_context.matrix is not None
+            and (pred.measurement_context.matrix.lower() == matrix
+                 or pred.measurement_context.matrix.lower().endswith(
+                     " " + matrix))
+        ]
+        return max(candidates, key=lambda pred: pred.score, default=None)
+
+    @property
+    def peptide_half_life(self) -> Optional[Prediction]:
+        """Peptide half-life when all available results share one context.
+
+        Comparing different matrices or systemic scopes is intentionally
+        rejected; callers can select those contexts explicitly instead.
+        """
+        candidates = [
+            pred for pred in self.preds
+            if pred.kind == Kind.peptide_half_life and pred.score is not None]
+        if not candidates:
+            return None
+        contexts = {pred.measurement_context for pred in candidates}
+        if len(contexts) != 1:
+            raise ValueError(
+                "peptide_half_life results span multiple measurement contexts")
+        return max(candidates, key=lambda pred: pred.score)
+
     @property
     def serum_half_life(self) -> Optional[Prediction]:
-        """Longest-lived serum half-life prediction, or None."""
-        return self.best_by_score(Kind.serum_half_life)
+        """Best peptide half-life measured in serum, or None."""
+        return self._half_life_for_matrix("serum")
+
+    @property
+    def plasma_half_life(self) -> Optional[Prediction]:
+        """Best peptide half-life measured in plasma, or None."""
+        return self._half_life_for_matrix("plasma")
 
     @property
     def blood_half_life(self) -> Optional[Prediction]:
-        """Longest-lived whole-blood half-life prediction, or None."""
-        return self.best_by_score(Kind.blood_half_life)
+        """Best peptide half-life measured in whole blood, or None."""
+        return self._half_life_for_matrix("whole blood")
 
     @property
     def tcr_binding(self) -> Optional[Prediction]:
@@ -628,8 +743,14 @@ class PeptideResult:
 
     def filter(self, kind=None, allele=None):
         """Filter preds. None means don't filter on that field."""
+        legacy_kind = (
+            kind if kind in _LEGACY_HALF_LIFE_CONTEXT else None)
+        if kind is not None:
+            kind = canonical_kind(kind)
         return [p for p in self.preds
                 if (kind is None or p.kind == kind)
+                and (legacy_kind is None
+                     or _matches_legacy_half_life_context(p, legacy_kind))
                 and (allele is None or p.allele == allele)]
 
     # --- serialization ---
@@ -665,17 +786,21 @@ class PeptideResult:
         allele, falls back to allele-less predictions (e.g. processing
         predictors that emit allele-independent scores).
         """
-        op = reduce_op(kind, field)
+        original_kind = kind
+        kind = canonical_kind(kind)
+        if original_kind in _LEGACY_HALF_LIFE_CONTEXT:
+            op = min if field == "percentile_rank" else max
+        else:
+            op = reduce_op(kind, field)
 
         def has_value(p):
             return getattr(p, field) is not None
 
-        with_allele = [p for p in self.preds
-                       if p.kind == kind and p.allele and has_value(p)]
+        matching = self.filter(kind=original_kind)
+        with_allele = [p for p in matching if p.allele and has_value(p)]
         if with_allele:
             return op(with_allele, key=lambda p: getattr(p, field))
-        without_allele = [p for p in self.preds
-                          if p.kind == kind and has_value(p)]
+        without_allele = [p for p in matching if has_value(p)]
         if without_allele:
             return op(without_allele, key=lambda p: getattr(p, field))
         return None

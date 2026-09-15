@@ -11,7 +11,7 @@ The endpoint kinds are:
 
 | Kind | Meaning |
 |---|---|
-| `systemic_elimination_half_life` | In-vivo terminal elimination half-life |
+| `peptide_half_life` | Parent-peptide half-life in a context such as serum, a cell, or systemic PK |
 | `systemic_clearance` | Systemic or apparent clearance |
 | `distribution_volume` | Systemic or apparent distribution volume |
 | `systemic_exposure` | A study-defined systemic exposure quantity, such as AUC |
@@ -19,15 +19,18 @@ The endpoint kinds are:
 | `cellular_uptake` | Quantitative cellular uptake measurement or estimate |
 | `tissue_concentration` | Concentration in a named tissue or compartment |
 
-These remain separate from ex-vivo `serum_half_life`, `plasma_half_life`, and
-`blood_half_life`, and from `pMHC_stability`, which describes dissociation of a
-peptide-MHC complex. New plasma-assay results use `plasma_half_life`; they must
-not be labeled as serum stability or in-vivo elimination.
+Serum, plasma, whole-blood, cellular, and systemic half-lives use one
+`peptide_half_life` kind. Matrix, compartment, and `pk_scope` retain the
+distinction. It remains separate from `pMHC_stability`, which describes the
+dissociation of a peptide-MHC complex. The old matrix-specific and systemic
+half-life strings are accepted as migration inputs and canonicalized.
 
 ## Measurement context
 
-Every prediction of one of these endpoints requires an immutable
-`MeasurementContext`. Its versioned fields preserve:
+Every `Prediction` carries an immutable `MeasurementContext`. Ordinary model
+outputs receive a minimal shared default automatically. Assay-specific results
+fill only what they know. Equal contexts are interned, so repeated predictions
+reuse one object. Optional fields preserve:
 
 - whether the result was observed, fitted, simulated, or ML-predicted;
 - whether it is available, unsupported, missing, out of domain, or failed;
