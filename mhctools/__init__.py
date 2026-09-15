@@ -6,6 +6,7 @@ from .pred import (
     Kind,
     MHC_CLASS_VALUES,
     MHC_DEPENDENCE_VALUES,
+    MeasurementContext,
     PeptidePreds,
     PeptideResult,
     Pred,
@@ -124,6 +125,7 @@ __version__ = "3.44.7"
 
 __all__ = [
     "Prediction",
+    "MeasurementContext",
     "Pred",  # backward compat alias
     "PeptideResult",
     "PeptidePreds",  # backward compat alias

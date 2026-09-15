@@ -244,7 +244,15 @@ The canonical prediction kind strings are defined in `mhctools.pred.Kind`.
 | `tap_transport` | TAP transport / binding score | `nM` |
 | `erap_trimming` | ERAP1 N-terminal trimming score | — |
 | `serum_half_life` | Degradation half-life of the free peptide in serum | `hours` |
+| `plasma_half_life` | Degradation half-life of the free peptide in plasma | context-defined |
 | `blood_half_life` | Degradation half-life of the free peptide in whole blood | `hours` |
+| `systemic_elimination_half_life` | In-vivo terminal elimination half-life | context-defined |
+| `systemic_clearance` | Systemic or apparent clearance | context-defined |
+| `distribution_volume` | Systemic or apparent distribution volume | context-defined |
+| `systemic_exposure` | Systemic exposure, such as AUC | context-defined |
+| `cpp_classification` | CPP class label and confidence | — |
+| `cellular_uptake` | Quantitative uptake in a named cellular context | context-defined |
+| `tissue_concentration` | Concentration in a named tissue/compartment and timepoint | context-defined |
 
 #### Units
 
@@ -308,6 +316,12 @@ Higher-is-better is only a numerical selection convention within a documented
 endpoint. It does not mean that a larger score is universally better for a
 vaccine, and it does not make scores from different predictors or endpoints
 interchangeable.
+
+PK, uptake, and tissue-exposure kinds require a versioned
+`MeasurementContext`. Their units, transforms, analytes, compartments, time
+origins, estimate types, and availability states remain explicit, and mhctools
+defines no universal best direction for them. See
+[Peptide PK, uptake, and tissue-exposure results](docs/exposure-results.md).
 
 Predictors also expose `kind_support()` so downstream code can tell what MHC
 context is meaningful for each emitted kind:
