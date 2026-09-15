@@ -813,5 +813,9 @@ def fetch(
                 "%s is managed by %s at version %s; mhctools cannot fetch "
                 "version %s" % (
                     canonical, status.manager, status.version, version))
+        if status.manager == "manual":
+            raise RuntimeError(
+                "%s is already available at %s but is manually managed; "
+                "nothing for mhctools to fetch" % (canonical, status.path))
         return status
     raise RuntimeError(status.detail)
