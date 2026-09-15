@@ -83,6 +83,20 @@ _OUTPUT_FIELDS = {
 }
 
 
+# Units of the serialized field selected by each CLI token. An empty value
+# means dimensionless or predictor-specific, not unknown canonical metadata.
+_OUTPUT_UNITS = {
+    "affinity": "nM",
+    "value": "nM",
+    "percentile_rank": "percentile",
+    "rank": "percentile",
+    "stability": "hours",
+    "peptide_half_life": "hours",
+    "serum_half_life": "hours",
+    "blood_half_life": "hours",
+}
+
+
 def output_field_tokens():
     """Sorted list of accepted output-field tokens (for CLI help / errors)."""
     return sorted(_OUTPUT_FIELDS)
@@ -121,6 +135,7 @@ class AnnotationSpec:
     kind: Optional[str] = _dc_field(default=None, init=False)
     prediction_field: str = _dc_field(default="", init=False)
     matrix: Optional[str] = _dc_field(default=None, init=False)
+    units: str = _dc_field(default="", init=False)
 
     def __post_init__(self):
         if self.field not in _OUTPUT_FIELDS:
@@ -132,6 +147,7 @@ class AnnotationSpec:
             "serum_half_life": "serum",
             "blood_half_life": "whole blood",
         }.get(self.field)
+        self.units = _OUTPUT_UNITS.get(self.field, "")
 
     def resolved_best_allele_column(self):
         return self.best_allele_column or ("%s_best_allele" % self.output_column)

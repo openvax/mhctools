@@ -78,7 +78,7 @@ def make_arg_parser():
         help=(
             "Optional path to write a sidecar CSV describing each output "
             "column: predictor spec, output_column, score_field, "
-            "higher_is_better."))
+            "units, higher_is_better."))
     parser.add_argument(
         "--overwrite",
         action="store_true",
@@ -94,6 +94,7 @@ def _write_predictor_info(path, raw_specs, specs):
             "predictor": raw,
             "output_column": spec.output_column,
             "score_field": spec.field,
+            "units": spec.units,
             "higher_is_better":
                 best_direction(spec.kind, spec.prediction_field) == "max",
         })
@@ -119,7 +120,7 @@ def main(args_list=None):
             allele_column=args.alleles_column,
             overwrite=args.overwrite)
 
-        annotated.to_csv(args.out, index=False)
+        annotated.to_csv(args.out, index=False, float_format="%.6g")
         print("Wrote: %s (%d rows, %d columns)"
               % (args.out, len(annotated), len(annotated.columns)))
 

@@ -1008,6 +1008,14 @@ mhctools --sequence SIINFEKL SIINFEKLQ --mhc-predictor netmhc --mhc-alleles A020
 `--input-fasta-file` for protein sequences. Select exactly one of these three
 input sources.
 
+CLI prediction tables use a stable cross-predictor convention: plain peptide
+inputs have an empty `source_sequence_name` and offset `0`, while FASTA and
+subsequence inputs retain their source and zero-based offset and are ordered by
+those coordinates. `prediction_method_name` is the exact CLI predictor name
+selected (including version and mode). `affinity` is IC50 in nM,
+`percentile_rank` is a 0–100 percentile, and `score` remains
+predictor-specific. CSV floats are serialized with six significant digits.
+
 ### Automatically extract peptides as subsequences of specified length
 
 ```sh
@@ -1041,7 +1049,8 @@ chosen and recorded in a `<OUTPUT_COLUMN>_best_allele` provenance column.
 Missing or blank peptide/allele cells remain unscored; they are never converted
 to literal sequence or allele strings and sent to a predictor.
 Pass `--predictor-info info.csv` to also write a sidecar describing each
-column's `score_field` and `higher_is_better`.
+column's `score_field`, `units`, and `higher_is_better`. Empty `units` means
+the field is dimensionless or predictor-specific.
 
 The same thing from Python (I/O-free, works on any `DataFrame`):
 
