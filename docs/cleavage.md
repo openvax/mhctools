@@ -118,6 +118,7 @@ single per-position score to rank or threshold.
 
 ```sh
 mhctools cleavage --list-models
+mhctools cleavage --list-models --json
 mhctools cleavage --sequence RPPGFSPFR --model app2-xp --model cpn-basic
 mhctools cleavage --sequence VPYGSFKHV --compartment cytosol --out cleavage.json
 mhctools cleavage --sequence HAEGTFTSD --model dpp4-qpisa --n-term acetylated
@@ -129,10 +130,15 @@ results = predict_cleavage("TSGPNQ", models=["fap-endo-gp", "prep-pro"])
 ```
 
 The default panel evaluates all 20 built-in models and returns separate
-results. `--model` and `--sequence` can be repeated. The JSON output retains
-unmatched and unsupported results, source coordinates, chemistry and model
-provenance. `--source-start` is a zero-based offset shared by the supplied
-inputs; use separate calls when fragments have different offsets.
+results. `--model` and `--sequence` can be repeated. `--list-models` prints a
+compact discovery table; add `--json` for its full machine-readable catalog.
+Prediction JSON uses schema version 2: its top-level `models` object stores each
+full provenance record once, keyed by model name, and each item in `results`
+references that name in its `model` field. The output retains unmatched and
+unsupported results, source coordinates and chemistry. Numerical scores are
+written with six significant digits. `--source-start` is a zero-based offset
+shared by the supplied inputs; use separate calls when fragments have different
+offsets.
 
 Compartment filtering uses exact, conservative enzyme-location annotations.
 `serum`, `plasma`, `extracellular`, `cytosol`, `endosome` and `er` are
