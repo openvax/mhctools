@@ -22,7 +22,7 @@ class NetMHCpan4(BaseCommandlinePredictor):
             self,
             alleles=None,
             default_peptide_lengths=[9],
-            program_name="netMHCpan",
+            program_name="netMHCpan-4.0",
             process_limit=-1,
             mode="binding_affinity",
             extra_flags=[],
@@ -80,7 +80,7 @@ class NetMHCpan4_EL(NetMHCpan4):
             self,
             alleles=None,
             default_peptide_lengths=[9],
-            program_name="netMHCpan",
+            program_name="netMHCpan-4.0",
             process_limit=-1,
             extra_flags=[]):
         NetMHCpan4.__init__(
@@ -100,7 +100,7 @@ class NetMHCpan4_BA(NetMHCpan4):
             self,
             alleles=None,
             default_peptide_lengths=[9],
-            program_name="netMHCpan",
+            program_name="netMHCpan-4.0",
             process_limit=-1,
             extra_flags=[]):
         NetMHCpan4.__init__(

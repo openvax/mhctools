@@ -22,7 +22,7 @@ class NetMHCpan42(BaseCommandlinePredictor):
             self,
             alleles=None,
             default_peptide_lengths=[9],
-            program_name="netMHCpan",
+            program_name="netMHCpan-4.2",
             process_limit=-1,
             mode="binding_affinity",
             extra_flags=[],
@@ -81,7 +81,7 @@ class NetMHCpan42_EL(NetMHCpan42):
             self,
             alleles=None,
             default_peptide_lengths=[9],
-            program_name="netMHCpan",
+            program_name="netMHCpan-4.2",
             process_limit=-1,
             extra_flags=[]):
         NetMHCpan42.__init__(
@@ -100,7 +100,7 @@ class NetMHCpan42_BA(NetMHCpan42):
             self,
             alleles=None,
             default_peptide_lengths=[9],
-            program_name="netMHCpan",
+            program_name="netMHCpan-4.2",
             process_limit=-1,
             extra_flags=[]):
         NetMHCpan42.__init__(
