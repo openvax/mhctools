@@ -123,11 +123,12 @@ def test_motif_rules_grade_strictness_and_cite_sources():
 
 def test_intracellular_cli_reports_observations_and_missing_domains(capsys):
     main(["cleavage", "--sequence", "YGGFLRRI", "--model", "nln-observed"])
-    result = json.loads(capsys.readouterr().out)["results"][0]
+    prediction_report = json.loads(capsys.readouterr().out)
+    result = prediction_report["results"][0]
     assert result["substrate_observation"] == "cleavage_reported"
     assert result["sites"][0]["bond"] == 5
-    assert result["model"]["motif_strictness"] is None
-    main(["cleavage", "--list-models"])
+    assert prediction_report["models"][result["model"]]["motif_strictness"] is None
+    main(["cleavage", "--list-models", "--json"])
     listed = json.loads(capsys.readouterr().out)["models"]
     assert {m["name"] for m in listed} >= {"thop1-observed", "nln-observed", "lnpep-observed"}
     assert all(m["strictness_basis"] for m in listed if m["evidence"] == "motif_rule")

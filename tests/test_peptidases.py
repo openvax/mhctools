@@ -103,10 +103,11 @@ def test_cli_json_preserves_scores_chemistry_and_provenance(capsys, tmp_path):
           "--source-start", "10", "--source-id", "construct"])
     data = json.loads(capsys.readouterr().out)
     result = data["results"][0]
-    assert data["schema_version"] == 1
+    assert data["schema_version"] == 2
     assert result["sites"][0]["score"] == pytest.approx(2.1694)
     assert result["sites"][0]["source_bond"] == 12
-    assert result["model"]["references"]
+    assert result["model"] == "dpp4-qpisa"
+    assert data["models"]["dpp4-qpisa"]["references"]
     path = tmp_path / "evidence.json"
     main(["cleavage", "--sequence", "HAE", "--model", "dpp4-qpisa",
           "--n-term", "acetylated", "--out", str(path)])
@@ -116,12 +117,47 @@ def test_cli_json_preserves_scores_chemistry_and_provenance(capsys, tmp_path):
     assert result["sites"] == []
 
 
-def test_cli_lists_optional_models_without_loading_assets(capsys, monkeypatch):
+def test_cli_lists_optional_models_as_table_without_loading_assets(
+        capsys, monkeypatch):
     monkeypatch.setenv("ERAMER_HOME", "/does-not-exist")
     main(["cleavage", "--list-models"])
+    output = capsys.readouterr().out
+    lines = output.splitlines()
+    assert lines[0].split() == [
+        "NAME", "ENZYME", "COMPARTMENTS", "EVIDENCE", "SCORE", "UNITS"]
+    assert len(lines) == 22
+    assert "dpp4-qpisa" in output
+    assert "eramer-step" in output
+    assert "limitations" not in output
+
+
+def test_cli_lists_optional_models_as_json(capsys, monkeypatch):
+    monkeypatch.setenv("ERAMER_HOME", "/does-not-exist")
+    main(["cleavage", "--list-models", "--json"])
     data = json.loads(capsys.readouterr().out)
+    assert data["schema_version"] == 1
     assert len(data["models"]) == 21
     assert any(m["name"] == "eramer-step" for m in data["models"])
+
+
+def test_cli_model_metadata_is_not_repeated_per_result(capsys):
+    main(["cleavage", "--sequence", "HAE", "--sequence", "HPE",
+          "--model", "dpp4-qpisa"])
+    data = json.loads(capsys.readouterr().out)
+    assert list(data["models"]) == ["dpp4-qpisa"]
+    assert [result["model"] for result in data["results"]] == [
+        "dpp4-qpisa", "dpp4-qpisa"]
+    assert all(isinstance(result["model"], str) for result in data["results"])
+
+
+def test_cli_json_rounds_floats_without_converting_them_to_strings():
+    from mhctools.cli.cleavage import _round_floats
+    rounded = _round_floats({
+        "score": -0.004000000000000002,
+        "nested": [0.897678376423898],
+    })
+    assert rounded == {"score": -0.004, "nested": [0.897678]}
+    assert isinstance(rounded["score"], float)
 
 
 @pytest.mark.parametrize("args", [[], ["--sequence", "HAX"],
