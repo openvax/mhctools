@@ -726,7 +726,7 @@ results[0].erap_trimming.score
 | Predictor | Kinds produced | Requires |
 |---|---|---|
 | `PeptiVerse` | Serum half-life (`serum_half_life`) | pinned PeptiVerse + ESM2 snapshots (`PEPTIVERSE_HOME`, `PEPTIVERSE_ESM_HOME`) + a torch/transformers Python |
-| `PlifePred2` | Blood half-life (`blood_half_life`) ⚠️ unresolved semantics | `plifepred2` (`PLIFEPRED2_HOME`) + a Pfeature checkout (`PFEATURE_HOME`) |
+| `PlifePred2` | Blood half-life (`blood_half_life`) ⚠️ unresolved semantics | `plifepred2==1.0` (`PLIFEPRED2_HOME`) + pinned Pfeature (`PFEATURE_HOME`) |
 
 How long a **free peptide** survives in blood serum before proteases degrade it,
 in hours. This is a peptide-drug property rather than an immunological one: it
@@ -797,6 +797,7 @@ predictor = PlifePred2()                       # PLIFEPRED2_HOME + PFEATURE_HOME
 results = predictor.predict(["SIINFEKLGGALQAKKY"])
 results[0].blood_half_life.score               # native output, higher = longer-lived
 results[0].blood_half_life.value               # None by default
+predictor.artifact_inventory.to_dict()         # exact files, hashes, capability
 predictor.last_qc["log10_seconds"]             # the same value, named
 
 # Opt in to a duration, accepting the inference below:

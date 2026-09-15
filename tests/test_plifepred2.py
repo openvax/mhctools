@@ -26,6 +26,7 @@ from pathlib import Path
 import tempfile
 
 import pytest
+import pandas as pd
 
 from mhctools import Kind, PlifePred2
 from mhctools.plifepred2 import (
@@ -178,6 +179,20 @@ def test_parse_results_rejects_dropped_peptide():
         os.remove(path)
 
 
+def test_parse_results_keeps_duplicate_peptides_separate():
+    duplicated = (
+        "__mhctools_id,peptide,log10_seconds\n"
+        "0,SIINFEKLGGALQAKKY,3.1\n"
+        "1,SIINFEKLGGALQAKKY,3.1\n")
+    path = _write(duplicated)
+    try:
+        frame = parse_plifepred2_results(
+            path, ["SIINFEKLGGALQAKKY", "SIINFEKLGGALQAKKY"])
+    finally:
+        os.remove(path)
+    assert len(frame) == 2
+
+
 def test_parse_results_rejects_non_finite_prediction():
     path = _write("__mhctools_id,peptide,log10_seconds\n0,SIINFEKLGGALQAKKY,nan\n")
     try:
@@ -205,7 +220,9 @@ def _fake_homes(tmp_path):
     pfeature = tmp_path / "Standalone"
     (pfeature / "Data").mkdir(parents=True)
     (pfeature / "pfeature_comp.py").write_text("")
-    for name in ("Schneider-Wrede.csv", "Grantham.csv"):
+    for name in (
+            "Schneider-Wrede.csv", "Grantham.csv", "PhysicoChemical.csv",
+            "aaindex.csv", "AAIndexNames.csv"):
         (pfeature / "Data" / name).write_text("")
     return str(plifepred2), str(pfeature)
 
@@ -242,7 +259,9 @@ def test_pfeature_home_without_distance_matrices_is_reported(tmp_path):
 def _predictor(tmp_path):
     plifepred2_home, pfeature_home = _fake_homes(tmp_path)
     return PlifePred2(
-        plifepred2_home=plifepred2_home, pfeature_home=pfeature_home)
+        plifepred2_home=plifepred2_home,
+        pfeature_home=pfeature_home,
+        allow_unverified_assets=True)
 
 
 def test_supported_kinds_and_mhc_context(tmp_path):
@@ -288,8 +307,73 @@ def test_missing_python_is_reported(tmp_path):
             plifepred2_python="/nonexistent/python")
 
 
-def test_predictor_version_names_the_natural_model(tmp_path):
-    assert _predictor(tmp_path).predictor_version == "1.0:natural"
+def test_unverified_assets_are_rejected_by_default(tmp_path):
+    plifepred2_home, pfeature_home = _fake_homes(tmp_path)
+    with pytest.raises(RuntimeError, match="mismatch artifacts"):
+        PlifePred2(
+            plifepred2_home=plifepred2_home,
+            pfeature_home=pfeature_home)
+
+
+def test_predictor_version_carries_model_and_feature_identity(tmp_path):
+    predictor = _predictor(tmp_path)
+    version = predictor.predictor_version
+    assert "developed-against=plifepred2@1.0+pfeature@93636eb" in version
+    assert ";assets-sha256=" in version
+    assert version.endswith(";status=mismatch")
+
+
+def test_altered_feature_code_changes_predictor_version(tmp_path):
+    predictor = _predictor(tmp_path)
+    original = predictor.predictor_version
+    Path(predictor.pfeature_home, "pfeature_comp.py").write_text("replacement")
+    replaced = PlifePred2(
+        plifepred2_home=predictor.plifepred2_home,
+        pfeature_home=predictor.pfeature_home,
+        allow_unverified_assets=True)
+    assert replaced.predictor_version != original
+
+
+def test_output_transform_setting_changes_predictor_version(tmp_path):
+    plifepred2_home, pfeature_home = _fake_homes(tmp_path)
+    native = PlifePred2(
+        plifepred2_home=plifepred2_home,
+        pfeature_home=pfeature_home,
+        allow_unverified_assets=True)
+    converted = PlifePred2(
+        plifepred2_home=plifepred2_home,
+        pfeature_home=pfeature_home,
+        assume_log10_seconds=True,
+        allow_unverified_assets=True)
+    assert converted.predictor_version != native.predictor_version
+
+
+def test_prediction_carries_identity_and_records_completed_inference(
+        tmp_path, monkeypatch):
+    import mhctools.plifepred2 as module
+
+    def fake_sidecar(**kwargs):
+        assert kwargs["timeout"] == 17
+        args = kwargs["args"]
+        input_path = Path(args[args.index("--input") + 1])
+        output_path = Path(args[args.index("--output") + 1])
+        inputs = pd.read_csv(input_path)
+        inputs["log10_seconds"] = 3.0
+        inputs.to_csv(output_path, index=False)
+
+    monkeypatch.setattr(module, "run_python_sidecar", fake_sidecar)
+    plifepred2_home, pfeature_home = _fake_homes(tmp_path)
+    predictor = PlifePred2(
+        plifepred2_home=plifepred2_home,
+        pfeature_home=pfeature_home,
+        allow_unverified_assets=True,
+        subprocess_timeout=17)
+    results = predictor.predict(["SIINFEKLGGALQAKKY", "SIINFEKLGGALQAKKY"])
+    assert predictor.artifact_inventory.inference_status == "reproduced"
+    assert len(results) == 2
+    assert all(
+        result.blood_half_life.predictor_version == predictor.predictor_version
+        for result in results)
 
 
 # --- end-to-end (opt-in) ----------------------------------------------------
@@ -308,6 +392,8 @@ def test_end_to_end_matches_the_reference_values():
     assert len(results) == 2
     raw = predictor.last_qc["log10_seconds"].tolist()
     assert raw == pytest.approx([3.1572664, 3.79347232], rel=1e-6)
+    assert predictor.artifact_inventory.status == "verified"
+    assert predictor.artifact_inventory.capability == "inference_reproduced"
     for peptide, result, native in zip(
             ["SIINFEKLGGALQAKKY", "GILGFVFTLAAAKKWWWQ"], results, raw):
         pred = result.preds[0]
@@ -318,6 +404,7 @@ def test_end_to_end_matches_the_reference_values():
         # claimed at all.
         assert pred.score == pytest.approx(native)
         assert pred.value is None
+        assert pred.predictor_version == predictor.predictor_version
 
 
 @requires_plifepred2
@@ -395,7 +482,9 @@ def _stub_installation(tmp_path):
     """A Pfeature-shaped installation whose extractor is the stub above."""
     home = tmp_path / "Standalone"
     (home / "Data").mkdir(parents=True)
-    for name in ("Schneider-Wrede.csv", "Grantham.csv"):
+    for name in (
+            "Schneider-Wrede.csv", "Grantham.csv", "PhysicoChemical.csv",
+            "aaindex.csv", "AAIndexNames.csv"):
         (home / "Data" / name).write_text("Name,A\nA,0\n")
     (home / "pfeature_comp.py").write_text(_DESTRUCTIVE_STUB)
     return home
@@ -471,6 +560,37 @@ def test_concurrent_extractions_do_not_collide_on_one_installation(tmp_path):
         assert all(pool.map(run, range(4)))
 
 
+def test_nested_pfeature_process_cannot_open_network_connection(tmp_path):
+    from mhctools.plifepred2_sidecar import _run_pfeature
+
+    home = _stub_installation(tmp_path)
+    (home / "pfeature_comp.py").write_text(
+        "import socket\nsocket.create_connection(('example.com', 80))\n")
+    fasta = tmp_path / "in.fasta"
+    fasta.write_text(">0\nSIINFEKLGGAL\n")
+    with pytest.raises(RuntimeError, match="Network access disabled"):
+        _run_pfeature(home, fasta, tmp_path / "qso.csv")
+
+
+def test_nested_pfeature_timeout_is_reported(tmp_path):
+    from mhctools.plifepred2_sidecar import _run_pfeature
+
+    home = _stub_installation(tmp_path)
+    (home / "pfeature_comp.py").write_text("import time\ntime.sleep(10)\n")
+    fasta = tmp_path / "in.fasta"
+    fasta.write_text(">0\nSIINFEKLGGAL\n")
+    with pytest.raises(RuntimeError, match="timed out"):
+        _run_pfeature(home, fasta, tmp_path / "qso.csv", timeout=0.01)
+
+
+def test_exact_scikit_learn_version_is_required_before_unpickling():
+    from mhctools.plifepred2_sidecar import _require_sklearn_version
+
+    _require_sklearn_version("1.4.2")
+    with pytest.raises(RuntimeError, match="requires scikit-learn 1.4.2"):
+        _require_sklearn_version("1.9.0")
+
+
 def test_missing_data_directory_is_reported(tmp_path):
     from mhctools.plifepred2_sidecar import _run_pfeature
 
@@ -502,10 +622,12 @@ def test_relative_asset_homes_survive_directory_changes(
     if via_environment:
         monkeypatch.setenv("PLIFEPRED2_HOME", relative_model)
         monkeypatch.setenv("PFEATURE_HOME", relative_features)
-        predictor = PlifePred2()
+        predictor = PlifePred2(allow_unverified_assets=True)
     else:
         predictor = PlifePred2(
-            plifepred2_home=relative_model, pfeature_home=relative_features)
+            plifepred2_home=relative_model,
+            pfeature_home=relative_features,
+            allow_unverified_assets=True)
     monkeypatch.chdir(tmp_path / "nested")
     assert predictor.plifepred2_home == str(Path(model_home).resolve())
     assert predictor.pfeature_home == str(Path(feature_home).resolve())
@@ -521,5 +643,6 @@ def test_opt_in_is_visible_in_the_repr(tmp_path):
     predictor = PlifePred2(
         plifepred2_home=plifepred2_home,
         pfeature_home=pfeature_home,
-        assume_log10_seconds=True)
+        assume_log10_seconds=True,
+        allow_unverified_assets=True)
     assert "assume_log10_seconds=True" in str(predictor)
