@@ -16,6 +16,7 @@
 
 from argparse import ArgumentParser
 import json
+import string
 
 from ..artifacts import fetch, list_artifacts
 from .errors import cli_error_message
@@ -28,9 +29,9 @@ def _print_table(statuses):
             status.name,
             status.status,
             status.manager,
-            status.version or "-",
+            _display_version(status.version),
             "yes" if status.fetchable else "no",
-            status.path or "-",
+            status.path if status.status == "ready" and status.path else "-",
         )
         for status in statuses
     ]
@@ -41,6 +42,20 @@ def _print_table(statuses):
     print("  ".join(value.ljust(widths[i]) for i, value in enumerate(headers)))
     for row in rows:
         print("  ".join(value.ljust(widths[i]) for i, value in enumerate(row)))
+    notes = [status for status in statuses
+             if status.status != "ready" and status.detail]
+    if notes:
+        print()
+        for status in notes:
+            print("%s: %s" % (status.name, status.detail))
+
+
+def _display_version(version):
+    if not version:
+        return "-"
+    if len(version) == 40 and all(c in string.hexdigits for c in version):
+        return version[:12]
+    return version
 
 
 def ls_main(args_list=None):

@@ -79,6 +79,21 @@ def test_fetch_packaged_artifact_rejects_other_version():
         fetch("calis", version="never")
 
 
+def test_fetch_ready_manual_artifact_reports_nothing_to_fetch(monkeypatch):
+    status = ArtifactStatus(
+        name="netmhcpan",
+        status="ready",
+        manager="manual",
+        version="unknown",
+        path="/tools/netMHCpan",
+        fetchable=False,
+        detail="Install manually",
+    )
+    monkeypatch.setattr(artifacts, "artifact_status", lambda *args, **kwargs: status)
+    with pytest.raises(RuntimeError, match="nothing for mhctools to fetch"):
+        fetch("netmhcpan")
+
+
 def test_data_path_precedence(monkeypatch, tmp_path):
     configured = tmp_path / "configured"
     explicit = tmp_path / "explicit"
@@ -255,6 +270,52 @@ def test_ls_cli_table(monkeypatch, capsys):
     assert "NAME" in output
     assert "MANAGER" in output
     assert "/models/example" in output
+
+
+def test_ls_cli_missing_artifact_shows_note_not_destination(monkeypatch, capsys):
+    revision = "c7e37a249317704bf96a1e3881a7ece3c3c977a6"
+    destination = "/not/yet/installed"
+    status = ArtifactStatus(
+        name="bigmhc",
+        status="missing",
+        manager="mhctools",
+        version=revision,
+        path=destination,
+        fetchable=True,
+        detail="Run mhctools fetch bigmhc --accept-license",
+    )
+    monkeypatch.setattr(
+        artifact_cli,
+        "list_artifacts",
+        lambda names, data_dir=None: [status])
+    main(["ls"])
+    output = capsys.readouterr().out
+    assert revision[:12] in output
+    assert revision not in output
+    assert destination not in output
+    assert "bigmhc: Run mhctools fetch bigmhc --accept-license" in output
+
+
+def test_ls_cli_json_keeps_full_revision_and_destination(monkeypatch, capsys):
+    revision = "c7e37a249317704bf96a1e3881a7ece3c3c977a6"
+    destination = "/not/yet/installed"
+    status = ArtifactStatus(
+        name="bigmhc",
+        status="missing",
+        manager="mhctools",
+        version=revision,
+        path=destination,
+        fetchable=True,
+        detail="Fetch it",
+    )
+    monkeypatch.setattr(
+        artifact_cli,
+        "list_artifacts",
+        lambda names, data_dir=None: [status])
+    main(["ls", "--json"])
+    output = capsys.readouterr().out
+    assert revision in output
+    assert destination in output
 
 
 def test_ls_cli_json(monkeypatch, capsys):
