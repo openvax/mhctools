@@ -18,6 +18,8 @@ from typing import Optional
 
 import pandas as pd
 
+from .peptide_input import PeptideInput
+
 
 MHC_DEPENDENCE_VALUES = frozenset((
     "none",
@@ -323,6 +325,8 @@ COLUMNS = (
     "value",
     "percentile_rank",
     "measurement_context",
+    "peptide_input",
+    "cache_key",
 )
 
 
@@ -343,12 +347,50 @@ class Prediction:
     predictor_name: str = ""
     predictor_version: str = ""
     measurement_context: MeasurementContext | None = None
+    peptide_input: PeptideInput | None = None
+    cache_key: str | None = None
 
     def __post_init__(self):
         context = self.measurement_context
         if isinstance(context, Mapping):
             context = MeasurementContext.from_dict(context)
             object.__setattr__(self, "measurement_context", context)
+        elif context is not None and not isinstance(context, MeasurementContext):
+            raise TypeError(
+                "measurement_context must be MeasurementContext, a mapping, "
+                "or None")
+        peptide_input = self.peptide_input
+        if isinstance(peptide_input, Mapping):
+            peptide_input = PeptideInput.from_dict(peptide_input)
+            object.__setattr__(self, "peptide_input", peptide_input)
+        elif peptide_input is not None and not isinstance(
+                peptide_input, PeptideInput):
+            raise TypeError(
+                "peptide_input must be PeptideInput, a mapping, or None")
+        if peptide_input is not None:
+            if self.peptide and self.peptide != peptide_input.sequence:
+                raise ValueError("Prediction peptide differs from peptide_input")
+            if not self.peptide:
+                object.__setattr__(self, "peptide", peptide_input.sequence)
+            if (self.source_sequence_name is not None and
+                    peptide_input.source_sequence_name is not None and
+                    self.source_sequence_name !=
+                    peptide_input.source_sequence_name):
+                raise ValueError(
+                    "Prediction source_sequence_name differs from peptide_input")
+            if self.source_sequence_name is None:
+                object.__setattr__(
+                    self, "source_sequence_name",
+                    peptide_input.source_sequence_name)
+            if self.offset not in (0, peptide_input.source_start):
+                raise ValueError("Prediction offset differs from peptide_input")
+            if self.offset == 0 and peptide_input.source_start:
+                object.__setattr__(self, "offset", peptide_input.source_start)
+        if self.cache_key is not None:
+            if not isinstance(self.cache_key, str) or not self.cache_key:
+                raise ValueError("cache_key must be a nonempty string or None")
+            if peptide_input is None:
+                raise ValueError("cache_key requires peptide_input")
         if self.kind in CONTEXT_DEPENDENT_KINDS and context is None:
             raise ValueError(
                 f"{self.kind} predictions require MeasurementContext")
@@ -421,6 +463,10 @@ class Prediction:
             "measurement_context": (
                 self.measurement_context.to_dict()
                 if self.measurement_context is not None else None),
+            "peptide_input": (
+                self.peptide_input.to_dict()
+                if self.peptide_input is not None else None),
+            "cache_key": self.cache_key,
         }
 
     def to_dict(self):
@@ -436,6 +482,9 @@ class Prediction:
         if context is not None:
             values["measurement_context"] = MeasurementContext.from_dict(
                 context)
+        peptide_input = values.get("peptide_input")
+        if peptide_input is not None:
+            values["peptide_input"] = PeptideInput.from_dict(peptide_input)
         return cls(**values)
 
 

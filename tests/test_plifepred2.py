@@ -28,7 +28,7 @@ import tempfile
 import pytest
 import pandas as pd
 
-from mhctools import Kind, PlifePred2
+from mhctools import Kind, PeptideContext, PeptideInput, PlifePred2
 from mhctools.plifepred2 import (
     PLIFEPRED2_MAX_PEPTIDE_LENGTH,
     PLIFEPRED2_MIN_PEPTIDE_LENGTH,
@@ -374,6 +374,62 @@ def test_prediction_carries_identity_and_records_completed_inference(
     assert all(
         result.blood_half_life.predictor_version == predictor.predictor_version
         for result in results)
+
+
+def test_contextual_inputs_get_distinct_cache_keys_and_preserve_context(
+        tmp_path, monkeypatch):
+    import mhctools.plifepred2 as module
+
+    def fake_sidecar(**kwargs):
+        args = kwargs["args"]
+        input_path = Path(args[args.index("--input") + 1])
+        output_path = Path(args[args.index("--output") + 1])
+        inputs = pd.read_csv(input_path)
+        inputs["log10_seconds"] = range(1, len(inputs) + 1)
+        inputs.to_csv(output_path, index=False)
+
+    monkeypatch.setattr(module, "run_python_sidecar", fake_sidecar)
+    predictor = _predictor(tmp_path)
+    inputs = [
+        PeptideInput(
+            "SIINFEKLGGALQAKKY",
+            context=PeptideContext(matrix="serum", timepoint=1,
+                                   time_unit="hours")),
+        PeptideInput(
+            "SIINFEKLGGALQAKKY",
+            context=PeptideContext(matrix="plasma", timepoint=1,
+                                   time_unit="hours")),
+    ]
+
+    predictions = [
+        result.preds[0] for result in predictor.predict(list(reversed(inputs)))]
+
+    assert [pred.peptide_input.context.matrix for pred in predictions] == [
+        "plasma", "serum"]
+    assert [pred.score for pred in predictions] == [1, 2]
+    assert predictions[0].cache_key != predictions[1].cache_key
+    assert all(pred.measurement_context.matrix is None for pred in predictions)
+
+
+def test_all_unsupported_partial_batch_does_not_run_sidecar(
+        tmp_path, monkeypatch):
+    import mhctools.plifepred2 as module
+
+    def forbidden_sidecar(**kwargs):
+        raise AssertionError("sidecar must not run for unsupported inputs")
+
+    monkeypatch.setattr(module, "run_python_sidecar", forbidden_sidecar)
+    predictor = _predictor(tmp_path)
+    results = predictor.predict([
+        PeptideInput("SIINFEKLGGALQAKKY", n_term="acetylated"),
+        PeptideInput("SIINFEKLGGALQAKKY", c_term="amidated"),
+    ], on_unsupported="record")
+
+    assert len(results) == 2
+    assert all(
+        result.preds[0].measurement_context.status == "unsupported"
+        for result in results)
+    assert predictor.last_qc.empty
 
 
 # --- end-to-end (opt-in) ----------------------------------------------------

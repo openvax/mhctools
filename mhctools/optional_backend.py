@@ -224,6 +224,28 @@ def backend_inventory(spec, artifacts, settings=None):
     )
 
 
+def prediction_cache_key(peptide_input, inventory):
+    """Deterministic identity of exact input, model assets, and settings.
+
+    Source occurrence metadata is deliberately absent from
+    ``peptide_input.inference_identity_sha256``. Duplicate occurrences can
+    reuse inference while remaining distinct records in returned results.
+    """
+    from .peptide_input import PeptideInput
+    if not isinstance(peptide_input, PeptideInput):
+        raise TypeError("prediction_cache_key requires PeptideInput")
+    if not isinstance(inventory, BackendInventory):
+        raise TypeError("prediction_cache_key requires BackendInventory")
+    payload = {
+        "schema": "mhctools.optional_prediction_cache.v1",
+        "input_identity_sha256": peptide_input.inference_identity_sha256,
+        "backend_identity_sha256": inventory.identity_sha256,
+    }
+    encoded = json.dumps(
+        payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
 _OFFLINE_BOOTSTRAP = """
 import runpy
 import socket
