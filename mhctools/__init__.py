@@ -125,7 +125,7 @@ def __getattr__(name):
     raise AttributeError(
         "module %r has no attribute %r" % (__name__, name))
 
-__version__ = "3.44.12"
+__version__ = "3.44.13"
 
 __all__ = [
     "Prediction",
