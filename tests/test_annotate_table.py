@@ -599,22 +599,23 @@ def test_predictor_info_includes_units(tmp_path):
     assert list(info.units) == ["nM", "", "percentile", "hours"]
 
 
-def test_predict_table_csv_uses_six_significant_digits(monkeypatch, tmp_path):
+def test_predict_table_csv_rounds_predictions_but_not_input_floats(
+        monkeypatch, tmp_path):
     input_path = tmp_path / "input.csv"
     output_path = tmp_path / "output.csv"
-    pd.DataFrame({"peptide": ["SIINFEKL"]}).to_csv(input_path, index=False)
+    input_path.write_text(
+        "peptide,measurement\nSIINFEKL,0.123456789012345\n")
     monkeypatch.setattr(
         "mhctools.cli.annotate_table.annotate_table",
-        lambda *args, **kwargs: pd.DataFrame({
-            "peptide": ["SIINFEKL"],
-            "score": [0.02069018702171587],
-        }))
+        lambda table, *args, **kwargs: table.assign(
+            score=[0.02069018702171587]))
     cli_main([
         "--input", str(input_path),
         "--out", str(output_path),
         "--predictor", "random:score:score",
     ])
     text = output_path.read_text()
+    assert "0.123456789012345" in text
     assert "0.0206902" in text
     assert "0.02069018702171587" not in text
 

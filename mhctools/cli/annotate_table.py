@@ -102,6 +102,15 @@ def _write_predictor_info(path, raw_specs, specs):
     print("Wrote predictor info: %s" % path)
 
 
+def _format_prediction_columns(dataframe, specs):
+    """Format generated numeric columns without rounding input columns."""
+    output = dataframe.copy()
+    for spec in specs:
+        output[spec.output_column] = output[spec.output_column].map(
+            lambda value: "" if pd.isna(value) else "%.6g" % value)
+    return output
+
+
 def main(args_list=None):
     parser = make_arg_parser()
     args = parser.parse_args(args_list)
@@ -120,7 +129,8 @@ def main(args_list=None):
             allele_column=args.alleles_column,
             overwrite=args.overwrite)
 
-        annotated.to_csv(args.out, index=False, float_format="%.6g")
+        serialized = _format_prediction_columns(annotated, specs)
+        serialized.to_csv(args.out, index=False)
         print("Wrote: %s (%d rows, %d columns)"
               % (args.out, len(annotated), len(annotated.columns)))
 
