@@ -725,7 +725,7 @@ results[0].erap_trimming.score
 
 | Predictor | Kinds produced | Requires |
 |---|---|---|
-| `PeptiVerse` | Serum half-life (`serum_half_life`) | a PeptiVerse snapshot (`PEPTIVERSE_HOME`) + a torch/transformers Python |
+| `PeptiVerse` | Serum half-life (`serum_half_life`) | pinned PeptiVerse + ESM2 snapshots (`PEPTIVERSE_HOME`, `PEPTIVERSE_ESM_HOME`) + a torch/transformers Python |
 | `PlifePred2` | Blood half-life (`blood_half_life`) ⚠️ unresolved semantics | `plifepred2` (`PLIFEPRED2_HOME`) + a Pfeature checkout (`PFEATURE_HOME`) |
 
 How long a **free peptide** survives in blood serum before proteases degrade it,
@@ -741,9 +741,20 @@ matrix, so the kind string carries it: a predictor trained on whole blood,
 plasma or in-vivo PK is not this kind.
 
 `PeptiVerse` wraps one endpoint of the upstream multi-property platform. Its
-dependencies (torch, `transformers==4.46.0`, xgboost, lightning, and the ESM2 /
-PeptideCLM / ChemBERTa embedding models) stay out of the mhctools environment:
-inference runs in a subprocess under `PEPTIVERSE_PYTHON`.
+dependencies (torch, `transformers==4.46.0`, xgboost, lightning, and ESM2) stay
+out of the mhctools environment: inference runs offline in a subprocess under
+`PEPTIVERSE_PYTHON`. Provision the exact snapshots before prediction:
+
+```bash
+git clone https://huggingface.co/ChatterjeeLab/PeptiVerse
+git -C PeptiVerse checkout 8cf0b21dae356278ae96b414a088e4360357d16c
+huggingface-cli download facebook/esm2_t33_650M_UR50D \
+  --revision 08e4846e537177426273712802403f7ba8261b6c \
+  --include config.json tokenizer_config.json special_tokens_map.json vocab.txt model.safetensors \
+  --local-dir /models/esm2_t33_650M_UR50D
+export PEPTIVERSE_HOME="$PWD/PeptiVerse"
+export PEPTIVERSE_ESM_HOME=/models/esm2_t33_650M_UR50D
+```
 
 ```python
 from mhctools import PeptiVerse
@@ -751,6 +762,7 @@ from mhctools import PeptiVerse
 predictor = PeptiVerse(device="cpu")       # resolves PEPTIVERSE_HOME / ~/PeptiVerse
 results = predictor.predict(["SIINFEKL", "KLGGALQAK"])
 results[0].serum_half_life.value           # hours, higher = longer-lived
+predictor.artifact_inventory.to_dict()     # exact files, hashes, capability
 ```
 
 Sequence input only. Upstream's SMILES models return a number that is *not* on
@@ -762,9 +774,11 @@ unmodified sequence.
 > ⚠️ The sequence half-life model was fit on **130 examples** and evaluated by
 > cross-validation only, from a preprint, with no external test set and no
 > evaluation on long vaccine peptides. Upstream declares Apache-2.0 on its model
-> card and MIT in its README. Checkpoints load through
-> `torch.load(weights_only=False)`, which executes pickled code — point
-> `PEPTIVERSE_HOME` only at a snapshot you trust.
+> card and MIT in its README. mhctools verifies the exact inference source,
+> model, calibration, ESM2 weights, configuration, and tokenizer files before
+> launch. The PeptiVerse checkpoint and calibration still use unsafe pickle
+> serialization; matching a checksum establishes identity, not safety. Use
+> only snapshots you trust.
 
 `PlifePred2` targets blood rather than serum, so it emits a different kind —
 serum is blood with the cells and clotting factors removed, and peptide

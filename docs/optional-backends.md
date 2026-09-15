@@ -39,3 +39,19 @@ This is defense in depth for reviewed sidecars, not a sandbox for hostile code:
 pickle, joblib, and unrestricted torch checkpoints can execute arbitrary code.
 They must match reviewed checksums by default, and opting into an unverified
 artifact is an explicit trust decision.
+
+## PeptiVerse inventory
+
+`PeptiVerse` verifies the pinned upstream `inference.py`, the exact
+`transformer_wt_log` checkpoint/configuration/calibration files, and the ESM2
+weights, configuration, and tokenizer files. Its manifest names
+`Transformer_WT_Log` directly; it never accepts upstream's fallback to
+`transformer_wt`. The ESM2 snapshot must be local before construction, and the
+sidecar replaces the two unused SMILES embedders so prediction cannot trigger
+PeptideCLM or ChemBERTa downloads.
+
+`predictor_version` contains both the revisions mhctools was developed against
+and a path-independent SHA-256 identity of the files actually supplied. After
+a successful call, `artifact_inventory.capability` changes from
+`artifacts_verified` to `inference_reproduced`; merely finding the files does
+not make that claim.
