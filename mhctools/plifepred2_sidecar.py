@@ -11,9 +11,9 @@ the mhctools interpreter. This script runs in whatever interpreter owns them
 (``PLIFEPRED2_PYTHON``) and does two things:
 
 1. Shells out to Pfeature's ``pfeature_comp.py`` for the quasi-sequence-order
-   descriptor. That script reads ``Data/Schneider-Wrede.csv`` and
-   ``Data/Grantham.csv`` by relative path, so each invocation gets an isolated
-   working directory containing a copy of those resources.
+   descriptor. That script reads five ``Data/`` resources by relative path, so
+   each invocation gets an isolated working directory containing only those
+   verified resources.
 2. Loads PlifePred2's natural-peptide RandomForest and predicts.
 
 The model is loaded with joblib, which unpickles; the caller is responsible for
@@ -29,16 +29,51 @@ import sys
 import tempfile
 
 
+_PFEATURE_DATA_FILES = (
+    "Schneider-Wrede.csv",
+    "Grantham.csv",
+    "PhysicoChemical.csv",
+    "aaindex.csv",
+    "AAIndexNames.csv",
+)
+
+_EXPECTED_SCIKIT_LEARN = "1.4.2"
+
+_OFFLINE_BOOTSTRAP = """
+import runpy
+import socket
+import sys
+
+def _network_disabled(*args, **kwargs):
+    raise RuntimeError("Network access disabled for Pfeature extraction")
+
+socket.socket.connect = _network_disabled
+socket.socket.connect_ex = _network_disabled
+socket.create_connection = _network_disabled
+socket.getaddrinfo = _network_disabled
+sys.argv = sys.argv[1:]
+runpy.run_path(sys.argv[0], run_name="__main__")
+""".strip()
+
+
 def _parse_args():
     parser = ArgumentParser()
     parser.add_argument("--pfeature-home", required=True)
     parser.add_argument("--model", required=True)
     parser.add_argument("--input", required=True)
     parser.add_argument("--output", required=True)
+    parser.add_argument("--pfeature-timeout", type=float)
     return parser.parse_args()
 
 
-def _run_pfeature(pfeature_home, fasta_path, features_path):
+def _require_sklearn_version(actual):
+    if actual != _EXPECTED_SCIKIT_LEARN:
+        raise RuntimeError(
+            "PlifePred2 1.0 requires scikit-learn %s for exact forest "
+            "deserialization; got %s" % (_EXPECTED_SCIKIT_LEARN, actual))
+
+
+def _run_pfeature(pfeature_home, fasta_path, features_path, timeout=None):
     """Run Pfeature's QSO job, returning nothing but writing *features_path*.
 
     Upstream's script is written to run from its own directory: it reads
@@ -63,27 +98,34 @@ def _run_pfeature(pfeature_home, fasta_path, features_path):
             "Pfeature installation %r has no Data directory" % str(pfeature_home))
 
     with tempfile.TemporaryDirectory(prefix="mhctools_pfeature_run_") as run_dir:
-        # copy, not symlink: a symlinked tree would let upstream's cleanup and
-        # intermediate writes reach back into the installation.
-        shutil.copytree(data_source, Path(run_dir) / "Data")
+        # Copy only the resources in the reviewed inventory. A symlinked tree
+        # would let upstream's cleanup and writes reach the installation; a
+        # whole-tree copy would make unverified files available at runtime.
+        runtime_data = Path(run_dir) / "Data"
+        runtime_data.mkdir()
+        for name in _PFEATURE_DATA_FILES:
+            shutil.copy2(data_source / name, runtime_data / name)
         command = [
             sys.executable,
-            # runpy rather than the script path so that the Pfeature directory
-            # is not prepended to sys.path in this process's child.
             "-c",
-            ("import runpy,sys; sys.argv=sys.argv[1:]; "
-             "runpy.run_path(sys.argv[0],run_name='__main__')"),
+            _OFFLINE_BOOTSTRAP,
             str(script),
             "-i", str(Path(fasta_path).resolve()),
             "-o", str(Path(features_path).resolve()),
             "-j", "QSO",
         ]
-        process = subprocess.run(
-            command,
-            cwd=run_dir,
-            capture_output=True,
-            text=True,
-        )
+        try:
+            process = subprocess.run(
+                command,
+                cwd=run_dir,
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+            )
+        except subprocess.TimeoutExpired as error:
+            raise RuntimeError(
+                "Pfeature QSO extraction timed out after %s seconds"
+                % timeout) from error
         if process.returncode != 0:
             raise RuntimeError(
                 "Pfeature QSO extraction failed (exit %d):\n%s" % (
@@ -96,6 +138,9 @@ def main():
 
     import joblib
     import pandas as pd
+    import sklearn
+
+    _require_sklearn_version(sklearn.__version__)
 
     with open(args.input, newline="") as handle:
         rows = list(csv.DictReader(handle))
@@ -106,7 +151,11 @@ def main():
         with open(fasta_path, "w") as handle:
             for row in rows:
                 handle.write(">%s\n%s\n" % (row["__mhctools_id"], row["peptide"]))
-        _run_pfeature(args.pfeature_home, fasta_path, features_path)
+        _run_pfeature(
+            args.pfeature_home,
+            fasta_path,
+            features_path,
+            timeout=args.pfeature_timeout)
         features = pd.read_csv(features_path)
 
     if len(features) != len(rows):
@@ -127,13 +176,18 @@ def main():
 
     with open(args.output, "w", newline="") as handle:
         writer = csv.DictWriter(
-            handle, fieldnames=["__mhctools_id", "peptide", "log10_seconds"])
+            handle,
+            fieldnames=[
+                "__mhctools_id", "peptide", "log10_seconds",
+                "scikit_learn_version",
+            ])
         writer.writeheader()
         for row, prediction in zip(rows, predictions):
             writer.writerow({
                 "__mhctools_id": row["__mhctools_id"],
                 "peptide": row["peptide"],
                 "log10_seconds": float(prediction),
+                "scikit_learn_version": sklearn.__version__,
             })
 
 

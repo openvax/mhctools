@@ -55,3 +55,46 @@ and a path-independent SHA-256 identity of the files actually supplied. After
 a successful call, `artifact_inventory.capability` changes from
 `artifacts_verified` to `inference_reproduced`; merely finding the files does
 not make that claim.
+
+## PlifePred2 inventory
+
+`PlifePred2` verifies the natural-peptide forest from the official 1.0 wheel,
+Pfeature's QSO implementation at revision
+`93636eb95bed9df2893b7a0c56b1215e648ecdbf`, both QSO distance matrices, and
+the three additional data files that Pfeature reads at process startup. Only
+those reviewed resources are copied into the isolated feature workspace.
+
+The official wheel pins scikit-learn 1.4.2. The sidecar checks that version
+before loading the joblib forest, so an interpreter that merely happens to
+unpickle it with warnings is not reported as exact reproduction. Both the
+outer predictor and nested Pfeature process run with socket access disabled and
+timeouts. The output-setting choice (`assume_log10_seconds`) is part of the
+identity because it changes whether a duration is emitted.
+
+## Capability matrix
+
+This release makes no blanket platform claim for real-model inference. The
+conformance suite exercises artifact checks, input/output contracts, offline
+execution, and isolated stub sidecars on Linux (Python 3.10-3.12 in CI) and
+macOS (Python 3.12 locally); actual third-party inference remains an opt-in
+smoke test. A verified predictor instance advances to `inference_reproduced`
+only after that local smoke succeeds.
+
+| Backend/candidate | Endpoint-specific release | Static artifact gate | Real inference |
+|---|---|---|---|
+| PeptiVerse | Human-serum half-life, exact `transformer_wt_log` | Exact source/model/calibration/ESM2 inventory; automated conformance | Opt-in smoke; no published platform combination yet |
+| PlifePred2 | Undocumented blood-half-life native regression | Exact forest/QSO/resources inventory; automated conformance | Reproduced on macOS arm64 / Python 3.12 / CPU; otherwise opt-in |
+| POSEIDON | None established | Blocked: research/training repository is not an inference-complete endpoint release | Not run |
+| PERSEU | None established | Blocked: interactive design path and serialized models do not provide a reviewed prediction-only entry point | Not run |
+
+Finding a repository, dataset, or checkpoint is therefore never shown as an
+inference capability. A platform claim can be added only alongside a recorded
+real-model smoke result for that exact inventory.
+
+The PlifePred2 entry records a local smoke on 2026-09-14 with scikit-learn
+1.4.2 and asset identity
+`d1fb877035f93b1302a975c47c08a084d8757964692c64f89f108792da0915c0`.
+The verified backend returned native scores `3.157266404183623` and
+`3.7934723194625297` for the two opt-in reference peptides and advanced to
+`inference_reproduced`. This is evidence only for the listed runtime; it does
+not establish the endpoint's undocumented biological semantics.

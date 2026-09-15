@@ -76,17 +76,18 @@ mislabelled. Peptides with non-standard residues are rejected instead.
 
 Installation
 ------------
-Two GPLv3 checkouts, neither vendored:
+Two GPLv3 installations, neither vendored:
 
 - ``PLIFEPRED2_HOME`` — the installed ``plifepred2`` package directory, holding
   ``models/plifepred2_natural_model.sav`` (``pip install plifepred2`` into any
   environment, then point at its ``site-packages/plifepred2``).
 - ``PFEATURE_HOME`` — a checkout of ``raghavagps/Pfeature``'s ``Standalone``
-  directory, holding ``pfeature_comp.py`` and ``Data/``.
+  directory at revision ``93636eb95bed9df2893b7a0c56b1215e648ecdbf``,
+  holding ``pfeature_comp.py`` and ``Data/``.
 
 The Linux-only ``pfeature_comp`` binary that PlifePred2 bundles is **not** used.
-It is a PyInstaller freeze of Pfeature's ``pfeature_comp.py``, and that plain
-Python source computes the same descriptor on any platform.
+It is a PyInstaller freeze of Pfeature's ``pfeature_comp.py``; the pinned plain
+Python source is used in the isolated environment instead.
 
 Provenance and limits
 ---------------------
@@ -106,17 +107,23 @@ import math
 import os
 from pathlib import Path
 import shutil
-import subprocess
 import sys
 import tempfile
 
 import pandas as pd
 
 from .pred import Kind, PeptideResult, Prediction
+from .optional_backend import (
+    BackendSpec,
+    backend_inventory,
+    inspect_artifact,
+    run_python_sidecar,
+)
 from .wrapper_base import AlleleFreePredictor
 
 #: Upstream package version this wrapper was written and verified against.
 UPSTREAM_VERSION = "1.0"
+PFEATURE_REVISION = "93636eb95bed9df2893b7a0c56b1215e648ecdbf"
 
 #: sha256 of the ``plifepred2-1.0-py3-none-any.whl`` these paths were read from.
 UPSTREAM_WHEEL_SHA256 = (
@@ -130,6 +137,54 @@ PLIFEPRED2_MAX_PEPTIDE_LENGTH = 100
 _VALID_AMINO_ACIDS = frozenset("ACDEFGHIKLMNPQRSTVWY")
 
 _NATURAL_MODEL = os.path.join("models", "plifepred2_natural_model.sav")
+
+_PLIFEPRED2_ARTIFACTS = {
+    _NATURAL_MODEL: (
+        "natural_peptide_random_forest",
+        "1c9009319685c7ba9a0ceb1fe5e00322590039cca4589c24f89bf3995f83080b",
+        "joblib_pickle"),
+}
+
+_PFEATURE_ARTIFACTS = {
+    "pfeature_comp.py": (
+        "qso_feature_implementation",
+        "f02f39ed2aa95dd282b0f20684c0f8570522a7a886c987b6acb3cf4a18a07936",
+        "python_source"),
+    os.path.join("Data", "Schneider-Wrede.csv"): (
+        "qso_distance_matrix",
+        "5ae5c4e83e41490464ac0fc120e209de2e87a2b37b8ed3350b028b7760b89a56",
+        "csv"),
+    os.path.join("Data", "Grantham.csv"): (
+        "qso_distance_matrix",
+        "87baa46a74c6510d466011358973d340d943844aeb8ce5fb46541db97aaa883c",
+        "csv"),
+    os.path.join("Data", "PhysicoChemical.csv"): (
+        "pfeature_startup_resource",
+        "f8e94cf9464539ddd0e9e97a20da2fe0ffbdcb8a48c1a632d7117153bea11c04",
+        "csv"),
+    os.path.join("Data", "aaindex.csv"): (
+        "pfeature_startup_resource",
+        "c18b4e54a40136b56533100e69c6f8251d80eb5923a02a00db6d00b14d843b65",
+        "csv"),
+    os.path.join("Data", "AAIndexNames.csv"): (
+        "pfeature_startup_resource",
+        "608dca782677b57349c1a6a208be2411278db35fa739c26bdb522b275ebe0f43",
+        "csv"),
+}
+
+PLIFEPRED2_BACKEND_SPEC = BackendSpec(
+    name="plifepred2",
+    endpoint="undocumented_blood_half_life_native_regression",
+    developed_against="plifepred2@%s+pfeature@%s" % (
+        UPSTREAM_VERSION, PFEATURE_REVISION),
+    license="PlifePred2: GPL-3.0; Pfeature: GPL-3.0",
+    serialization="joblib pickle random forest",
+    entry_point="prediction_only",
+    # Real-model smoke recorded in docs/optional-backends.md. CI continues to
+    # exercise only the conformance path and never unpickles third-party data.
+    supported_platforms=("macos-arm64-cpu",),
+    supported_interpreters=("python3.12",),
+)
 
 _SECONDS_PER_HOUR = 3600.0
 
@@ -181,12 +236,47 @@ def _find_pfeature_home(pfeature_home=None):
         raise FileNotFoundError(
             "pfeature_comp.py not found in %r — point at Pfeature's Standalone "
             "directory, not the repository root." % candidate)
-    for data_file in ("Schneider-Wrede.csv", "Grantham.csv"):
-        if not Path(candidate, "Data", data_file).is_file():
+    for relative in _PFEATURE_ARTIFACTS:
+        if relative == "pfeature_comp.py":
+            continue
+        if not Path(candidate, relative).is_file():
             raise FileNotFoundError(
-                "Data/%s not found in %r — Pfeature's QSO descriptor reads its "
-                "distance matrices from that directory." % (data_file, candidate))
+                "%s not found in %r — the pinned Pfeature process reads this "
+                "resource before or during QSO extraction."
+                % (relative, candidate))
     return candidate
+
+
+def _artifact_inventory(
+        plifepred2_home, pfeature_home, assume_log10_seconds):
+    artifacts = []
+    for relative, (role, expected_sha256, serialization) in (
+            _PLIFEPRED2_ARTIFACTS.items()):
+        artifacts.append(inspect_artifact(
+            name="plifepred2/%s" % relative,
+            role=role,
+            path=Path(plifepred2_home) / relative,
+            expected_sha256=expected_sha256,
+            serialization=serialization))
+    for relative, (role, expected_sha256, serialization) in (
+            _PFEATURE_ARTIFACTS.items()):
+        artifacts.append(inspect_artifact(
+            name="pfeature/%s" % relative,
+            role=role,
+            path=Path(pfeature_home) / relative,
+            expected_sha256=expected_sha256,
+            serialization=serialization))
+    return backend_inventory(
+        spec=PLIFEPRED2_BACKEND_SPEC,
+        artifacts=artifacts,
+        settings={
+            "assume_log10_seconds": assume_log10_seconds,
+            "descriptor": "QSO",
+            "model_variant": "natural",
+            "qso_lag": 1,
+            "qso_weight": 0.1,
+            "scikit_learn": "1.4.2",
+        })
 
 
 def _resolve_python(plifepred2_python=None):
@@ -227,6 +317,12 @@ class PlifePred2(AlleleFreePredictor):
         docstring). While off, ``value`` is left empty and only the native
         output is reported, in ``score``. Turning it on is an assertion that
         you accept the inference.
+    allow_unverified_assets : bool
+        Permit explicitly supplied files whose checksums differ from the pinned
+        model and Pfeature inventory. False by default. Their actual identity
+        is still recorded in :attr:`artifact_inventory` and every prediction.
+    subprocess_timeout : float, optional
+        Maximum seconds allowed for the isolated inference process.
     """
 
     mhc_class = "none"
@@ -236,11 +332,20 @@ class PlifePred2(AlleleFreePredictor):
             plifepred2_home=None,
             pfeature_home=None,
             plifepred2_python=None,
-            assume_log10_seconds=False):
+            assume_log10_seconds=False,
+            allow_unverified_assets=False,
+            subprocess_timeout=300):
         self.plifepred2_home = _find_plifepred2_home(plifepred2_home)
         self.pfeature_home = _find_pfeature_home(pfeature_home)
         self.plifepred2_python = _resolve_python(plifepred2_python)
         self.assume_log10_seconds = assume_log10_seconds
+        self.subprocess_timeout = subprocess_timeout
+        self.artifact_inventory = _artifact_inventory(
+            self.plifepred2_home,
+            self.pfeature_home,
+            self.assume_log10_seconds)
+        self.artifact_inventory.require_usable(
+            allow_unverified=allow_unverified_assets)
         self.last_qc = pd.DataFrame()
 
     def __str__(self):
@@ -257,7 +362,7 @@ class PlifePred2(AlleleFreePredictor):
 
     @property
     def predictor_version(self):
-        return "%s:natural" % UPSTREAM_VERSION
+        return self.artifact_inventory.predictor_version
 
     def _check_peptides(self, peptides):
         for peptide in peptides:
@@ -325,35 +430,25 @@ class PlifePred2(AlleleFreePredictor):
             }).to_csv(input_path, index=False)
 
             sidecar = Path(__file__).with_name("plifepred2_sidecar.py")
-            command = [
-                self.plifepred2_python,
-                # runpy rather than the script path, so that mhctools/ does not
-                # land on sys.path[0] where mhctools/logging.py would shadow
-                # the stdlib logging module.
-                "-c",
-                ("import runpy,sys; sys.argv=sys.argv[1:]; "
-                 "runpy.run_path(sys.argv[0],run_name='__main__')"),
-                str(sidecar),
+            arguments = [
                 "--pfeature-home", self.pfeature_home,
                 "--model", str(Path(self.plifepred2_home, _NATURAL_MODEL)),
                 "--input", str(input_path),
                 "--output", str(output_path),
             ]
-            environment = os.environ.copy()
-            environment["PYTHONNOUSERSITE"] = "1"
-            process = subprocess.run(
-                command,
-                env=environment,
-                capture_output=True,
-                text=True,
-            )
-            if process.returncode != 0:
-                raise RuntimeError(
-                    "PlifePred2 inference failed (exit %d):\n%s" % (
-                        process.returncode,
-                        (process.stderr or process.stdout).strip()))
+            if self.subprocess_timeout is not None:
+                arguments.extend([
+                    "--pfeature-timeout", str(self.subprocess_timeout)])
+            run_python_sidecar(
+                backend_name="PlifePred2",
+                python=self.plifepred2_python,
+                sidecar=sidecar,
+                args=arguments,
+                timeout=self.subprocess_timeout)
             output = parse_plifepred2_results(output_path, peptide_list)
 
+        self.artifact_inventory = (
+            self.artifact_inventory.with_inference_reproduced())
         self.last_qc = output
         return output
 
