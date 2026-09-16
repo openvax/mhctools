@@ -97,17 +97,25 @@ QUANTITATIVE_SITE_MODELS = [
 ]
 MHC_I_CLEAVAGE_MODELS = QUANTITATIVE_SITE_MODELS[:5]
 FIGURE_CYTOSOL_MODELS = [
+    "netchop-3.1-20s-3.0",
     "netcleave-i-hla",
-    "netchop-3.1-cterm-3.0",
     "pepsickle-in-vivo-human-only",
+    "netchop-3.1-cterm-3.0",
 ]
 FIGURE_QUANTITATIVE_MODELS = FIGURE_CYTOSOL_MODELS + ["netcleave-ii-hla"]
-FIGURE_RED_SUPPORT_REQUIRED = 2
+FIGURE_RED_SUPPORT_REQUIRED = 3
 MODEL_DISPLAY_NAMES = {
     "netchop-3.1-20s-3.0": "NetChop 20S",
     "pepsickle-in-vivo-human-only": "Pepsickle human",
     "pepsickle-in-vivo-all-mammal": "Pepsickle all-mammal",
     "netchop-3.1-cterm-3.0": "NetChop Cterm",
+    "netcleave-i-hla": "NetCleave I",
+    "netcleave-ii-hla": "NetCleave II",
+}
+ATLAS_MODEL_LABELS = {
+    "netchop-3.1-20s-3.0": "NetChop 20S (in vitro)",
+    "pepsickle-in-vivo-human-only": "Pepsickle human (in vivo)",
+    "netchop-3.1-cterm-3.0": "NetChop Cterm (ligand)",
     "netcleave-i-hla": "NetCleave I",
     "netcleave-ii-hla": "NetCleave II",
 }
@@ -1430,8 +1438,8 @@ def plot_agreement_overview(
         0.06,
         "Clustering organizes the atlas; it does not create an ensemble probability. "
         "Sequence pages follow the left-panel SLP order. "
-        "The figure intentionally shows human-only Pepsickle, NetChop Cterm, NetCleave-I, and NetCleave-II; "
-        "all-mammal Pepsickle and NetChop 20S remain in the tables. The left panel uses a common display threshold on native 0-1 outputs. The right "
+        "The figure shows human-only Pepsickle, both biologically distinct NetChop modes, NetCleave-I, and NetCleave-II; "
+        "the near-redundant all-mammal Pepsickle track remains in the tables. The left panel uses a common display threshold on native 0-1 outputs. The right "
         "panel correlates native scores only where both models assess the same bond.",
         ha="center",
         va="center",
@@ -1611,9 +1619,9 @@ def plot_sequence_atlas_page(
     record_id = record["sequence_record_id"]
     residue_start, residue_end = start_bond, end_bond + 1
     fig = plt.figure(figsize=(16, 10.5))
-    ax = fig.add_axes([0.115, 0.14, 0.84, 0.72])
+    ax = fig.add_axes([0.12, 0.15, 0.835, 0.71])
     ax.set_xlim(residue_start - 0.8, residue_end + 0.8)
-    ax.set_ylim(-5.25, 5.9)
+    ax.set_ylim(-4.55, 5.95)
     ax.axis("off")
 
     # Disclosed intended minimal epitope: gold behind the actual residue letters.
@@ -1643,7 +1651,7 @@ def plot_sequence_atlas_page(
             ha="center",
             va="center",
             family="monospace",
-            fontsize=21,
+            fontsize=19,
             fontweight="bold",
             color="#18222d",
             zorder=5,
@@ -1655,7 +1663,7 @@ def plot_sequence_atlas_page(
                 str(position),
                 ha="center",
                 va="top",
-                fontsize=7,
+                fontsize=8,
                 color="#56616c",
             )
 
@@ -1665,22 +1673,24 @@ def plot_sequence_atlas_page(
         & quantitative_df["bond"].isin(bonds)
     ]
     model_colors = {
+        "netchop-3.1-20s-3.0": "#0072b2",
         "pepsickle-in-vivo-human-only": "#009e73",
         "netchop-3.1-cterm-3.0": "#d55e00",
         "netcleave-i-hla": "#cc79a7",
         "netcleave-ii-hla": "#6f4aa8",
     }
     model_y = {
-        model: 2.8 + index * 0.85 for index, model in enumerate(FIGURE_CYTOSOL_MODELS)
+        model: 2.42 + index * 0.78
+        for index, model in enumerate(FIGURE_CYTOSOL_MODELS)
     }
-    model_y["netcleave-ii-hla"] = -2.1
+    model_y["netcleave-ii-hla"] = -1.86
     model_scores = _score_matrix(
         record_id, quantitative_df, FIGURE_QUANTITATIVE_MODELS, bonds
     )
     for model_index, model in enumerate(FIGURE_QUANTITATIVE_MODELS):
         y = model_y[model]
         direction = 1 if model in FIGURE_CYTOSOL_MODELS else -1
-        amplitude = 0.58
+        amplitude = 0.64
         ax.plot(
             [residue_start - 0.45, residue_end + 0.45],
             [y, y],
@@ -1700,10 +1710,10 @@ def plot_sequence_atlas_page(
         ax.text(
             residue_start - 0.68,
             y,
-            f"{MODEL_DISPLAY_NAMES[model]}  0-1",
+            f"{ATLAS_MODEL_LABELS[model]}  0-1",
             ha="right",
             va="center",
-            fontsize=7.2,
+            fontsize=8.2,
             color=model_colors[model],
         )
         ax.text(
@@ -1712,7 +1722,7 @@ def plot_sequence_atlas_page(
             "0.5",
             ha="left",
             va="center",
-            fontsize=5.8,
+            fontsize=6.8,
             color=model_colors[model],
         )
         scores = model_scores[model_index]
@@ -1731,7 +1741,7 @@ def plot_sequence_atlas_page(
                 x,
                 endpoints,
                 color=model_colors[model],
-                linewidth=1.55,
+                linewidth=1.8,
                 solid_joinstyle="round",
                 solid_capstyle="round",
                 zorder=2,
@@ -1739,7 +1749,7 @@ def plot_sequence_atlas_page(
             ax.scatter(
                 x,
                 endpoints,
-                s=5,
+                s=7,
                 color=model_colors[model],
                 alpha=0.48,
                 linewidth=0,
@@ -1749,7 +1759,7 @@ def plot_sequence_atlas_page(
             ax.scatter(
                 x[strong],
                 endpoints[strong],
-                s=20,
+                s=25,
                 color=model_colors[model],
                 edgecolor="white",
                 linewidth=0.45,
@@ -1758,11 +1768,11 @@ def plot_sequence_atlas_page(
 
     ax.text(
         residue_start - 0.68,
-        5.5,
-        "INTRACELLULAR / CLASS-I PROCESSING - red slash = 2/3 or 3/3 displayed tracks at >=0.5",
+        5.65,
+        "INTRACELLULAR / CLASS-I PROCESSING - four complementary score tracks",
         ha="left",
         va="center",
-        fontsize=7.1,
+        fontsize=8.6,
         fontweight="bold",
         color="#46515b",
     )
@@ -1781,13 +1791,13 @@ def plot_sequence_atlas_page(
                 f"{hits}/{assessed}",
                 ha="center",
                 va="bottom",
-                fontsize=6.5,
+                fontsize=7.4,
                 fontweight="bold",
                 color="#8f1520",
             )
 
     # Native peptidase outputs without a validated common threshold.
-    terminal_y = {"eramer-step": 2.18, "dpp4-qpisa": -3.42}
+    terminal_y = {"eramer-step": 1.98, "dpp4-qpisa": -3.18}
     terminal_label = {"eramer-step": "ERAP1 / ERAMER", "dpp4-qpisa": "DPP4 native"}
     terminal_color = {"eramer-step": "#6a4492", "dpp4-qpisa": "#8a5a00"}
     for model, y in terminal_y.items():
@@ -1797,7 +1807,7 @@ def plot_sequence_atlas_page(
             terminal_label[model],
             ha="right",
             va="center",
-            fontsize=7.2,
+            fontsize=8.2,
             color=terminal_color[model],
         )
         for result in score_subset.loc[score_subset["model"] == model].itertuples():
@@ -1806,11 +1816,11 @@ def plot_sequence_atlas_page(
                 [x],
                 [y],
                 marker="D",
-                s=30,
+                s=38,
                 color=terminal_color[model],
                 edgecolor="#49323f" if model == "eramer-step" else "#6a4600",
             )
-            ax.text(x + 0.08, y + 0.12, f"{float(result.score):.2g}", fontsize=5.5)
+            ax.text(x + 0.08, y + 0.12, f"{float(result.score):.2g}", fontsize=6.5)
 
     def short_allele(value: str) -> str:
         value = value.replace("HLA-", "").replace("DRA1*01:01-", "")
@@ -1840,7 +1850,7 @@ def plot_sequence_atlas_page(
                 f"rank{segment_suffix}",
                 ha="right",
                 va="center",
-                fontsize=7,
+                fontsize=8,
                 color="#68717a",
             )
             return
@@ -1850,7 +1860,7 @@ def plot_sequence_atlas_page(
             f"MHC-{mhc_class} candidate ligands",
             ha="right",
             va="center",
-            fontsize=7.2,
+            fontsize=8.2,
             color=color,
         )
         lane_ends = [-math.inf] * len(lane_y)
@@ -1897,7 +1907,7 @@ def plot_sequence_atlas_page(
                 label,
                 ha="center",
                 va="center",
-                fontsize=5.5,
+                fontsize=6.3,
                 color=color,
                 fontweight="bold",
                 clip_on=True,
@@ -1941,7 +1951,7 @@ def plot_sequence_atlas_page(
                 f"+{omitted} additional span{'s' if omitted != 1 else ''}\nin CSV",
                 ha="right",
                 va="center",
-                fontsize=5.8,
+                fontsize=6.6,
                 color=color,
             )
 
@@ -1957,8 +1967,8 @@ def plot_sequence_atlas_page(
         & motifs_df["bond"].isin(bonds)
     ]
     for models, y, label, color in (
-        (INTRACELLULAR_ER_MOTIF_MODELS, 1.75, "cytosol / ER motifs", "#6a4492"),
-        (EXTRACELLULAR_MOTIF_MODELS, -4.15, "serum / extracellular motifs", "#007b83"),
+        (INTRACELLULAR_ER_MOTIF_MODELS, 1.66, "cytosol / ER motifs", "#6a4492"),
+        (EXTRACELLULAR_MOTIF_MODELS, -3.82, "serum / extracellular motifs", "#007b83"),
     ):
         ax.text(
             residue_start - 0.68,
@@ -1966,7 +1976,7 @@ def plot_sequence_atlas_page(
             label,
             ha="right",
             va="center",
-            fontsize=7.2,
+            fontsize=8.2,
             color=color,
         )
         for bond, group in matched.loc[matched["model"].isin(models)].groupby("bond"):
@@ -1975,7 +1985,7 @@ def plot_sequence_atlas_page(
             marker = "^" if y > 0 else "v"
             label_y = y + 0.16 if y > 0 else y - 0.16
             va = "bottom" if y > 0 else "top"
-            ax.scatter([x], [y], marker=marker, s=32, color=color, zorder=3)
+            ax.scatter([x], [y], marker=marker, s=38, color=color, zorder=3)
             ax.text(
                 x,
                 label_y,
@@ -1983,17 +1993,17 @@ def plot_sequence_atlas_page(
                 rotation=45,
                 ha="right",
                 va=va,
-                fontsize=5.4,
+                fontsize=6.1,
                 color=color,
             )
 
     ax.text(
         residue_start - 0.68,
-        -3.0,
+        -2.78,
         "SERUM / EXTRACELLULAR - native scores and recognition motifs",
         ha="left",
         va="center",
-        fontsize=7.1,
+        fontsize=8.6,
         fontweight="bold",
         color="#46515b",
     )
@@ -2007,7 +2017,7 @@ def plot_sequence_atlas_page(
     fig.suptitle(
         f"{record['gene']} {record['protein_change'] or ''} | {vaccines} | "
         f"{record['length']} aa{continuation}",
-        fontsize=15,
+        fontsize=16,
         fontweight="bold",
         y=0.965,
     )
@@ -2023,23 +2033,35 @@ def plot_sequence_atlas_page(
         epitope_label,
         ha="center",
         va="center",
-        fontsize=9,
+        fontsize=9.5,
         color="#8a6300" if minimal_bounds else "#626b73",
     )
     fig.text(
         0.5,
-        0.047,
-        "Reading the map. Each profile joins exact scores at adjacent assessed bonds; it is not smoothed, averaged, or calibrated, and gaps are unassessed. "
-        "Dots at or beyond the dashed 0.5 line are display candidates. "
-        "A red slash is drawn only when all three displayed intracellular tracks assess that bond and >=2 score >=0.5; its label is the supporting fraction (2/3 or 3/3), not a probability. "
-        "Pale blue/purple sequence tint marks coverage by a displayed MHC window; outlined windows identify the individual candidate MHC "
-        "ligands at <=2%/<=5% rank (top-ranked non-overlapping spans shown; all rows are in the CSV); red ticks inside them are internal candidate cuts before binding. These counts are "
-        "not probabilities, and ligand bars do not model binding occupancy, timing, or post-binding protection.",
+        0.086,
+        "SCORES  Native 0-1 bond scores; lines join adjacent assessed bonds only (no smoothing). Dashed line = 0.5 display threshold; gaps = unassessed.",
         ha="center",
         va="center",
-        fontsize=8,
+        fontsize=8.8,
         color="#333333",
-        wrap=True,
+    )
+    fig.text(
+        0.5,
+        0.057,
+        "RED CUTS  All four intracellular tracks must assess the bond and at least three must score >=0.5. The 3/4 or 4/4 label is support, not probability.",
+        ha="center",
+        va="center",
+        fontsize=8.8,
+        color="#333333",
+    )
+    fig.text(
+        0.5,
+        0.028,
+        "MHC WINDOWS  Blue/purple tint and outlines show displayed <=2%/<=5% rank candidates; internal red ticks are pre-binding cut evidence. All candidates remain in CSV.",
+        ha="center",
+        va="center",
+        fontsize=8.8,
+        color="#333333",
     )
     standalone_title = (
         f"{record['gene']} {record['protein_change'] or ''} vaccine SLP cleavage map"
@@ -2389,11 +2411,11 @@ def write_report(
         "[Atlas order and PDF page numbers](tables/atlas_sequence_order.csv) are provided for navigation. "
         "Every map page is also available as a vector PDF and 300 dpi PNG, indexed in "
         "[the individual-map export table](tables/slp_map_exports.csv).",
-        "The atlas deliberately limits intracellular quantitative tracks to the human-only Pepsickle in-vivo model, "
-        "NetChop Cterm, and NetCleave-I. NetChop Cterm is preferred here because the figure is centered on candidate "
-        "MHC-I ligand boundaries; it is ligand-trained and should not be read as a pure proteasome assay. The human-only "
-        "Pepsickle model is species-matched but experimental and trained on less data than its all-mammal counterpart. "
-        "NetChop 20S and all-mammal Pepsickle outputs remain available in the exact-score and summary tables.",
+        "The atlas shows four intracellular quantitative tracks: human-only Pepsickle, NetChop Cterm, NetChop 20S, "
+        "and NetCleave-I. Cterm is ligand-trained and emphasizes candidate MHC-I boundaries, whereas 20S is retained "
+        "as a distinct in-vitro proteasome view rather than a substitute for Cterm. The human-only Pepsickle model is "
+        "species-matched but experimental and trained on less data than its all-mammal counterpart. The near-redundant "
+        "all-mammal Pepsickle output remains available in the exact-score and summary tables.",
         "",
         "![Predictor agreement and clustered SLP order](figures/predictor_agreement_and_slp_clusters.png)",
         "",
@@ -2410,8 +2432,8 @@ def write_report(
         "MHC-I predictions use all five disclosed classical class-I alleles. MHC-II predictions use "
         "only alpha/beta combinations already named by the osteosarc source; the unphased HLA table "
         "is not used to invent additional combinations. All inference ran locally.",
-        "For class I, a red sequence slash or ligand-window tick requires all three displayed intracellular "
-        "tracks to assess the bond and at least two to reach the 0.5 display threshold; the adjacent 2/3 or 3/3 "
+        "For class I, a red sequence slash or ligand-window tick requires all four displayed intracellular "
+        "tracks to assess the bond and at least three to reach the 0.5 display threshold; the adjacent 3/4 or 4/4 "
         "label is a support fraction, not a probability. Red ticks inside a ligand bar are pre-binding internal cleavage evidence in the relevant "
         "processing view. They do not establish that a bound pMHC complex will be cleaved or protected; "
         "binding occupancy and timing are not modeled.",

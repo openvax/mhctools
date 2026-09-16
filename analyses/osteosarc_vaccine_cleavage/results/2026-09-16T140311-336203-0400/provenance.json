@@ -1,0 +1,100 @@
+{
+  "analysis": {
+    "analysis_script_sha256": "9a2c1b72e4b79b1ae5ee2c75b0d2f8680e07b634f0b4a44c94cab783c6ddc45b",
+    "display_threshold": 0.5,
+    "generated_at": "2026-09-16T14:03:11.336203-04:00",
+    "mhctools_commit": "182a6c9dc3b0a2816bebb9d9ebe3dea61f618246",
+    "mhctools_version": "3.44.34",
+    "mhctools_worktree_dirty": false,
+    "output_directory": "2026-09-16T140311-336203-0400",
+    "sequence_uploads": "none; all inference ran locally",
+    "termini_assumption": "free N and C termini"
+  },
+  "models": {
+    "eramer": {
+      "commit": "7745d5cf72d99bcda1c73f26ca746d025b46b7f3",
+      "files": {
+        "PWM.xlsx": "1113f799564d0e6d8616bfd74f9a1d5f025ebcb869ba0f77de61cbb750b47356"
+      },
+      "repository": "https://github.com/aalokaily/ERAMER"
+    },
+    "mhcflurry": {
+      "file_count": 19,
+      "inventory_file": "tables/mhc_model_file_inventory.csv",
+      "inventory_sha256": "3fe52518e345a7fcf2240ef1569fa5a0a4d5d1b117c265697734e5e12524749a",
+      "model_provenance": "generated on Thu Jun 11 13:37:18 2020",
+      "model_release": "2.2.0",
+      "models_path": "/Users/iskander/Library/Application Support/mhcflurry/4/2.2.0/models_class1_pan/models.combined",
+      "package_version": "2.2.1"
+    },
+    "netchop": {
+      "docker_runtime_image": "i386/debian@sha256:75efd55b326373cf69989912388c0d50c5390638af7378d2fedc3aeb9d100e46",
+      "files": {
+        "bin/netChop": "a0d3788467266739055e35ace7ccc26c9609f4438ac5d5b335ca30ddbdc4d42e",
+        "data/matrices/BLOSUM50": "a152e30b8afcab42281ff8604bc51358be98253155fde62ae20707805a0d3d67"
+      },
+      "version": "3.1"
+    },
+    "netcleave": {
+      "commit": "bc90bf8490dcc5bc7628b1f0c06f860a50e6f338",
+      "files": {
+        "data/models/II_mass-spectrometry_HLA/II_mass-spectrometry_HLA_model.h5": "a12bf86466ed4ae6be63201fd8e63135d3d562602fb83f763f5286072a8ffd85",
+        "data/models/I_mass-spectrometry_HLA/I_mass-spectrometry_HLA_model.h5": "641b04c2f02ad880314147179edc4762d9c80a0d085b591833ed002ee365dddc"
+      },
+      "repository": "https://github.com/BSC-CNS-EAPM/NetCleave"
+    },
+    "netmhciipan": {
+      "file_count": 9004,
+      "installation_root": "/Users/iskander/code/netmhc-bundle/netMHCIIpan-4.3",
+      "inventory_file": "tables/mhc_model_file_inventory.csv",
+      "inventory_sha256": "2b69c7835429d0e07ba2c5d8d0a53a49af3d73502346150094834e2baf867f74",
+      "model_version": "NetMHCIIpan version 4.3e",
+      "program_path": "/Users/iskander/code/netmhc-bundle/netMHCIIpan-4.3/netMHCIIpan"
+    },
+    "pepsickle": {
+      "files": {
+        "in-vitro_mammal/model.joblib": "e6dc67532f7e781cdf830b04f85eebb34483ba945011e221624707e7d6b79577",
+        "model.joblib": "e6dc67532f7e781cdf830b04f85eebb34483ba945011e221624707e7d6b79577",
+        "model_functions.py": "a12d58665c8b62775be90a899fb841cdf107c09c3709a2d013b1ca8982fafd4c",
+        "sequence_featurization_tools.py": "4c5474441c668141691ca07ebbff38c965d64fe416e63ebf147e7112e8c66dd3",
+        "trained_model_dict.pickle": "96da1619131413722c6f4e21e6ff3435985073bceb61aec5fb02b32ed597affa"
+      },
+      "package_version": "0.1.3"
+    }
+  },
+  "runtime": {
+    "packages": {
+      "keras": "3.14.0",
+      "matplotlib": "3.11.1",
+      "numpy": "2.5.2",
+      "pandas": "2.3.3",
+      "scikit-learn": "1.9.0",
+      "tensorflow": "2.21.0"
+    },
+    "python": "3.12.6"
+  },
+  "schema_version": 1,
+  "source": {
+    "commit": "deaf7290a5dfa9d8d7c8ab9da5d001f69fcc2d47",
+    "commit_date": "2026-09-15T05:35:02-04:00",
+    "hla_table_sha256": "9ef0b416fcc0129dceeaf0eb0f907d5af716e380a9b2fbcb952250c14b0480e8",
+    "mhc_i_alleles": [
+      "HLA-A*01:01",
+      "HLA-B*08:01",
+      "HLA-B*27:05",
+      "HLA-C*01:02",
+      "HLA-C*07:01"
+    ],
+    "mhc_ii_alleles": [
+      "HLA-DPA1*01:03-DPB1*04:01",
+      "HLA-DQA1*04:01-DQB1*04:02",
+      "HLA-DQA1*05:01-DQB1*02:01",
+      "HLA-DRB1*03:01",
+      "HLA-DRB1*08:01"
+    ],
+    "mhc_ii_pairing_policy": "only combinations already named in osteosarc source candidate fields",
+    "repository": "https://gitlab.com/slowkow/osteosarc.com",
+    "site": "https://osteosarc.com/",
+    "variants_json_sha256": "815e3052a5b4c3a9611a0e7ed3f6ccccde7bf95faaf4519ebffcae6633ef3db0"
+  }
+}

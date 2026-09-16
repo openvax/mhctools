@@ -121,17 +121,17 @@ def test_standalone_map_stem_is_stable_safe_and_segments_long_sequences():
     assert stem == "07-mt-nd5-chrm-12994-vaccine-peptide-1-segment-2-of-3"
 
 
-def test_figure_model_set_omits_redundant_or_less_relevant_tracks():
+def test_figure_model_set_keeps_distinct_20s_but_omits_redundant_all_mammal():
     assert ANALYSIS.FIGURE_CYTOSOL_MODELS == [
+        "netchop-3.1-20s-3.0",
         "netcleave-i-hla",
-        "netchop-3.1-cterm-3.0",
         "pepsickle-in-vivo-human-only",
+        "netchop-3.1-cterm-3.0",
     ]
-    assert "netchop-3.1-20s-3.0" not in ANALYSIS.FIGURE_QUANTITATIVE_MODELS
     assert "pepsickle-in-vivo-all-mammal" not in ANALYSIS.FIGURE_QUANTITATIVE_MODELS
 
 
-def test_red_cut_requires_two_hits_and_all_three_display_tracks_assessed():
+def test_red_cut_requires_three_hits_and_all_four_display_tracks_assessed():
     ligand = pd.DataFrame(
         [{"sequence_record_id": "record", "mhc_class": "I", "start": 1, "end": 3}]
     )
@@ -143,7 +143,7 @@ def test_red_cut_requires_two_hits_and_all_three_display_tracks_assessed():
             "score": 0.8,
             "assessable": True,
         }
-        for model in ANALYSIS.FIGURE_CYTOSOL_MODELS[:2]
+        for model in ANALYSIS.FIGURE_CYTOSOL_MODELS[:3]
     ]
     incomplete = ANALYSIS.annotate_ligand_cleavage_exposure(
         ligand, pd.DataFrame(rows)
@@ -162,7 +162,7 @@ def test_red_cut_requires_two_hits_and_all_three_display_tracks_assessed():
     complete = ANALYSIS.annotate_ligand_cleavage_exposure(
         ligand, pd.DataFrame(rows)
     )
-    assert complete.iloc[0]["internal_candidate_cleavage_bonds"] == "2(2/3)"
+    assert complete.iloc[0]["internal_candidate_cleavage_bonds"] == "2(3/4)"
 
 
 def test_merge_residue_spans_forms_a_binary_coverage_overlay():
