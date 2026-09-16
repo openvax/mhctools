@@ -140,6 +140,21 @@ def test_eramer_status_finds_direct_pwm(monkeypatch, tmp_path):
     assert status.path == str(pwm_path)
 
 
+def test_netchop_status_uses_wrapper_installation_resolution(
+        monkeypatch, tmp_path):
+    executable = tmp_path / "bin" / "netChop"
+    executable.parent.mkdir()
+    executable.touch()
+    monkeypatch.setenv("NETCHOP_HOME", str(tmp_path))
+    monkeypatch.delenv("NETMHC_BUNDLE_HOME", raising=False)
+    monkeypatch.setattr(artifacts.shutil, "which", lambda name: None)
+
+    status = artifact_status("netchop")
+
+    assert status.status == "ready"
+    assert status.path == str(executable)
+
+
 def test_license_gated_snapshot_requires_acceptance(tmp_path):
     with pytest.raises(RuntimeError, match="--accept-license"):
         fetch("nettcr", data_dir=tmp_path)

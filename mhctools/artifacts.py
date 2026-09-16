@@ -213,7 +213,6 @@ _MANUAL_EXECUTABLES = {
         "detail": "Install MixMHCpred under its academic/non-commercial license",
     },
     "netchop": {
-        "environment_variables": ("NETCHOP_EXECUTABLE",),
         "executables": ("netChop",),
         "detail": (
             "Install NetChop from DTU Health Tech; its identity-bound "
@@ -504,7 +503,14 @@ def _snapshot_status(name, data_dir=None):
 def _manual_executable_status(name):
     definition = _MANUAL_EXECUTABLES[name]
     path = ""
+    if name == "netchop":
+        from .netchop import resolve_netchop_dir
+        root = resolve_netchop_dir()
+        if root is not None:
+            path = str(root / "bin" / "netChop")
     for variable in definition.get("environment_variables", ()):
+        if path:
+            break
         configured = os.environ.get(variable)
         if configured:
             candidate = Path(configured).expanduser()

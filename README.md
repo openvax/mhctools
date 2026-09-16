@@ -50,6 +50,13 @@ mhctools ls mixtcrpred --models --downloaded
 # Machine-readable inventory, optionally rooted somewhere else.
 mhctools ls --json
 mhctools ls --data-dir /shared/models
+
+# Verify launchability without confusing it with reproduced inference.
+mhctools integrations
+
+# Run registered reference-inference probes and fail if either backend does
+# not reproduce its reference (unknown/not-checked also fails strictly).
+mhctools integrations calis netchop --check reproduced --strict --json
 ```
 
 The same operations are available in Python:
@@ -84,6 +91,15 @@ The `MANAGER` column distinguishes four ownership models:
 - `mhctools`: a pinned snapshot fetched into the directory above;
 - `user` / `manual`: an existing checkout or licensed executable owned by the
   user. Manual artifacts are listed but `fetch` will not redistribute them.
+
+`mhctools ls` is intentionally an artifact inventory: `ready` means the
+required path was located, not that an executable works. Use
+`mhctools integrations` for a capability report. Its `LOCATED`, `RUNNABLE`,
+and `REPRODUCED` columns are independent observations; `not checked` is never
+promoted to success. `--check` controls the highest attempted level, while
+`--strict` returns a nonzero exit unless every selected integration reaches
+that level. Reproduction is available only for registered, reference-backed
+probes; a successful help command establishes `runnable`, never `reproduced`.
 
 Small published models such as Calis remain fully embedded in the mhctools
 package and appear as `mhctools package`; they never require a separate fetch.
