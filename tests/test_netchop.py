@@ -11,11 +11,12 @@
 # limitations under the License.
 
 import pytest
+import subprocess
 from numpy import testing
 from mhctools import NetChop
+from mhctools.netchop import NETCHOP_CONTAINER_IMAGE
 from mhctools.proteasome_predictor import ProteasomePredictor
 from mhctools.pred import Kind, PeptideResult
-from mhctools.optional_backend import probe_executable
 
 # Peptides from http://tools.iedb.org/netchop/example/
 peptides = """
@@ -29,21 +30,30 @@ def test_is_proteasome_predictor():
     assert issubclass(NetChop, ProteasomePredictor)
 
 
-_NETCHOP_CAPABILITY = probe_executable(
-    "netChop",
-    args=(),
-    timeout=30,
-    failure_patterns=("Unable to find image", "pull access denied"),
-)
-requires_netchop = pytest.mark.skipif(
-    not _NETCHOP_CAPABILITY.runnable,
-    reason=_NETCHOP_CAPABILITY.reason,
-)
+def _netchop_or_skip():
+    try:
+        predictor = NetChop(model_variant=0)
+    except FileNotFoundError as error:
+        pytest.skip(str(error))
+    if predictor.execution == "container":
+        try:
+            inspect = subprocess.run(
+                ["docker", "image", "inspect", NETCHOP_CONTAINER_IMAGE],
+                capture_output=True,
+                timeout=30,
+            )
+        except (FileNotFoundError, subprocess.TimeoutExpired) as error:
+            pytest.skip("NetChop container runtime unavailable: %s" % error)
+        if inspect.returncode:
+            diagnostic = inspect.stderr.decode(errors="replace").strip()
+            pytest.skip(
+                "Pinned NetChop compatibility image is unavailable: %s"
+                % diagnostic[-500:])
+    return predictor
 
 
-@requires_netchop
 def test_cleavage_probs():
-    obj = NetChop()
+    obj = _netchop_or_skip()
     for pep in peptides:
         probs = obj.cleavage_probs(pep)
         assert len(probs) == len(pep)
@@ -60,9 +70,8 @@ def test_cleavage_probs():
     testing.assert_almost_equal(probs2[84], 0.104684)
 
 
-@requires_netchop
 def test_predict_proteins():
-    obj = NetChop()
+    obj = _netchop_or_skip()
     result = obj.predict_proteins({"pep0": peptides[0]})
     assert "pep0" in result
     pp_list = result["pep0"]

@@ -40,7 +40,7 @@ from mhctools import (
     get_cleavage_model,
 )
 from mhctools.eramer_cleavage import ERAMERCleavage
-from mhctools.netchop import NetChop
+from mhctools.netchop import NETCHOP_CONTAINER_IMAGE, NetChop
 
 
 CANONICAL_AA = frozenset("ACDEFGHIKLMNPQRSTVWY")
@@ -66,7 +66,7 @@ MHC_II_ALLELES = (
     "HLA-DRB1*03:01",
     "HLA-DRB1*08:01",
 )
-NETCHOP_IMAGE = "i386/debian@sha256:75efd55b326373cf69989912388c0d50c5390638af7378d2fedc3aeb9d100e46"
+NETCHOP_IMAGE = NETCHOP_CONTAINER_IMAGE
 EXTRACELLULAR_MOTIF_MODELS = [
     "ace-dipeptidyl",
     "mme-hydrophobic",
@@ -667,49 +667,13 @@ def pepsickle_rows(
 def run_netchop_docker(
     sequences: list[str], netchop_dir: Path, model_variant: int
 ) -> list[list[float]]:
-    if model_variant not in (0, 1):
-        raise ValueError("NetChop model variant must be 0 (Cterm) or 1 (20S)")
-    with tempfile.TemporaryDirectory(prefix="osteosarc_netchop_") as tmp:
-        tmp_path = Path(tmp)
-        fasta_path = tmp_path / "sequences.fasta"
-        with fasta_path.open("w", encoding="ascii") as handle:
-            for index, sequence in enumerate(sequences):
-                handle.write(f">slp_{index}\n{sequence}\n")
-        command = [
-            "docker",
-            "run",
-            "--rm",
-            "--platform",
-            "linux/386",
-            "-e",
-            "NETCHOP=/netchop",
-            "-e",
-            "TMPDIR=/tmp",
-            "-v",
-            f"{netchop_dir.resolve()}:/netchop:ro",
-            "-v",
-            f"{tmp_path.resolve()}:/work:ro",
-            NETCHOP_IMAGE,
-            "/netchop/bin/netChop",
-            "-v",
-            str(model_variant),
-            "/work/sequences.fasta",
-        ]
-        completed = subprocess.run(command, capture_output=True, check=False)
-        if completed.returncode:
-            stdout = completed.stdout.decode(errors="replace")
-            stderr = completed.stderr.decode(errors="replace")
-            raise RuntimeError(
-                f"NetChop container exited {completed.returncode}.\n"
-                f"stdout tail:\n{stdout[-2000:]}\n"
-                f"stderr tail:\n{stderr[-2000:]}"
-            )
-    parsed = NetChop.parse_netchop(completed.stdout)
-    if len(parsed) != len(sequences):
-        raise RuntimeError(
-            f"NetChop returned {len(parsed)} sequences for {len(sequences)} inputs"
-        )
-    return parsed
+    predictor = NetChop(
+        execution="container",
+        netchop_dir=netchop_dir,
+        model_variant=model_variant,
+    )
+    predictions = predictor.cleavage_probs_many(sequences)
+    return [predictions[sequence] for sequence in sequences]
 
 
 def netchop_rows(
