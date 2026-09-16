@@ -8,6 +8,8 @@
 
 """Exact peptide chemical form and descriptive prediction context."""
 
+from __future__ import annotations
+
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass, fields
 import hashlib

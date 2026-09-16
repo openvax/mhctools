@@ -12,6 +12,7 @@
 
 import io
 import math
+from socket import timeout as SocketTimeout
 
 # pylint: disable=import-error
 from urllib.request import urlopen, Request
@@ -133,8 +134,13 @@ def _query_iedb(request_values, url, timeout=DEFAULT_REQUEST_TIMEOUT):
     """
     data = urlencode(request_values)
     req = Request(url, data.encode("ascii"))
-    with urlopen(req, timeout=timeout) as handle:
-        response = handle.read()
+    try:
+        with urlopen(req, timeout=timeout) as handle:
+            response = handle.read()
+    except SocketTimeout as error:
+        # Before Python 3.10, socket.timeout was not an alias of TimeoutError.
+        # Keep the public exception contract independent of interpreter.
+        raise TimeoutError(str(error)) from error
     return _parse_iedb_response(response)
 
 class IedbBasePredictor(BasePredictor):

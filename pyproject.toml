@@ -23,7 +23,8 @@ classifiers = [
   "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
 dependencies = [
-  "numpy>=2.0.0,<3.0.0",
+  "numpy>=1.26.0,<2.0.0; python_version < '3.10'",
+  "numpy>=2.0.0,<3.0.0; python_version >= '3.10'",
   "pandas>=0.13.1",
   "varcode>=0.5.9",
   "pyensembl>=2.3.0,<3.0.0",
