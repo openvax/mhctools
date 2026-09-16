@@ -15,6 +15,7 @@ import pytest
 from mhctools.optional_backend import (
     BackendSpec,
     backend_inventory,
+    common_checkout_paths,
     inspect_artifact,
     run_python_sidecar,
     sha256_file,
@@ -31,6 +32,16 @@ _SPEC = BackendSpec(
     supported_platforms=("linux", "macos"),
     supported_interpreters=("Python 3.9+",),
 )
+
+
+def test_common_checkout_paths_cover_home_and_code(monkeypatch, tmp_path):
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
+    assert common_checkout_paths("Tool", "tool-lower") == (
+        tmp_path / "Tool",
+        tmp_path / "code" / "Tool",
+        tmp_path / "tool-lower",
+        tmp_path / "code" / "tool-lower",
+    )
 
 
 def test_inspection_hashes_content_without_loading_it(tmp_path):

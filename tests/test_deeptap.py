@@ -21,13 +21,12 @@ pytorch-lightning).
 """
 
 import os
-from os.path import isfile, join
 from tempfile import NamedTemporaryFile
 
 import pytest
 
 from mhctools import DeepTAP, Kind
-from mhctools.deeptap import parse_deeptap_results
+from mhctools.deeptap import _find_deeptap_home, parse_deeptap_results
 from mhctools.pred import VALUE_BEST_DIRECTIONS, best_direction
 
 
@@ -148,11 +147,13 @@ def test_peptide_validation(tmp_path):
 
 # --- end-to-end (requires a DeepTAP checkout) -------------------------------
 
-DEEPTAP_HOME = os.environ.get("DEEPTAP_HOME")
-_has_deeptap = bool(DEEPTAP_HOME) and isfile(join(DEEPTAP_HOME, "deeptap.py"))
+try:
+    DEEPTAP_HOME = _find_deeptap_home()
+except FileNotFoundError:
+    DEEPTAP_HOME = None
 
 requires_deeptap = pytest.mark.skipif(
-    not _has_deeptap,
+    not DEEPTAP_HOME,
     reason="DeepTAP not installed (set DEEPTAP_HOME to a clone; optionally "
            "DEEPTAP_PYTHON to an interpreter with torch + pytorch-lightning)")
 

@@ -21,13 +21,16 @@ with Keras 2, or newer TensorFlow plus the ``tf-keras`` shim).
 """
 
 import os
-from os.path import isfile, join
 from tempfile import NamedTemporaryFile
 
 import pytest
 
 from mhctools import DeepImmuno, Kind
-from mhctools.deepimmuno import _deepimmuno_allele, parse_deepimmuno_results
+from mhctools.deepimmuno import (
+    _deepimmuno_allele,
+    _find_deepimmuno_home,
+    parse_deepimmuno_results,
+)
 
 
 # Captured DeepImmuno (multiple-mode) output — tab separated.
@@ -115,12 +118,13 @@ def test_peptide_length_validation(tmp_path):
 
 # --- end-to-end (requires a DeepImmuno checkout) ----------------------------
 
-DEEPIMMUNO_HOME = os.environ.get("DEEPIMMUNO_HOME")
-_has_deepimmuno = bool(DEEPIMMUNO_HOME) and isfile(
-    join(DEEPIMMUNO_HOME, "deepimmuno-cnn.py"))
+try:
+    DEEPIMMUNO_HOME = _find_deepimmuno_home()
+except FileNotFoundError:
+    DEEPIMMUNO_HOME = None
 
 requires_deepimmuno = pytest.mark.skipif(
-    not _has_deepimmuno,
+    not DEEPIMMUNO_HOME,
     reason="DeepImmuno not installed (set DEEPIMMUNO_HOME to a clone; "
            "optionally DEEPIMMUNO_PYTHON to an interpreter with TensorFlow "
            "and Keras 2 / tf-keras)")

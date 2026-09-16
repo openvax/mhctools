@@ -19,13 +19,12 @@ end-to-end tests run only when an ERAMER checkout with ``PWM.xlsx`` is available
 (``ERAMER_HOME``) and openpyxl is installed.
 """
 
-import os
-from os.path import isfile, join
+from pathlib import Path
 
 import pytest
 
 from mhctools import ERAMER, Kind
-from mhctools.eramer import _specificity, eramer_score
+from mhctools.eramer import _find_pwm_path, _specificity, eramer_score
 
 
 # --- cascade math (synthetic PWM, no xlsx) ----------------------------------
@@ -93,8 +92,10 @@ def test_peptide_validation(stub_predictor):
 
 # --- end-to-end (requires an ERAMER checkout + openpyxl) --------------------
 
-ERAMER_HOME = os.environ.get("ERAMER_HOME")
-_has_eramer = bool(ERAMER_HOME) and isfile(join(ERAMER_HOME, "PWM.xlsx"))
+try:
+    ERAMER_HOME = str(Path(_find_pwm_path()).parent)
+except FileNotFoundError:
+    ERAMER_HOME = None
 try:
     import openpyxl  # noqa: F401
     _has_openpyxl = True
@@ -102,7 +103,7 @@ except ImportError:
     _has_openpyxl = False
 
 requires_eramer = pytest.mark.skipif(
-    not (_has_eramer and _has_openpyxl),
+    not (ERAMER_HOME and _has_openpyxl),
     reason="ERAMER not installed (set ERAMER_HOME to a clone with PWM.xlsx; "
            "needs openpyxl)")
 

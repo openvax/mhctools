@@ -2,7 +2,6 @@
 # you may not use this file except in compliance with the License.
 
 import csv
-import os
 from pathlib import Path
 
 import pandas as pd
@@ -14,6 +13,7 @@ from mhctools.caphla import (
     CapHLA_BA,
     CapHLA_EL,
     _affinity_nm,
+    _find_caphla_home,
     normalize_caphla_allele,
 )
 from mhctools.pred import COLUMNS, Kind
@@ -174,18 +174,11 @@ def test_predict_pairs_dataframe(caphla_home):
 
 
 def _installed_caphla_home():
-    candidates = [
-        os.environ.get("CAPHLA_HOME", ""),
-        str(Path("~/CapHLA").expanduser()),
-    ]
-    for candidate in candidates:
-        if candidate and (Path(candidate) / "test_out.csv").is_file():
-            return candidate
-    from mhctools.artifacts import artifact_status
-    status = artifact_status("caphla")
-    if status.status == "ready":
-        return status.path
-    return ""
+    try:
+        home = _find_caphla_home()
+    except FileNotFoundError:
+        return ""
+    return home if (Path(home) / "test_out.csv").is_file() else ""
 
 
 CAPHLA_HOME = _installed_caphla_home()

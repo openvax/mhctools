@@ -41,6 +41,7 @@ import sys
 import numpy as np
 import pandas as pd
 
+from .optional_backend import common_checkout_paths
 from .pred import COLUMNS, Kind, PeptideResult, Prediction
 from .tcr import TCR
 
@@ -162,7 +163,7 @@ def _find_nettcr_dir(nettcr_path=None):
     Checks, in order:
     1. The *nettcr_path* argument
     2. The ``NETTCR_DIR`` environment variable
-    3. ``~/NetTCR-2.2`` and ``~/code/NetTCR-2.2``
+    3. Conventional ``NetTCR-2.2`` / ``nettcr`` checkout locations
 
     An explicitly-provided path (argument or ``NETTCR_DIR``) is validated up
     front so a typo fails with a clear message rather than later when no
@@ -178,12 +179,9 @@ def _find_nettcr_dir(nettcr_path=None):
                     "NetTCR-2.2 directory from %s does not exist: %s. %s"
                     % (source, path, clone_hint))
             return path
-    home = os.path.expanduser("~")
-    for candidate in (
-            os.path.join(home, "NetTCR-2.2"),
-            os.path.join(home, "code", "NetTCR-2.2")):
+    for candidate in common_checkout_paths("NetTCR-2.2", "nettcr"):
         if os.path.isdir(candidate):
-            return candidate
+            return str(candidate)
     from .artifacts import artifact_status
     managed = artifact_status("nettcr")
     if managed.manager == "mhctools" and managed.status == "ready":
