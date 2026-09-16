@@ -15,6 +15,7 @@
 from collections import defaultdict
 import logging
 from multiprocessing import cpu_count
+import os
 from subprocess import CalledProcessError, check_output
 import tempfile
 
@@ -668,6 +669,7 @@ class BaseCommandlinePredictor(BasePredictor):
         logger.debug("Created %d input files" % len(input_filenames))
         commands = {}
         dirs = []
+        tempfile_program_name = os.path.basename(self.program_name)
 
         for i, input_filename in enumerate(input_filenames):
             for j, allele_group in enumerate(
@@ -679,7 +681,7 @@ class BaseCommandlinePredictor(BasePredictor):
                         prefix="tmp_%d_%d_%s" % (
                             i,
                             j,
-                            self.program_name),
+                            tempfile_program_name),
                         suffix="XXXXXX")
                     logger.debug(
                         "Created temporary directory %s for alleles %s",
@@ -691,7 +693,7 @@ class BaseCommandlinePredictor(BasePredictor):
                 output_file = tempfile.NamedTemporaryFile(
                     "w+",
                     prefix="%s_output_length_%d_%d" % (
-                        self.program_name, i, j),
+                        tempfile_program_name, i, j),
                     delete=False)
                 commands[output_file] = self._build_command(
                     input_filename=input_filename,

@@ -22,6 +22,7 @@ tests in tests/test_mhc_formats.py.
 
 import inspect
 import os
+import tempfile
 
 import pytest
 
@@ -35,6 +36,7 @@ from mhctools import (
 )
 from mhctools.base_commandline_predictor import BaseCommandlinePredictor
 from mhctools.binding_prediction_collection import BindingPredictionCollection
+from mhctools.cleanup_context import CleanupFiles
 
 
 def test_commandline_predictor_owns_flag_lists(monkeypatch):
@@ -269,6 +271,33 @@ def test_build_command_single_allele_string_still_works():
         alleles="HLA-A*02:01",
         peptide_mode=True)
     assert _allele_arg(cmd) == "HLA-A02:01"
+
+
+def test_absolute_program_path_is_not_embedded_in_temp_paths(
+        tmp_path, monkeypatch):
+    predictor = _StubPredictor(["HLA-A*02:01"])
+    predictor.program_name = str(
+        tmp_path / "predictor-install" / "netMHCpan-4.3")
+    predictor.tempdir_flag = "-tdir"
+    monkeypatch.setattr(tempfile, "tempdir", str(tmp_path))
+
+    commands, input_filenames, dirs = predictor._build_peptide_commands(
+        peptides=["SIINFEKLL"],
+        alleles=predictor.alleles)
+
+    with CleanupFiles(
+            files=list(commands),
+            filenames=input_filenames,
+            directories=dirs):
+        assert len(commands) == 1
+        assert len(dirs) == 1
+        output_file, command = next(iter(commands.items()))
+        assert command[0] == predictor.program_name
+        assert os.path.basename(output_file.name).startswith(
+            "netMHCpan-4.3_output_length_0_0")
+        assert os.path.basename(dirs[0]).startswith(
+            "tmp_0_0_netMHCpan-4.3")
+        assert command[command.index("-tdir") + 1] == dirs[0]
 
 
 def test_build_command_applies_prepare_per_allele_then_joins():
