@@ -127,13 +127,13 @@ class BaseCommandlinePredictor(BasePredictor):
             input_file_flag,
             length_flag,
             allele_flag,
-            peptide_mode_flags=["-p"],
+            peptide_mode_flags=None,
             tempdir_flag=None,
-            extra_flags=[],
+            extra_flags=None,
             max_peptides_per_file=10 ** 4,
             max_alleles_per_command=1,
             process_limit=-1,
-            default_peptide_lengths=[9],
+            default_peptide_lengths=None,
             group_peptides_by_length=False,
             min_peptide_length=8,
             max_peptide_length=None,
@@ -229,15 +229,19 @@ class BaseCommandlinePredictor(BasePredictor):
         require_string(allele_flag, "Allele flag")
         self.allele_flag = allele_flag
 
+        if peptide_mode_flags is None:
+            peptide_mode_flags = ["-p"]
         require_iterable_of(peptide_mode_flags, str)
-        self.peptide_mode_flags = peptide_mode_flags
+        self.peptide_mode_flags = list(peptide_mode_flags)
 
         if tempdir_flag is not None:
             require_string(tempdir_flag, "Temporary directory flag")
         self.tempdir_flag = tempdir_flag
 
+        if extra_flags is None:
+            extra_flags = []
         require_iterable_of(extra_flags, str)
-        self.extra_flags = extra_flags
+        self.extra_flags = list(extra_flags)
 
         require_integer(
             max_peptides_per_file,
@@ -256,7 +260,9 @@ class BaseCommandlinePredictor(BasePredictor):
         self.parse_output_fn = parse_output_fn
         self.parse_to_preds_fn = parse_to_preds_fn
 
-        if isinstance(default_peptide_lengths, int):
+        if default_peptide_lengths is None:
+            default_peptide_lengths = [9]
+        elif isinstance(default_peptide_lengths, int):
             default_peptide_lengths = [default_peptide_lengths]
 
         self.group_peptides_by_length = group_peptides_by_length

@@ -32,8 +32,17 @@ from mhctools.processing_predictor import (
     score_nterm_cterm_anti_mean_internal,
     _geomean,
 )
+from mhctools.pred import COLUMNS, Kind, PeptideResult
 from mhctools.proteasome_predictor import ProteasomePredictor
-from mhctools.pred import Kind, PeptideResult, COLUMNS
+
+
+def test_processing_predictor_owns_peptide_lengths():
+    lengths = [8, 9]
+    predictor = ProcessingPredictor(default_peptide_lengths=lengths)
+
+    lengths.append(10)
+
+    assert predictor.default_peptide_lengths == [8, 9]
 
 
 # ======================================================================
