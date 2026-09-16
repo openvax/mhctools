@@ -12,9 +12,11 @@
 
 from __future__ import annotations
 
+import math
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass, fields
 from functools import lru_cache
+from numbers import Real
 from typing import Optional
 
 import pandas as pd
@@ -123,6 +125,17 @@ CONCENTRATION_BASIS_VALUES = frozenset(("total", "unbound"))
 PK_SCOPE_VALUES = frozenset(("systemic", "apparent"))
 
 
+def _finite_number_or_none(name, value):
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, Real):
+        raise ValueError(f"{name} must be a finite real number or None")
+    value = float(value)
+    if not math.isfinite(value):
+        raise ValueError(f"{name} must be a finite real number or None")
+    return value
+
+
 @dataclass(frozen=True)
 class MeasurementContext:
     """Versioned semantics shared by every prediction.
@@ -155,6 +168,11 @@ class MeasurementContext:
     schema_version: int = 1
 
     def __post_init__(self):
+        object.__setattr__(
+            self,
+            "timepoint",
+            _finite_number_or_none("timepoint", self.timepoint),
+        )
         if self.schema_version != 1:
             raise ValueError(
                 f"Unsupported MeasurementContext schema_version "
@@ -417,6 +435,12 @@ class Prediction:
     cache_key: str | None = None
 
     def __post_init__(self):
+        for field_name in ("score", "value", "percentile_rank"):
+            object.__setattr__(
+                self,
+                field_name,
+                _finite_number_or_none(field_name, getattr(self, field_name)),
+            )
         original_kind = self.kind
         object.__setattr__(self, "kind", canonical_kind(original_kind))
 
@@ -481,9 +505,11 @@ class Prediction:
             if self.kind in PHYSICAL_VALUE_KINDS and self.value is None:
                 raise ValueError(
                     f"{self.kind} requires a quantitative value")
-        elif self.score is not None or self.value is not None:
+        elif (self.score is not None or self.value is not None or
+              self.percentile_rank is not None):
             raise ValueError(
-                f"{context.status} predictions cannot carry score or value")
+                f"{context.status} predictions cannot carry score or value, "
+                "including percentile_rank")
         if self.value is not None:
             if not context.unit:
                 raise ValueError(

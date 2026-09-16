@@ -18,6 +18,7 @@ from mhctools.pred import (
     Kind,
     MHC_CLASS_VALUES,
     MHC_DEPENDENCE_VALUES,
+    MeasurementContext,
     PeptideResult,
     Prediction,
     VALUE_BEST_DIRECTIONS,
@@ -121,9 +122,50 @@ def test_pred_to_dict_round_trip():
 def test_pred_to_dict_json_serializable():
     import json
     p = Prediction(kind=Kind.pMHC_affinity, score=0.85, peptide="SIINFEKL")
-    s = json.dumps(p.to_dict())
+    s = json.dumps(p.to_dict(), allow_nan=False)
     p2 = Prediction.from_dict(json.loads(s))
     assert p == p2
+
+
+@pytest.mark.parametrize("field", ["score", "value", "percentile_rank"])
+@pytest.mark.parametrize(
+    "invalid", [True, "0.5", float("nan"), float("inf"), float("-inf")])
+def test_pred_rejects_non_finite_or_non_numeric_results(field, invalid):
+    kwargs = {"kind": Kind.pMHC_affinity, "score": 0.5, field: invalid}
+    with pytest.raises(ValueError, match=f"{field} must be a finite real number"):
+        Prediction(**kwargs)
+
+
+def test_pred_from_dict_rejects_non_finite_result():
+    with pytest.raises(ValueError, match="score must be a finite real number"):
+        Prediction.from_dict({
+            "kind": Kind.immunogenicity,
+            "score": float("nan"),
+        })
+
+
+@pytest.mark.parametrize(
+    "invalid", [True, "1", float("nan"), float("inf"), float("-inf")])
+def test_measurement_context_rejects_invalid_timepoint(invalid):
+    with pytest.raises(ValueError, match="timepoint must be a finite real number"):
+        MeasurementContext(
+            estimate_type="observed",
+            timepoint=invalid,
+            time_unit="hours",
+            time_origin="dose administration",
+            series_id="study-1",
+        )
+
+
+def test_missing_prediction_cannot_carry_percentile_rank():
+    context = MeasurementContext(estimate_type="ml_predicted", status="missing")
+    with pytest.raises(ValueError, match="including percentile_rank"):
+        Prediction(
+            kind=Kind.pMHC_affinity,
+            score=None,
+            percentile_rank=1.0,
+            measurement_context=context,
+        )
 
 
 def test_pred_eq():
@@ -637,6 +679,18 @@ def test_best_by_score_picks_max():
     best = ps.best_by_score(Kind.pMHC_affinity)
     assert best.allele == "HLA-A*02:01"
     assert best.score == 0.85
+
+
+@pytest.mark.parametrize("scores", [
+    (float("nan"), 0.5),
+    (0.5, float("nan")),
+])
+def test_best_by_cannot_receive_order_dependent_nan(scores):
+    with pytest.raises(ValueError, match="score must be a finite real number"):
+        PeptideResult(tuple(
+            Prediction(kind=Kind.immunogenicity, score=score)
+            for score in scores
+        ))
 
 
 def test_best_by_rank_picks_min():
