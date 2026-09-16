@@ -182,7 +182,7 @@ class ProcessingPredictor:
         scoring = resolve_scoring(scoring)
         if scoring is None:
             scoring = score_nterm_cterm_anti_max_internal
-        self.default_peptide_lengths = default_peptide_lengths
+        self.default_peptide_lengths = list(default_peptide_lengths)
         self.scoring = scoring
 
     def __repr__(self):

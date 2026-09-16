@@ -37,6 +37,33 @@ from mhctools.base_commandline_predictor import BaseCommandlinePredictor
 from mhctools.binding_prediction_collection import BindingPredictionCollection
 
 
+def test_commandline_predictor_owns_flag_lists(monkeypatch):
+    monkeypatch.setattr(
+        BaseCommandlinePredictor,
+        "_determine_supported_alleles",
+        staticmethod(lambda *args: set()),
+    )
+    peptide_mode_flags = ["-p"]
+    extra_flags = ["--BA"]
+    predictor = BaseCommandlinePredictor(
+        program_name="fake-predictor",
+        alleles=[],
+        parse_output_fn=lambda *args: BindingPredictionCollection([]),
+        supported_alleles_flag="-listMHC",
+        input_file_flag="-f",
+        length_flag="-l",
+        allele_flag="-a",
+        peptide_mode_flags=peptide_mode_flags,
+        extra_flags=extra_flags,
+    )
+
+    peptide_mode_flags.append("--mutated")
+    extra_flags.append("--mutated")
+
+    assert predictor.peptide_mode_flags == ["-p"]
+    assert predictor.extra_flags == ["--BA"]
+
+
 class _StubPredictor(BaseCommandlinePredictor):
     """
     Exercises the pure command-construction logic without a real binary.

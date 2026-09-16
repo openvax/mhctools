@@ -19,8 +19,12 @@ from .binding_prediction_collection import BindingPredictionCollection
 class RandomBindingPredictor(BasePredictor):
     def __init__(
             self,
-            alleles=['HLA-A*02:01'],
-            default_peptide_lengths=[9]):
+            alleles=None,
+            default_peptide_lengths=None):
+        if alleles is None:
+            alleles = ['HLA-A*02:01']
+        if default_peptide_lengths is None:
+            default_peptide_lengths = [9]
         BasePredictor.__init__(
             self,
             alleles=alleles,

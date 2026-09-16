@@ -169,7 +169,11 @@ class BasePredictor(object):
         if type(default_peptide_lengths) is int:
             default_peptide_lengths = [default_peptide_lengths]
         require_iterable_of(default_peptide_lengths, int)
-        self.default_peptide_lengths = default_peptide_lengths
+        self.default_peptide_lengths = (
+            None
+            if default_peptide_lengths is None
+            else list(default_peptide_lengths)
+        )
         self.min_peptide_length = min_peptide_length
         self.max_peptide_length = max_peptide_length
         self.allow_X_in_peptides = allow_X_in_peptides
