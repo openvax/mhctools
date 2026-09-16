@@ -1,0 +1,17 @@
+{
+  "REPORT.md": "d1e0353067351edc1ce584b7d6565b66b6c37d5cc8afc0eb92cf4d20f4ef4814",
+  "figures/quantitative_score_distributions.png": "4c444de0fd9d89dbce05868185566136849a918d6f8e6cfc55a128753464f5cc",
+  "figures/slp_peptidase_motif_matches.png": "2edd9e27bb9320eec5d42092e93168b244de63d4c98644ea313d17734a87020b",
+  "figures/slp_quantitative_hit_fraction.png": "c97e9a2d0f2792c5d70c8c8054fca228445874ba2baf5a98710585eba25fd3d1",
+  "provenance.json": "09ad29fe55e1bc0bc5bffb72dca461fa421b5f8ac8a640c3216ecce13acb55a1",
+  "tables/model_catalog.csv": "bce03ec108199b5538fe88b38f9645f9d95e98e77fa4c25680db92962d58b7a5",
+  "tables/quantitative_model_spearman_correlations.csv": "5c457449a6c065aad5f2b2dcf97ceacabab03f98432ec1a6d195afa4f7ff4d4f",
+  "tables/sequence_provenance_conflicts.csv": "07ed5a083b897f4d9d61c06624e9e0229ed552f5e6ebc011788aa469ecfe8291",
+  "tables/slp_model_summary.csv": "27b426cd7f4550ddf176979229d50b09e94a3bc15020b1ecd8e49fdd9480cf58",
+  "tables/slp_motif_assessments.csv": "d52a2f24754f10994f7fbb6ce9f62322a83c3cc0426ca95b6bb1369e3267d059",
+  "tables/slp_motif_matches.csv": "634da773de47ccc48f073eca72dd6059507f15f95465f681aae7a7f7e802b263",
+  "tables/slp_predictor_matrix.csv": "d1ec23bd27716a360aee2fa759f77fc28433e9940307b146d1e8d7f9ea5a5dcc",
+  "tables/slp_quantitative_bond_scores.csv": "1cc84aba7587d59d1e57091a9cf81a1f72b58871becbeec024d866b97605dc7d",
+  "tables/undisclosed_vaccine_sequences.csv": "ce3840e2fb3880a1e5dbbff86bc96a56abc3f64a043582bf877f4e18ba5f5312",
+  "tables/vaccine_sequence_inventory.csv": "54b8cf516a3e34af538b741a9bf81abdeec147c6abd53d7225bbb9fa5ad62d83"
+}
