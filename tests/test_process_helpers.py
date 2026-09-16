@@ -14,6 +14,8 @@
 
 import errno
 import os
+import signal
+from subprocess import TimeoutExpired
 import tempfile
 from unittest.mock import patch, MagicMock
 
@@ -23,6 +25,40 @@ from mhctools.process_helpers import (
     AsyncProcess,
     run_multiple_commands_redirect_stdout,
 )
+
+
+@pytest.mark.skipif(os.name != "posix", reason="POSIX process-group behavior")
+def test_timeout_terminates_process_group():
+    proc = AsyncProcess(["slow-command"], terminate_process_group=True)
+    proc.process = MagicMock(pid=123)
+    proc.process.wait.side_effect = [
+        TimeoutExpired("slow-command", 1),
+        0,
+    ]
+    with patch("mhctools.process_helpers.os.getpgid", return_value=456), \
+         patch("mhctools.process_helpers.os.killpg") as killpg:
+        with pytest.raises(TimeoutExpired):
+            proc.wait(timeout=1, terminate_grace_seconds=0.1)
+    killpg.assert_called_once_with(456, signal.SIGTERM)
+
+
+@pytest.mark.skipif(os.name != "posix", reason="POSIX process-group behavior")
+def test_timeout_kills_process_group_after_grace_period():
+    proc = AsyncProcess(["stubborn-command"], terminate_process_group=True)
+    proc.process = MagicMock(pid=123)
+    proc.process.wait.side_effect = [
+        TimeoutExpired("stubborn-command", 1),
+        TimeoutExpired("stubborn-command", 0.1),
+        0,
+    ]
+    with patch("mhctools.process_helpers.os.getpgid", return_value=456), \
+         patch("mhctools.process_helpers.os.killpg") as killpg:
+        with pytest.raises(TimeoutExpired):
+            proc.wait(timeout=1, terminate_grace_seconds=0.1)
+    assert killpg.call_args_list == [
+        ((456, signal.SIGTERM),),
+        ((456, signal.SIGKILL),),
+    ]
 
 
 def test_start_retries_on_blocking_io_error():

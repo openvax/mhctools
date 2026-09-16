@@ -35,7 +35,7 @@ import re
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
-from subprocess import STDOUT, CalledProcessError, check_output
+from subprocess import STDOUT, CalledProcessError, TimeoutExpired, check_output
 from tempfile import TemporaryDirectory
 
 import pandas as pd
@@ -166,13 +166,13 @@ def resolve_mixmhcpred_path(program_name=None):
     return str(path.resolve())
 
 
-def mixmhcpred_version(program_name):
+def mixmhcpred_version(program_name, timeout=10):
     """Return the version reported by ``MixMHCpred --help``."""
     program = resolve_mixmhcpred_path(program_name)
     try:
         output = check_output(
-            [program, "--help"], stderr=STDOUT, text=True)
-    except (CalledProcessError, OSError) as e:
+            [program, "--help"], stderr=STDOUT, text=True, timeout=timeout)
+    except (CalledProcessError, OSError, TimeoutExpired) as e:
         raise RuntimeError(
             f"Could not query MixMHCpred version from {program}: {e}")
     match = _VERSION_RE.search(output)
