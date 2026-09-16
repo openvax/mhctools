@@ -76,6 +76,22 @@ def test_executable_probe_bounds_launch_time():
     assert "timed out" in result.reason
 
 
+def test_executable_probe_reports_launch_error(monkeypatch, tmp_path):
+    executable = tmp_path / "broken"
+    executable.write_text("not an executable")
+    monkeypatch.setattr(
+        "mhctools.optional_backend.shutil.which", lambda program: str(executable))
+    monkeypatch.setattr(
+        "mhctools.optional_backend.subprocess.run",
+        lambda *args, **kwargs: (_ for _ in ()).throw(OSError("wrong arch")))
+
+    result = probe_executable(str(executable))
+
+    assert result.located is True
+    assert result.runnable is False
+    assert "wrong arch" in result.reason
+
+
 def test_inspection_hashes_content_without_loading_it(tmp_path):
     artifact = tmp_path / "model.pickle"
     artifact.write_bytes(b"not actually a pickle")

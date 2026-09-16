@@ -79,6 +79,10 @@ def probe_executable(
             program=str(program), path=path, runnable=False, returncode=None,
             reason="%s launch probe timed out after %s seconds" % (
                 program, timeout))
+    except OSError as error:
+        return ExecutableCapability(
+            program=str(program), path=path, runnable=False, returncode=None,
+            reason="%s could not be launched: %s" % (program, error))
     output = "\n".join(
         part.strip() for part in (completed.stdout, completed.stderr)
         if part and part.strip())

@@ -37,6 +37,11 @@ from .optional_backend import (
     inspect_artifact,
     prediction_cache_key,
 )
+from .integrations import (
+    IntegrationStatus,
+    integration_status,
+    list_integrations,
+)
 from .peptide_input import PeptideContext, PeptideInput
 from .iedb import (
     IedbNetMHCcons,
@@ -126,7 +131,7 @@ def __getattr__(name):
     raise AttributeError(
         "module %r has no attribute %r" % (__name__, name))
 
-__version__ = "3.44.38"
+__version__ = "3.44.39"
 
 __all__ = [
     "mhcflurry_composite_version",
@@ -164,6 +169,9 @@ __all__ = [
     "backend_inventory",
     "inspect_artifact",
     "prediction_cache_key",
+    "IntegrationStatus",
+    "integration_status",
+    "list_integrations",
     "BindingPrediction",
     "BindingPredictionCollection",
     "set_log_level",
