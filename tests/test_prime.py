@@ -25,6 +25,8 @@ import shutil
 from tempfile import NamedTemporaryFile
 
 import pytest
+from subprocess import TimeoutExpired
+from unittest.mock import patch
 
 from mhctools import PRIME
 from mhctools.prime import parse_prime_results
@@ -117,6 +119,54 @@ def test_prime_default_kind_and_support():
     support = predictor.kind_support()[Kind.immunogenicity]
     assert support["mhc_dependence"] == "single_allele"
     assert support["mhc_class"] == "I"
+
+
+def test_prime_rejects_incompatible_mixmhcpred_before_inference():
+    predictor = PRIME(
+        alleles=["HLA-A*02:01"],
+        program_name="PRIME",
+        mixmhcpred_path="/opt/MixMHCpred")
+    with patch(
+            "mhctools.prime.resolve_mixmhcpred_path",
+            return_value="/opt/MixMHCpred"), patch(
+                "mhctools.prime.mixmhcpred_version",
+                return_value="2.0.2"), patch(
+                    "mhctools.prime.run_command") as run:
+        with pytest.raises(RuntimeError, match="requires MixMHCpred 3.0.*2.0.2"):
+            predictor.predict(["GILGFVFTL"])
+    run.assert_not_called()
+
+
+def test_prime_rejects_unverifiable_mixmhcpred_version():
+    predictor = PRIME(alleles=["HLA-A*02:01"])
+    with patch(
+            "mhctools.prime.resolve_mixmhcpred_path",
+            return_value="/opt/MixMHCpred"), patch(
+                "mhctools.prime.mixmhcpred_version", return_value=""):
+        with pytest.raises(RuntimeError, match="unknown version"):
+            predictor.predict(["GILGFVFTL"])
+
+
+def test_prime_timeout_terminates_and_cleans_up(tmp_path):
+    temp_dir = tmp_path / "prime-run"
+    temp_dir.mkdir()
+    predictor = PRIME(alleles=["HLA-A*02:01"], timeout=0.1)
+    with patch.object(
+            predictor, "_validate_mixmhcpred",
+            return_value=("/opt/MixMHCpred", "3.0")), patch(
+                "mhctools.prime.mkdtemp", return_value=str(temp_dir)), patch(
+                    "mhctools.prime.run_command",
+                    side_effect=TimeoutExpired("PRIME", 0.1)) as run:
+        with pytest.raises(RuntimeError, match="timed out after 0.1 seconds"):
+            predictor.predict(["GILGFVFTL"])
+    assert not temp_dir.exists()
+    assert run.call_args.kwargs["timeout"] == 0.1
+    assert run.call_args.kwargs["terminate_process_group"] is True
+
+
+def test_prime_timeout_must_be_positive():
+    with pytest.raises(ValueError, match="greater than zero"):
+        PRIME(alleles=["HLA-A*02:01"], timeout=0)
 
 
 # --- end-to-end (requires a PRIME install) ----------------------------------

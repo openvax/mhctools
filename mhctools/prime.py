@@ -20,7 +20,7 @@ wrapper shells out to a user-provided PRIME install (PRIME is academic /
 non-commercial licensed, so mhctools does not vendor it) and emits one
 ``Kind.immunogenicity`` prediction per (peptide, allele).
 
-PRIME itself calls MixMHCpred (v3.0+ recommended); point at it with
+PRIME itself calls MixMHCpred (v3.0+ required); point at it with
 ``mixmhcpred_path`` if it is not on ``PATH``.
 
 Upstream: https://github.com/GfellerLab/PRIME
@@ -32,15 +32,16 @@ generalizes to novel neoepitopes (independent benchmarks put the field near
 AUC 0.5-0.65) — a prioritization aid, not ground truth.
 """
 
-from os import remove
 from os.path import exists, join
-from tempfile import NamedTemporaryFile, mkdtemp
+from subprocess import TimeoutExpired
+from tempfile import mkdtemp
 
 import pandas as pd
 
 from .allele_normalization import normalize_allele_name
 from .base_predictor import BasePredictor, _check_flank_inputs
 from .cleanup_context import CleanupFiles
+from .mixmhcpred import mixmhcpred_version, resolve_mixmhcpred_path
 from .pred import Kind, PeptideResult, Prediction
 from .process_helpers import run_command
 
@@ -59,6 +60,8 @@ class PRIME(BasePredictor):
         Absolute path to the MixMHCpred executable PRIME should use, forwarded
         as PRIME's ``-mix`` option. If omitted, PRIME finds MixMHCpred on
         ``PATH``.
+    timeout : float
+        Maximum seconds for one PRIME inference (default 300).
     """
 
     def __init__(
@@ -66,7 +69,8 @@ class PRIME(BasePredictor):
             alleles,
             default_peptide_lengths=[9],
             program_name="PRIME",
-            mixmhcpred_path=None):
+            mixmhcpred_path=None,
+            timeout=300):
         BasePredictor.__init__(
             self,
             alleles=alleles,
@@ -77,6 +81,27 @@ class PRIME(BasePredictor):
             allow_lowercase_in_peptides=False)
         self.program_name = program_name
         self.mixmhcpred_path = mixmhcpred_path
+        if timeout <= 0:
+            raise ValueError("timeout must be greater than zero")
+        self.timeout = timeout
+        self._validated_mixmhcpred = None
+
+    def _validate_mixmhcpred(self):
+        """Resolve and require the MixMHCpred generation PRIME supports."""
+        if self._validated_mixmhcpred is not None:
+            return self._validated_mixmhcpred
+        executable = resolve_mixmhcpred_path(self.mixmhcpred_path)
+        version = mixmhcpred_version(executable)
+        try:
+            major = int(version.split(".", 1)[0])
+        except (ValueError, IndexError):
+            major = 0
+        if major < 3:
+            raise RuntimeError(
+                "PRIME requires MixMHCpred 3.0 or newer; detected %s at %s"
+                % (version or "an unknown version", executable))
+        self._validated_mixmhcpred = (executable, version)
+        return self._validated_mixmhcpred
 
     def predict(self, peptides, n_flanks=None, c_flanks=None):
         """Predict immunogenicity for a list of peptides.
@@ -97,6 +122,8 @@ class PRIME(BasePredictor):
         if not peptide_list:
             return []
 
+        mixmhcpred_executable, _ = self._validate_mixmhcpred()
+
         # PRIME accepts HLA-A*02:01 etc.; normalize for a stable identity that
         # matches the allele strings we hand back in each Prediction.
         alleles = [normalize_allele_name(a) for a in self.alleles]
@@ -104,6 +131,7 @@ class PRIME(BasePredictor):
         temp_dir = mkdtemp(prefix="mhctools", suffix="prime")
         input_file_path = join(temp_dir, "prime_input.txt")
         output_file_path = join(temp_dir, "prime_output.txt")
+        stdout_file_path = join(temp_dir, "prime_stdout.txt")
         with open(input_file_path, "w") as f:
             f.write("\n".join(peptide_list) + "\n")
 
@@ -113,28 +141,30 @@ class PRIME(BasePredictor):
             "-o", output_file_path,
             "-a", ",".join(alleles),
         ]
-        if self.mixmhcpred_path:
-            args += ["-mix", self.mixmhcpred_path]
+        args += ["-mix", mixmhcpred_executable]
 
         with CleanupFiles(
-                filenames=[input_file_path, output_file_path],
+                filenames=[input_file_path, output_file_path, stdout_file_path],
                 directories=[temp_dir]):
-            with NamedTemporaryFile(
-                    prefix="PRIME_stdout", mode="w", delete=False) as stdout_file:
-                stdout_file_name = stdout_file.name
-                run_command(
-                    args,
-                    suppress_stderr=False,
-                    redirect_stdout_file=stdout_file)
+            with open(stdout_file_path, "w") as stdout_file:
+                try:
+                    run_command(
+                        args,
+                        suppress_stderr=False,
+                        redirect_stdout_file=stdout_file,
+                        timeout=self.timeout,
+                        terminate_process_group=True)
+                except TimeoutExpired:
+                    raise RuntimeError(
+                        "PRIME timed out after %s seconds" % self.timeout)
             if exists(output_file_path):
                 preds_by_peptide = parse_prime_results(output_file_path, alleles)
             else:
-                with open(stdout_file_name) as f:
+                with open(stdout_file_path) as f:
                     stdout = f.read().strip()
                 raise ValueError(
                     "PRIME produced no output for alleles %s; stdout: %s"
                     % (alleles, stdout))
-            remove(stdout_file_name)
 
         # Preserve input peptide order; a peptide PRIME dropped becomes empty.
         return [

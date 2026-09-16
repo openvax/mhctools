@@ -13,7 +13,8 @@
 import errno
 import logging
 import os
-from subprocess import Popen, CalledProcessError, STDOUT
+import signal
+from subprocess import Popen, CalledProcessError, STDOUT, TimeoutExpired
 import time
 from multiprocessing import cpu_count
 
@@ -36,7 +37,8 @@ class AsyncProcess(object):
             redirect_stderr_to_stdout=False,
             redirect_stdout_file=None,
             cwd=None,
-            env=None):
+            env=None,
+            terminate_process_group=False):
         assert len(args) > 0
         self.cmd = args[0]
         self.args = args
@@ -47,6 +49,7 @@ class AsyncProcess(object):
         # wrappers around tools that hardcode relative paths or need extra env.
         self.cwd = cwd
         self.env = env
+        self.terminate_process_group = terminate_process_group
         self.process = None
 
     def start(self):
@@ -65,7 +68,8 @@ class AsyncProcess(object):
                 try:
                     self.process = Popen(
                         self.args, stdout=stdout, stderr=stderr,
-                        cwd=self.cwd, env=self.env)
+                        cwd=self.cwd, env=self.env,
+                        start_new_session=self.terminate_process_group)
                     return
                 except OSError as e:
                     if e.errno != errno.EAGAIN and not isinstance(
@@ -90,10 +94,30 @@ class AsyncProcess(object):
             self.start()
         return self.process.poll()
 
-    def wait(self):
+    def _terminate(self, grace_seconds):
+        """Terminate the process, escalating to kill after a short grace."""
+        if self.terminate_process_group and os.name == "posix":
+            process_group = os.getpgid(self.process.pid)
+            os.killpg(process_group, signal.SIGTERM)
+        else:
+            self.process.terminate()
+        try:
+            self.process.wait(timeout=grace_seconds)
+        except TimeoutExpired:
+            if self.terminate_process_group and os.name == "posix":
+                os.killpg(process_group, signal.SIGKILL)
+            else:
+                self.process.kill()
+            self.process.wait()
+
+    def wait(self, timeout=None, terminate_grace_seconds=5):
         if self.process is None:
             self.start()
-        ret_code = self.process.wait()
+        try:
+            ret_code = self.process.wait(timeout=timeout)
+        except TimeoutExpired:
+            self._terminate(terminate_grace_seconds)
+            raise
         logger.debug(
             "%s finished with return code %s",
             self.cmd,
@@ -102,7 +126,7 @@ class AsyncProcess(object):
             raise CalledProcessError(ret_code, self.cmd)
         return ret_code
 
-def run_command(args, **kwargs):
+def run_command(args, timeout=None, terminate_grace_seconds=5, **kwargs):
     """
     Given a list whose first element is a command name, followed by arguments,
     execute it and show timing info.
@@ -110,7 +134,8 @@ def run_command(args, **kwargs):
     assert len(args) > 0
     start_time = time.time()
     process = AsyncProcess(args, **kwargs)
-    process.wait()
+    process.wait(
+        timeout=timeout, terminate_grace_seconds=terminate_grace_seconds)
     elapsed_time = time.time() - start_time
     logger.info("%s took %0.4f seconds", args[0], elapsed_time)
 

@@ -927,10 +927,15 @@ from mhctools import PRIME
 predictor = PRIME(
     alleles=["HLA-A*02:01", "HLA-B*07:02"],
     program_name="PRIME",                    # or an absolute path
-    mixmhcpred_path="/path/to/MixMHCpred")    # optional if MixMHCpred is on PATH
+    mixmhcpred_path="/path/to/MixMHCpred",   # v3.0+, optional if on PATH
+    timeout=300)
 results = predictor.predict(["GILGFVFTL", "NLVPMVATV"])
 results[0].immunogenicity.score
 ```
+
+mhctools verifies MixMHCpred's reported version before PRIME inference and
+rejects versions older than 3.0 or an unparseable version. The timeout covers
+the PRIME process tree, including its nested MixMHCpred call.
 
 `DeepImmuno` predicts class-I CD8+ immunogenicity from the peptide and its
 HLA-A/B/C allele with a small CNN (Li et al. 2021). It scores **9- and 10-mers
