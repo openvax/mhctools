@@ -82,19 +82,19 @@ def main(argv=None):
                              "models needing a fetched asset (eramer-step) "
                              "must be named explicitly.")
     parser.add_argument("--compartment", help="Filter enzyme locations: serum, plasma, extracellular, cytosol, er, endosome")
-    parser.add_argument("--n-term", choices=("free", "acetylated", "unknown"), default="free",
+    parser.add_argument("--n-term", choices=("free", "acetylated", "unknown"),
                         help="N-terminal chemistry of the input peptide "
-                             "(default: %(default)s)")
-    parser.add_argument("--c-term", choices=("free", "amidated", "unknown"), default="free",
+                             "(default: free)")
+    parser.add_argument("--c-term", choices=("free", "amidated", "unknown"),
                         help="C-terminal chemistry of the input peptide "
-                             "(default: %(default)s)")
+                             "(default: free)")
     parser.add_argument("--source-id",
                         help="Identifier of the protein the peptide came from, "
                              "echoed back in the report")
-    parser.add_argument("--source-start", type=int, default=0,
+    parser.add_argument("--source-start", type=int,
                         help="Offset of the peptide within --source-id, used "
                              "to report source coordinates "
-                             "(default: %(default)s)")
+                             "(default: 0)")
     parser.add_argument("--enzyme-state", action="append", default=[],
                         metavar="ENZYME=STATE",
                         help="Declare one enzyme's state, e.g. "
@@ -103,7 +103,10 @@ def main(argv=None):
     parser.add_argument("--out", help="Write JSON to this path instead of stdout")
     args = parser.parse_args(argv)
     if args.list_models:
-        if args.sequence or args.model or args.compartment or args.enzyme_state:
+        if (args.sequence or args.model or args.compartment or
+                args.n_term is not None or args.c_term is not None or
+                args.source_id is not None or args.source_start is not None or
+                args.enzyme_state):
             parser.error("--list-models cannot be combined with prediction options")
         models = cleavage_models(include_optional=True)
         if not args.json and not args.out:
@@ -119,6 +122,10 @@ def main(argv=None):
         if not args.sequence:
             parser.error("Provide --sequence or --list-models")
         try:
+            n_term = args.n_term if args.n_term is not None else "free"
+            c_term = args.c_term if args.c_term is not None else "free"
+            source_start = (
+                args.source_start if args.source_start is not None else 0)
             states = {}
             for value in args.enzyme_state:
                 enzyme, state = value.split("=", 1)
@@ -129,7 +136,7 @@ def main(argv=None):
                 prediction
                 for seq in args.sequence
                 for prediction in predict_cleavage(CleavageInput(
-                    seq, args.n_term, args.c_term, args.source_id, args.source_start),
+                    seq, n_term, c_term, args.source_id, source_start),
                     models=args.model, compartment=args.compartment,
                     enzyme_states=states)]
             result = _compact_report(predictions)

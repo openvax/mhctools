@@ -107,12 +107,15 @@ def test_cli_json_preserves_scores_chemistry_and_provenance(capsys, tmp_path):
     assert result["sites"][0]["score"] == pytest.approx(2.1694)
     assert result["sites"][0]["source_bond"] == 12
     assert result["model"] == "dpp4-qpisa"
+    assert result["peptide"]["n_term"] == "free"
+    assert result["peptide"]["c_term"] == "free"
     assert data["models"]["dpp4-qpisa"]["references"]
     path = tmp_path / "evidence.json"
     main(["cleavage", "--sequence", "HAE", "--model", "dpp4-qpisa",
           "--n-term", "acetylated", "--out", str(path)])
     result = json.loads(path.read_text())["results"][0]
     assert result["peptide"]["n_term"] == "acetylated"
+    assert result["peptide"]["source_start"] == 0
     assert result["unsupported_reason"]
     assert result["sites"] == []
 
@@ -153,6 +156,34 @@ def test_cli_lists_optional_models_as_json(capsys, monkeypatch):
     assert data["schema_version"] == 1
     assert len(data["models"]) == 21
     assert any(m["name"] == "eramer-step" for m in data["models"])
+
+
+def test_cli_list_models_can_write_json(capsys, tmp_path):
+    output = tmp_path / "models.json"
+    main(["cleavage", "--list-models", "--out", str(output)])
+
+    assert capsys.readouterr().out == ""
+    assert json.loads(output.read_text())["schema_version"] == 1
+
+
+@pytest.mark.parametrize("prediction_option", [
+    ["--sequence", "HAE"],
+    ["--model", "dpp4-qpisa"],
+    ["--compartment", "serum"],
+    ["--n-term", "free"],
+    ["--c-term", "free"],
+    ["--source-id", "protein-1"],
+    ["--source-start", "0"],
+    ["--enzyme-state", "DPP4=active"],
+])
+def test_cli_list_models_rejects_every_prediction_option(
+        prediction_option, capsys):
+    with pytest.raises(SystemExit) as raised:
+        main(["cleavage", "--list-models", *prediction_option])
+
+    assert raised.value.code == 2
+    assert "--list-models cannot be combined with prediction options" in (
+        capsys.readouterr().err)
 
 
 def test_cli_model_metadata_is_not_repeated_per_result(capsys):
