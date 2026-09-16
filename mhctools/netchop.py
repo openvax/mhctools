@@ -128,10 +128,10 @@ class NetChop(ProteasomePredictor):
             execution = "native" if native_x86_linux else "container"
         self.execution = execution
         if self.execution == "native":
-            resolved = shutil.which(str(self.program_name))
-            if (not resolved and self.program_name == "netChop" and
-                    self.netchop_dir):
+            if self.program_name == "netChop" and self.netchop_dir:
                 resolved = str(self.netchop_dir / "bin" / "netChop")
+            else:
+                resolved = shutil.which(str(self.program_name))
             if not resolved:
                 raise FileNotFoundError(
                     "Could not find '%s' on PATH. Is NetChop installed? "

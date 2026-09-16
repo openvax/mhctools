@@ -115,8 +115,29 @@ class TestNetChopInit:
 
     @patch("shutil.which", return_value="/usr/local/bin/netChop")
     def test_found_executable_succeeds(self, _mock_which):
-        obj = NetChop(program_name="netChop", execution="native")
-        assert obj.program_name == "/usr/local/bin/netChop"
+        with patch.dict("os.environ", {}, clear=True):
+            obj = NetChop(program_name="netChop", execution="native")
+            assert obj.program_name == "/usr/local/bin/netChop"
+
+    def test_native_default_bypasses_bundle_launcher(self, tmp_path):
+        netchop_dir = tmp_path / "netchop-3.1"
+        (netchop_dir / "bin").mkdir(parents=True)
+        executable = netchop_dir / "bin" / "netChop"
+        executable.touch()
+        with patch("shutil.which", return_value="/bundle/bin/netChop"):
+            obj = NetChop(
+                execution="native",
+                netchop_dir=netchop_dir,
+                model_variant=0)
+        assert obj.program_name == str(executable)
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value.stdout = GOOD_OUTPUT
+            mock_run.return_value.stderr = b""
+            mock_run.return_value.returncode = 0
+            obj.cleavage_probs("MDS")
+        command = mock_run.call_args.args[0]
+        assert command[0] == str(executable)
+        assert command[1:3] == ["-v", "0"]
 
     def test_container_requires_installation(self):
         with patch.dict("os.environ", {}, clear=True):
