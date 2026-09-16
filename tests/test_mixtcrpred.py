@@ -281,6 +281,39 @@ def test_prediction_cli_preserves_input_and_appends_all_outputs(
     assert output["mixtcrpred_warning"].tolist() == ["-"]
 
 
+def test_prediction_cli_output_write_failure_has_no_traceback(
+        monkeypatch, tmp_path, capsys):
+    home = _make_home(tmp_path)
+    input_path = tmp_path / "tcrs.csv"
+    output_path = tmp_path / "missing" / "scored.csv"
+    pd.DataFrame([{
+        "cdr3_TRA": "CAGASGNTGKLIF",
+        "cdr3_TRB": "CASSIRASYEQYF",
+        "TRAV": "TRAV27",
+        "TRAJ": "TRAJ42",
+        "TRBV": "TRBV19",
+        "TRBJ": "TRBJ2-6",
+    }]).to_csv(input_path, index=False)
+    monkeypatch.setattr(
+        MixTCRpred,
+        "_run_sidecar",
+        lambda self, tcrs: _sidecar_output(len(tcrs)),
+    )
+
+    with pytest.raises(SystemExit) as raised:
+        main([
+            "mixtcrpred", "--model", MODEL,
+            "--mixtcrpred-path", str(home),
+            "--input", str(input_path), "--out", str(output_path),
+        ])
+
+    assert raised.value.code == 2
+    stderr = capsys.readouterr().err
+    assert str(output_path.parent) in stderr
+    assert "Traceback" not in stderr
+    assert not output_path.exists()
+
+
 def _integration_predictor():
     try:
         catalog = MixTCRpred.catalog()
