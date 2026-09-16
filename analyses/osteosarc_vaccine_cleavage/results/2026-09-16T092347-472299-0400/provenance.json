@@ -1,10 +1,12 @@
 {
   "analysis": {
-    "analysis_script_sha256": "e3c2cd6ca3d48482059eb6d02ad02997e88b49b328abe10e1c8af0bd456d670f",
+    "analysis_script_sha256": "b6fc5bd415af80a2ecd9a88ab373edaccea22090f148595ef84a09a393cffe94",
     "display_threshold": 0.5,
-    "mhctools_commit": "f3abe3c0ccc882d029eb488ef8dd85ff86f88848",
-    "mhctools_version": "3.44.28",
-    "mhctools_worktree_dirty": true,
+    "generated_at": "2026-09-16T09:23:47.472299-04:00",
+    "mhctools_commit": "d6e1356c664c9a1f4cc062b9f1737cdd4b59e434",
+    "mhctools_version": "3.44.31",
+    "mhctools_worktree_dirty": false,
+    "output_directory": "2026-09-16T092347-472299-0400",
     "sequence_uploads": "none; all inference ran locally",
     "termini_assumption": "free N and C termini"
   },
