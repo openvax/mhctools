@@ -10,6 +10,8 @@ The generated [report](results/REPORT.md), [tables](results/tables), and
 [figures](results/figures) are checked in. The complete model/code/weight
 inventory and checksums are in [provenance.json](results/provenance.json) and
 [SHA256SUMS.json](results/SHA256SUMS.json).
+All four figures are also collected in
+[`all-figures.pdf`](results/all-figures.pdf), one full page per figure.
 
 For a compact answer to “which SLP is flagged by which model,” start with
 [`slp_predictor_matrix.csv`](results/tables/slp_predictor_matrix.csv). Its
