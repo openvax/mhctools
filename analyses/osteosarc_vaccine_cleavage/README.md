@@ -9,20 +9,27 @@ by curated human-peptidase recognition rules?
 Every invocation writes a new date/time-stamped directory under `results/` so
 an earlier analysis is never overwritten. The [generated-run index](results/README.md)
 links the checked-in report, tables, and
-[figure atlas](results/2026-09-16T092347-472299-0400/mhctools-all-figures.pdf).
+[figure atlas](results/2026-09-16T112031-998629-0400/mhctools-all-figures.pdf).
 The complete model/code/weight inventory and checksums travel with that run.
 The PDF begins with a clustered predictor/SLP agreement overview and then
 uses each disclosed SLP sequence as the central visual axis. Large residue
-letters carry bond-aligned cleavage stems and motif flags, disclosed minimal
-epitope windows, and candidate MHC-I/MHC-II ligand spans. Red ticks inside a
+letters carry bond-aligned cleavage profiles and motif flags, disclosed minimal
+epitope windows, and candidate MHC-I/MHC-II ligand spans. Cleavage tracks are
+continuous piecewise-linear profiles through the exact per-bond scores: there
+is no smoothing, averaging, or interpolation across unassessed gaps. Candidate
+ligand windows hug the sequence from above (MHC-I) and below (MHC-II), with the
+corresponding processing tracks farther outward. A pale blue or purple tint
+directly behind the residue letters marks coverage by at least one displayed
+window; it is binary coverage, not prediction count or probability. Red ticks inside a
 ligand span show relevant pre-binding internal cleavage evidence; they do not
 claim post-binding cleavage or protection. The 80-aa outlier is split across three
 continuation pages rather than compressed. Use
-[`atlas_sequence_order.csv`](results/2026-09-16T092347-472299-0400/tables/atlas_sequence_order.csv) to jump
-from a sequence record to its PDF page.
+[`atlas_sequence_order.csv`](results/2026-09-16T112031-998629-0400/tables/atlas_sequence_order.csv) to jump
+from a sequence record to its PDF page. Every map page is also exported as a
+vector PDF and 300 dpi PNG; `slp_map_exports.csv` indexes those files.
 
 For a compact answer to “which SLP is flagged by which model,” start with
-[`slp_predictor_matrix.csv`](results/2026-09-16T092347-472299-0400/tables/slp_predictor_matrix.csv). Its
+[`slp_predictor_matrix.csv`](results/2026-09-16T112031-998629-0400/tables/slp_predictor_matrix.csv). Its
 column suffixes distinguish within-model fractions above 0.5, native scores,
 and motif-match counts; those unlike quantities must not be combined or
 ranked as though they shared a scale. Exact bond-level outputs remain in the

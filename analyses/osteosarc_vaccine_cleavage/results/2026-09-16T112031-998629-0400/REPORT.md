@@ -1,7 +1,7 @@
 # Osteosarc vaccine cleavage analysis
 
 Source snapshot: osteosarc.com repository `deaf7290a5dfa9d8d7c8ab9da5d001f69fcc2d47` (2026-09-15T05:35:02-04:00).
-Generated locally at 2026-09-16T09:23:47.472299-04:00.
+Generated locally at 2026-09-16T11:20:31.998629-04:00.
 All inference was local; no peptide sequence was uploaded.
 
 ## Coverage
@@ -17,7 +17,7 @@ The exact [MHC ligand-window predictions](tables/slp_mhc_ligand_predictions.csv)
 
 ## Sequence cleavage atlas
 
-The [complete PDF atlas](mhctools-all-figures.pdf) makes each amino-acid sequence the central axis, with quantitative cut stems, motif flags, disclosed minimal-epitope spans, and candidate MHC ligand windows aligned to exact residues and bonds. It contains one clustered overview followed by one page per SLP (with the 80-aa outlier split across three continuation pages). [Atlas order and PDF page numbers](tables/atlas_sequence_order.csv) are provided for navigation.
+The [complete PDF atlas](mhctools-all-figures.pdf) makes each amino-acid sequence the central axis, with continuous exact-score profiles, motif flags, disclosed minimal-epitope spans, and candidate MHC ligand windows hugging the sequence at exact residues and bonds. Adjacent assessed scores are joined for readability without smoothing; unassessed gaps remain open. It contains one clustered overview followed by one page per SLP (with the 80-aa outlier split across three continuation pages). [Atlas order and PDF page numbers](tables/atlas_sequence_order.csv) are provided for navigation. Every map page is also available as a vector PDF and 300 dpi PNG, indexed in [the individual-map export table](tables/slp_map_exports.csv).
 
 ![Predictor agreement and clustered SLP order](figures/predictor_agreement_and_slp_clusters.png)
 

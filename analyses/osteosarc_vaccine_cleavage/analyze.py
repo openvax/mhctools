@@ -19,6 +19,7 @@ import math
 import os
 from pathlib import Path
 import platform
+import re
 import subprocess
 import tempfile
 from typing import Any, Iterable
@@ -1223,7 +1224,29 @@ def save_pdf_page(
     page_number: int,
     page_count: int,
     png_path: Path | None = None,
+    standalone_pdf_path: Path | None = None,
+    standalone_png_path: Path | None = None,
+    standalone_title: str | None = None,
 ) -> None:
+    if standalone_pdf_path is not None or standalone_png_path is not None:
+        metadata = {
+            "Title": standalone_title or "Osteosarc vaccine SLP cleavage map",
+            "Author": "mhctools",
+            "Subject": "Sequence-aligned cleavage and MHC ligand predictions",
+        }
+        if standalone_pdf_path is not None:
+            fig.savefig(
+                standalone_pdf_path,
+                bbox_inches="tight",
+                metadata=metadata,
+            )
+        if standalone_png_path is not None:
+            fig.savefig(
+                standalone_png_path,
+                dpi=300,
+                bbox_inches="tight",
+                metadata=metadata,
+            )
     fig.text(
         0.995,
         0.005,
@@ -1447,6 +1470,65 @@ def _score_matrix(
     return matrix
 
 
+def continuous_score_runs(
+    bonds: list[int], scores: np.ndarray
+) -> list[tuple[np.ndarray, np.ndarray]]:
+    """Return exact, contiguous bond-score runs without spanning missing values."""
+    if len(bonds) != len(scores):
+        raise ValueError("bonds and scores must have the same length")
+    runs: list[tuple[np.ndarray, np.ndarray]] = []
+    run_bonds: list[int] = []
+    run_scores: list[float] = []
+    for bond, score in zip(bonds, scores):
+        if np.isfinite(score):
+            if run_bonds and bond != run_bonds[-1] + 1:
+                runs.append(
+                    (np.asarray(run_bonds, dtype=float) + 0.5, np.asarray(run_scores))
+                )
+                run_bonds = []
+                run_scores = []
+            run_bonds.append(bond)
+            run_scores.append(float(score))
+        elif run_bonds:
+            runs.append(
+                (np.asarray(run_bonds, dtype=float) + 0.5, np.asarray(run_scores))
+            )
+            run_bonds = []
+            run_scores = []
+    if run_bonds:
+        runs.append(
+            (np.asarray(run_bonds, dtype=float) + 0.5, np.asarray(run_scores))
+        )
+    return runs
+
+
+def standalone_map_stem(
+    atlas_order: int,
+    record_id: str,
+    segment_number: int,
+    segment_count: int,
+) -> str:
+    """Return a stable, filesystem-safe stem for an individual map page."""
+    slug = re.sub(r"[^a-z0-9]+", "-", record_id.lower()).strip("-")
+    segment = (
+        f"-segment-{segment_number}-of-{segment_count}" if segment_count > 1 else ""
+    )
+    return f"{atlas_order:02d}-{slug}{segment}"
+
+
+def merge_residue_spans(spans: list[tuple[int, int]]) -> list[tuple[int, int]]:
+    """Merge overlapping or adjacent inclusive residue spans."""
+    merged: list[list[int]] = []
+    for start, end in sorted(spans):
+        if start > end:
+            raise ValueError(f"invalid residue span: {start}-{end}")
+        if merged and start <= merged[-1][1] + 1:
+            merged[-1][1] = max(merged[-1][1], end)
+        else:
+            merged.append([start, end])
+    return [(start, end) for start, end in merged]
+
+
 def _motif_matrix(
     record_id: str,
     motifs_df: pd.DataFrame,
@@ -1511,6 +1593,8 @@ def plot_sequence_atlas_page(
     segment: tuple[int, int],
     segment_number: int,
     segment_count: int,
+    standalone_pdf_path: Path,
+    standalone_png_path: Path,
 ) -> None:
     sequence = record["sequence"]
     start_bond, end_bond = segment
@@ -1520,7 +1604,7 @@ def plot_sequence_atlas_page(
     fig = plt.figure(figsize=(16, 10.5))
     ax = fig.add_axes([0.115, 0.14, 0.84, 0.72])
     ax.set_xlim(residue_start - 0.8, residue_end + 0.8)
-    ax.set_ylim(-6.9, 8.4)
+    ax.set_ylim(-6.2, 7.4)
     ax.axis("off")
 
     # Disclosed intended minimal epitope: gold behind the actual residue letters.
@@ -1580,12 +1664,16 @@ def plot_sequence_atlas_page(
         "netcleave-ii-hla": "#6f4aa8",
     }
     model_y = {
-        model: 1.32 + index * 0.72 for index, model in enumerate(MHC_I_CLEAVAGE_MODELS)
+        model: 2.35 + index * 0.82 for index, model in enumerate(MHC_I_CLEAVAGE_MODELS)
     }
-    model_y["netcleave-ii-hla"] = -1.55
-    for model in QUANTITATIVE_SITE_MODELS:
+    model_y["netcleave-ii-hla"] = -2.35
+    model_scores = _score_matrix(
+        record_id, quantitative_df, QUANTITATIVE_SITE_MODELS, bonds
+    )
+    for model_index, model in enumerate(QUANTITATIVE_SITE_MODELS):
         y = model_y[model]
         direction = 1 if model in MHC_I_CLEAVAGE_MODELS else -1
+        amplitude = 0.58
         ax.plot(
             [residue_start - 0.45, residue_end + 0.45],
             [y, y],
@@ -1595,7 +1683,7 @@ def plot_sequence_atlas_page(
         )
         ax.plot(
             [residue_start - 0.45, residue_end + 0.45],
-            [y + direction * 0.26, y + direction * 0.26],
+            [y + direction * amplitude * THRESHOLD] * 2,
             color=model_colors[model],
             linewidth=0.55,
             alpha=0.35,
@@ -1605,29 +1693,72 @@ def plot_sequence_atlas_page(
         ax.text(
             residue_start - 0.68,
             y,
-            MODEL_DISPLAY_NAMES[model],
+            f"{MODEL_DISPLAY_NAMES[model]}  0-1",
             ha="right",
             va="center",
             fontsize=7.2,
             color=model_colors[model],
         )
-        model_rows = score_subset.loc[score_subset["model"] == model]
-        for result in model_rows.itertuples():
-            x = int(result.bond) + 0.5
-            value = float(result.score)
-            endpoint = y + direction * 0.52 * value
-            strong = value >= THRESHOLD
-            color = model_colors[model] if strong else "#b7bec5"
-            ax.plot([x, x], [y, endpoint], color=color, linewidth=2.2 if strong else 0.8)
+        ax.text(
+            residue_end + 0.55,
+            y + direction * amplitude * THRESHOLD,
+            "0.5",
+            ha="left",
+            va="center",
+            fontsize=5.8,
+            color=model_colors[model],
+        )
+        scores = model_scores[model_index]
+        for x, values in continuous_score_runs(bonds, scores):
+            endpoints = y + direction * amplitude * values
+            ax.fill_between(
+                x,
+                y,
+                endpoints,
+                color=model_colors[model],
+                alpha=0.12,
+                linewidth=0,
+                zorder=1,
+            )
+            ax.plot(
+                x,
+                endpoints,
+                color=model_colors[model],
+                linewidth=1.55,
+                solid_joinstyle="round",
+                solid_capstyle="round",
+                zorder=2,
+            )
             ax.scatter(
-                [x],
-                [endpoint],
-                s=20 if strong else 7,
-                color=color,
-                edgecolor="white" if strong else "none",
-                linewidth=0.4,
+                x,
+                endpoints,
+                s=5,
+                color=model_colors[model],
+                alpha=0.48,
+                linewidth=0,
                 zorder=3,
             )
+            strong = values >= THRESHOLD
+            ax.scatter(
+                x[strong],
+                endpoints[strong],
+                s=20,
+                color=model_colors[model],
+                edgecolor="white",
+                linewidth=0.45,
+                zorder=4,
+            )
+
+    ax.text(
+        residue_start - 0.68,
+        6.88,
+        "CLASS-I PROCESSING - higher native site score = taller profile",
+        ha="left",
+        va="center",
+        fontsize=7.1,
+        fontweight="bold",
+        color="#46515b",
+    )
 
     # A slash directly between letters marks conservative multi-model support.
     class_i = score_subset.loc[score_subset["model"].isin(MHC_I_CLEAVAGE_MODELS)]
@@ -1649,7 +1780,7 @@ def plot_sequence_atlas_page(
             )
 
     # Native peptidase outputs without a validated common threshold.
-    terminal_y = {"dpp4-qpisa": -2.35, "eramer-step": -2.92}
+    terminal_y = {"dpp4-qpisa": -3.22, "eramer-step": -3.78}
     terminal_label = {"dpp4-qpisa": "DPP4 native", "eramer-step": "ERAP1 / ERAMER"}
     for model, y in terminal_y.items():
         ax.text(
@@ -1709,6 +1840,7 @@ def plot_sequence_atlas_page(
         )
         lane_ends = [-math.inf] * len(lane_y)
         drawn = 0
+        drawn_spans: list[tuple[int, int]] = []
         for candidate in unique_candidates.itertuples(index=False):
             lane = next(
                 (
@@ -1722,19 +1854,25 @@ def plot_sequence_atlas_page(
                 continue
             lane_ends[lane] = candidate.end
             drawn += 1
+            drawn_spans.append(
+                (
+                    max(int(candidate.start), residue_start),
+                    min(int(candidate.end), residue_end),
+                )
+            )
             y = lane_y[lane]
             left = max(candidate.start - 0.44, residue_start - 0.55)
             right = min(candidate.end + 0.44, residue_end + 0.55)
             patch = FancyBboxPatch(
-                (left, y - 0.23),
+                (left, y - 0.14),
                 right - left,
-                0.46,
-                boxstyle="round,pad=0.03,rounding_size=0.12",
-                facecolor=color,
-                edgecolor="#263238",
-                linewidth=0.65,
-                alpha=0.82,
-                zorder=1,
+                0.28,
+                boxstyle="round,pad=0.02,rounding_size=0.10",
+                facecolor="white",
+                edgecolor=color,
+                linewidth=1.1,
+                alpha=0.94,
+                zorder=3,
             )
             ax.add_patch(patch)
             label = f"{short_allele(candidate.allele)} {candidate.percentile_rank:.2g}%"
@@ -1744,11 +1882,11 @@ def plot_sequence_atlas_page(
                 label,
                 ha="center",
                 va="center",
-                fontsize=5.8,
-                color="white",
+                fontsize=5.5,
+                color=color,
                 fontweight="bold",
                 clip_on=True,
-                zorder=2,
+                zorder=4,
             )
             for item in str(candidate.internal_candidate_cleavage_bonds).split(";"):
                 if not item or item == "nan":
@@ -1757,18 +1895,34 @@ def plot_sequence_atlas_page(
                 if residue_start <= bond <= residue_end:
                     ax.plot(
                         [bond + 0.5, bond + 0.5],
-                        [y - 0.26, y + 0.26],
+                        [y - 0.17, y + 0.17],
                         color="#b3212d",
                         linewidth=1.8,
                         zorder=4,
                     )
             if drawn >= 6:
                 break
+        band_y = 0.0 if mhc_class == "I" else -0.48
+        for start, end in merge_residue_spans(drawn_spans):
+            ax.add_patch(
+                Rectangle(
+                    (start - 0.47, band_y),
+                    end - start + 0.94,
+                    0.48,
+                    facecolor=color,
+                    edgecolor="none",
+                    alpha=0.10,
+                    zorder=1,
+                )
+            )
         omitted = len(unique_candidates) - drawn
         if omitted > 0:
+            omitted_y = (
+                max(lane_y) + 0.34 if mhc_class == "I" else min(lane_y) - 0.34
+            )
             ax.text(
                 residue_end + 0.45,
-                max(lane_y) + 0.58,
+                omitted_y,
                 f"+{omitted} additional span{'s' if omitted != 1 else ''}\nin CSV",
                 ha="right",
                 va="center",
@@ -1776,8 +1930,8 @@ def plot_sequence_atlas_page(
                 color=color,
             )
 
-    draw_ligands("I", [5.45, 6.05, 6.65], "#2878b5")
-    draw_ligands("II", [-3.75, -4.35, -4.95], "#5b3d91")
+    draw_ligands("I", [0.82, 1.18, 1.54], "#2878b5")
+    draw_ligands("II", [-0.82, -1.18, -1.54], "#5b3d91")
 
     motif_abbreviation = {
         model: MOTIF_DISPLAY_NAMES[model].split(" - ", 1)[0] for model in MOTIF_DISPLAY_NAMES
@@ -1788,8 +1942,8 @@ def plot_sequence_atlas_page(
         & motifs_df["bond"].isin(bonds)
     ]
     for models, y, label, color in (
-        (EXTRACELLULAR_MOTIF_MODELS, -5.75, "plasma / extracellular motifs", "#007b83"),
-        (INTRACELLULAR_ER_MOTIF_MODELS, -6.4, "cytosol / ER motifs", "#6a4492"),
+        (EXTRACELLULAR_MOTIF_MODELS, -4.58, "plasma / extracellular motifs", "#007b83"),
+        (INTRACELLULAR_ER_MOTIF_MODELS, -5.28, "cytosol / ER motifs", "#6a4492"),
     ):
         ax.text(
             residue_start - 0.68,
@@ -1837,9 +1991,9 @@ def plot_sequence_atlas_page(
     fig.text(
         0.5,
         0.047,
-        "Reading the map. Every assessable per-bond cut score is drawn. Tall stems are larger native outputs; "
-        "the dotted half-height is the 0.5 display threshold. "
-        "Red slashes between residues require >=3 of the five class-I-processing models. Blue/purple bars are candidate MHC "
+        "Reading the map. Each profile joins exact scores at adjacent assessed bonds; it is not smoothed, averaged, or calibrated, and gaps are unassessed. "
+        "Dots at or beyond the dashed 0.5 line are display candidates. "
+        "Red slashes between residues require >=3 of the five class-I-processing models. Pale blue/purple sequence tint marks coverage by a displayed MHC window; outlined windows identify the individual candidate MHC "
         "ligands at <=2%/<=5% rank (top-ranked non-overlapping spans shown; all rows are in the CSV); red ticks inside them are internal candidate cuts before binding. These counts are "
         "not probabilities, and ligand bars do not model binding occupancy, timing, or post-binding protection.",
         ha="center",
@@ -1848,7 +2002,18 @@ def plot_sequence_atlas_page(
         color="#333333",
         wrap=True,
     )
-    save_pdf_page(fig, pdf_pages, page_number, page_count)
+    standalone_title = (
+        f"{record['gene']} {record['protein_change'] or ''} vaccine SLP cleavage map"
+    )
+    save_pdf_page(
+        fig,
+        pdf_pages,
+        page_number,
+        page_count,
+        standalone_pdf_path=standalone_pdf_path,
+        standalone_png_path=standalone_png_path,
+        standalone_title=standalone_title,
+    )
 
 
 def render_figures(
@@ -1859,10 +2024,12 @@ def render_figures(
     ligand_df: pd.DataFrame,
     summary_df: pd.DataFrame,
     generated_at: datetime,
-) -> pd.DataFrame:
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Render the clustered overview and bond-aligned sequence atlas."""
     figures_dir = output_dir / "figures"
     figures_dir.mkdir(parents=True, exist_ok=True)
+    map_dir = figures_dir / "slp-maps"
+    map_dir.mkdir(parents=True, exist_ok=True)
     page_count = 1 + sum(
         len(sequence_segments(record["sequence"])) for _, record in records.iterrows()
     )
@@ -1880,6 +2047,7 @@ def render_figures(
         "ModDate": pdf_generated_at,
     }
     atlas_rows: list[dict[str, Any]] = []
+    map_rows: list[dict[str, Any]] = []
     with PdfPages(output_dir / PDF_FILENAME, metadata=pdf_metadata) as pdf_pages:
         record_order, model_order = plot_agreement_overview(
             records,
@@ -1896,6 +2064,14 @@ def render_figures(
             segments = sequence_segments(record["sequence"])
             first_page = page_number
             for segment_number, segment in enumerate(segments, start=1):
+                map_stem = standalone_map_stem(
+                    atlas_order,
+                    record_id,
+                    segment_number,
+                    len(segments),
+                )
+                standalone_pdf_path = map_dir / f"{map_stem}.pdf"
+                standalone_png_path = map_dir / f"{map_stem}.png"
                 plot_sequence_atlas_page(
                     record,
                     quantitative_df,
@@ -1907,6 +2083,23 @@ def render_figures(
                     segment,
                     segment_number,
                     len(segments),
+                    standalone_pdf_path,
+                    standalone_png_path,
+                )
+                map_rows.append(
+                    {
+                        "atlas_order": atlas_order,
+                        "sequence_record_id": record_id,
+                        "gene": record["gene"],
+                        "protein_change": record["protein_change"],
+                        "segment_number": segment_number,
+                        "segment_count": len(segments),
+                        "bond_start": segment[0],
+                        "bond_end": segment[1],
+                        "atlas_pdf_page": page_number,
+                        "pdf_file": str(standalone_pdf_path.relative_to(output_dir)),
+                        "png_file": str(standalone_png_path.relative_to(output_dir)),
+                    }
                 )
                 page_number += 1
             atlas_rows.append(
@@ -1936,7 +2129,7 @@ def render_figures(
         (figures_dir / obsolete_name).unlink(missing_ok=True)
     atlas_order_df = pd.DataFrame(atlas_rows)
     atlas_order_df.attrs["model_cluster_order"] = model_order
-    return atlas_order_df
+    return atlas_order_df, pd.DataFrame(map_rows)
 
 
 def correlations(quantitative_df: pd.DataFrame) -> pd.DataFrame:
@@ -2150,10 +2343,13 @@ def write_report(
         "## Sequence cleavage atlas",
         "",
         f"The [complete PDF atlas]({PDF_FILENAME}) makes each amino-acid sequence the central axis, "
-        "with quantitative cut stems, motif flags, disclosed minimal-epitope spans, and candidate "
-        "MHC ligand windows aligned to exact residues and bonds. It contains one clustered overview followed by one page "
+        "with continuous exact-score profiles, motif flags, disclosed minimal-epitope spans, and candidate "
+        "MHC ligand windows hugging the sequence at exact residues and bonds. Adjacent assessed scores are joined for readability "
+        "without smoothing; unassessed gaps remain open. It contains one clustered overview followed by one page "
         "per SLP (with the 80-aa outlier split across three continuation pages). "
-        "[Atlas order and PDF page numbers](tables/atlas_sequence_order.csv) are provided for navigation.",
+        "[Atlas order and PDF page numbers](tables/atlas_sequence_order.csv) are provided for navigation. "
+        "Every map page is also available as a vector PDF and 300 dpi PNG, indexed in "
+        "[the individual-map export table](tables/slp_map_exports.csv).",
         "",
         "![Predictor agreement and clustered SLP order](figures/predictor_agreement_and_slp_clusters.png)",
         "",
@@ -2375,7 +2571,7 @@ def main() -> None:
             f"extra={sorted(grouped_motifs - included_motifs)}"
         )
 
-    atlas_order_df = render_figures(
+    atlas_order_df, map_exports_df = render_figures(
         output_dir,
         records,
         quantitative_df,
@@ -2385,6 +2581,7 @@ def main() -> None:
         generated_at,
     )
     atlas_order_df.to_csv(tables_dir / "atlas_sequence_order.csv", index=False)
+    map_exports_df.to_csv(tables_dir / "slp_map_exports.csv", index=False)
     write_report(
         output_dir / "REPORT.md",
         inventory_df,
