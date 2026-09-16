@@ -160,7 +160,7 @@ class BindingPrediction(Serializable):
     def __lt__(self, other):
         return self.value < other.value
 
-    def to_pred(self, kind=Kind.pMHC_affinity, predictor_version=None):
+    def to_pred(self, kind=Kind.pMHC_affinity, predictor_version=""):
         """Convert to a Prediction object.
 
         Parameters

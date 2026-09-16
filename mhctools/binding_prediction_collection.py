@@ -29,7 +29,7 @@ class BindingPredictionCollection(Collection):
             [tuple([getattr(x, name) for name in columns]) for x in self],
             columns=columns)
 
-    def to_preds(self, kind=Kind.pMHC_affinity, predictor_version=None):
+    def to_preds(self, kind=Kind.pMHC_affinity, predictor_version=""):
         """Convert all BindingPredictions to Prediction objects.
 
         Returns a list of Prediction (not grouped into PeptideResult, since
@@ -39,7 +39,7 @@ class BindingPredictionCollection(Collection):
         """
         return [bp.to_pred(kind=kind, predictor_version=predictor_version) for bp in self]
 
-    def to_peptide_preds(self, kind=Kind.pMHC_affinity, predictor_version=None):
+    def to_peptide_preds(self, kind=Kind.pMHC_affinity, predictor_version=""):
         """Convert to a list of PeptideResult, grouped by (peptide, offset, source).
 
         Each PeptideResult contains all alleles for one peptide position.

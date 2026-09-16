@@ -163,3 +163,35 @@ def test_legacy_conversion_accepts_provenance_without_changing_legacy_schema():
     ]
     assert all(pred.predictor_version == "experiment-1" for pred in outputs)
     assert binding.to_dict() == original
+    assert binding.to_pred().predictor_version == ""
+    assert collection.to_preds()[0].predictor_version == ""
+    assert collection.to_peptide_preds()[0].preds[0].predictor_version == ""
+
+
+def test_unversioned_legacy_predictor_retains_the_original_empty_string():
+    from mhctools import RandomBindingPredictor
+
+    model = RandomBindingPredictor(alleles=["HLA-A*02:01"])
+    assert model.predict_dataframe(["SIINFEKLA"]).predictor_version.tolist() == [""]
+
+
+@pytest.mark.parametrize("custom", [False, True])
+def test_affinity_fallback_uses_the_presentation_objects_actual_provenance(
+    installed_models, tmp_path, custom,
+):
+    _, downloads, state = installed_models
+
+    def absent_standalone(**kwargs):
+        raise RuntimeError("standalone affinity bundle missing")
+
+    downloads.get_default_class1_models_dir = absent_standalone
+    if custom:
+        downloads.get_default_class1_presentation_models_dir = \
+            lambda **kwargs: str(tmp_path / "custom")
+    presentation = MHCflurry(alleles=["HLA-A*02:01"])
+    affinity = MHCflurry_Affinity(alleles=["HLA-A*02:01"])
+    assert affinity.predictor is presentation.predictor.affinity_predictor
+    expected = None if custom else "2.2.1+release-2.2.0"
+    assert affinity.predictor_version == presentation.predictor_version == expected
+    assert len(state["loads"]) == 1
+    assert affinity.predict_dataframe(["SIINFEKLA"]).value.tolist() == [12.5]

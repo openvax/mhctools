@@ -41,16 +41,15 @@ def _normalize_models_path(models_path):
     return os.path.realpath(os.path.expanduser(models_path))
 
 
-def mhcflurry_composite_version(models_path=None, *, model_kind="presentation"):
+def mhcflurry_composite_version(models_path=None):
     """Identify an official MHCflurry model bundle and its Python package.
 
     Parameters
     ----------
     models_path : str or path-like, optional
         Directory actually loaded. If absent, use the configured default
-        directory for ``model_kind``, including environment overrides.
-    model_kind : {"presentation", "affinity"}
-        Which official bundle to compare with the selected directory.
+        presentation directory, including environment overrides. Official
+        presentation and affinity bundle paths share the release identity.
 
     Returns
     -------
@@ -65,11 +64,7 @@ def mhcflurry_composite_version(models_path=None, *, model_kind="presentation"):
         If the package/release is unknown or the selected path is custom.
         Custom and injected models need caller-supplied provenance; labeling
         them with the active default release would describe different weights.
-    ValueError
-        If ``model_kind`` is unsupported.
     """
-    if model_kind not in ("presentation", "affinity"):
-        raise ValueError("model_kind must be 'presentation' or 'affinity'")
     try:
         import mhcflurry
         from mhcflurry import downloads
@@ -91,16 +86,18 @@ def mhcflurry_composite_version(models_path=None, *, model_kind="presentation"):
         raise RuntimeError(
             "mhcflurry has no active model release. Run mhcflurry-downloads fetch "
             "or supply predictor_version explicitly for custom models.")
-    if model_kind == "presentation":
-        official_path = downloads.get_path(
-            "models_class1_presentation", "models", test_exists=False)
-        default_path = downloads.get_default_class1_presentation_models_dir
-    else:
-        official_path = downloads.get_path(
-            "models_class1_pan", "models.combined", test_exists=False)
-        default_path = downloads.get_default_class1_models_dir
-    selected_path = default_path(test_exists=False) if models_path is None else models_path
-    if _normalize_models_path(selected_path) != _normalize_models_path(official_path):
+    presentation_path = downloads.get_path(
+        "models_class1_presentation", "models", test_exists=False)
+    official_paths = {
+        _normalize_models_path(presentation_path),
+        _normalize_models_path(os.path.join(presentation_path, "affinity_predictor")),
+        _normalize_models_path(downloads.get_path(
+            "models_class1_pan", "models.combined", test_exists=False)),
+    }
+    selected_path = (
+        downloads.get_default_class1_presentation_models_dir(test_exists=False)
+        if models_path is None else models_path)
+    if _normalize_models_path(selected_path) not in official_paths:
         raise RuntimeError(
             "Cannot infer provenance for custom MHCflurry models at %r; "
             "supply predictor_version explicitly." % str(selected_path))
@@ -122,11 +119,26 @@ def _load_predictor(model_kind, predictor, models_path, predictor_version):
     else:
         loader = Class1AffinityPredictor.load
         default_path = downloads.get_default_class1_models_dir
-    path = _normalize_models_path(default_path() if models_path is None else models_path)
+    if models_path is None:
+        try:
+            models_path = default_path()
+        except RuntimeError as missing_affinity:
+            if model_kind != "affinity":
+                raise
+            # Match Class1AffinityPredictor.load(): when the standalone bundle
+            # is absent, use the presentation bundle's actual affinity model.
+            # Its captured provenance follows that object, including overrides.
+            try:
+                presentation, version = _load_predictor(
+                    "presentation", None, None, predictor_version)
+            except RuntimeError:
+                raise missing_affinity
+            return presentation.affinity_predictor, version
+    path = _normalize_models_path(models_path)
     cache_key = (model_kind, path)
     if cache_key not in _model_cache:
         try:
-            inferred_version = mhcflurry_composite_version(path, model_kind=model_kind)
+            inferred_version = mhcflurry_composite_version(path)
         except RuntimeError:
             # Custom/default-overridden weights remain usable but unversioned.
             # A cache consumer must require the caller to identify those weights.
