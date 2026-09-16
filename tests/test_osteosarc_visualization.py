@@ -101,6 +101,35 @@ def test_score_matrix_keeps_zero_distinct_from_unassessed():
     assert np.isnan(matrix[1]).all()
 
 
+def test_continuous_score_runs_preserve_values_and_break_at_missing_bonds():
+    runs = ANALYSIS.continuous_score_runs(
+        [1, 2, 3, 4, 6], np.array([0.0, 0.25, np.nan, 0.75, 1.0])
+    )
+    assert len(runs) == 3
+    assert runs[0][0].tolist() == [1.5, 2.5]
+    assert runs[0][1].tolist() == [0.0, 0.25]
+    assert runs[1][0].tolist() == [4.5]
+    assert runs[1][1].tolist() == [0.75]
+    assert runs[2][0].tolist() == [6.5]
+    assert runs[2][1].tolist() == [1.0]
+
+
+def test_standalone_map_stem_is_stable_safe_and_segments_long_sequences():
+    stem = ANALYSIS.standalone_map_stem(
+        7, "MT_ND5-chrM-12994:vaccine-peptide-1", 2, 3
+    )
+    assert stem == "07-mt-nd5-chrm-12994-vaccine-peptide-1-segment-2-of-3"
+
+
+def test_merge_residue_spans_forms_a_binary_coverage_overlay():
+    assert ANALYSIS.merge_residue_spans([(8, 12), (1, 3), (3, 7), (15, 16)]) == [
+        (1, 12),
+        (15, 16),
+    ]
+    with pytest.raises(ValueError, match="invalid residue span"):
+        ANALYSIS.merge_residue_spans([(4, 3)])
+
+
 def test_motif_matrix_keeps_no_match_distinct_from_unsupported():
     models = ANALYSIS.EXTRACELLULAR_MOTIF_MODELS[:2]
     motifs = pd.DataFrame(
