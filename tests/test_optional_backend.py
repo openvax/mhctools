@@ -17,6 +17,7 @@ from mhctools.optional_backend import (
     backend_inventory,
     common_checkout_paths,
     inspect_artifact,
+    probe_executable,
     run_python_sidecar,
     sha256_file,
 )
@@ -42,6 +43,37 @@ def test_common_checkout_paths_cover_home_and_code(monkeypatch, tmp_path):
         tmp_path / "tool-lower",
         tmp_path / "code" / "tool-lower",
     )
+
+
+def test_executable_probe_distinguishes_missing_launch_and_false_zero():
+    missing = probe_executable("mhctools-certainly-missing-executable")
+    assert not missing.located
+    assert not missing.runnable
+    assert "not found" in missing.reason
+
+    working = probe_executable(
+        sys.executable, args=("-c", "print('ready')"))
+    assert working.located
+    assert working.runnable
+
+    false_zero = probe_executable(
+        sys.executable,
+        args=("-c", "print('nested backend failed')"),
+        failure_patterns=("backend failed",),
+    )
+    assert false_zero.located
+    assert not false_zero.runnable
+    assert "failure marker" in false_zero.reason
+
+
+def test_executable_probe_bounds_launch_time():
+    result = probe_executable(
+        sys.executable,
+        args=("-c", "import time; time.sleep(2)"),
+        timeout=0.1,
+    )
+    assert not result.runnable
+    assert "timed out" in result.reason
 
 
 def test_inspection_hashes_content_without_loading_it(tmp_path):

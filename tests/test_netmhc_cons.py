@@ -15,12 +15,22 @@ import pytest
 
 from mhctools import NetMHCcons
 from mhctools.allele_normalization import normalize_allele_name
+from mhctools.optional_backend import probe_executable
 
-from .arch import apple_silicon
+
+_NETMHCCONS_CAPABILITY = probe_executable("netMHCcons", args=("-h",))
+_NETMHC3_CAPABILITY = probe_executable("netMHC-3.4", args=("-h",))
+_NETMHCCONS_REASON = "; ".join(
+    probe.reason for probe in (_NETMHCCONS_CAPABILITY, _NETMHC3_CAPABILITY)
+    if not probe.runnable)
+requires_netmhccons = pytest.mark.skipif(
+    bool(_NETMHCCONS_REASON),
+    reason=_NETMHCCONS_REASON or "NetMHCcons launch probes succeeded",
+)
 
 DEFAULT_ALLELE = 'HLA-A*02:01'
 
-@pytest.mark.skipif(apple_silicon, reason="Can't run netMHCcons on arm64 architecture")
+@requires_netmhccons
 def test_netmhc_cons():
     alleles = [normalize_allele_name(DEFAULT_ALLELE)]
     cons_predictor = NetMHCcons(
@@ -36,7 +46,7 @@ def test_netmhc_cons():
     assert len(binding_predictions) == 4, \
         "Expected 4 epitopes from %s" % (binding_predictions,)
 
-@pytest.mark.skipif(apple_silicon, reason="Can't run netMHCcons on arm64 architecture")
+@requires_netmhccons
 def test_netmhc_cons_multiple_lengths():
     cons_predictor = NetMHCcons(alleles=["A6801"])
     binding_predictions = cons_predictor.predict_peptides(
@@ -44,7 +54,7 @@ def test_netmhc_cons_multiple_lengths():
     assert len(binding_predictions) == 4, \
         "Expected 4 epitopes from %s" % (binding_predictions,)
 
-@pytest.mark.skipif(apple_silicon, reason="Can't run netMHCcons on arm64 architecture")
+@requires_netmhccons
 def test_netmhc_cons_multiple_alleles():
     alleles = 'A*02:01,B*35:02'
     cons_predictor = NetMHCcons(
@@ -59,7 +69,7 @@ def test_netmhc_cons_multiple_alleles():
     assert len(binding_predictions) == 8, \
         "Expected 4 binding predictions from %s" % (binding_predictions,)
 
-@pytest.mark.skipif(apple_silicon, reason="Can't run netMHCcons on arm64 architecture")
+@requires_netmhccons
 def test_netmhc_cons_process_limits():
     alleles = [normalize_allele_name(DEFAULT_ALLELE)]
     sequence_dict = {

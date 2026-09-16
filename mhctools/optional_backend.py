@@ -13,6 +13,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 from typing import Mapping, Optional, Sequence, Tuple
 
@@ -34,6 +35,67 @@ def common_checkout_paths(*directory_names):
     for directory_name in directory_names:
         paths.extend((home / directory_name, home / "code" / directory_name))
     return tuple(paths)
+
+
+@dataclass(frozen=True)
+class ExecutableCapability:
+    """Bounded launch probe for an optional command-line backend."""
+
+    program: str
+    path: str
+    runnable: bool
+    returncode: Optional[int]
+    reason: str
+
+    @property
+    def located(self):
+        """Whether the executable was resolved on this machine."""
+        return bool(self.path)
+
+    def to_dict(self):
+        """Return a JSON-serializable launch-capability record."""
+        return asdict(self)
+
+
+def probe_executable(
+        program, args=("--help",), timeout=10, failure_patterns=()):
+    """Check that an optional executable can launch, with an honest reason.
+
+    Some legacy launchers incorrectly exit zero after a nested command fails,
+    so callers may supply diagnostic *failure_patterns* that invalidate such
+    output. This is deliberately a launch probe, not proof of inference.
+    """
+    path = shutil.which(str(program))
+    if not path:
+        return ExecutableCapability(
+            program=str(program), path="", runnable=False, returncode=None,
+            reason="%s was not found on PATH" % program)
+    command = [path] + [str(arg) for arg in args]
+    try:
+        completed = subprocess.run(
+            command, capture_output=True, text=True, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        return ExecutableCapability(
+            program=str(program), path=path, runnable=False, returncode=None,
+            reason="%s launch probe timed out after %s seconds" % (
+                program, timeout))
+    output = "\n".join(
+        part.strip() for part in (completed.stdout, completed.stderr)
+        if part and part.strip())
+    matched = next(
+        (pattern for pattern in failure_patterns if pattern in output), None)
+    if completed.returncode != 0 or matched:
+        detail = output[-500:] if output else "no diagnostic output"
+        cause = (
+            "reported failure marker %r" % matched if matched
+            else "exited with code %d" % completed.returncode)
+        return ExecutableCapability(
+            program=str(program), path=path, runnable=False,
+            returncode=completed.returncode,
+            reason="%s %s: %s" % (program, cause, detail))
+    return ExecutableCapability(
+        program=str(program), path=path, runnable=True,
+        returncode=completed.returncode, reason="launch probe succeeded")
 
 
 @dataclass(frozen=True)

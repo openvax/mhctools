@@ -15,7 +15,7 @@ from numpy import testing
 from mhctools import NetChop
 from mhctools.proteasome_predictor import ProteasomePredictor
 from mhctools.pred import Kind, PeptideResult
-from .arch import apple_silicon
+from mhctools.optional_backend import probe_executable
 
 # Peptides from http://tools.iedb.org/netchop/example/
 peptides = """
@@ -29,7 +29,19 @@ def test_is_proteasome_predictor():
     assert issubclass(NetChop, ProteasomePredictor)
 
 
-@pytest.mark.skipif(apple_silicon, reason="Can't run netChop on arm64 architecture")
+_NETCHOP_CAPABILITY = probe_executable(
+    "netChop",
+    args=(),
+    timeout=30,
+    failure_patterns=("Unable to find image", "pull access denied"),
+)
+requires_netchop = pytest.mark.skipif(
+    not _NETCHOP_CAPABILITY.runnable,
+    reason=_NETCHOP_CAPABILITY.reason,
+)
+
+
+@requires_netchop
 def test_cleavage_probs():
     obj = NetChop()
     for pep in peptides:
@@ -48,7 +60,7 @@ def test_cleavage_probs():
     testing.assert_almost_equal(probs2[84], 0.104684)
 
 
-@pytest.mark.skipif(apple_silicon, reason="Can't run netChop on arm64 architecture")
+@requires_netchop
 def test_predict_proteins():
     obj = NetChop()
     result = obj.predict_proteins({"pep0": peptides[0]})
