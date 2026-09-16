@@ -1,17 +1,20 @@
 {
-  "REPORT.md": "a7a619fb3b27269906195b2b9e49d7c7b71e8fc8e4fda7166b9758f367b7234f",
-  "all-figures.pdf": "883f0a7dafa8482db4540b262a668658c317804edf19a68101b0f9d805bcc616",
+  "REPORT.md": "1087e60f2d8b5fbcad3c518f98820b2e5c06699d608b82c85f9bbd5d66685609",
+  "all-figures.pdf": "33d7c6a2ccb1c152420a34adf4993dae4b4f47e666d0e41c7772cc3806b1417e",
   "figures/predictor_agreement_and_slp_clusters.png": "36f8248c4744eb36adda6cbfb1c08e7e96e198abcc6c9bf40f74cc3d8f2fbbb6",
-  "provenance.json": "4e078045679d69d282bb770905949388df4c44f200a097a4da847ed914db9c5c",
+  "provenance.json": "e255b20f3a49b84dbe48a4227320542983863a3bf7d55f90452f2f4fb11ef2e4",
   "tables/atlas_sequence_order.csv": "29af126f59cad4f12b9dfd850a2aabf03149bd1ec5e86493528af4954ca86501",
+  "tables/mhc_model_file_inventory.csv": "99ebd6123399ed0e7a1bcc01930996030036a5e28406163befe35e7664435cb8",
   "tables/model_catalog.csv": "bce03ec108199b5538fe88b38f9645f9d95e98e77fa4c25680db92962d58b7a5",
   "tables/quantitative_model_spearman_correlations.csv": "5c457449a6c065aad5f2b2dcf97ceacabab03f98432ec1a6d195afa4f7ff4d4f",
   "tables/sequence_provenance_conflicts.csv": "07ed5a083b897f4d9d61c06624e9e0229ed552f5e6ebc011788aa469ecfe8291",
+  "tables/slp_mhc_ligand_predictions.csv": "589fa92e298bc48e6a68cf3340813dd02ccdb608666b16572669ecc3b0b17ab8",
   "tables/slp_model_summary.csv": "27b426cd7f4550ddf176979229d50b09e94a3bc15020b1ecd8e49fdd9480cf58",
   "tables/slp_motif_assessments.csv": "d52a2f24754f10994f7fbb6ce9f62322a83c3cc0426ca95b6bb1369e3267d059",
   "tables/slp_motif_matches.csv": "634da773de47ccc48f073eca72dd6059507f15f95465f681aae7a7f7e802b263",
   "tables/slp_predictor_matrix.csv": "d1ec23bd27716a360aee2fa759f77fc28433e9940307b146d1e8d7f9ea5a5dcc",
   "tables/slp_quantitative_bond_scores.csv": "1cc84aba7587d59d1e57091a9cf81a1f72b58871becbeec024d866b97605dc7d",
+  "tables/slp_vulnerable_bonds.csv": "e75e7948592d7b1a174337c427bf59c19889097fa3533d49ae1aff189e770600",
   "tables/undisclosed_vaccine_sequences.csv": "ce3840e2fb3880a1e5dbbff86bc96a56abc3f64a043582bf877f4e18ba5f5312",
-  "tables/vaccine_sequence_inventory.csv": "54b8cf516a3e34af538b741a9bf81abdeec147c6abd53d7225bbb9fa5ad62d83"
+  "tables/vaccine_sequence_inventory.csv": "bd806a0d5fbb1fd7c3a6623e5cdf41ddaa9695c2fcf0a443e3aa2d518b869c85"
 }

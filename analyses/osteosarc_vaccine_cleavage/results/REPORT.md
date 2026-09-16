@@ -12,14 +12,25 @@ All inference was local; no peptide sequence was uploaded.
 
 The inventory distinguishes mRNA encoded contexts, displayed mRNA minimal epitopes, and SLPs. Only SLP records are included in the cleavage tables and figures.
 The compact [SLP-by-predictor matrix](tables/slp_predictor_matrix.csv) and exact [bond-level scores](tables/slp_quantitative_bond_scores.csv) are provided separately.
+The exact [MHC ligand-window predictions](tables/slp_mhc_ligand_predictions.csv), [context-separated vulnerable bonds](tables/slp_vulnerable_bonds.csv), and full [MHC model file inventory](tables/mhc_model_file_inventory.csv) are also retained.
 
 ## Sequence cleavage atlas
 
-The [complete PDF atlas](all-figures.pdf) places every quantitative score and motif-rule match at its exact peptide bond. It contains one clustered overview followed by one page per SLP (with the 80-aa outlier split across three continuation pages). [Atlas order and PDF page numbers](tables/atlas_sequence_order.csv) are provided for navigation.
+The [complete PDF atlas](all-figures.pdf) makes each amino-acid sequence the central axis, with quantitative cut stems, motif flags, disclosed minimal-epitope spans, and candidate MHC ligand windows aligned to exact residues and bonds. It contains one clustered overview followed by one page per SLP (with the 80-aa outlier split across three continuation pages). [Atlas order and PDF page numbers](tables/atlas_sequence_order.csv) are provided for navigation.
 
 ![Predictor agreement and clustered SLP order](figures/predictor_agreement_and_slp_clusters.png)
 
 The overview clusters predictors using Spearman correlation of native scores at shared, assessable bonds. It clusters SLPs using standardized within-model fractions above the 0.5 display threshold. Clustering is organizational only and is not an ensemble model.
+
+## MHC ligand and integrity overlays
+
+Local inference produced 23,285 peptide/allele predictions. The atlas displays MHC-I windows at <= 2% MHCflurry presentation rank and MHC-II windows at <= 5% NetMHCIIpan EL rank. The table retains every prediction, including those outside the display cutoffs.
+MHC-I predictions use all five disclosed classical class-I alleles. MHC-II predictions use only alpha/beta combinations already named by the osteosarc source; the unphased HLA table is not used to invent additional combinations. All inference ran locally.
+Red ticks inside a ligand bar are pre-binding internal cleavage evidence in the relevant processing view. They do not establish that a bound pMHC complex will be cleaved or protected; binding occupancy and timing are not modeled.
+
+## Conservative vulnerable bonds
+
+The vulnerable-bond table contains 242 context-separated rows. A proteasome/MHC-I row requires at least three of five native 0-1 models at the 0.5 display threshold. A motif row requires at least two distinct recognition rules in the same broad biological context. These are support counts, not calibrated probabilities, and unlike contexts are never combined.
 
 ## Quantitative model output distribution
 

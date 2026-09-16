@@ -1,9 +1,10 @@
 {
   "analysis": {
-    "analysis_script_sha256": "37357fe5aab148c93a12fd5ddf2463ece20798127a4f1c65c65e5a3ded8ffbfe",
+    "analysis_script_sha256": "e3c2cd6ca3d48482059eb6d02ad02997e88b49b328abe10e1c8af0bd456d670f",
     "display_threshold": 0.5,
-    "mhctools_commit": "5f200782bbfd1ef5ea2b264ef01433d1841e8888",
-    "mhctools_version": "3.44.27",
+    "mhctools_commit": "f3abe3c0ccc882d029eb488ef8dd85ff86f88848",
+    "mhctools_version": "3.44.28",
+    "mhctools_worktree_dirty": true,
     "sequence_uploads": "none; all inference ran locally",
     "termini_assumption": "free N and C termini"
   },
@@ -14,6 +15,15 @@
         "PWM.xlsx": "1113f799564d0e6d8616bfd74f9a1d5f025ebcb869ba0f77de61cbb750b47356"
       },
       "repository": "https://github.com/aalokaily/ERAMER"
+    },
+    "mhcflurry": {
+      "file_count": 19,
+      "inventory_file": "tables/mhc_model_file_inventory.csv",
+      "inventory_sha256": "3fe52518e345a7fcf2240ef1569fa5a0a4d5d1b117c265697734e5e12524749a",
+      "model_provenance": "generated on Thu Jun 11 13:37:18 2020",
+      "model_release": "2.2.0",
+      "models_path": "/Users/iskander/Library/Application Support/mhcflurry/4/2.2.0/models_class1_pan/models.combined",
+      "package_version": "2.2.1"
     },
     "netchop": {
       "docker_runtime_image": "i386/debian@sha256:75efd55b326373cf69989912388c0d50c5390638af7378d2fedc3aeb9d100e46",
@@ -30,6 +40,14 @@
         "data/models/I_mass-spectrometry_HLA/I_mass-spectrometry_HLA_model.h5": "641b04c2f02ad880314147179edc4762d9c80a0d085b591833ed002ee365dddc"
       },
       "repository": "https://github.com/BSC-CNS-EAPM/NetCleave"
+    },
+    "netmhciipan": {
+      "file_count": 9004,
+      "installation_root": "/Users/iskander/code/netmhc-bundle/netMHCIIpan-4.3",
+      "inventory_file": "tables/mhc_model_file_inventory.csv",
+      "inventory_sha256": "2b69c7835429d0e07ba2c5d8d0a53a49af3d73502346150094834e2baf867f74",
+      "model_version": "NetMHCIIpan version 4.3e",
+      "program_path": "/Users/iskander/code/netmhc-bundle/netMHCIIpan-4.3/netMHCIIpan"
     },
     "pepsickle": {
       "files": {
@@ -57,6 +75,22 @@
   "source": {
     "commit": "deaf7290a5dfa9d8d7c8ab9da5d001f69fcc2d47",
     "commit_date": "2026-09-15T05:35:02-04:00",
+    "hla_table_sha256": "9ef0b416fcc0129dceeaf0eb0f907d5af716e380a9b2fbcb952250c14b0480e8",
+    "mhc_i_alleles": [
+      "HLA-A*01:01",
+      "HLA-B*08:01",
+      "HLA-B*27:05",
+      "HLA-C*01:02",
+      "HLA-C*07:01"
+    ],
+    "mhc_ii_alleles": [
+      "HLA-DPA1*01:03-DPB1*04:01",
+      "HLA-DQA1*04:01-DQB1*04:02",
+      "HLA-DQA1*05:01-DQB1*02:01",
+      "HLA-DRB1*03:01",
+      "HLA-DRB1*08:01"
+    ],
+    "mhc_ii_pairing_policy": "only combinations already named in osteosarc source candidate fields",
     "repository": "https://gitlab.com/slowkow/osteosarc.com",
     "site": "https://osteosarc.com/",
     "variants_json_sha256": "815e3052a5b4c3a9611a0e7ed3f6ccccde7bf95faaf4519ebffcae6633ef3db0"
