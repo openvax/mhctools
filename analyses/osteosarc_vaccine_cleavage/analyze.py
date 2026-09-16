@@ -26,6 +26,8 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 import numpy as np
 import pandas as pd
+from scipy.cluster.hierarchy import leaves_list, linkage
+from scipy.spatial.distance import squareform
 
 from mhctools import (
     NetCleave_I,
@@ -62,6 +64,41 @@ INTRACELLULAR_ER_MOTIF_MODELS = [
     "prep-pro",
     "erap2-basic",
 ]
+QUANTITATIVE_SITE_MODELS = [
+    "netchop-3.1-20s-3.0",
+    "pepsickle-in-vivo-human-only",
+    "pepsickle-in-vivo-all-mammal",
+    "netchop-3.1-cterm-3.0",
+    "netcleave-i-hla",
+    "netcleave-ii-hla",
+]
+MODEL_DISPLAY_NAMES = {
+    "netchop-3.1-20s-3.0": "NetChop 20S",
+    "pepsickle-in-vivo-human-only": "Pepsickle human",
+    "pepsickle-in-vivo-all-mammal": "Pepsickle all-mammal",
+    "netchop-3.1-cterm-3.0": "NetChop Cterm",
+    "netcleave-i-hla": "NetCleave I",
+    "netcleave-ii-hla": "NetCleave II",
+}
+MOTIF_DISPLAY_NAMES = {
+    "ace-dipeptidyl": "ACE - dipeptidyl",
+    "mme-hydrophobic": "MME - hydrophobic",
+    "cpb2-basic": "CPB2 - basic C-term",
+    "cpn-basic": "CPN1 - basic C-term",
+    "app2-xp": "XPNPEP2 - X|Pro",
+    "fap-dipeptidyl": "FAP - dipeptidyl",
+    "fap-endo-gp": "FAP - Gly|Pro",
+    "enpep-acidic": "ENPEP - acidic N-term",
+    "anpep-ala": "ANPEP - Ala N-term",
+    "app1-xp": "XPNPEP1 - X|Pro",
+    "tpp2-tripeptidyl": "TPP2 - tripeptidyl",
+    "npepps-n-terminal": "NPEPPS - N-term",
+    "dpp8-xp-xa": "DPP8 - X-Pro|X",
+    "dpp9-xp-xa": "DPP9 - X-Pro|X",
+    "prep-pro": "PREP - Pro-associated",
+    "erap2-basic": "ERAP2 - basic N-term",
+}
+MAX_BONDS_PER_ATLAS_PAGE = 27
 
 
 def sha256_file(path: Path) -> str:
@@ -824,264 +861,635 @@ def row_labels(records: pd.DataFrame) -> dict[str, str]:
     return labels
 
 
-def save_figure(
+def save_pdf_page(
     fig: plt.Figure,
-    stem: Path,
     pdf_pages: PdfPages,
-    figure_number: int,
-    figure_count: int,
+    page_number: int,
+    page_count: int,
+    png_path: Path | None = None,
 ) -> None:
     fig.text(
         0.995,
         0.005,
-        f"Osteosarc vaccine cleavage · Figure {figure_number} of {figure_count}",
+        f"Osteosarc vaccine cleavage atlas - page {page_number} of {page_count}",
         ha="right",
         va="bottom",
         fontsize=7,
         color="#555555",
     )
-    fig.savefig(stem.with_suffix(".png"), dpi=180, bbox_inches="tight")
+    if png_path is not None:
+        fig.savefig(png_path, dpi=180, bbox_inches="tight")
     pdf_pages.savefig(fig, bbox_inches="tight")
     plt.close(fig)
 
 
-def plot_quantitative_heatmap(
+def clustered_orders(
     records: pd.DataFrame,
+    quantitative_df: pd.DataFrame,
     summary_df: pd.DataFrame,
-    figures_dir: Path,
-    pdf_pages: PdfPages,
-) -> None:
-    models = [
-        "pepsickle-in-vivo-all-mammal",
-        "pepsickle-in-vivo-human-only",
-        "netchop-3.1-cterm-3.0",
-        "netchop-3.1-20s-3.0",
-        "netcleave-i-hla",
-        "netcleave-ii-hla",
+) -> tuple[list[str], list[str], pd.DataFrame, pd.DataFrame]:
+    """Cluster predictors by bond scores and SLPs by threshold-hit profiles."""
+    site_scores = quantitative_df.loc[
+        quantitative_df["model"].isin(QUANTITATIVE_SITE_MODELS)
+        & quantitative_df["assessable"]
+    ].pivot_table(
+        index=["sequence_record_id", "bond"], columns="model", values="score"
+    )
+    correlations_df = site_scores.corr(method="spearman", min_periods=10).reindex(
+        index=QUANTITATIVE_SITE_MODELS, columns=QUANTITATIVE_SITE_MODELS
+    )
+    distances = np.clip(1.0 - correlations_df.to_numpy(dtype=float), 0.0, 2.0)
+    distances = (distances + distances.T) / 2.0
+    np.fill_diagonal(distances, 0.0)
+    model_tree = linkage(
+        squareform(distances, checks=False), method="average", optimal_ordering=True
+    )
+    model_order = [
+        QUANTITATIVE_SITE_MODELS[index] for index in leaves_list(model_tree)
     ]
-    labels = row_labels(records)
-    matrix = summary_df.loc[summary_df["model"].isin(models)].pivot(
+
+    profiles = summary_df.loc[
+        summary_df["model"].isin(QUANTITATIVE_SITE_MODELS)
+    ].pivot(
         index="sequence_record_id", columns="model", values="candidate_fraction"
     )
-    matrix = matrix.reindex(index=records["sequence_record_id"], columns=models)
-    display_labels = [
-        "Pepsickle\nall-mammal",
-        "Pepsickle\nhuman-only",
-        "NetChop\nCterm 3.0",
-        "NetChop\n20S 3.0",
-        "NetCleave I\npan-HLA",
-        "NetCleave II\npan-HLA",
-    ]
-    fig, ax = plt.subplots(figsize=(16, 10.5))
-    masked = np.ma.masked_invalid(matrix.to_numpy(dtype=float))
-    cmap = plt.get_cmap("magma").copy()
-    cmap.set_bad("#d9d9d9")
-    image = ax.imshow(masked, aspect="auto", vmin=0, vmax=1, cmap=cmap)
-    ax.set_xticks(range(len(models)), labels=display_labels)
-    ax.tick_params(axis="x", labelsize=9, pad=6)
-    ax.set_yticks(
-        range(len(matrix)), labels=[labels[index] for index in matrix.index], fontsize=8
+    profiles = profiles.reindex(
+        index=records["sequence_record_id"], columns=QUANTITATIVE_SITE_MODELS
     )
-    ax.set_title(
-        "Fraction of assessable internal bonds at or above 0.5",
-        fontsize=14,
-        pad=34,
+    clustering_values = profiles.copy()
+    for column in clustering_values:
+        clustering_values[column] = clustering_values[column].fillna(
+            clustering_values[column].median()
+        )
+        standard_deviation = clustering_values[column].std(ddof=0)
+        if standard_deviation > 0:
+            clustering_values[column] = (
+                clustering_values[column] - clustering_values[column].mean()
+            ) / standard_deviation
+    record_tree = linkage(
+        clustering_values.to_numpy(dtype=float),
+        method="average",
+        metric="euclidean",
+        optimal_ordering=True,
     )
-    ax.text(
-        2,
-        -2.2,
-        "Proteasome / MHC-I processing models",
-        ha="center",
-        va="center",
-        fontsize=9,
-        fontweight="bold",
-    )
-    ax.text(
-        5,
-        -2.2,
-        "MHC-II processing model",
-        ha="center",
-        va="center",
-        fontsize=9,
-        fontweight="bold",
-    )
-    ax.axvline(4.5, color="white", linewidth=4)
-    ax.axvline(4.5, color="#444444", linewidth=0.8)
-    ax.set_xlabel("Model (native scores; fractions are not cross-model probabilities)")
-    ax.set_ylabel("Disclosed synthetic long-peptide record")
-    for y in range(masked.shape[0]):
-        for x in range(masked.shape[1]):
-            if masked.mask[y, x]:
-                ax.text(
-                    x,
-                    y,
-                    "NA",
-                    ha="center",
-                    va="center",
-                    fontsize=6,
-                    color="#555555",
-                )
-            else:
-                ax.text(
-                    x,
-                    y,
-                    f"{masked[y, x]:.2f}",
-                    ha="center",
-                    va="center",
-                    fontsize=6,
-                    color="white" if masked[y, x] > 0.48 else "black",
-                )
-    colorbar = fig.colorbar(image, ax=ax, label="within-model fraction")
-    colorbar.ax.text(
-        0.5,
-        -0.035,
-        "Gray = not assessable",
-        transform=colorbar.ax.transAxes,
-        ha="center",
-        va="top",
-        fontsize=7,
-    )
-    save_figure(
-        fig,
-        figures_dir / "slp_quantitative_hit_fraction",
-        pdf_pages,
-        figure_number=2,
-        figure_count=4,
-    )
+    record_order = [profiles.index[index] for index in leaves_list(record_tree)]
+    return record_order, model_order, profiles, correlations_df
 
 
-def plot_motif_heatmap(
+def plot_agreement_overview(
     records: pd.DataFrame,
+    quantitative_df: pd.DataFrame,
     summary_df: pd.DataFrame,
     figures_dir: Path,
     pdf_pages: PdfPages,
-    models: list[str],
-    title: str,
-    stem: str,
-    figure_number: int,
-) -> None:
+    page_count: int,
+) -> tuple[list[str], list[str]]:
+    record_order, model_order, profiles, correlations_df = clustered_orders(
+        records, quantitative_df, summary_df
+    )
     labels = row_labels(records)
-    matrix = summary_df.loc[summary_df["model"].isin(models)].pivot(
-        index="sequence_record_id", columns="model", values="matched_sites"
+    ordered_profiles = profiles.reindex(index=record_order, columns=model_order)
+    ordered_correlations = correlations_df.reindex(
+        index=model_order, columns=model_order
     )
-    matrix = matrix.reindex(index=records["sequence_record_id"], columns=models)
-    fig, ax = plt.subplots(figsize=(16, 10.5))
-    masked = np.ma.masked_invalid(matrix.to_numpy(dtype=float))
-    max_count = max(1.0, float(np.nanmax(matrix.to_numpy(dtype=float))))
-    cmap = plt.get_cmap("viridis").copy()
-    cmap.set_bad("#d9d9d9")
-    image = ax.imshow(masked, aspect="auto", vmin=0, vmax=max_count, cmap=cmap)
-    ax.set_xticks(
-        range(len(models)), labels=models, rotation=45, ha="right", fontsize=8
+    fig = plt.figure(figsize=(16, 10.5))
+    grid = fig.add_gridspec(
+        1,
+        2,
+        width_ratios=(1.55, 1),
+        left=0.18,
+        right=0.95,
+        top=0.87,
+        bottom=0.16,
+        wspace=0.48,
     )
-    ax.set_yticks(
-        range(len(matrix)), labels=[labels[index] for index in matrix.index], fontsize=8
+    ax_profiles = fig.add_subplot(grid[0, 0])
+    profile_cmap = plt.get_cmap("magma").copy()
+    profile_cmap.set_bad("#d9d9d9")
+    profile_image = ax_profiles.imshow(
+        np.ma.masked_invalid(ordered_profiles.to_numpy(dtype=float)),
+        aspect="auto",
+        vmin=0,
+        vmax=1,
+        cmap=profile_cmap,
     )
-    ax.set_title(title, fontsize=14, pad=28)
-    ax.text(
+    ax_profiles.set_xticks(
+        range(len(model_order)),
+        labels=[MODEL_DISPLAY_NAMES[model] for model in model_order],
+        rotation=35,
+        ha="right",
+        fontsize=8,
+    )
+    ax_profiles.set_yticks(
+        range(len(record_order)),
+        labels=[labels[record_id] for record_id in record_order],
+        fontsize=6.5,
+    )
+    ax_profiles.set_title("SLPs clustered by within-model candidate-site fraction")
+    fig.colorbar(
+        profile_image,
+        ax=ax_profiles,
+        fraction=0.025,
+        pad=0.02,
+        label="fraction of assessable bonds >= 0.5",
+    )
+
+    ax_correlations = fig.add_subplot(grid[0, 1])
+    correlation_image = ax_correlations.imshow(
+        ordered_correlations.to_numpy(dtype=float),
+        cmap="coolwarm",
+        vmin=-1,
+        vmax=1,
+    )
+    correlation_labels = [MODEL_DISPLAY_NAMES[model] for model in model_order]
+    ax_correlations.set_xticks(
+        range(len(model_order)),
+        labels=correlation_labels,
+        rotation=35,
+        ha="right",
+        fontsize=8,
+    )
+    ax_correlations.set_yticks(
+        range(len(model_order)), labels=correlation_labels, fontsize=8
+    )
+    ax_correlations.set_title("Predictor agreement at shared peptide bonds")
+    for row in range(len(model_order)):
+        for column in range(len(model_order)):
+            value = ordered_correlations.iloc[row, column]
+            ax_correlations.text(
+                column,
+                row,
+                f"{value:.2f}",
+                ha="center",
+                va="center",
+                fontsize=8,
+                color="white" if abs(value) > 0.55 else "black",
+            )
+    fig.colorbar(
+        correlation_image,
+        ax=ax_correlations,
+        fraction=0.046,
+        pad=0.04,
+        label="Spearman rho",
+    )
+    fig.suptitle(
+        "Agreement map for the vaccine SLP cleavage atlas",
+        fontsize=16,
+        fontweight="bold",
+        y=0.955,
+    )
+    fig.text(
         0.5,
-        1.01,
-        "Compartment grouping is for readability; see model_catalog.csv for full context.",
-        transform=ax.transAxes,
+        0.06,
+        "Clustering organizes the atlas; it does not create an ensemble probability. "
+        "Sequence pages follow the left-panel SLP order. "
+        "The left panel uses a common display threshold on native 0-1 outputs. The right "
+        "panel correlates native scores only where both models assess the same bond.",
         ha="center",
-        va="bottom",
+        va="center",
+        fontsize=9,
+        color="#333333",
+        wrap=True,
+    )
+    save_pdf_page(
+        fig,
+        pdf_pages,
+        page_number=1,
+        page_count=page_count,
+        png_path=figures_dir / "predictor_agreement_and_slp_clusters.png",
+    )
+    return record_order, model_order
+
+
+def sequence_segments(sequence: str) -> list[tuple[int, int]]:
+    """Return inclusive 1-based bond ranges that cover a sequence."""
+    last_bond = len(sequence) - 1
+    return [
+        (start, min(start + MAX_BONDS_PER_ATLAS_PAGE - 1, last_bond))
+        for start in range(1, last_bond + 1, MAX_BONDS_PER_ATLAS_PAGE)
+    ]
+
+
+def _score_matrix(
+    record_id: str,
+    quantitative_df: pd.DataFrame,
+    models: list[str],
+    bonds: list[int],
+) -> np.ndarray:
+    matrix = np.full((len(models), len(bonds)), np.nan)
+    bond_indices = {bond: index for index, bond in enumerate(bonds)}
+    model_indices = {model: index for index, model in enumerate(models)}
+    subset = quantitative_df.loc[
+        (quantitative_df["sequence_record_id"] == record_id)
+        & quantitative_df["model"].isin(models)
+        & quantitative_df["assessable"]
+    ]
+    for row in subset.itertuples():
+        bond = int(row.bond)
+        if bond in bond_indices:
+            matrix[model_indices[row.model], bond_indices[bond]] = float(row.score)
+    return matrix
+
+
+def _motif_matrix(
+    record_id: str,
+    motifs_df: pd.DataFrame,
+    models: list[str],
+    bonds: list[int],
+) -> np.ndarray:
+    matrix = np.full((len(models), len(bonds)), np.nan)
+    bond_indices = {bond: index for index, bond in enumerate(bonds)}
+    model_indices = {model: index for index, model in enumerate(models)}
+    subset = motifs_df.loc[
+        (motifs_df["sequence_record_id"] == record_id)
+        & motifs_df["model"].isin(models)
+        & (motifs_df["status"] != "unsupported")
+    ]
+    for row in subset.itertuples():
+        bond = int(row.bond)
+        if bond in bond_indices:
+            matrix[model_indices[row.model], bond_indices[bond]] = (
+                1.0 if row.status == "matched" else 0.0
+            )
+    return matrix
+
+
+def _draw_grid(ax: plt.Axes, rows: int, columns: int) -> None:
+    ax.set_xticks(np.arange(-0.5, columns, 1), minor=True)
+    ax.set_yticks(np.arange(-0.5, rows, 1), minor=True)
+    ax.grid(which="minor", color="#dddddd", linewidth=0.35)
+    ax.tick_params(which="minor", bottom=False, left=False)
+
+
+def plot_sequence_atlas_page(
+    record: pd.Series,
+    quantitative_df: pd.DataFrame,
+    motifs_df: pd.DataFrame,
+    pdf_pages: PdfPages,
+    page_number: int,
+    page_count: int,
+    segment: tuple[int, int],
+    segment_number: int,
+    segment_count: int,
+) -> None:
+    sequence = record["sequence"]
+    start_bond, end_bond = segment
+    bonds = list(range(start_bond, end_bond + 1))
+    record_id = record["sequence_record_id"]
+    score_matrix = _score_matrix(
+        record_id, quantitative_df, QUANTITATIVE_SITE_MODELS, bonds
+    )
+    motif_models = EXTRACELLULAR_MOTIF_MODELS + INTRACELLULAR_ER_MOTIF_MODELS
+    motif_matrix = _motif_matrix(record_id, motifs_df, motif_models, bonds)
+
+    fig = plt.figure(figsize=(16, 10.5))
+    grid = fig.add_gridspec(
+        5,
+        1,
+        height_ratios=(0.72, 0.48, 2.05, 0.64, 4.45),
+        left=0.18,
+        right=0.94,
+        top=0.87,
+        bottom=0.105,
+        hspace=0.22,
+    )
+    x_positions = np.arange(len(bonds))
+    bond_labels = [
+        f"{bond}\n{sequence[bond - 1]}|{sequence[bond]}" for bond in bonds
+    ]
+
+    ax_sequence = fig.add_subplot(grid[0, 0])
+    ax_sequence.set_xlim(-0.5, len(bonds) - 0.5)
+    ax_sequence.set_ylim(0, 1)
+    ax_sequence.axis("off")
+    for x, bond in zip(x_positions, bonds):
+        ax_sequence.text(
+            x,
+            0.55,
+            f"{sequence[bond - 1]}|{sequence[bond]}",
+            ha="center",
+            va="center",
+            family="monospace",
+            fontsize=8,
+            fontweight="bold",
+        )
+        ax_sequence.text(
+            x,
+            0.08,
+            str(bond),
+            ha="center",
+            va="bottom",
+            fontsize=6.5,
+            color="#555555",
+        )
+    ax_sequence.text(
+        -0.012,
+        0.55,
+        "bond",
+        transform=ax_sequence.transAxes,
+        ha="right",
+        va="center",
+        fontsize=8,
+        color="#555555",
+    )
+
+    ax_agreement = fig.add_subplot(grid[1, 0])
+    assessed = np.sum(~np.isnan(score_matrix), axis=0)
+    hits = np.sum(score_matrix >= THRESHOLD, axis=0)
+    agreement = np.divide(
+        hits,
+        assessed,
+        out=np.full_like(hits, np.nan, dtype=float),
+        where=assessed > 0,
+    )[None, :]
+    agreement_cmap = plt.get_cmap("Blues").copy()
+    agreement_cmap.set_bad("#d9d9d9")
+    ax_agreement.imshow(agreement, aspect="auto", vmin=0, vmax=1, cmap=agreement_cmap)
+    for column, (hit_count, assessed_count) in enumerate(zip(hits, assessed)):
+        label = "NA" if assessed_count == 0 else f"{hit_count}/{assessed_count}"
+        ax_agreement.text(
+            column,
+            0,
+            label,
+            ha="center",
+            va="center",
+            fontsize=6.5,
+            color="white" if assessed_count and hit_count / assessed_count > 0.55 else "black",
+        )
+    ax_agreement.set_yticks([0], labels=["models >= 0.5"])
+    ax_agreement.set_xticks([])
+    ax_agreement.tick_params(axis="y", labelsize=8)
+    _draw_grid(ax_agreement, 1, len(bonds))
+
+    ax_scores = fig.add_subplot(grid[2, 0])
+    score_cmap = plt.get_cmap("magma").copy()
+    score_cmap.set_bad("#d9d9d9")
+    score_image = ax_scores.imshow(
+        np.ma.masked_invalid(score_matrix),
+        aspect="auto",
+        vmin=0,
+        vmax=1,
+        cmap=score_cmap,
+    )
+    ax_scores.set_yticks(
+        range(len(QUANTITATIVE_SITE_MODELS)),
+        labels=[MODEL_DISPLAY_NAMES[model] for model in QUANTITATIVE_SITE_MODELS],
+        fontsize=8,
+    )
+    ax_scores.set_xticks([])
+    ax_scores.set_ylabel("native 0-1 score", fontsize=8, labelpad=34)
+    for row in range(score_matrix.shape[0]):
+        for column in range(score_matrix.shape[1]):
+            value = score_matrix[row, column]
+            if np.isnan(value):
+                continue
+            ax_scores.text(
+                column,
+                row,
+                f"{value:.2f}",
+                ha="center",
+                va="center",
+                fontsize=5.8,
+                color="white" if value < 0.62 else "black",
+            )
+    _draw_grid(ax_scores, len(QUANTITATIVE_SITE_MODELS), len(bonds))
+    colorbar = fig.colorbar(score_image, ax=ax_scores, fraction=0.018, pad=0.012)
+    colorbar.ax.tick_params(labelsize=7)
+    colorbar.set_label("native model output", fontsize=8)
+
+    ax_terminal = fig.add_subplot(grid[3, 0])
+    terminal_models = ["dpp4-qpisa", "eramer-step"]
+    terminal_labels = ["DPP4 native score", "ERAP1 ERAMER score"]
+    ax_terminal.set_xlim(-0.5, len(bonds) - 0.5)
+    ax_terminal.set_ylim(1.5, -0.5)
+    ax_terminal.set_yticks(range(2), labels=terminal_labels, fontsize=8)
+    ax_terminal.set_xticks([])
+    ax_terminal.set_facecolor("#f7f7f7")
+    terminal_subset = quantitative_df.loc[
+        (quantitative_df["sequence_record_id"] == record_id)
+        & quantitative_df["model"].isin(terminal_models)
+        & quantitative_df["assessable"]
+    ]
+    for row in terminal_subset.itertuples():
+        bond = int(row.bond)
+        if bond not in bonds:
+            continue
+        y = terminal_models.index(row.model)
+        x = bonds.index(bond)
+        ax_terminal.scatter(
+            [x], [y], marker="D", s=80, color="#f0a202", edgecolor="#3b2a00", zorder=2
+        )
+        ax_terminal.text(
+            x + 0.35,
+            y,
+            f"{float(row.score):.3f}",
+            ha="left",
+            va="center",
+            fontsize=7,
+            color="#3b2a00",
+        )
+    ax_terminal.text(
+        1.003,
+        0.5,
+        "incompatible native scales; no cutoff",
+        transform=ax_terminal.transAxes,
+        ha="left",
+        va="center",
         fontsize=7,
         color="#555555",
     )
-    ax.set_xlabel("Curated recognition rule (a match is not a cleavage probability)")
-    ax.set_ylabel("Disclosed synthetic long-peptide record")
-    for y in range(masked.shape[0]):
-        for x in range(masked.shape[1]):
-            if masked.mask[y, x]:
-                ax.text(
-                    x,
-                    y,
-                    "NA",
+    _draw_grid(ax_terminal, 2, len(bonds))
+
+    ax_motifs = fig.add_subplot(grid[4, 0])
+    motif_colors = np.empty((*motif_matrix.shape, 4))
+    motif_colors[:] = (0.85, 0.85, 0.85, 1.0)
+    assessed_cells = ~np.isnan(motif_matrix)
+    motif_colors[assessed_cells] = (1.0, 1.0, 1.0, 1.0)
+    for row in range(len(motif_models)):
+        matched = motif_matrix[row] == 1
+        motif_colors[row, matched] = (
+            (0.0, 0.48, 0.52, 1.0)
+            if row < len(EXTRACELLULAR_MOTIF_MODELS)
+            else (0.43, 0.24, 0.62, 1.0)
+        )
+    ax_motifs.imshow(motif_colors, aspect="auto")
+    ax_motifs.set_yticks(
+        range(len(motif_models)),
+        labels=[MOTIF_DISPLAY_NAMES[model] for model in motif_models],
+        fontsize=7.2,
+    )
+    for label_index, label in enumerate(ax_motifs.get_yticklabels()):
+        label.set_color(
+            "#006d73"
+            if label_index < len(EXTRACELLULAR_MOTIF_MODELS)
+            else "#60408a"
+        )
+    ax_motifs.set_xticks(x_positions, labels=bond_labels, fontsize=6.5)
+    ax_motifs.tick_params(axis="x", pad=3)
+    ax_motifs.set_xlabel("cleavage after numbered left residue", fontsize=8)
+    ax_motifs.axhline(
+        len(EXTRACELLULAR_MOTIF_MODELS) - 0.5,
+        color="#333333",
+        linewidth=1.4,
+    )
+    for row in range(motif_matrix.shape[0]):
+        for column in range(motif_matrix.shape[1]):
+            if motif_matrix[row, column] == 1:
+                ax_motifs.text(
+                    column,
+                    row,
+                    "●",
                     ha="center",
                     va="center",
                     fontsize=6,
-                    color="#555555",
+                    color="white",
                 )
-            elif masked[y, x] > 0:
-                normalized = masked[y, x] / max_count
-                ax.text(
-                    x,
-                    y,
-                    str(int(masked[y, x])),
-                    ha="center",
-                    va="center",
-                    fontsize=7,
-                    color="white" if normalized < 0.5 else "black",
-                )
-    colorbar = fig.colorbar(image, ax=ax, label="matched sites")
-    colorbar.ax.text(
-        0.5,
-        -0.035,
-        "Gray = unsupported",
-        transform=colorbar.ax.transAxes,
-        ha="center",
-        va="top",
+    _draw_grid(ax_motifs, len(motif_models), len(bonds))
+    ax_motifs.text(
+        1.003,
+        0.74,
+        "extracellular / plasma",
+        transform=ax_motifs.transAxes,
+        ha="left",
+        va="center",
         fontsize=7,
+        color="#006d73",
+        rotation=90,
     )
-    save_figure(
-        fig,
-        figures_dir / stem,
-        pdf_pages,
-        figure_number=figure_number,
-        figure_count=4,
+    ax_motifs.text(
+        1.003,
+        0.22,
+        "cytosol / ER",
+        transform=ax_motifs.transAxes,
+        ha="left",
+        va="center",
+        fontsize=7,
+        color="#60408a",
+        rotation=90,
     )
 
-
-def plot_score_distributions(
-    quantitative_df: pd.DataFrame, figures_dir: Path, pdf_pages: PdfPages
-) -> None:
-    models = [
-        "pepsickle-in-vivo-all-mammal",
-        "netchop-3.1-cterm-3.0",
-        "netcleave-i-hla",
-        "pepsickle-in-vivo-human-only",
-        "netchop-3.1-20s-3.0",
-        "netcleave-ii-hla",
-    ]
-    fig, axes = plt.subplots(2, 3, figsize=(15, 9), sharex=True, sharey=True)
-    for ax, model in zip(axes.flat, models):
-        values = quantitative_df.loc[
-            (quantitative_df["model"] == model) & quantitative_df["assessable"],
-            "score",
-        ].dropna()
-        weights = np.full(len(values), 100.0 / len(values))
-        ax.hist(
-            values,
-            bins=np.linspace(0, 1, 31),
-            weights=weights,
-            color="#3366a6",
-            alpha=0.85,
-        )
-        ax.axvline(
-            THRESHOLD,
-            color="#b33a3a",
-            linestyle="--",
-            linewidth=1,
-            label="0.5 display threshold",
-        )
-        ax.set_title(f"{model}\nn={len(values):,} assessable bonds", fontsize=10)
-        ax.set_xlabel("native score")
-        ax.set_ylabel("assessable bonds per bin (%)")
-        ax.tick_params(axis="x", labelbottom=True)
+    vaccines = record["vaccines"].replace(";", ", ")
+    continuation = (
+        f" - segment {segment_number}/{segment_count}, bonds {start_bond}-{end_bond}"
+        if segment_count > 1
+        else ""
+    )
     fig.suptitle(
-        "Native output distributions (panels are not calibrated to one another)",
-        fontsize=14,
+        f"{record['gene']} {record['protein_change'] or ''} | {vaccines} | "
+        f"{record['length']} aa{continuation}",
+        fontsize=15,
+        fontweight="bold",
+        y=0.965,
     )
-    handles, labels = axes.flat[0].get_legend_handles_labels()
-    fig.legend(handles, labels, loc="upper center", bbox_to_anchor=(0.5, 0.945))
-    fig.tight_layout(rect=(0, 0.02, 1, 0.91))
-    save_figure(
-        fig,
-        figures_dir / "quantitative_score_distributions",
-        pdf_pages,
-        figure_number=1,
-        figure_count=4,
+    displayed_sequence = sequence[start_bond - 1 : end_bond + 1]
+    sequence_prefix = (
+        f"residues {start_bond}-{end_bond + 1}: " if segment_count > 1 else ""
     )
+    fig.text(
+        0.5,
+        0.913,
+        sequence_prefix + " ".join(displayed_sequence),
+        ha="center",
+        va="center",
+        family="monospace",
+        fontsize=9,
+        color="#222222",
+    )
+    fig.text(
+        0.5,
+        0.047,
+        "Figure legend. Scores are model-native and not calibrated across rows; 0.5 is a display "
+        "threshold only. Concurrence is hits/assessable models, not a cleavage probability. Filled "
+        "motif cells are partial recognition-rule matches; white is assessed/no match and gray is "
+        "not assessed. Proteasome and ER evidence is conditional on intracellular access.",
+        ha="center",
+        va="center",
+        fontsize=8,
+        color="#333333",
+        wrap=True,
+    )
+    save_pdf_page(fig, pdf_pages, page_number, page_count)
+
+
+def render_figures(
+    output_dir: Path,
+    records: pd.DataFrame,
+    quantitative_df: pd.DataFrame,
+    motifs_df: pd.DataFrame,
+    summary_df: pd.DataFrame,
+    source_date: str,
+) -> pd.DataFrame:
+    """Render the clustered overview and bond-aligned sequence atlas."""
+    figures_dir = output_dir / "figures"
+    figures_dir.mkdir(parents=True, exist_ok=True)
+    page_count = 1 + sum(
+        len(sequence_segments(record["sequence"])) for _, record in records.iterrows()
+    )
+    pdf_metadata = {
+        "Title": "Osteosarc vaccine SLP bond-level cleavage atlas",
+        "Author": "mhctools",
+        "Subject": "Sequence-aligned cleavage scores and peptidase motif evidence",
+        "Keywords": "osteosarcoma vaccine SLP cleavage proteasome peptidase",
+        "CreationDate": datetime.fromisoformat(source_date),
+        "ModDate": datetime.fromisoformat(source_date),
+    }
+    atlas_rows: list[dict[str, Any]] = []
+    with PdfPages(output_dir / "all-figures.pdf", metadata=pdf_metadata) as pdf_pages:
+        record_order, model_order = plot_agreement_overview(
+            records,
+            quantitative_df,
+            summary_df,
+            figures_dir,
+            pdf_pages,
+            page_count,
+        )
+        records_by_id = records.set_index("sequence_record_id", drop=False)
+        page_number = 2
+        for atlas_order, record_id in enumerate(record_order, start=1):
+            record = records_by_id.loc[record_id]
+            segments = sequence_segments(record["sequence"])
+            first_page = page_number
+            for segment_number, segment in enumerate(segments, start=1):
+                plot_sequence_atlas_page(
+                    record,
+                    quantitative_df,
+                    motifs_df,
+                    pdf_pages,
+                    page_number,
+                    page_count,
+                    segment,
+                    segment_number,
+                    len(segments),
+                )
+                page_number += 1
+            atlas_rows.append(
+                {
+                    "atlas_order": atlas_order,
+                    "sequence_record_id": record_id,
+                    "gene": record["gene"],
+                    "protein_change": record["protein_change"],
+                    "vaccines": record["vaccines"],
+                    "sequence": record["sequence"],
+                    "length": record["length"],
+                    "pdf_page_start": first_page,
+                    "pdf_page_end": page_number - 1,
+                }
+            )
+        if page_number - 1 != page_count:
+            raise RuntimeError(
+                f"Rendered {page_number - 1} pages but expected {page_count}"
+            )
+
+    for obsolete_name in (
+        "quantitative_score_distributions.png",
+        "slp_quantitative_hit_fraction.png",
+        "slp_peptidase_motifs_extracellular.png",
+        "slp_peptidase_motifs_intracellular_er.png",
+    ):
+        (figures_dir / obsolete_name).unlink(missing_ok=True)
+    atlas_order_df = pd.DataFrame(atlas_rows)
+    atlas_order_df.attrs["model_cluster_order"] = model_order
+    return atlas_order_df
 
 
 def correlations(quantitative_df: pd.DataFrame) -> pd.DataFrame:
@@ -1208,6 +1616,19 @@ def write_report(
         "The compact [SLP-by-predictor matrix](tables/slp_predictor_matrix.csv) and exact "
         "[bond-level scores](tables/slp_quantitative_bond_scores.csv) are provided separately.",
         "",
+        "## Sequence cleavage atlas",
+        "",
+        "The [complete PDF atlas](all-figures.pdf) places every quantitative score and motif-rule "
+        "match at its exact peptide bond. It contains one clustered overview followed by one page "
+        "per SLP (with the 80-aa outlier split across three continuation pages). "
+        "[Atlas order and PDF page numbers](tables/atlas_sequence_order.csv) are provided for navigation.",
+        "",
+        "![Predictor agreement and clustered SLP order](figures/predictor_agreement_and_slp_clusters.png)",
+        "",
+        "The overview clusters predictors using Spearman correlation of native scores at shared, "
+        "assessable bonds. It clusters SLPs using standardized within-model fractions above the "
+        "0.5 display threshold. Clustering is organizational only and is not an ensemble model.",
+        "",
         "## Quantitative model output distribution",
         "",
         "The 0.5 cutoff is used only as a within-model display threshold. It is not a calibrated "
@@ -1224,10 +1645,6 @@ def write_report(
         )
     lines.extend(
         [
-            "",
-            "![Within-model candidate-site fractions](figures/slp_quantitative_hit_fraction.png)",
-            "",
-            "![Native quantitative score distributions](figures/quantitative_score_distributions.png)",
             "",
             "NetCleave-I uses an 8-residue peptide ending at each candidate bond plus three "
             "downstream residues. NetCleave-II uses a 13-residue ending peptide plus the same "
@@ -1264,10 +1681,6 @@ def write_report(
         lines.append(f"| {model} | {int(count)} |")
     lines.extend(
         [
-            "",
-            "![Extracellular and plasma peptidase motif matches](figures/slp_peptidase_motifs_extracellular.png)",
-            "",
-            "![Intracellular and ER peptidase motif matches](figures/slp_peptidase_motifs_intracellular_er.png)",
             "",
             "## Interpretation boundary",
             "",
@@ -1377,39 +1790,15 @@ def main() -> None:
             f"extra={sorted(grouped_motifs - included_motifs)}"
         )
 
-    old_motif_figure = figures_dir / "slp_peptidase_motif_matches.png"
-    old_motif_figure.unlink(missing_ok=True)
-    pdf_metadata = {
-        "Title": "Osteosarc vaccine SLP cleavage prediction figures",
-        "Author": "mhctools",
-        "Subject": "Model-specific cleavage scores and peptidase motif matches",
-        "Keywords": "osteosarcoma vaccine SLP cleavage proteasome peptidase",
-        "CreationDate": datetime.fromisoformat(source_date),
-        "ModDate": datetime.fromisoformat(source_date),
-    }
-    with PdfPages(output_dir / "all-figures.pdf", metadata=pdf_metadata) as pdf_pages:
-        plot_score_distributions(quantitative_df, figures_dir, pdf_pages)
-        plot_quantitative_heatmap(records, summary_df, figures_dir, pdf_pages)
-        plot_motif_heatmap(
-            records,
-            summary_df,
-            figures_dir,
-            pdf_pages,
-            EXTRACELLULAR_MOTIF_MODELS,
-            "Extracellular and plasma peptidase motif matches",
-            "slp_peptidase_motifs_extracellular",
-            figure_number=3,
-        )
-        plot_motif_heatmap(
-            records,
-            summary_df,
-            figures_dir,
-            pdf_pages,
-            INTRACELLULAR_ER_MOTIF_MODELS,
-            "Intracellular and ER peptidase motif matches",
-            "slp_peptidase_motifs_intracellular_er",
-            figure_number=4,
-        )
+    atlas_order_df = render_figures(
+        output_dir,
+        records,
+        quantitative_df,
+        motifs_df,
+        summary_df,
+        source_date,
+    )
+    atlas_order_df.to_csv(tables_dir / "atlas_sequence_order.csv", index=False)
     write_report(
         output_dir / "REPORT.md",
         inventory_df,

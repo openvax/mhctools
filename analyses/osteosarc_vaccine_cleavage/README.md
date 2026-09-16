@@ -7,11 +7,15 @@ peptides (SLPs) are flagged by several proteasome/endolysosomal predictors or
 by curated human-peptidase recognition rules?
 
 The generated [report](results/REPORT.md), [tables](results/tables), and
-[figures](results/figures) are checked in. The complete model/code/weight
+[figure atlas](results/all-figures.pdf) are checked in. The complete model/code/weight
 inventory and checksums are in [provenance.json](results/provenance.json) and
 [SHA256SUMS.json](results/SHA256SUMS.json).
-All four figures are also collected in
-[`all-figures.pdf`](results/all-figures.pdf), one full page per figure.
+The PDF begins with a clustered predictor/SLP agreement overview and then
+shows every disclosed SLP sequence with native 0-1 scores and motif evidence
+aligned to exact peptide bonds. The 80-aa outlier is split across three
+continuation pages rather than compressed. Use
+[`atlas_sequence_order.csv`](results/tables/atlas_sequence_order.csv) to jump
+from a sequence record to its PDF page.
 
 For a compact answer to “which SLP is flagged by which model,” start with
 [`slp_predictor_matrix.csv`](results/tables/slp_predictor_matrix.csv). Its
@@ -19,6 +23,12 @@ column suffixes distinguish within-model fractions above 0.5, native scores,
 and motif-match counts; those unlike quantities must not be combined or
 ranked as though they shared a scale. Exact bond-level outputs remain in the
 long-form tables.
+
+The sequence pages also show a per-bond concurrence count for the six models
+with native 0-1 outputs. This is only the number at or above the common 0.5
+display threshold divided by the number able to assess that bond. It is not a
+consensus cleavage probability. DPP4 and ERAMER scores are located on the
+sequence but kept on visibly separate native scales without a binary cutoff.
 
 ## Scope
 

@@ -13,6 +13,14 @@ All inference was local; no peptide sequence was uploaded.
 The inventory distinguishes mRNA encoded contexts, displayed mRNA minimal epitopes, and SLPs. Only SLP records are included in the cleavage tables and figures.
 The compact [SLP-by-predictor matrix](tables/slp_predictor_matrix.csv) and exact [bond-level scores](tables/slp_quantitative_bond_scores.csv) are provided separately.
 
+## Sequence cleavage atlas
+
+The [complete PDF atlas](all-figures.pdf) places every quantitative score and motif-rule match at its exact peptide bond. It contains one clustered overview followed by one page per SLP (with the 80-aa outlier split across three continuation pages). [Atlas order and PDF page numbers](tables/atlas_sequence_order.csv) are provided for navigation.
+
+![Predictor agreement and clustered SLP order](figures/predictor_agreement_and_slp_clusters.png)
+
+The overview clusters predictors using Spearman correlation of native scores at shared, assessable bonds. It clusters SLPs using standardized within-model fractions above the 0.5 display threshold. Clustering is organizational only and is not an ensemble model.
+
 ## Quantitative model output distribution
 
 The 0.5 cutoff is used only as a within-model display threshold. It is not a calibrated probability of SLP degradation, and fractions must not be compared as if the models shared a scale.
@@ -25,10 +33,6 @@ The 0.5 cutoff is used only as a within-model display threshold. It is not a cal
 | netcleave-ii-hla | 39 | 0.000 | 0.000–0.500 |
 | pepsickle-in-vivo-all-mammal | 40 | 0.222 | 0.040–0.364 |
 | pepsickle-in-vivo-human-only | 40 | 0.240 | 0.059–0.467 |
-
-![Within-model candidate-site fractions](figures/slp_quantitative_hit_fraction.png)
-
-![Native quantitative score distributions](figures/quantitative_score_distributions.png)
 
 NetCleave-I uses an 8-residue peptide ending at each candidate bond plus three downstream residues. NetCleave-II uses a 13-residue ending peptide plus the same three-residue downstream context; bonds lacking that context are not assessed.
 
@@ -63,10 +67,6 @@ Counts below are matched recognition sites across all disclosed SLP records. Req
 | fap-dipeptidyl | 3 |
 | fap-endo-gp | 3 |
 | enpep-acidic | 1 |
-
-![Extracellular and plasma peptidase motif matches](figures/slp_peptidase_motifs_extracellular.png)
-
-![Intracellular and ER peptidase motif matches](figures/slp_peptidase_motifs_intracellular_er.png)
 
 ## Interpretation boundary
 

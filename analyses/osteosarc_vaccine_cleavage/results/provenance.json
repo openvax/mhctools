@@ -1,9 +1,9 @@
 {
   "analysis": {
-    "analysis_script_sha256": "cc3abec0ee4729ef915c6c4fd29778e14ea2da7c1da1611bd76d8aa1afc246d4",
+    "analysis_script_sha256": "37357fe5aab148c93a12fd5ddf2463ece20798127a4f1c65c65e5a3ded8ffbfe",
     "display_threshold": 0.5,
-    "mhctools_commit": "7dac7208faa5ab7a0d60eadc969b9c236aaed6fa",
-    "mhctools_version": "3.44.25",
+    "mhctools_commit": "5f200782bbfd1ef5ea2b264ef01433d1841e8888",
+    "mhctools_version": "3.44.27",
     "sequence_uploads": "none; all inference ran locally",
     "termini_assumption": "free N and C termini"
   },
