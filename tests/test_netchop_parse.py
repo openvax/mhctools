@@ -138,6 +138,9 @@ class TestNetChopInit:
         command = mock_run.call_args.args[0]
         assert command[0] == str(executable)
         assert command[1:3] == ["-v", "0"]
+        environment = mock_run.call_args.kwargs["env"]
+        assert environment["NETCHOP"] == str(netchop_dir.resolve())
+        assert "mhctools_netchop_" in environment["TMPDIR"]
 
     def test_container_requires_installation(self):
         with patch.dict("os.environ", {}, clear=True):

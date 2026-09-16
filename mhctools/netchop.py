@@ -191,16 +191,22 @@ class NetChop(ProteasomePredictor):
                 for index, sequence in enumerate(sequences)), encoding="ascii")
             if self.execution == "container":
                 command = self._container_command(Path(tmp), fasta_path.name)
+                environment = None
             else:
                 command = [self.program_name]
                 if self.model_variant is not None:
                     command.extend(("-v", str(self.model_variant)))
                 command.append(str(fasta_path))
+                environment = os.environ.copy()
+                if self.netchop_dir:
+                    environment["NETCHOP"] = str(self.netchop_dir)
+                environment["TMPDIR"] = tmp
             try:
                 result = subprocess.run(
                     command,
                     capture_output=True,
                     timeout=NETCHOP_TIMEOUT_SECONDS,
+                    env=environment,
                 )
             except subprocess.TimeoutExpired:
                 raise RuntimeError(
