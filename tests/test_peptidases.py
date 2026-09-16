@@ -117,6 +117,21 @@ def test_cli_json_preserves_scores_chemistry_and_provenance(capsys, tmp_path):
     assert result["sites"] == []
 
 
+def test_cli_output_write_failure_has_no_traceback(capsys, tmp_path):
+    output = tmp_path / "missing" / "evidence.json"
+    with pytest.raises(SystemExit) as raised:
+        main([
+            "cleavage", "--sequence", "HAE", "--model", "dpp4-qpisa",
+            "--out", str(output),
+        ])
+
+    assert raised.value.code == 2
+    stderr = capsys.readouterr().err
+    assert str(output) in stderr
+    assert "Traceback" not in stderr
+    assert not output.exists()
+
+
 def test_cli_lists_optional_models_as_table_without_loading_assets(
         capsys, monkeypatch):
     monkeypatch.setenv("ERAMER_HOME", "/does-not-exist")

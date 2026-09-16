@@ -10,6 +10,8 @@ from argparse import ArgumentParser
 
 import pandas as pd
 
+from .errors import CLI_ERROR_TYPES, cli_error_message
+
 
 def main(args_list=None):
     parser = ArgumentParser(
@@ -46,8 +48,8 @@ def main(args_list=None):
         )
         dataframe = pd.read_csv(args.input, keep_default_na=False)
         output = predictor.annotate_dataframe(dataframe)
-    except (FileNotFoundError, RuntimeError, TypeError, ValueError) as error:
-        parser.error(str(error))
-    output.to_csv(args.out, index=False)
-    print("Wrote: %s (%d rows, %d columns)" % (
-        args.out, len(output), len(output.columns)))
+        output.to_csv(args.out, index=False)
+        print("Wrote: %s (%d rows, %d columns)" % (
+            args.out, len(output), len(output.columns)))
+    except CLI_ERROR_TYPES as error:
+        parser.error(cli_error_message(error))

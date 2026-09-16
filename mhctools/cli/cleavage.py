@@ -8,6 +8,8 @@ from pathlib import Path
 from mhctools.cleavage import CleavageInput
 from mhctools.peptidases import cleavage_models, predict_cleavage
 
+from .errors import CLI_ERROR_TYPES, cli_error_message
+
 
 def _format_models(models):
     """Render the model catalog as a compact, aligned table."""
@@ -139,8 +141,12 @@ def main(argv=None):
             # than a raw traceback, regardless of the exception type raised
             # by that asset's own loader.
             parser.error(str(error))
-    output = json.dumps(_round_floats(result), indent=2, allow_nan=False) + "\n"
-    if args.out:
-        Path(args.out).write_text(output, encoding="utf-8")
-    else:
-        print(output, end="")
+    try:
+        output = json.dumps(
+            _round_floats(result), indent=2, allow_nan=False) + "\n"
+        if args.out:
+            Path(args.out).write_text(output, encoding="utf-8")
+        else:
+            print(output, end="")
+    except CLI_ERROR_TYPES as error:
+        parser.error(cli_error_message(error))
