@@ -16,7 +16,7 @@ from .common import eq_
 from numpy import testing
 
 from mhcflurry import Class1AffinityPredictor
-from mhctools import MHCflurry, MHCflurry_Affinity
+from mhctools import MHCflurry, MHCflurry_Affinity, mhcflurry_composite_version
 from mhctools.pred import Kind
 
 DEFAULT_ALLELE = "HLA-A*02:01"
@@ -62,12 +62,14 @@ def test_mhcflurry_presentation_predict():
         assert r.affinity.score >= 0
         assert r.affinity.allele == DEFAULT_ALLELE
         assert r.affinity.predictor_name == "mhcflurry"
+        assert r.affinity.predictor_version == mhcflurry_composite_version()
 
         # Check presentation prediction
         assert r.presentation.kind == Kind.pMHC_presentation
         assert r.presentation.score >= 0
         assert r.presentation.allele == DEFAULT_ALLELE
         assert r.presentation.predictor_name == "mhcflurry"
+        assert r.presentation.predictor_version == predictor.predictor_version
 
         # Check that percentile ranks are present
         assert r.affinity.percentile_rank is not None

@@ -206,7 +206,9 @@ class BasePredictor(object):
         peptide_list, _, _ = _check_flank_inputs(
             peptides, n_flanks, c_flanks)
         collection = self.predict_peptides(peptide_list)
-        return collection.to_peptide_preds(kind=self._default_pred_kind())
+        return collection.to_peptide_preds(
+            kind=self._default_pred_kind(),
+            predictor_version=getattr(self, "predictor_version", None))
 
     def predict_with_flanks(self, peptides, n_flanks, c_flanks):
         """

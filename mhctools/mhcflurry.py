@@ -23,7 +23,7 @@ from .unsupported_allele import UnsupportedAllele
 
 logger = logging.getLogger(__name__)
 
-# Module-level cache for loaded models. Keyed by (kind, normalized_path).
+# Loaded model and inferred provenance, keyed by (kind, resolved models path).
 _model_cache = {}
 _PERCENT_RANK_SUPPORT_UNKNOWN = object()
 
@@ -39,6 +39,102 @@ def _normalize_models_path(models_path):
     if models_path is None:
         return None
     return os.path.realpath(os.path.expanduser(models_path))
+
+
+def mhcflurry_composite_version(models_path=None, *, model_kind="presentation"):
+    """Identify an official MHCflurry model bundle and its Python package.
+
+    Parameters
+    ----------
+    models_path : str or path-like, optional
+        Directory actually loaded. If absent, use the configured default
+        directory for ``model_kind``, including environment overrides.
+    model_kind : {"presentation", "affinity"}
+        Which official bundle to compare with the selected directory.
+
+    Returns
+    -------
+    str
+        Package and release identity, such as ``2.2.1+release-2.2.0``.
+        This identifies the configured official release, not a content hash
+        or verification that its files have never been modified.
+
+    Raises
+    ------
+    RuntimeError
+        If the package/release is unknown or the selected path is custom.
+        Custom and injected models need caller-supplied provenance; labeling
+        them with the active default release would describe different weights.
+    ValueError
+        If ``model_kind`` is unsupported.
+    """
+    if model_kind not in ("presentation", "affinity"):
+        raise ValueError("model_kind must be 'presentation' or 'affinity'")
+    try:
+        import mhcflurry
+        from mhcflurry import downloads
+    except ImportError as error:
+        raise RuntimeError(
+            "mhcflurry is not installed; supply predictor_version explicitly."
+        ) from error
+    package_version = getattr(mhcflurry, "__version__", None)
+    if not package_version:
+        raise RuntimeError("mhcflurry exposes no __version__; supply predictor_version explicitly.")
+    try:
+        release = downloads.get_current_release()
+    except Exception as error:
+        raise RuntimeError(
+            "Could not read mhcflurry's current model release; "
+            "supply predictor_version explicitly."
+        ) from error
+    if not release:
+        raise RuntimeError(
+            "mhcflurry has no active model release. Run mhcflurry-downloads fetch "
+            "or supply predictor_version explicitly for custom models.")
+    if model_kind == "presentation":
+        official_path = downloads.get_path(
+            "models_class1_presentation", "models", test_exists=False)
+        default_path = downloads.get_default_class1_presentation_models_dir
+    else:
+        official_path = downloads.get_path(
+            "models_class1_pan", "models.combined", test_exists=False)
+        default_path = downloads.get_default_class1_models_dir
+    selected_path = default_path(test_exists=False) if models_path is None else models_path
+    if _normalize_models_path(selected_path) != _normalize_models_path(official_path):
+        raise RuntimeError(
+            "Cannot infer provenance for custom MHCflurry models at %r; "
+            "supply predictor_version explicitly." % str(selected_path))
+    return "%s+release-%s" % (package_version, release)
+
+
+def _load_predictor(model_kind, predictor, models_path, predictor_version):
+    """Keep loaded weights and the provenance captured at load time together."""
+    if predictor_version is not None and (
+            not isinstance(predictor_version, str) or not predictor_version.strip()):
+        raise ValueError("predictor_version must be a non-empty string or None")
+    if predictor is not None:
+        return predictor, predictor_version
+
+    from mhcflurry import Class1AffinityPredictor, Class1PresentationPredictor, downloads
+    if model_kind == "presentation":
+        loader = Class1PresentationPredictor.load
+        default_path = downloads.get_default_class1_presentation_models_dir
+    else:
+        loader = Class1AffinityPredictor.load
+        default_path = downloads.get_default_class1_models_dir
+    path = _normalize_models_path(default_path() if models_path is None else models_path)
+    cache_key = (model_kind, path)
+    if cache_key not in _model_cache:
+        try:
+            inferred_version = mhcflurry_composite_version(path, model_kind=model_kind)
+        except RuntimeError:
+            # Custom/default-overridden weights remain usable but unversioned.
+            # A cache consumer must require the caller to identify those weights.
+            inferred_version = None
+        logger.info("Loading MHCflurry %s models from %s", model_kind, path)
+        _model_cache[cache_key] = (loader(path), inferred_version)
+    loaded, inferred_version = _model_cache[cache_key]
+    return loaded, predictor_version if predictor_version is not None else inferred_version
 
 
 def _affinity_percent_rank_calibrated_allele(affinity_predictor, allele):
@@ -132,7 +228,8 @@ class MHCflurry(BasePredictor):
             predictor=None,
             models_path=None,
             include_affinity_percentile_ranks=True,
-            presentation_allele_mode="auto"):
+            presentation_allele_mode="auto",
+            predictor_version=None):
         """
         Parameters
         -----------
@@ -145,6 +242,11 @@ class MHCflurry(BasePredictor):
 
         models_path : string
             Models dir to use if predictor argument is None
+
+        predictor_version : str, optional
+            Explicit model provenance, required to cache custom or injected
+            weights. Official default models infer package plus model release
+            at load time. Custom/injected weights otherwise remain unversioned.
 
         include_affinity_percentile_ranks : bool
             Whether to request affinity percentile ranks. Enabled by default.
@@ -161,27 +263,14 @@ class MHCflurry(BasePredictor):
             ``"auto"`` uses haplotype mode for up to six alleles and
             per-allele mode for larger allele panels.
         """
-        from mhcflurry import Class1PresentationPredictor
         BasePredictor.__init__(
             self,
             alleles=alleles,
             default_peptide_lengths=default_peptide_lengths,
             min_peptide_length=8,
             max_peptide_length=15)
-        if predictor:
-            self.predictor = predictor
-        else:
-            cache_key = ("presentation", _normalize_models_path(models_path))
-            if cache_key not in _model_cache:
-                if models_path:
-                    logger.info(
-                        "Loading MHCflurry models from %s", models_path)
-                    _model_cache[cache_key] = \
-                        Class1PresentationPredictor.load(models_path)
-                else:
-                    _model_cache[cache_key] = \
-                        Class1PresentationPredictor.load()
-            self.predictor = _model_cache[cache_key]
+        self.predictor, self.predictor_version = _load_predictor(
+            "presentation", predictor, models_path, predictor_version)
 
         self.include_affinity_percentile_ranks = \
             include_affinity_percentile_ranks
@@ -383,6 +472,7 @@ class MHCflurry(BasePredictor):
                 value=affinity_nM,
                 percentile_rank=affinity_pct,
                 predictor_name="mhcflurry",
+                predictor_version=self.predictor_version,
             ))
 
         for row_index, pep in enumerate(peptide_list):
@@ -405,6 +495,7 @@ class MHCflurry(BasePredictor):
                     c_flank=c_flank,
                     percentile_rank=pres_pct,
                     predictor_name="mhcflurry",
+                    predictor_version=self.predictor_version,
                 ))
 
             # Surface MHCflurry's antigen-processing (cleavage) score, which
@@ -420,6 +511,7 @@ class MHCflurry(BasePredictor):
                     n_flank=n_flank,
                     c_flank=c_flank,
                     predictor_name="mhcflurry",
+                    predictor_version=self.predictor_version,
                 ))
 
         return [PeptideResult(preds=tuple(preds)) for preds in groups]
@@ -476,7 +568,8 @@ class MHCflurry_Affinity(BasePredictor):
             default_peptide_lengths=[9],
             predictor=None,
             models_path=None,
-            include_affinity_percentile_ranks=True):
+            include_affinity_percentile_ranks=True,
+            predictor_version=None):
         """
         Parameters
         -----------
@@ -490,33 +583,25 @@ class MHCflurry_Affinity(BasePredictor):
         models_path : string
             Models dir to use if predictor argument is None
 
+        predictor_version : str, optional
+            Explicit model provenance. Official default models infer package
+            plus model release at load time. Custom/injected weights otherwise
+            remain unversioned and require a label before caching predictions.
+
         include_affinity_percentile_ranks : bool
             Whether to request affinity percentile ranks. Enabled by default.
             If enabled, requested alleles must have MHCflurry affinity
             percentile-rank calibration, either directly or through an allele
             with the same pseudosequence.
         """
-        from mhcflurry import Class1AffinityPredictor
         BasePredictor.__init__(
             self,
             alleles=alleles,
             default_peptide_lengths=default_peptide_lengths,
             min_peptide_length=8,
             max_peptide_length=15)
-        if predictor:
-            self.predictor = predictor
-        else:
-            cache_key = ("affinity", _normalize_models_path(models_path))
-            if cache_key not in _model_cache:
-                if models_path:
-                    logger.info(
-                        "Loading MHCflurry models from %s", models_path)
-                    _model_cache[cache_key] = \
-                        Class1AffinityPredictor.load(models_path)
-                else:
-                    _model_cache[cache_key] = \
-                        Class1AffinityPredictor.load()
-            self.predictor = _model_cache[cache_key]
+        self.predictor, self.predictor_version = _load_predictor(
+            "affinity", predictor, models_path, predictor_version)
 
         self.include_affinity_percentile_ranks = \
             include_affinity_percentile_ranks

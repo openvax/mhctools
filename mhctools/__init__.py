@@ -106,6 +106,7 @@ _LAZY_IMPORTS = {
     "CapHLA_EL": (".caphla", "CapHLA_EL"),
     "MHCflurry": (".mhcflurry", "MHCflurry"),
     "MHCflurry_Affinity": (".mhcflurry", "MHCflurry_Affinity"),
+    "mhcflurry_composite_version": (".mhcflurry", "mhcflurry_composite_version"),
     "MixTCRpred": (".mixtcrpred", "MixTCRpred"),
     "MixTCRpredModel": (".mixtcrpred", "MixTCRpredModel"),
     "NetTCR": (".nettcr", "NetTCR"),
@@ -125,9 +126,10 @@ def __getattr__(name):
     raise AttributeError(
         "module %r has no attribute %r" % (__name__, name))
 
-__version__ = "3.44.24"
+__version__ = "3.44.25"
 
 __all__ = [
+    "mhcflurry_composite_version",
     "Prediction",
     "MeasurementContext",
     "PeptideContext",
