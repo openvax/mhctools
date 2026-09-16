@@ -16,6 +16,7 @@ import hashlib
 import importlib.metadata
 import json
 import math
+import os
 from pathlib import Path
 import platform
 import subprocess
@@ -24,6 +25,7 @@ from typing import Any, Iterable
 
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
+from matplotlib.patches import FancyBboxPatch, Rectangle
 import numpy as np
 import pandas as pd
 from scipy.cluster.hierarchy import leaves_list, linkage
@@ -43,6 +45,25 @@ from mhctools.netchop import NetChop
 CANONICAL_AA = frozenset("ACDEFGHIKLMNPQRSTVWY")
 SLP_VACCINES = frozenset(("JLF V1", "JLF V2", "JLF V3", "CeGaT"))
 THRESHOLD = 0.5
+MHC_I_DISPLAY_RANK = 2.0
+MHC_II_DISPLAY_RANK = 5.0
+MHC_I_ALLELES = (
+    "HLA-A*01:01",
+    "HLA-B*08:01",
+    "HLA-B*27:05",
+    "HLA-C*01:02",
+    "HLA-C*07:01",
+)
+# These are the class-II combinations already named in the osteosarc source's
+# candidate-prediction fields. The HLA table itself is not phased, so do not
+# manufacture additional alpha/beta pairings from it.
+MHC_II_ALLELES = (
+    "HLA-DPA1*01:03-DPB1*04:01",
+    "HLA-DQA1*04:01-DQB1*04:02",
+    "HLA-DQA1*05:01-DQB1*02:01",
+    "HLA-DRB1*03:01",
+    "HLA-DRB1*08:01",
+)
 NETCHOP_IMAGE = "i386/debian@sha256:75efd55b326373cf69989912388c0d50c5390638af7378d2fedc3aeb9d100e46"
 EXTRACELLULAR_MOTIF_MODELS = [
     "ace-dipeptidyl",
@@ -72,6 +93,7 @@ QUANTITATIVE_SITE_MODELS = [
     "netcleave-i-hla",
     "netcleave-ii-hla",
 ]
+MHC_I_CLEAVAGE_MODELS = QUANTITATIVE_SITE_MODELS[:5]
 MODEL_DISPLAY_NAMES = {
     "netchop-3.1-20s-3.0": "NetChop 20S",
     "pepsickle-in-vivo-human-only": "Pepsickle human",
@@ -173,6 +195,7 @@ def extract_inventory(
                     "is_mrna_minimal_epitope": bool(
                         peptide.get("is_mrna_minimal_epitope")
                     ),
+                    "minimal_epitope": variant.get("minimal_epitope"),
                     "minimal_epitope_offset": peptide.get("minimal_epitope_offset"),
                     "source_url": f"https://osteosarc.com/variant/{variant['id']}/",
                 }
@@ -229,6 +252,330 @@ def slp_records(inventory_df: pd.DataFrame) -> pd.DataFrame:
     return inventory_df.loc[
         inventory_df["sequence_type"] == "synthetic_long_peptide"
     ].copy()
+
+
+def peptide_windows(sequence: str, lengths: Iterable[int]) -> list[tuple[int, int, str]]:
+    """Return 1-based inclusive peptide windows for the requested lengths."""
+    return [
+        (start + 1, start + length, sequence[start : start + length])
+        for length in lengths
+        if length <= len(sequence)
+        for start in range(len(sequence) - length + 1)
+    ]
+
+
+def _minimal_epitope_bounds(record: pd.Series) -> tuple[int, int] | None:
+    epitope = record.get("minimal_epitope")
+    offset = record.get("minimal_epitope_offset")
+    if not epitope or pd.isna(offset):
+        return None
+    start = int(offset) + 1
+    end = start + len(epitope) - 1
+    if record["sequence"][start - 1 : end] != epitope:
+        raise ValueError(
+            f"Minimal epitope offset does not match {record['sequence_record_id']}: "
+            f"expected {epitope!r} at {start}-{end}"
+        )
+    return start, end
+
+
+def _window_overlaps_minimal(record: pd.Series, start: int, end: int) -> bool:
+    bounds = _minimal_epitope_bounds(record)
+    return bool(bounds and start <= bounds[1] and end >= bounds[0])
+
+
+def mhcflurry_ligand_rows(records: pd.DataFrame) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Predict class-I ligand windows locally with MHCflurry presentation."""
+    from mhcflurry import Class1PresentationPredictor
+    from mhcflurry.downloads import (
+        get_current_release,
+        get_default_class1_models_dir,
+    )
+
+    predictor = Class1PresentationPredictor.load()
+    metadata: list[tuple[pd.Series, int, int]] = []
+    peptides: list[str] = []
+    n_flanks: list[str] = []
+    c_flanks: list[str] = []
+    for _, record in records.iterrows():
+        sequence = record["sequence"]
+        for start, end, peptide in peptide_windows(sequence, range(8, 12)):
+            metadata.append((record, start, end))
+            peptides.append(peptide)
+            n_flanks.append(sequence[max(0, start - 16) : start - 1])
+            c_flanks.append(sequence[end : min(len(sequence), end + 15)])
+
+    sample_to_allele = {f"class_i_{i}": [allele] for i, allele in enumerate(MHC_I_ALLELES)}
+    frame = predictor.predict(
+        peptides=peptides,
+        alleles=sample_to_allele,
+        n_flanks=n_flanks,
+        c_flanks=c_flanks,
+        include_affinity_percentile=True,
+        verbose=0,
+    )
+    rows: list[dict[str, Any]] = []
+    for result in frame.itertuples(index=False):
+        record, start, end = metadata[int(result.peptide_num)]
+        rank = float(result.presentation_percentile)
+        rows.append(
+            {
+                "sequence_record_id": record["sequence_record_id"],
+                "gene": record["gene"],
+                "mhc_class": "I",
+                "predictor": "MHCflurry",
+                "model_version": f"models_class1_pan/{get_current_release()}",
+                "allele": result.best_allele,
+                "peptide": result.peptide,
+                "start": start,
+                "end": end,
+                "length": end - start + 1,
+                "score": float(result.presentation_score),
+                "percentile_rank": rank,
+                "rank_threshold": MHC_I_DISPLAY_RANK,
+                "display_candidate": rank <= MHC_I_DISPLAY_RANK,
+                "affinity_nM": float(result.affinity),
+                "affinity_percentile": float(result.affinity_percentile),
+                "processing_score": float(result.processing_score),
+                "binding_core": "",
+                "n_flank": result.n_flank,
+                "c_flank": result.c_flank,
+                "overlaps_disclosed_minimal_epitope": _window_overlaps_minimal(
+                    record, start, end
+                ),
+            }
+        )
+    return rows, {
+        "package_version": importlib.metadata.version("mhcflurry"),
+        "model_release": get_current_release(),
+        "model_provenance": predictor.provenance_string,
+        "models_path": str(get_default_class1_models_dir()),
+    }
+
+
+def _parse_netmhciipan_rows(stdout: str) -> list[dict[str, Any]]:
+    """Parse the stable tabular fields needed from NetMHCIIpan 4.3 output."""
+    rows: list[dict[str, Any]] = []
+    for line in stdout.splitlines():
+        fields = line.split()
+        if len(fields) < 11 or not fields[0].isdigit():
+            continue
+        try:
+            score = float(fields[8])
+            rank = float(fields[9])
+        except ValueError:
+            continue
+        rows.append(
+            {
+                "allele": fields[1],
+                "peptide": fields[2],
+                "binding_core": fields[4],
+                "score": score,
+                "percentile_rank": rank,
+            }
+        )
+    if not rows:
+        tail = "\n".join(stdout.splitlines()[-20:])
+        raise ValueError(f"No NetMHCIIpan 4.3 predictions parsed. Output tail:\n{tail}")
+    return rows
+
+
+def netmhciipan_cli_allele(allele: str) -> str:
+    """Convert normalized human class-II notation to NetMHCIIpan CLI notation."""
+    value = allele.removeprefix("HLA-")
+    if value.startswith("DRB"):
+        return value.replace("*", "_").replace(":", "")
+    return "HLA-" + value.replace("*", "").replace(":", "")
+
+
+def netmhciipan_ligand_rows(
+    records: pd.DataFrame, netmhciipan_path: Path
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Predict class-II ligand windows locally with NetMHCIIpan 4.3 EL mode."""
+    occurrences: dict[str, list[tuple[pd.Series, int, int]]] = {}
+    for _, record in records.iterrows():
+        for start, end, peptide in peptide_windows(record["sequence"], range(13, 22)):
+            occurrences.setdefault(peptide, []).append((record, start, end))
+
+    resolved = netmhciipan_path.resolve()
+    installation_root = resolved.parent
+    bundle_root = installation_root.parent
+    environment = os.environ.copy()
+    environment["NETMHC_BUNDLE_HOME"] = str(bundle_root)
+    environment["NETMHC_BUNDLE_TMPDIR"] = tempfile.gettempdir()
+    cli_to_normalized = {
+        netmhciipan_cli_allele(allele): allele for allele in MHC_II_ALLELES
+    }
+    with tempfile.NamedTemporaryFile("w", suffix=".txt", encoding="ascii") as handle:
+        handle.write("\n".join(occurrences))
+        handle.flush()
+        completed = subprocess.run(
+            [
+                str(netmhciipan_path),
+                "-f",
+                handle.name,
+                "-inptype",
+                "1",
+                "-a",
+                ",".join(cli_to_normalized),
+                "-BA",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+            env=environment,
+        )
+    # The tcsh launcher writes its platform line to stdout while some portable
+    # builds emit the predictor table on stderr. Preserve and parse both.
+    predictor_output = completed.stdout + "\n" + completed.stderr
+    parsed = _parse_netmhciipan_rows(predictor_output)
+    version_line = next(
+        (line.lstrip("# ") for line in predictor_output.splitlines() if "version 4.3" in line),
+        "NetMHCIIpan version 4.3",
+    )
+    rows: list[dict[str, Any]] = []
+    for result in parsed:
+        rank = result["percentile_rank"]
+        for record, start, end in occurrences[result["peptide"]]:
+            rows.append(
+                {
+                    "sequence_record_id": record["sequence_record_id"],
+                    "gene": record["gene"],
+                    "mhc_class": "II",
+                    "predictor": "NetMHCIIpan",
+                    "model_version": version_line,
+                    "allele": cli_to_normalized[result["allele"]],
+                    "peptide": result["peptide"],
+                    "start": start,
+                    "end": end,
+                    "length": end - start + 1,
+                    "score": result["score"],
+                    "percentile_rank": rank,
+                    "rank_threshold": MHC_II_DISPLAY_RANK,
+                    "display_candidate": rank <= MHC_II_DISPLAY_RANK,
+                    "affinity_nM": np.nan,
+                    "affinity_percentile": np.nan,
+                    "processing_score": np.nan,
+                    "binding_core": result["binding_core"],
+                    "n_flank": "",
+                    "c_flank": "",
+                    "overlaps_disclosed_minimal_epitope": _window_overlaps_minimal(
+                        record, start, end
+                    ),
+                }
+            )
+    return rows, {
+        "model_version": version_line,
+        "program_path": str(resolved),
+        "installation_root": str(installation_root),
+    }
+
+
+def annotate_ligand_cleavage_exposure(
+    ligand_df: pd.DataFrame, quantitative_df: pd.DataFrame
+) -> pd.DataFrame:
+    """Annotate ligand spans with bond-level evidence; never aggregate to probability."""
+    output = ligand_df.copy()
+    lookup: dict[tuple[str, str, int], tuple[int, int]] = {}
+    for (record_id, model, bond), group in quantitative_df.loc[
+        quantitative_df["assessable"]
+    ].groupby(["sequence_record_id", "model", "bond"]):
+        lookup[(record_id, model, int(bond))] = (
+            int((group["score"] >= THRESHOLD).sum()),
+            len(group),
+        )
+
+    internal_values: list[str] = []
+    n_values: list[str] = []
+    c_values: list[str] = []
+    for row in output.itertuples(index=False):
+        models = MHC_I_CLEAVAGE_MODELS if row.mhc_class == "I" else ["netcleave-ii-hla"]
+
+        def support(bond: int) -> tuple[int, int]:
+            values = [lookup.get((row.sequence_record_id, model, bond)) for model in models]
+            values = [value for value in values if value is not None]
+            return sum(value[0] for value in values), sum(value[1] for value in values)
+
+        internal: list[str] = []
+        for bond in range(int(row.start), int(row.end)):
+            hits, assessed = support(bond)
+            required = 3 if row.mhc_class == "I" else 1
+            if assessed and hits >= required:
+                internal.append(f"{bond}({hits}/{assessed})")
+        internal_values.append(";".join(internal))
+        n_hits, n_assessed = support(int(row.start) - 1)
+        c_hits, c_assessed = support(int(row.end))
+        n_values.append("" if not n_assessed else f"{n_hits}/{n_assessed}")
+        c_values.append("" if not c_assessed else f"{c_hits}/{c_assessed}")
+    output["internal_candidate_cleavage_bonds"] = internal_values
+    output["n_boundary_support"] = n_values
+    output["c_boundary_support"] = c_values
+    return output
+
+
+def vulnerable_bond_table(
+    records: pd.DataFrame, quantitative_df: pd.DataFrame, motifs_df: pd.DataFrame
+) -> pd.DataFrame:
+    """Return context-separated multi-model/rule support without probability claims."""
+    record_lookup = records.set_index("sequence_record_id")
+    rows: list[dict[str, Any]] = []
+
+    def append_row(record_id: str, bond: int, context: str, models: list[str], rule: str) -> None:
+        record = record_lookup.loc[record_id]
+        bounds = _minimal_epitope_bounds(record)
+        rows.append(
+            {
+                "sequence_record_id": record_id,
+                "gene": record["gene"],
+                "bond": bond,
+                "bond_label": f"{record['sequence'][bond - 1]}|{record['sequence'][bond]}",
+                "biological_context": context,
+                "support_count": len(models),
+                "supporting_models_or_rules": ";".join(sorted(models)),
+                "in_disclosed_minimal_epitope": bool(
+                    bounds and bounds[0] <= bond < bounds[1]
+                ),
+                "selection_rule": rule,
+                "interpretation": "support count only; not a cleavage probability",
+            }
+        )
+
+    proteasome = quantitative_df.loc[
+        quantitative_df["assessable"]
+        & quantitative_df["model"].isin(MHC_I_CLEAVAGE_MODELS)
+        & (quantitative_df["score"] >= THRESHOLD)
+    ]
+    for (record_id, bond), group in proteasome.groupby(["sequence_record_id", "bond"]):
+        models = sorted(group["model"].unique())
+        if len(models) >= 3:
+            append_row(
+                record_id,
+                int(bond),
+                "cytosolic/proteasome and MHC-I processing",
+                models,
+                ">=3 of 5 native 0-1 models at the 0.5 display threshold",
+            )
+
+    for context, models in (
+        ("extracellular/plasma recognition motifs", EXTRACELLULAR_MOTIF_MODELS),
+        ("cytosol/ER recognition motifs", INTRACELLULAR_ER_MOTIF_MODELS),
+    ):
+        matched = motifs_df.loc[
+            (motifs_df["status"] == "matched") & motifs_df["model"].isin(models)
+        ]
+        for (record_id, bond), group in matched.groupby(["sequence_record_id", "bond"]):
+            supporters = sorted(group["model"].unique())
+            if len(supporters) >= 2:
+                append_row(
+                    record_id,
+                    int(bond),
+                    context,
+                    supporters,
+                    ">=2 distinct curated recognition rules match the same bond",
+                )
+    return pd.DataFrame(rows).sort_values(
+        ["sequence_record_id", "bond", "biological_context"]
+    )
 
 
 def common_prediction_row(record: pd.Series, bond: int) -> dict[str, Any]:
@@ -330,7 +677,15 @@ def run_netchop_docker(
             str(model_variant),
             "/work/sequences.fasta",
         ]
-        completed = subprocess.run(command, capture_output=True, check=True)
+        completed = subprocess.run(command, capture_output=True, check=False)
+        if completed.returncode:
+            stdout = completed.stdout.decode(errors="replace")
+            stderr = completed.stderr.decode(errors="replace")
+            raise RuntimeError(
+                f"NetChop container exited {completed.returncode}.\n"
+                f"stdout tail:\n{stdout[-2000:]}\n"
+                f"stderr tail:\n{stderr[-2000:]}"
+            )
     parsed = NetChop.parse_netchop(completed.stdout)
     if len(parsed) != len(sequences):
         raise RuntimeError(
@@ -1125,6 +1480,7 @@ def plot_sequence_atlas_page(
     record: pd.Series,
     quantitative_df: pd.DataFrame,
     motifs_df: pd.DataFrame,
+    ligand_df: pd.DataFrame,
     pdf_pages: PdfPages,
     page_number: int,
     page_count: int,
@@ -1136,237 +1492,301 @@ def plot_sequence_atlas_page(
     start_bond, end_bond = segment
     bonds = list(range(start_bond, end_bond + 1))
     record_id = record["sequence_record_id"]
-    score_matrix = _score_matrix(
-        record_id, quantitative_df, QUANTITATIVE_SITE_MODELS, bonds
-    )
-    motif_models = EXTRACELLULAR_MOTIF_MODELS + INTRACELLULAR_ER_MOTIF_MODELS
-    motif_matrix = _motif_matrix(record_id, motifs_df, motif_models, bonds)
-
+    residue_start, residue_end = start_bond, end_bond + 1
     fig = plt.figure(figsize=(16, 10.5))
-    grid = fig.add_gridspec(
-        5,
-        1,
-        height_ratios=(0.72, 0.48, 2.05, 0.64, 4.45),
-        left=0.18,
-        right=0.94,
-        top=0.87,
-        bottom=0.105,
-        hspace=0.22,
-    )
-    x_positions = np.arange(len(bonds))
-    bond_labels = [
-        f"{bond}\n{sequence[bond - 1]}|{sequence[bond]}" for bond in bonds
-    ]
+    ax = fig.add_axes([0.115, 0.14, 0.84, 0.72])
+    ax.set_xlim(residue_start - 0.8, residue_end + 0.8)
+    ax.set_ylim(-6.9, 8.4)
+    ax.axis("off")
 
-    ax_sequence = fig.add_subplot(grid[0, 0])
-    ax_sequence.set_xlim(-0.5, len(bonds) - 0.5)
-    ax_sequence.set_ylim(0, 1)
-    ax_sequence.axis("off")
-    for x, bond in zip(x_positions, bonds):
-        ax_sequence.text(
-            x,
-            0.55,
-            f"{sequence[bond - 1]}|{sequence[bond]}",
+    # Disclosed intended minimal epitope: gold behind the actual residue letters.
+    minimal_bounds = _minimal_epitope_bounds(record)
+    if minimal_bounds:
+        left = max(residue_start, minimal_bounds[0])
+        right = min(residue_end, minimal_bounds[1])
+        if left <= right:
+            ax.add_patch(
+                Rectangle(
+                    (left - 0.47, -0.58),
+                    right - left + 0.94,
+                    1.16,
+                    facecolor="#fff0b3",
+                    edgecolor="#c78c00",
+                    linewidth=2.0,
+                    zorder=0,
+                )
+            )
+
+    # Large sequence strip. Bonds live at half-integer x coordinates.
+    for position in range(residue_start, residue_end + 1):
+        ax.text(
+            position,
+            0,
+            sequence[position - 1],
             ha="center",
             va="center",
             family="monospace",
-            fontsize=8,
+            fontsize=21,
             fontweight="bold",
+            color="#18222d",
+            zorder=5,
         )
-        ax_sequence.text(
-            x,
-            0.08,
-            str(bond),
-            ha="center",
-            va="bottom",
-            fontsize=6.5,
-            color="#555555",
-        )
-    ax_sequence.text(
-        -0.012,
-        0.55,
-        "bond",
-        transform=ax_sequence.transAxes,
-        ha="right",
-        va="center",
-        fontsize=8,
-        color="#555555",
-    )
+        if position == residue_start or position == residue_end or position % 5 == 0:
+            ax.text(
+                position,
+                -0.76,
+                str(position),
+                ha="center",
+                va="top",
+                fontsize=7,
+                color="#56616c",
+            )
 
-    ax_agreement = fig.add_subplot(grid[1, 0])
-    assessed = np.sum(~np.isnan(score_matrix), axis=0)
-    hits = np.sum(score_matrix >= THRESHOLD, axis=0)
-    agreement = np.divide(
-        hits,
-        assessed,
-        out=np.full_like(hits, np.nan, dtype=float),
-        where=assessed > 0,
-    )[None, :]
-    agreement_cmap = plt.get_cmap("Blues").copy()
-    agreement_cmap.set_bad("#d9d9d9")
-    ax_agreement.imshow(agreement, aspect="auto", vmin=0, vmax=1, cmap=agreement_cmap)
-    for column, (hit_count, assessed_count) in enumerate(zip(hits, assessed)):
-        label = "NA" if assessed_count == 0 else f"{hit_count}/{assessed_count}"
-        ax_agreement.text(
-            column,
-            0,
-            label,
-            ha="center",
+    score_subset = quantitative_df.loc[
+        (quantitative_df["sequence_record_id"] == record_id)
+        & quantitative_df["assessable"]
+        & quantitative_df["bond"].isin(bonds)
+    ]
+    model_colors = {
+        "netchop-3.1-20s-3.0": "#0072b2",
+        "pepsickle-in-vivo-human-only": "#009e73",
+        "pepsickle-in-vivo-all-mammal": "#56b4e9",
+        "netchop-3.1-cterm-3.0": "#d55e00",
+        "netcleave-i-hla": "#cc79a7",
+        "netcleave-ii-hla": "#6f4aa8",
+    }
+    model_y = {
+        model: 1.32 + index * 0.72 for index, model in enumerate(MHC_I_CLEAVAGE_MODELS)
+    }
+    model_y["netcleave-ii-hla"] = -1.55
+    for model in QUANTITATIVE_SITE_MODELS:
+        y = model_y[model]
+        direction = 1 if model in MHC_I_CLEAVAGE_MODELS else -1
+        ax.plot(
+            [residue_start - 0.45, residue_end + 0.45],
+            [y, y],
+            color="#c9d0d6",
+            linewidth=0.7,
+            zorder=0,
+        )
+        ax.plot(
+            [residue_start - 0.45, residue_end + 0.45],
+            [y + direction * 0.26, y + direction * 0.26],
+            color=model_colors[model],
+            linewidth=0.55,
+            alpha=0.35,
+            linestyle="--",
+            zorder=0,
+        )
+        ax.text(
+            residue_start - 0.68,
+            y,
+            MODEL_DISPLAY_NAMES[model],
+            ha="right",
             va="center",
-            fontsize=6.5,
-            color="white" if assessed_count and hit_count / assessed_count > 0.55 else "black",
+            fontsize=7.2,
+            color=model_colors[model],
         )
-    ax_agreement.set_yticks([0], labels=["models >= 0.5"])
-    ax_agreement.set_xticks([])
-    ax_agreement.tick_params(axis="y", labelsize=8)
-    _draw_grid(ax_agreement, 1, len(bonds))
+        model_rows = score_subset.loc[score_subset["model"] == model]
+        for result in model_rows.itertuples():
+            x = int(result.bond) + 0.5
+            value = float(result.score)
+            endpoint = y + direction * 0.52 * value
+            strong = value >= THRESHOLD
+            color = model_colors[model] if strong else "#b7bec5"
+            ax.plot([x, x], [y, endpoint], color=color, linewidth=2.2 if strong else 0.8)
+            ax.scatter(
+                [x],
+                [endpoint],
+                s=20 if strong else 7,
+                color=color,
+                edgecolor="white" if strong else "none",
+                linewidth=0.4,
+                zorder=3,
+            )
 
-    ax_scores = fig.add_subplot(grid[2, 0])
-    score_cmap = plt.get_cmap("magma").copy()
-    score_cmap.set_bad("#d9d9d9")
-    score_image = ax_scores.imshow(
-        np.ma.masked_invalid(score_matrix),
-        aspect="auto",
-        vmin=0,
-        vmax=1,
-        cmap=score_cmap,
-    )
-    ax_scores.set_yticks(
-        range(len(QUANTITATIVE_SITE_MODELS)),
-        labels=[MODEL_DISPLAY_NAMES[model] for model in QUANTITATIVE_SITE_MODELS],
-        fontsize=8,
-    )
-    ax_scores.set_xticks([])
-    ax_scores.set_ylabel("native 0-1 score", fontsize=8, labelpad=34)
-    for row in range(score_matrix.shape[0]):
-        for column in range(score_matrix.shape[1]):
-            value = score_matrix[row, column]
-            if np.isnan(value):
+    # A slash directly between letters marks conservative multi-model support.
+    class_i = score_subset.loc[score_subset["model"].isin(MHC_I_CLEAVAGE_MODELS)]
+    for bond, group in class_i.groupby("bond"):
+        assessed = group["model"].nunique()
+        hits = group.loc[group["score"] >= THRESHOLD, "model"].nunique()
+        if hits >= 3:
+            x = int(bond) + 0.5
+            ax.plot([x, x], [-0.47, 0.47], color="#b3212d", linewidth=3.0, zorder=6)
+            ax.text(
+                x,
+                0.7,
+                f"{hits}/{assessed}",
+                ha="center",
+                va="bottom",
+                fontsize=6.5,
+                fontweight="bold",
+                color="#8f1520",
+            )
+
+    # Native peptidase outputs without a validated common threshold.
+    terminal_y = {"dpp4-qpisa": -2.35, "eramer-step": -2.92}
+    terminal_label = {"dpp4-qpisa": "DPP4 native", "eramer-step": "ERAP1 / ERAMER"}
+    for model, y in terminal_y.items():
+        ax.text(
+            residue_start - 0.68,
+            y,
+            terminal_label[model],
+            ha="right",
+            va="center",
+            fontsize=7.2,
+            color="#8a5a00",
+        )
+        for result in score_subset.loc[score_subset["model"] == model].itertuples():
+            x = int(result.bond) + 0.5
+            ax.scatter([x], [y], marker="D", s=30, color="#f0a202", edgecolor="#6a4600")
+            ax.text(x + 0.08, y + 0.12, f"{float(result.score):.2g}", fontsize=5.5)
+
+    def short_allele(value: str) -> str:
+        value = value.replace("HLA-", "").replace("DRA1*01:01-", "")
+        if "-" in value and value.startswith(("DPA1", "DQA1")):
+            alpha, beta = value.split("-", 1)
+            locus = "DP" if alpha.startswith("DPA1") else "DQ"
+            return f"{locus}{alpha.split('*')[1]}/{beta.split('*')[1]}"
+        if value.startswith("DRB1*"):
+            return "DR" + value.split("*", 1)[1]
+        return value.replace("*", "")
+
+    def draw_ligands(mhc_class: str, lane_y: list[float], color: str) -> None:
+        candidates = ligand_df.loc[
+            (ligand_df["sequence_record_id"] == record_id)
+            & (ligand_df["mhc_class"] == mhc_class)
+            & ligand_df["display_candidate"]
+        ].copy()
+        if candidates.empty:
+            ax.text(
+                residue_start - 0.68,
+                lane_y[0],
+                f"MHC-{mhc_class}: none <= "
+                f"{MHC_I_DISPLAY_RANK if mhc_class == 'I' else MHC_II_DISPLAY_RANK:g}% rank",
+                ha="right",
+                va="center",
+                fontsize=7,
+                color="#68717a",
+            )
+            return
+        candidates["midpoint"] = (candidates["start"] + candidates["end"]) / 2
+        candidates = candidates.loc[
+            candidates["midpoint"].between(residue_start, residue_end)
+        ]
+        unique_candidates = (
+            candidates.sort_values("percentile_rank")
+            .drop_duplicates(["start", "end"], keep="first")
+        )
+        if unique_candidates.empty:
+            return
+        ax.text(
+            residue_start - 0.68,
+            sum(lane_y) / len(lane_y),
+            f"MHC-{mhc_class} candidate ligands",
+            ha="right",
+            va="center",
+            fontsize=7.2,
+            color=color,
+        )
+        lane_ends = [-math.inf] * len(lane_y)
+        drawn = 0
+        for candidate in unique_candidates.itertuples(index=False):
+            lane = next(
+                (
+                    i
+                    for i, lane_end in enumerate(lane_ends)
+                    if candidate.start > lane_end + 0.5
+                ),
+                None,
+            )
+            if lane is None:
                 continue
-            ax_scores.text(
-                column,
-                row,
-                f"{value:.2f}",
+            lane_ends[lane] = candidate.end
+            drawn += 1
+            y = lane_y[lane]
+            left = max(candidate.start - 0.44, residue_start - 0.55)
+            right = min(candidate.end + 0.44, residue_end + 0.55)
+            patch = FancyBboxPatch(
+                (left, y - 0.23),
+                right - left,
+                0.46,
+                boxstyle="round,pad=0.03,rounding_size=0.12",
+                facecolor=color,
+                edgecolor="#263238",
+                linewidth=0.65,
+                alpha=0.82,
+                zorder=1,
+            )
+            ax.add_patch(patch)
+            label = f"{short_allele(candidate.allele)} {candidate.percentile_rank:.2g}%"
+            ax.text(
+                (left + right) / 2,
+                y,
+                label,
                 ha="center",
                 va="center",
                 fontsize=5.8,
-                color="white" if value < 0.62 else "black",
+                color="white",
+                fontweight="bold",
+                clip_on=True,
+                zorder=2,
             )
-    _draw_grid(ax_scores, len(QUANTITATIVE_SITE_MODELS), len(bonds))
-    colorbar = fig.colorbar(score_image, ax=ax_scores, fraction=0.018, pad=0.012)
-    colorbar.ax.tick_params(labelsize=7)
-    colorbar.set_label("native model output", fontsize=8)
+            for item in str(candidate.internal_candidate_cleavage_bonds).split(";"):
+                if not item or item == "nan":
+                    continue
+                bond = int(item.split("(", 1)[0])
+                if residue_start <= bond <= residue_end:
+                    ax.plot(
+                        [bond + 0.5, bond + 0.5],
+                        [y - 0.26, y + 0.26],
+                        color="#b3212d",
+                        linewidth=1.8,
+                        zorder=4,
+                    )
+            if drawn >= 6:
+                break
+        omitted = len(unique_candidates) - drawn
+        if omitted > 0:
+            ax.text(
+                residue_end + 0.45,
+                max(lane_y) + 0.58,
+                f"+{omitted} overlapping span{'s' if omitted != 1 else ''}\nin CSV",
+                ha="right",
+                va="center",
+                fontsize=5.8,
+                color=color,
+            )
 
-    ax_terminal = fig.add_subplot(grid[3, 0])
-    terminal_models = ["dpp4-qpisa", "eramer-step"]
-    terminal_labels = ["DPP4 native score", "ERAP1 ERAMER score"]
-    ax_terminal.set_xlim(-0.5, len(bonds) - 0.5)
-    ax_terminal.set_ylim(1.5, -0.5)
-    ax_terminal.set_yticks(range(2), labels=terminal_labels, fontsize=8)
-    ax_terminal.set_xticks([])
-    ax_terminal.set_facecolor("#f7f7f7")
-    terminal_subset = quantitative_df.loc[
-        (quantitative_df["sequence_record_id"] == record_id)
-        & quantitative_df["model"].isin(terminal_models)
-        & quantitative_df["assessable"]
+    draw_ligands("I", [5.45, 6.05, 6.65], "#2878b5")
+    draw_ligands("II", [-3.75, -4.35, -4.95], "#5b3d91")
+
+    motif_abbreviation = {
+        model: MOTIF_DISPLAY_NAMES[model].split(" - ", 1)[0] for model in MOTIF_DISPLAY_NAMES
+    }
+    matched = motifs_df.loc[
+        (motifs_df["sequence_record_id"] == record_id)
+        & (motifs_df["status"] == "matched")
+        & motifs_df["bond"].isin(bonds)
     ]
-    for row in terminal_subset.itertuples():
-        bond = int(row.bond)
-        if bond not in bonds:
-            continue
-        y = terminal_models.index(row.model)
-        x = bonds.index(bond)
-        ax_terminal.scatter(
-            [x], [y], marker="D", s=80, color="#f0a202", edgecolor="#3b2a00", zorder=2
-        )
-        ax_terminal.text(
-            x + 0.35,
+    for models, y, label, color in (
+        (EXTRACELLULAR_MOTIF_MODELS, -5.75, "plasma / extracellular motifs", "#007b83"),
+        (INTRACELLULAR_ER_MOTIF_MODELS, -6.4, "cytosol / ER motifs", "#6a4492"),
+    ):
+        ax.text(
+            residue_start - 0.68,
             y,
-            f"{float(row.score):.3f}",
-            ha="left",
+            label,
+            ha="right",
             va="center",
-            fontsize=7,
-            color="#3b2a00",
+            fontsize=7.2,
+            color=color,
         )
-    ax_terminal.text(
-        1.003,
-        0.5,
-        "incompatible native scales; no cutoff",
-        transform=ax_terminal.transAxes,
-        ha="left",
-        va="center",
-        fontsize=7,
-        color="#555555",
-    )
-    _draw_grid(ax_terminal, 2, len(bonds))
-
-    ax_motifs = fig.add_subplot(grid[4, 0])
-    motif_colors = np.empty((*motif_matrix.shape, 4))
-    motif_colors[:] = (0.85, 0.85, 0.85, 1.0)
-    assessed_cells = ~np.isnan(motif_matrix)
-    motif_colors[assessed_cells] = (1.0, 1.0, 1.0, 1.0)
-    for row in range(len(motif_models)):
-        matched = motif_matrix[row] == 1
-        motif_colors[row, matched] = (
-            (0.0, 0.48, 0.52, 1.0)
-            if row < len(EXTRACELLULAR_MOTIF_MODELS)
-            else (0.43, 0.24, 0.62, 1.0)
-        )
-    ax_motifs.imshow(motif_colors, aspect="auto")
-    ax_motifs.set_yticks(
-        range(len(motif_models)),
-        labels=[MOTIF_DISPLAY_NAMES[model] for model in motif_models],
-        fontsize=7.2,
-    )
-    for label_index, label in enumerate(ax_motifs.get_yticklabels()):
-        label.set_color(
-            "#006d73"
-            if label_index < len(EXTRACELLULAR_MOTIF_MODELS)
-            else "#60408a"
-        )
-    ax_motifs.set_xticks(x_positions, labels=bond_labels, fontsize=6.5)
-    ax_motifs.tick_params(axis="x", pad=3)
-    ax_motifs.set_xlabel("cleavage after numbered left residue", fontsize=8)
-    ax_motifs.axhline(
-        len(EXTRACELLULAR_MOTIF_MODELS) - 0.5,
-        color="#333333",
-        linewidth=1.4,
-    )
-    for row in range(motif_matrix.shape[0]):
-        for column in range(motif_matrix.shape[1]):
-            if motif_matrix[row, column] == 1:
-                ax_motifs.text(
-                    column,
-                    row,
-                    "●",
-                    ha="center",
-                    va="center",
-                    fontsize=6,
-                    color="white",
-                )
-    _draw_grid(ax_motifs, len(motif_models), len(bonds))
-    ax_motifs.text(
-        1.003,
-        0.74,
-        "extracellular / plasma",
-        transform=ax_motifs.transAxes,
-        ha="left",
-        va="center",
-        fontsize=7,
-        color="#006d73",
-        rotation=90,
-    )
-    ax_motifs.text(
-        1.003,
-        0.22,
-        "cytosol / ER",
-        transform=ax_motifs.transAxes,
-        ha="left",
-        va="center",
-        fontsize=7,
-        color="#60408a",
-        rotation=90,
-    )
+        for bond, group in matched.loc[matched["model"].isin(models)].groupby("bond"):
+            names = "+".join(motif_abbreviation[model] for model in sorted(group["model"].unique()))
+            x = int(bond) + 0.5
+            ax.scatter([x], [y], marker="v", s=32, color=color, zorder=3)
+            ax.text(x, y - 0.16, names, rotation=45, ha="right", va="top", fontsize=5.4, color=color)
 
     vaccines = record["vaccines"].replace(";", ", ")
     continuation = (
@@ -1381,27 +1801,28 @@ def plot_sequence_atlas_page(
         fontweight="bold",
         y=0.965,
     )
-    displayed_sequence = sequence[start_bond - 1 : end_bond + 1]
-    sequence_prefix = (
-        f"residues {start_bond}-{end_bond + 1}: " if segment_count > 1 else ""
+    epitope_label = (
+        f"disclosed minimal epitope {record['minimal_epitope']} at "
+        f"{minimal_bounds[0]}-{minimal_bounds[1]}"
+        if minimal_bounds
+        else "minimal epitope/window not disclosed for this SLP"
     )
     fig.text(
         0.5,
         0.913,
-        sequence_prefix + " ".join(displayed_sequence),
+        epitope_label,
         ha="center",
         va="center",
-        family="monospace",
         fontsize=9,
-        color="#222222",
+        color="#8a6300" if minimal_bounds else "#626b73",
     )
     fig.text(
         0.5,
         0.047,
-        "Figure legend. Scores are model-native and not calibrated across rows; 0.5 is a display "
-        "threshold only. Concurrence is hits/assessable models, not a cleavage probability. Filled "
-        "motif cells are partial recognition-rule matches; white is assessed/no match and gray is "
-        "not assessed. Proteasome and ER evidence is conditional on intracellular access.",
+        "Reading the map. Tall stems are larger native outputs; the dotted half-height is the 0.5 display threshold. "
+        "Red slashes between residues require >=3 of the five class-I-processing models. Blue/purple bars are candidate MHC "
+        "ligands at <=2%/<=5% rank (best non-overlapping spans shown; all rows are in the CSV); red ticks inside them are internal candidate cuts before binding. These counts are "
+        "not probabilities, and ligand bars do not model binding occupancy, timing, or post-binding protection.",
         ha="center",
         va="center",
         fontsize=8,
@@ -1416,6 +1837,7 @@ def render_figures(
     records: pd.DataFrame,
     quantitative_df: pd.DataFrame,
     motifs_df: pd.DataFrame,
+    ligand_df: pd.DataFrame,
     summary_df: pd.DataFrame,
     source_date: str,
 ) -> pd.DataFrame:
@@ -1454,6 +1876,7 @@ def render_figures(
                     record,
                     quantitative_df,
                     motifs_df,
+                    ligand_df,
                     pdf_pages,
                     page_number,
                     page_count,
@@ -1502,8 +1925,73 @@ def correlations(quantitative_df: pd.DataFrame) -> pd.DataFrame:
     return wide.corr(method="spearman", min_periods=10)
 
 
+def validate_hla_inputs(hla_path: Path, variants_path: Path) -> None:
+    """Require every scored allele/combination to be disclosed by the source."""
+    hla = pd.read_csv(hla_path, sep="\t")
+    normal = hla.loc[hla["sample"] == "normal"]
+    disclosed = {f"HLA-{allele}" for allele in normal["allele"]}
+    for allele in MHC_I_ALLELES:
+        if allele not in disclosed:
+            raise ValueError(f"Class-I prediction allele not found in source HLA table: {allele}")
+
+    variants = json.loads(variants_path.read_text(encoding="utf-8"))
+    source_pairs = {
+        value
+        for variant in variants
+        for value in [
+            (variant.get("peptides") or {}).get("pvac25_best_allele")
+        ]
+        if value and ("DPA1" in value or "DQA1" in value or "DRB1" in value)
+    }
+    for allele in MHC_II_ALLELES:
+        source_name = allele.removeprefix("HLA-")
+        if source_name not in source_pairs:
+            raise ValueError(
+                "Class-II prediction combination is not named in source candidate fields: "
+                f"{allele}"
+            )
+
+
+def model_file_inventory(
+    mhcflurry_metadata: dict[str, Any], netmhciipan_metadata: dict[str, Any]
+) -> pd.DataFrame:
+    """Inventory every file under the two local MHC model installations."""
+    roots = {
+        "mhcflurry": Path(mhcflurry_metadata["models_path"]),
+        "netmhciipan": Path(netmhciipan_metadata["installation_root"]),
+    }
+    rows: list[dict[str, Any]] = []
+    for model, root in roots.items():
+        for path in sorted(root.rglob("*")):
+            if path.is_file():
+                rows.append(
+                    {
+                        "model": model,
+                        "relative_path": str(path.relative_to(root)),
+                        "size_bytes": path.stat().st_size,
+                        "sha256": sha256_file(path),
+                    }
+                )
+    return pd.DataFrame(rows)
+
+
+def inventory_digest(inventory_df: pd.DataFrame, model: str) -> str:
+    digest = hashlib.sha256()
+    subset = inventory_df.loc[inventory_df["model"] == model].sort_values(
+        "relative_path"
+    )
+    for row in subset.itertuples(index=False):
+        digest.update(f"{row.relative_path}\0{row.size_bytes}\0{row.sha256}\n".encode())
+    return digest.hexdigest()
+
+
 def model_hashes(
-    netchop_dir: Path, netcleave_dir: Path, eramer_dir: Path
+    netchop_dir: Path,
+    netcleave_dir: Path,
+    eramer_dir: Path,
+    mhcflurry_metadata: dict[str, Any],
+    netmhciipan_metadata: dict[str, Any],
+    mhc_inventory_df: pd.DataFrame,
 ) -> dict[str, Any]:
     import pepsickle
 
@@ -1554,6 +2042,18 @@ def model_hashes(
             "commit": git_value(eramer_dir, "%H"),
             "files": {"PWM.xlsx": sha256_file(eramer_dir / "PWM.xlsx")},
         },
+        "mhcflurry": {
+            **mhcflurry_metadata,
+            "inventory_file": "tables/mhc_model_file_inventory.csv",
+            "file_count": int((mhc_inventory_df["model"] == "mhcflurry").sum()),
+            "inventory_sha256": inventory_digest(mhc_inventory_df, "mhcflurry"),
+        },
+        "netmhciipan": {
+            **netmhciipan_metadata,
+            "inventory_file": "tables/mhc_model_file_inventory.csv",
+            "file_count": int((mhc_inventory_df["model"] == "netmhciipan").sum()),
+            "inventory_sha256": inventory_digest(mhc_inventory_df, "netmhciipan"),
+        },
     }
 
 
@@ -1564,6 +2064,8 @@ def write_report(
     missing_df: pd.DataFrame,
     conflicts_df: pd.DataFrame,
     summary_df: pd.DataFrame,
+    ligand_df: pd.DataFrame,
+    vulnerable_df: pd.DataFrame,
     source_commit: str,
     source_date: str,
 ) -> None:
@@ -1615,11 +2117,15 @@ def write_report(
         "Only SLP records are included in the cleavage tables and figures.",
         "The compact [SLP-by-predictor matrix](tables/slp_predictor_matrix.csv) and exact "
         "[bond-level scores](tables/slp_quantitative_bond_scores.csv) are provided separately.",
+        "The exact [MHC ligand-window predictions](tables/slp_mhc_ligand_predictions.csv), "
+        "[context-separated vulnerable bonds](tables/slp_vulnerable_bonds.csv), and full "
+        "[MHC model file inventory](tables/mhc_model_file_inventory.csv) are also retained.",
         "",
         "## Sequence cleavage atlas",
         "",
-        "The [complete PDF atlas](all-figures.pdf) places every quantitative score and motif-rule "
-        "match at its exact peptide bond. It contains one clustered overview followed by one page "
+        "The [complete PDF atlas](all-figures.pdf) makes each amino-acid sequence the central axis, "
+        "with quantitative cut stems, motif flags, disclosed minimal-epitope spans, and candidate "
+        "MHC ligand windows aligned to exact residues and bonds. It contains one clustered overview followed by one page "
         "per SLP (with the 80-aa outlier split across three continuation pages). "
         "[Atlas order and PDF page numbers](tables/atlas_sequence_order.csv) are provided for navigation.",
         "",
@@ -1628,6 +2134,26 @@ def write_report(
         "The overview clusters predictors using Spearman correlation of native scores at shared, "
         "assessable bonds. It clusters SLPs using standardized within-model fractions above the "
         "0.5 display threshold. Clustering is organizational only and is not an ensemble model.",
+        "",
+        "## MHC ligand and integrity overlays",
+        "",
+        f"Local inference produced {len(ligand_df):,} peptide/allele predictions. The atlas displays "
+        f"MHC-I windows at <= {MHC_I_DISPLAY_RANK:g}% MHCflurry presentation rank and MHC-II windows "
+        f"at <= {MHC_II_DISPLAY_RANK:g}% NetMHCIIpan EL rank. The table retains every prediction, "
+        "including those outside the display cutoffs.",
+        "MHC-I predictions use all five disclosed classical class-I alleles. MHC-II predictions use "
+        "only alpha/beta combinations already named by the osteosarc source; the unphased HLA table "
+        "is not used to invent additional combinations. All inference ran locally.",
+        "Red ticks inside a ligand bar are pre-binding internal cleavage evidence in the relevant "
+        "processing view. They do not establish that a bound pMHC complex will be cleaved or protected; "
+        "binding occupancy and timing are not modeled.",
+        "",
+        "## Conservative vulnerable bonds",
+        "",
+        f"The vulnerable-bond table contains {len(vulnerable_df)} context-separated rows. A proteasome/MHC-I "
+        "row requires at least three of five native 0-1 models at the 0.5 display threshold. A motif row "
+        "requires at least two distinct recognition rules in the same broad biological context. These are "
+        "support counts, not calibrated probabilities, and unlike contexts are never combined.",
         "",
         "## Quantitative model output distribution",
         "",
@@ -1707,6 +2233,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--netchop-dir", type=Path, required=True)
     parser.add_argument("--netcleave-dir", type=Path, required=True)
     parser.add_argument("--eramer-dir", type=Path, required=True)
+    parser.add_argument("--netmhciipan-path", type=Path, required=True)
+    parser.add_argument(
+        "--hla-table",
+        type=Path,
+        help="Defaults to scripts/dragen/tables/hla.tsv inside --osteosarc-repo",
+    )
     parser.add_argument(
         "--output-dir", type=Path, default=Path(__file__).resolve().parent / "results"
     )
@@ -1722,8 +2254,10 @@ def main() -> None:
     figures_dir.mkdir(parents=True, exist_ok=True)
 
     variants_path = args.osteosarc_repo / "src/data/variants.json"
+    hla_path = args.hla_table or args.osteosarc_repo / "scripts/dragen/tables/hla.tsv"
     source_commit = git_value(args.osteosarc_repo, "%H")
     source_date = git_value(args.osteosarc_repo, "%cI")
+    validate_hla_inputs(hla_path, variants_path)
     inventory_df, missing_df, conflicts_df = extract_inventory(variants_path)
     records = slp_records(inventory_df)
 
@@ -1773,6 +2307,19 @@ def main() -> None:
         tables_dir / "quantitative_model_spearman_correlations.csv"
     )
 
+    class_i_rows, mhcflurry_metadata = mhcflurry_ligand_rows(records)
+    class_ii_rows, netmhciipan_metadata = netmhciipan_ligand_rows(
+        records, args.netmhciipan_path
+    )
+    ligand_df = annotate_ligand_cleavage_exposure(
+        pd.DataFrame(class_i_rows + class_ii_rows), quantitative_df
+    )
+    ligand_df.to_csv(tables_dir / "slp_mhc_ligand_predictions.csv", index=False)
+    vulnerable_df = vulnerable_bond_table(records, quantitative_df, motifs_df)
+    vulnerable_df.to_csv(tables_dir / "slp_vulnerable_bonds.csv", index=False)
+    mhc_inventory_df = model_file_inventory(mhcflurry_metadata, netmhciipan_metadata)
+    mhc_inventory_df.to_csv(tables_dir / "mhc_model_file_inventory.csv", index=False)
+
     included_motifs = set(
         model_catalog_df.loc[
             model_catalog_df["included"]
@@ -1795,6 +2342,7 @@ def main() -> None:
         records,
         quantitative_df,
         motifs_df,
+        ligand_df,
         summary_df,
         source_date,
     )
@@ -1806,6 +2354,8 @@ def main() -> None:
         missing_df,
         conflicts_df,
         summary_df,
+        ligand_df,
+        vulnerable_df,
         source_commit,
         source_date,
     )
@@ -1818,10 +2368,23 @@ def main() -> None:
             "commit": source_commit,
             "commit_date": source_date,
             "variants_json_sha256": sha256_file(variants_path),
+            "hla_table_sha256": sha256_file(hla_path),
+            "mhc_i_alleles": MHC_I_ALLELES,
+            "mhc_ii_alleles": MHC_II_ALLELES,
+            "mhc_ii_pairing_policy": (
+                "only combinations already named in osteosarc source candidate fields"
+            ),
         },
         "analysis": {
             "mhctools_version": __import__("mhctools").__version__,
             "mhctools_commit": git_value(Path(__file__).resolve().parents[2], "%H"),
+            "mhctools_worktree_dirty": bool(
+                subprocess.check_output(
+                    ["git", "status", "--porcelain"],
+                    cwd=Path(__file__).resolve().parents[2],
+                    text=True,
+                ).strip()
+            ),
             "analysis_script_sha256": sha256_file(Path(__file__)),
             "display_threshold": THRESHOLD,
             "termini_assumption": "free N and C termini",
@@ -1841,7 +2404,14 @@ def main() -> None:
                 )
             },
         },
-        "models": model_hashes(args.netchop_dir, args.netcleave_dir, args.eramer_dir),
+        "models": model_hashes(
+            args.netchop_dir,
+            args.netcleave_dir,
+            args.eramer_dir,
+            mhcflurry_metadata,
+            netmhciipan_metadata,
+            mhc_inventory_df,
+        ),
     }
     (output_dir / "provenance.json").write_text(
         json.dumps(provenance, indent=2, sort_keys=True) + "\n", encoding="utf-8"

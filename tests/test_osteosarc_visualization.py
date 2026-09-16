@@ -86,3 +86,86 @@ def test_motif_matrix_keeps_no_match_distinct_from_unsupported():
     matrix = ANALYSIS._motif_matrix("record", motifs, models, [1, 2])
     assert matrix[0].tolist() == [1.0, 0.0]
     assert np.isnan(matrix[1]).all()
+
+
+def test_minimal_epitope_bounds_are_one_based_and_validated():
+    record = pd.Series(
+        {
+            "sequence_record_id": "BMP1",
+            "sequence": "RISVTPGEKIILNFTTLDLYRSR",
+            "minimal_epitope": "KIILNFTTL",
+            "minimal_epitope_offset": 8,
+        }
+    )
+    assert ANALYSIS._minimal_epitope_bounds(record) == (9, 17)
+    record["minimal_epitope_offset"] = 7
+    with pytest.raises(ValueError, match="offset does not match"):
+        ANALYSIS._minimal_epitope_bounds(record)
+
+
+def test_netmhciipan_parser_uses_el_score_and_rank_columns():
+    stdout = """
+       1 DRB1_0301 RISVTPGEKIILNFT 1 ISVTPGEKI 0.740 0 Sequence 0.079862 9.55 0.000 0.5 10.0 500.0 <=WB
+    """
+    assert ANALYSIS._parse_netmhciipan_rows(stdout) == [
+        {
+            "allele": "DRB1_0301",
+            "peptide": "RISVTPGEKIILNFT",
+            "binding_core": "ISVTPGEKI",
+            "score": 0.079862,
+            "percentile_rank": 9.55,
+        }
+    ]
+
+
+def test_netmhciipan_cli_alleles_do_not_expose_shell_globs():
+    assert ANALYSIS.netmhciipan_cli_allele("HLA-DRB1*03:01") == "DRB1_0301"
+    assert (
+        ANALYSIS.netmhciipan_cli_allele("HLA-DPA1*01:03-DPB1*04:01")
+        == "HLA-DPA10103-DPB10401"
+    )
+
+
+def test_vulnerable_bonds_require_context_separated_support():
+    record_id = "record"
+    records = pd.DataFrame(
+        [
+            {
+                "sequence_record_id": record_id,
+                "gene": "GENE",
+                "sequence": "ABCDEFGHI",
+                "minimal_epitope": "CDEFG",
+                "minimal_epitope_offset": 2,
+            }
+        ]
+    )
+    quantitative = pd.DataFrame(
+        [
+            {
+                "sequence_record_id": record_id,
+                "model": model,
+                "bond": 4,
+                "score": 0.8,
+                "assessable": True,
+            }
+            for model in ANALYSIS.MHC_I_CLEAVAGE_MODELS[:3]
+        ]
+    )
+    motifs = pd.DataFrame(
+        [
+            {
+                "sequence_record_id": record_id,
+                "model": model,
+                "bond": 6,
+                "status": "matched",
+            }
+            for model in ANALYSIS.EXTRACELLULAR_MOTIF_MODELS[:2]
+        ]
+    )
+    observed = ANALYSIS.vulnerable_bond_table(records, quantitative, motifs)
+    assert observed["biological_context"].tolist() == [
+        "cytosolic/proteasome and MHC-I processing",
+        "extracellular/plasma recognition motifs",
+    ]
+    assert observed["support_count"].tolist() == [3, 2]
+    assert observed["in_disclosed_minimal_epitope"].tolist() == [True, True]

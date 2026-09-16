@@ -11,8 +11,11 @@ The generated [report](results/REPORT.md), [tables](results/tables), and
 inventory and checksums are in [provenance.json](results/provenance.json) and
 [SHA256SUMS.json](results/SHA256SUMS.json).
 The PDF begins with a clustered predictor/SLP agreement overview and then
-shows every disclosed SLP sequence with native 0-1 scores and motif evidence
-aligned to exact peptide bonds. The 80-aa outlier is split across three
+uses each disclosed SLP sequence as the central visual axis. Large residue
+letters carry bond-aligned cleavage stems and motif flags, disclosed minimal
+epitope windows, and candidate MHC-I/MHC-II ligand spans. Red ticks inside a
+ligand span show relevant pre-binding internal cleavage evidence; they do not
+claim post-binding cleavage or protection. The 80-aa outlier is split across three
 continuation pages rather than compressed. Use
 [`atlas_sequence_order.csv`](results/tables/atlas_sequence_order.csv) to jump
 from a sequence record to its PDF page.
@@ -24,11 +27,12 @@ and motif-match counts; those unlike quantities must not be combined or
 ranked as though they shared a scale. Exact bond-level outputs remain in the
 long-form tables.
 
-The sequence pages also show a per-bond concurrence count for the six models
-with native 0-1 outputs. This is only the number at or above the common 0.5
-display threshold divided by the number able to assess that bond. It is not a
-consensus cleavage probability. DPP4 and ERAMER scores are located on the
-sequence but kept on visibly separate native scales without a binary cutoff.
+The sequence pages mark a bond directly between residue letters only when at
+least three of five class-I-processing models reach the common 0.5 display
+threshold. This support count is not a consensus cleavage probability. DPP4
+and ERAMER scores remain on visibly separate native scales without a binary
+cutoff. The context-separated `slp_vulnerable_bonds.csv` applies the same
+conservative support-count rule and never combines biological contexts.
 
 ## Scope
 
@@ -41,6 +45,11 @@ sequence but kept on visibly separate native scales without a binary cutoff.
   models), NetChop 3.1 (Cterm and 20S), and NetCleave (class I and II).
 - Evaluate the intact, free-terminal SLP against mhctools' quantitative and
   motif-based human peptidase panel, including the optional ERAMER ERAP1 model.
+- Scan 8–11-mers with local MHCflurry class-I presentation models across the
+  five disclosed classical class-I alleles.
+- Scan 13–21-mers with local NetMHCIIpan 4.3 EL models. Only class-II
+  combinations already named in the source candidate fields are used; no
+  alpha/beta phase is guessed from the unphased HLA table.
 - Preserve native scores and model-specific applicability. No cross-model
 aggregate or biological stability score is calculated.
 
@@ -65,14 +74,17 @@ python analyses/osteosarc_vaccine_cleavage/analyze.py \
   --osteosarc-repo /path/to/osteosarc.com \
   --netchop-dir /path/to/netchop-3.1 \
   --netcleave-dir /path/to/NetCleave \
-  --eramer-dir /path/to/ERAMER
+  --eramer-dir /path/to/ERAMER \
+  --netmhciipan-path /path/to/netMHCIIpan-4.3
 ```
 
 NetChop is licensed software and is not redistributed here. The script runs a
 user-supplied installation inside a pinned 32-bit Debian container because the
 available executable is a 32-bit Linux binary. No peptide sequence is uploaded.
 NetCleave and ERAMER are run from local checkouts. Pepsickle and the curated
-motif panel run in the current Python environment.
+motif panel run in the current Python environment. MHCflurry and NetMHCIIpan
+also run locally; the complete file-level model inventories are recorded in
+`results/tables/mhc_model_file_inventory.csv`.
 
 ## Primary model references
 
@@ -82,6 +94,10 @@ motif panel run in the current Python environment.
   <https://doi.org/10.1038/s41598-021-92632-y>
 - ERAMER: Al-okaily et al., 2024,
   <https://doi.org/10.1016/j.jim.2024.113713>
+- MHCflurry 2.0: O'Donnell et al., 2020,
+  <https://doi.org/10.1016/j.cels.2020.06.010>
+- NetMHCIIpan 4.3: Nilsson et al., 2023,
+  <https://doi.org/10.1126/sciadv.adj6367>
 - Individual peptidase references and applicability limits are retained in
   `results/tables/model_catalog.csv` and documented in
   [the cleavage guide](../../docs/cleavage.md).
