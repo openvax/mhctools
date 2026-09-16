@@ -1,8 +1,13 @@
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 
-import numpy as np
-import pandas as pd
+import pytest
+
+
+pytest.importorskip("matplotlib")
+np = pytest.importorskip("numpy")
+pd = pytest.importorskip("pandas")
+pytest.importorskip("scipy")
 
 
 SCRIPT_PATH = (
