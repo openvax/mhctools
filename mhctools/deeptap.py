@@ -48,6 +48,7 @@ from tempfile import mkdtemp
 import pandas as pd
 
 from .cleanup_context import CleanupFiles
+from .optional_backend import common_checkout_paths
 from .pred import Kind, PeptideResult, Prediction
 from .process_helpers import run_command
 from .wrapper_base import AlleleFreePredictor
@@ -65,13 +66,14 @@ def _find_deeptap_home(deeptap_home=None):
     """Resolve the DeepTAP checkout directory (holds ``deeptap.py`` + ``model/``).
 
     Checks, in order: the *deeptap_home* argument, ``$DEEPTAP_HOME``, then
-    ``~/DeepTAP``.
+    ``~/DeepTAP`` / ``~/code/DeepTAP``.
     """
     candidate = deeptap_home or os.environ.get("DEEPTAP_HOME")
     if not candidate:
-        home = join(os.path.expanduser("~"), "DeepTAP")
-        if isdir(home):
-            candidate = home
+        for home in common_checkout_paths("DeepTAP"):
+            if isdir(home):
+                candidate = str(home)
+                break
     if not candidate:
         from .artifacts import artifact_status
         managed = artifact_status("deeptap")

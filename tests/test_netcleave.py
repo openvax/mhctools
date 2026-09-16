@@ -10,11 +10,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-
 import pytest
 
-from mhctools.netcleave import NetCleave, NetCleave_I, NetCleave_II
+from mhctools.netcleave import (
+    NetCleave,
+    NetCleave_I,
+    NetCleave_II,
+    _find_netcleave_dir,
+)
 from mhctools.pred import COLUMNS, Kind
 
 
@@ -37,18 +40,10 @@ def test_init_missing_path_raises():
 # NetCleave's own deps (tensorflow/keras, scikit-learn, biopython).
 # ---------------------------------------------------------------------------
 
-NETCLEAVE_DIR = None
-for candidate in [
-    os.environ.get("NETCLEAVE_DIR", ""),
-    os.path.join(os.path.expanduser("~"), "NetCleave"),
-    os.path.join(os.path.expanduser("~"), "code", "NetCleave"),
-]:
-    if candidate and os.path.isfile(os.path.join(candidate, "NetCleave.py")) \
-            and os.path.isfile(os.path.join(
-                candidate, "data", "models", "I_mass-spectrometry_HLA",
-                "I_mass-spectrometry_HLA_model.h5")):
-        NETCLEAVE_DIR = candidate
-        break
+try:
+    NETCLEAVE_DIR = _find_netcleave_dir()
+except FileNotFoundError:
+    NETCLEAVE_DIR = None
 
 requires_netcleave = pytest.mark.skipif(
     NETCLEAVE_DIR is None,

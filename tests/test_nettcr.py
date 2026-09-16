@@ -21,6 +21,7 @@ from mhctools.nettcr import (
     NetTCR,
     _BLOSUM50,
     _encode_feature,
+    _find_nettcr_dir,
     _suppress_native_stderr,
 )
 from mhctools.pred import COLUMNS, Kind
@@ -109,16 +110,13 @@ def test_init_no_models_raises(tmp_path):
 # Model tests — require a cloned NetTCR-2.2 (weights) and a TFLite runtime.
 # ---------------------------------------------------------------------------
 
-NETTCR_DIR = None
-for candidate in [
-    os.environ.get("NETTCR_DIR", ""),
-    os.path.join(os.path.expanduser("~"), "NetTCR-2.2"),
-    os.path.join(os.path.expanduser("~"), "code", "NetTCR-2.2"),
-]:
-    if candidate and os.path.isdir(
-            os.path.join(candidate, "models", "nettcr_2_2_pan", "checkpoint")):
-        NETTCR_DIR = candidate
-        break
+try:
+    NETTCR_DIR = _find_nettcr_dir()
+except FileNotFoundError:
+    NETTCR_DIR = None
+if NETTCR_DIR and not os.path.isdir(os.path.join(
+        NETTCR_DIR, "models", "nettcr_2_2_pan", "checkpoint")):
+    NETTCR_DIR = None
 
 requires_nettcr = pytest.mark.skipif(
     NETTCR_DIR is None,

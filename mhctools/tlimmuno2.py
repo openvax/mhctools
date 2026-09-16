@@ -53,6 +53,7 @@ from tempfile import mkdtemp
 import pandas as pd
 
 from .cleanup_context import CleanupFiles
+from .optional_backend import common_checkout_paths
 from .pred import Kind, PeptideResult, Prediction
 from .process_helpers import run_command
 from .wrapper_base import NewModelPredictorMixin
@@ -70,13 +71,14 @@ def _find_tlimmuno2_home(tlimmuno2_home=None):
     """Resolve the TLimmuno2 checkout directory (holds ``Python/TLimmuno2.py``).
 
     Checks, in order: the *tlimmuno2_home* argument, ``$TLIMMUNO2_HOME``, then
-    ``~/TLimmuno2``.
+    ``~/TLimmuno2`` / ``~/code/TLimmuno2``.
     """
     candidate = tlimmuno2_home or os.environ.get("TLIMMUNO2_HOME")
     if not candidate:
-        home = join(os.path.expanduser("~"), "TLimmuno2")
-        if isdir(home):
-            candidate = home
+        for home in common_checkout_paths("TLimmuno2"):
+            if isdir(home):
+                candidate = str(home)
+                break
     if not candidate:
         raise FileNotFoundError(
             "TLimmuno2 not found. Set TLIMMUNO2_HOME or pass tlimmuno2_home= to "

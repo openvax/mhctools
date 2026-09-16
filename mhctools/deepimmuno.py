@@ -49,6 +49,7 @@ import pandas as pd
 
 from .allele_normalization import normalize_allele_name
 from .cleanup_context import CleanupFiles
+from .optional_backend import common_checkout_paths
 from .pred import Kind, PeptideResult, Prediction
 from .process_helpers import run_command
 from .wrapper_base import NewModelPredictorMixin
@@ -63,13 +64,14 @@ def _find_deepimmuno_home(deepimmuno_home=None):
     """Resolve the DeepImmuno checkout directory (holds ``deepimmuno-cnn.py``).
 
     Checks, in order: the *deepimmuno_home* argument, ``$DEEPIMMUNO_HOME``, then
-    ``~/DeepImmuno``.
+    ``~/DeepImmuno`` / ``~/code/DeepImmuno``.
     """
     candidate = deepimmuno_home or os.environ.get("DEEPIMMUNO_HOME")
     if not candidate:
-        home = join(os.path.expanduser("~"), "DeepImmuno")
-        if isdir(home):
-            candidate = home
+        for home in common_checkout_paths("DeepImmuno"):
+            if isdir(home):
+                candidate = str(home)
+                break
     if not candidate:
         from .artifacts import artifact_status
         managed = artifact_status("deepimmuno")

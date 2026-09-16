@@ -22,13 +22,16 @@ shim). They are slow: TLimmuno2 scores ~90k background peptides per allele.
 """
 
 import os
-from os.path import isfile, join
 from tempfile import NamedTemporaryFile
 
 import pytest
 
 from mhctools import TLimmuno2, Kind
-from mhctools.tlimmuno2 import _tlimmuno2_allele, parse_tlimmuno2_results
+from mhctools.tlimmuno2 import (
+    _find_tlimmuno2_home,
+    _tlimmuno2_allele,
+    parse_tlimmuno2_results,
+)
 
 
 # Captured TLimmuno2 result.csv (DRB1_0803, two 15-mers).
@@ -140,12 +143,13 @@ def test_peptide_validation(tmp_path):
 
 # --- end-to-end (requires a TLimmuno2 checkout) -----------------------------
 
-TLIMMUNO2_HOME = os.environ.get("TLIMMUNO2_HOME")
-_has_tlimmuno2 = bool(TLIMMUNO2_HOME) and isfile(
-    join(TLIMMUNO2_HOME, "Python", "TLimmuno2.py"))
+try:
+    TLIMMUNO2_HOME = _find_tlimmuno2_home()
+except FileNotFoundError:
+    TLIMMUNO2_HOME = None
 
 requires_tlimmuno2 = pytest.mark.skipif(
-    not _has_tlimmuno2,
+    not TLIMMUNO2_HOME,
     reason="TLimmuno2 not installed (set TLIMMUNO2_HOME to a clone; optionally "
            "TLIMMUNO2_PYTHON to an interpreter with TensorFlow and Keras 2 / "
            "tf-keras)")

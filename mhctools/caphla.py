@@ -30,6 +30,7 @@ from .allele_normalization import (
     normalize_allele_name,
     parse_classi_or_classii_allele_name,
 )
+from .optional_backend import common_checkout_paths
 from .pred import COLUMNS, Kind, PeptideResult, Prediction
 from .wrapper_base import NewModelPredictorMixin
 
@@ -53,9 +54,9 @@ def _find_caphla_home(caphla_path=None):
                         source, candidate))
             return str(candidate)
 
-    legacy = Path("~/CapHLA").expanduser()
-    if (legacy / "EL_model.py").is_file():
-        return str(legacy.resolve())
+    for legacy in common_checkout_paths("CapHLA"):
+        if (legacy / "EL_model.py").is_file():
+            return str(legacy.resolve())
 
     from .artifacts import artifact_status
     managed = artifact_status("caphla")

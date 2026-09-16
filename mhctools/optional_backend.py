@@ -21,6 +21,21 @@ ARTIFACT_STATUS_VALUES = ("missing", "mismatch", "unverified", "verified")
 INFERENCE_STATUS_VALUES = ("not_run", "reproduced")
 
 
+def common_checkout_paths(*directory_names):
+    """Return conventional user checkout locations in deterministic order.
+
+    Optional backends historically checked either ``~/NAME`` or
+    ``~/code/NAME`` (and often only one of the two). Keeping that policy here
+    gives wrappers and their integration tests one shared definition without
+    searching the filesystem broadly or guessing outside the user's home.
+    """
+    home = Path.home()
+    paths = []
+    for directory_name in directory_names:
+        paths.extend((home / directory_name, home / "code" / directory_name))
+    return tuple(paths)
+
+
 @dataclass(frozen=True)
 class BackendSpec:
     """Reviewed integration contract for one optional prediction endpoint."""

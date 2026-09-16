@@ -40,6 +40,7 @@ prior, not a validated oracle.
 import os
 from os.path import isdir, isfile, join
 
+from .optional_backend import common_checkout_paths
 from .pred import Kind, PeptideResult, Prediction
 from .wrapper_base import AlleleFreePredictor
 
@@ -63,7 +64,7 @@ def _find_pwm_path(eramer_home=None, pwm_path=None):
 
     An explicit *pwm_path* or *eramer_home* is honored exactly (and must exist —
     no silent fallback). Otherwise the resolver tries ``$ERAMER_PWM``, then
-    ``$ERAMER_HOME/PWM.xlsx``, then ``~/ERAMER/PWM.xlsx``.
+    ``$ERAMER_HOME/PWM.xlsx``, then conventional user checkout locations.
     """
     if pwm_path:
         if isfile(pwm_path):
@@ -82,9 +83,9 @@ def _find_pwm_path(eramer_home=None, pwm_path=None):
         candidates.append(os.environ["ERAMER_PWM"])
     if os.environ.get("ERAMER_HOME"):
         candidates.append(join(os.environ["ERAMER_HOME"], "PWM.xlsx"))
-    home = join(os.path.expanduser("~"), "ERAMER")
-    if isdir(home):
-        candidates.append(join(home, "PWM.xlsx"))
+    for home in common_checkout_paths("ERAMER"):
+        if isdir(home):
+            candidates.append(join(home, "PWM.xlsx"))
     from .artifacts import artifact_status
     managed = artifact_status("eramer")
     if managed.manager == "mhctools" and managed.status == "ready":
