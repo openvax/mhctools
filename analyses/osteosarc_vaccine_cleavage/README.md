@@ -35,12 +35,18 @@ and motif-match counts; those unlike quantities must not be combined or
 ranked as though they shared a scale. Exact bond-level outputs remain in the
 long-form tables.
 
-The sequence pages mark a bond directly between residue letters only when at
-least three of five class-I-processing models reach the common 0.5 display
-threshold. This support count is not a consensus cleavage probability. DPP4
-and ERAMER scores remain on visibly separate native scales without a binary
-cutoff. The context-separated `slp_vulnerable_bonds.csv` applies the same
-conservative support-count rule and never combines biological contexts.
+The sequence pages show three intracellular tracks above the sequence:
+human-only Pepsickle, NetChop Cterm, and NetCleave-I. A red slash is drawn only
+when all three assess the bond and at least two reach the common 0.5 display
+threshold; its printed `2/3` or `3/3` is a support fraction, not a probability.
+NetChop Cterm is used because these maps emphasize candidate MHC-I ligand
+boundaries, but it is ligand-trained and not a pure proteasome assay. The
+human-only Pepsickle model is species-matched but experimental and trained on
+less data than the all-mammal model. NetChop 20S and all-mammal Pepsickle
+remain in the tables. DPP4 and ERAMER scores remain on visibly separate native
+scales without a binary cutoff. The context-separated
+`slp_vulnerable_bonds.csv` retains its separate, conservative three-of-five
+rule and never combines biological contexts.
 
 ## Scope
 
