@@ -47,6 +47,7 @@ SLP_VACCINES = frozenset(("JLF V1", "JLF V2", "JLF V3", "CeGaT"))
 THRESHOLD = 0.5
 MHC_I_DISPLAY_RANK = 2.0
 MHC_II_DISPLAY_RANK = 5.0
+PDF_FILENAME = "mhctools-all-figures.pdf"
 MHC_I_ALLELES = (
     "HLA-A*01:01",
     "HLA-B*08:01",
@@ -1476,6 +1477,29 @@ def _draw_grid(ax: plt.Axes, rows: int, columns: int) -> None:
     ax.tick_params(which="minor", bottom=False, left=False)
 
 
+def segment_ligand_candidates(
+    ligand_df: pd.DataFrame,
+    record_id: str,
+    mhc_class: str,
+    residue_start: int,
+    residue_end: int,
+) -> pd.DataFrame:
+    """Select display candidates owned by one half-open sequence segment."""
+    candidates = ligand_df.loc[
+        (ligand_df["sequence_record_id"] == record_id)
+        & (ligand_df["mhc_class"] == mhc_class)
+        & ligand_df["display_candidate"]
+    ].copy()
+    candidates["midpoint"] = (candidates["start"] + candidates["end"]) / 2
+    candidates = candidates.loc[
+        (candidates["midpoint"] >= residue_start)
+        & (candidates["midpoint"] < residue_end)
+    ]
+    return candidates.sort_values("percentile_rank").drop_duplicates(
+        ["start", "end"], keep="first"
+    )
+
+
 def plot_sequence_atlas_page(
     record: pd.Series,
     quantitative_df: pd.DataFrame,
@@ -1653,32 +1677,26 @@ def plot_sequence_atlas_page(
         return value.replace("*", "")
 
     def draw_ligands(mhc_class: str, lane_y: list[float], color: str) -> None:
-        candidates = ligand_df.loc[
-            (ligand_df["sequence_record_id"] == record_id)
-            & (ligand_df["mhc_class"] == mhc_class)
-            & ligand_df["display_candidate"]
-        ].copy()
-        if candidates.empty:
+        unique_candidates = segment_ligand_candidates(
+            ligand_df,
+            record_id,
+            mhc_class,
+            residue_start,
+            residue_end,
+        )
+        if unique_candidates.empty:
+            segment_suffix = " in this segment" if segment_count > 1 else ""
             ax.text(
                 residue_start - 0.68,
                 lane_y[0],
                 f"MHC-{mhc_class}: none <= "
-                f"{MHC_I_DISPLAY_RANK if mhc_class == 'I' else MHC_II_DISPLAY_RANK:g}% rank",
+                f"{MHC_I_DISPLAY_RANK if mhc_class == 'I' else MHC_II_DISPLAY_RANK:g}% "
+                f"rank{segment_suffix}",
                 ha="right",
                 va="center",
                 fontsize=7,
                 color="#68717a",
             )
-            return
-        candidates["midpoint"] = (candidates["start"] + candidates["end"]) / 2
-        candidates = candidates.loc[
-            candidates["midpoint"].between(residue_start, residue_end)
-        ]
-        unique_candidates = (
-            candidates.sort_values("percentile_rank")
-            .drop_duplicates(["start", "end"], keep="first")
-        )
-        if unique_candidates.empty:
             return
         ax.text(
             residue_start - 0.68,
@@ -1751,7 +1769,7 @@ def plot_sequence_atlas_page(
             ax.text(
                 residue_end + 0.45,
                 max(lane_y) + 0.58,
-                f"+{omitted} overlapping span{'s' if omitted != 1 else ''}\nin CSV",
+                f"+{omitted} additional span{'s' if omitted != 1 else ''}\nin CSV",
                 ha="right",
                 va="center",
                 fontsize=5.8,
@@ -1819,9 +1837,10 @@ def plot_sequence_atlas_page(
     fig.text(
         0.5,
         0.047,
-        "Reading the map. Tall stems are larger native outputs; the dotted half-height is the 0.5 display threshold. "
+        "Reading the map. Every assessable per-bond cut score is drawn. Tall stems are larger native outputs; "
+        "the dotted half-height is the 0.5 display threshold. "
         "Red slashes between residues require >=3 of the five class-I-processing models. Blue/purple bars are candidate MHC "
-        "ligands at <=2%/<=5% rank (best non-overlapping spans shown; all rows are in the CSV); red ticks inside them are internal candidate cuts before binding. These counts are "
+        "ligands at <=2%/<=5% rank (top-ranked non-overlapping spans shown; all rows are in the CSV); red ticks inside them are internal candidate cuts before binding. These counts are "
         "not probabilities, and ligand bars do not model binding occupancy, timing, or post-binding protection.",
         ha="center",
         va="center",
@@ -1839,7 +1858,7 @@ def render_figures(
     motifs_df: pd.DataFrame,
     ligand_df: pd.DataFrame,
     summary_df: pd.DataFrame,
-    source_date: str,
+    generated_at: datetime,
 ) -> pd.DataFrame:
     """Render the clustered overview and bond-aligned sequence atlas."""
     figures_dir = output_dir / "figures"
@@ -1847,16 +1866,21 @@ def render_figures(
     page_count = 1 + sum(
         len(sequence_segments(record["sequence"])) for _, record in records.iterrows()
     )
+    # Matplotlib 3.11 mis-encodes negative UTC offsets in PDF date strings
+    # (for example, -04:00 becomes -20:00). Preserve the correct local clock
+    # time as a timezone-naive PDF date; provenance.json retains the exact
+    # timezone-aware generation timestamp.
+    pdf_generated_at = generated_at.replace(tzinfo=None)
     pdf_metadata = {
         "Title": "Osteosarc vaccine SLP bond-level cleavage atlas",
         "Author": "mhctools",
         "Subject": "Sequence-aligned cleavage scores and peptidase motif evidence",
         "Keywords": "osteosarcoma vaccine SLP cleavage proteasome peptidase",
-        "CreationDate": datetime.fromisoformat(source_date),
-        "ModDate": datetime.fromisoformat(source_date),
+        "CreationDate": pdf_generated_at,
+        "ModDate": pdf_generated_at,
     }
     atlas_rows: list[dict[str, Any]] = []
-    with PdfPages(output_dir / "all-figures.pdf", metadata=pdf_metadata) as pdf_pages:
+    with PdfPages(output_dir / PDF_FILENAME, metadata=pdf_metadata) as pdf_pages:
         record_order, model_order = plot_agreement_overview(
             records,
             quantitative_df,
@@ -2068,6 +2092,7 @@ def write_report(
     vulnerable_df: pd.DataFrame,
     source_commit: str,
     source_date: str,
+    generated_at: datetime,
 ) -> None:
     thresholded = summary_df.loc[summary_df["candidate_fraction"].notna()]
     by_model = (
@@ -2104,6 +2129,7 @@ def write_report(
         "# Osteosarc vaccine cleavage analysis",
         "",
         f"Source snapshot: osteosarc.com repository `{source_commit}` ({source_date}).",
+        f"Generated locally at {generated_at.isoformat()}.",
         "All inference was local; no peptide sequence was uploaded.",
         "",
         "## Coverage",
@@ -2123,7 +2149,7 @@ def write_report(
         "",
         "## Sequence cleavage atlas",
         "",
-        "The [complete PDF atlas](all-figures.pdf) makes each amino-acid sequence the central axis, "
+        f"The [complete PDF atlas]({PDF_FILENAME}) makes each amino-acid sequence the central axis, "
         "with quantitative cut stems, motif flags, disclosed minimal-epitope spans, and candidate "
         "MHC ligand windows aligned to exact residues and bonds. It contains one clustered overview followed by one page "
         "per SLP (with the 80-aa outlier split across three continuation pages). "
@@ -2240,18 +2266,30 @@ def parse_args() -> argparse.Namespace:
         help="Defaults to scripts/dragen/tables/hla.tsv inside --osteosarc-repo",
     )
     parser.add_argument(
-        "--output-dir", type=Path, default=Path(__file__).resolve().parent / "results"
+        "--output-dir",
+        type=Path,
+        default=Path(__file__).resolve().parent / "results",
+        help="Base directory; each run creates a date/time-stamped child directory",
     )
     return parser.parse_args()
 
 
+def timestamped_output_dir(base_dir: Path, generated_at: datetime) -> Path:
+    """Return a collision-resistant, filesystem-safe directory for one run."""
+    if generated_at.tzinfo is None or generated_at.utcoffset() is None:
+        raise ValueError("generated_at must include a timezone")
+    stamp = generated_at.strftime("%Y-%m-%dT%H%M%S-%f%z")
+    return base_dir / stamp
+
+
 def main() -> None:
     args = parse_args()
-    output_dir = args.output_dir.resolve()
+    generated_at = datetime.now().astimezone()
+    output_dir = timestamped_output_dir(args.output_dir.resolve(), generated_at)
     tables_dir = output_dir / "tables"
     figures_dir = output_dir / "figures"
-    tables_dir.mkdir(parents=True, exist_ok=True)
-    figures_dir.mkdir(parents=True, exist_ok=True)
+    tables_dir.mkdir(parents=True, exist_ok=False)
+    figures_dir.mkdir(parents=True, exist_ok=False)
 
     variants_path = args.osteosarc_repo / "src/data/variants.json"
     hla_path = args.hla_table or args.osteosarc_repo / "scripts/dragen/tables/hla.tsv"
@@ -2344,7 +2382,7 @@ def main() -> None:
         motifs_df,
         ligand_df,
         summary_df,
-        source_date,
+        generated_at,
     )
     atlas_order_df.to_csv(tables_dir / "atlas_sequence_order.csv", index=False)
     write_report(
@@ -2358,6 +2396,7 @@ def main() -> None:
         vulnerable_df,
         source_commit,
         source_date,
+        generated_at,
     )
 
     provenance = {
@@ -2378,14 +2417,15 @@ def main() -> None:
         "analysis": {
             "mhctools_version": __import__("mhctools").__version__,
             "mhctools_commit": git_value(Path(__file__).resolve().parents[2], "%H"),
-            "mhctools_worktree_dirty": bool(
-                subprocess.check_output(
-                    ["git", "status", "--porcelain"],
-                    cwd=Path(__file__).resolve().parents[2],
-                    text=True,
-                ).strip()
-            ),
+            "mhctools_worktree_dirty": subprocess.run(
+                ["git", "diff", "--quiet", "HEAD", "--"],
+                cwd=Path(__file__).resolve().parents[2],
+                check=False,
+            ).returncode
+            != 0,
             "analysis_script_sha256": sha256_file(Path(__file__)),
+            "generated_at": generated_at.isoformat(),
+            "output_directory": output_dir.name,
             "display_threshold": THRESHOLD,
             "termini_assumption": "free N and C termini",
             "sequence_uploads": "none; all inference ran locally",
@@ -2424,6 +2464,7 @@ def main() -> None:
     (output_dir / "SHA256SUMS.json").write_text(
         json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
+    print(output_dir)
 
 
 if __name__ == "__main__":

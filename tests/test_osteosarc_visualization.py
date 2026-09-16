@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 
@@ -31,6 +32,47 @@ def test_sequence_segments_cover_every_internal_bond_once():
             for bond in range(start_bond, end_bond + 1)
         ]
         assert observed == list(range(1, length))
+
+
+def test_timestamped_output_directory_is_unique_and_timezone_explicit(tmp_path):
+    generated_at = datetime(2026, 9, 16, 3, 45, 12, 123456, tzinfo=timezone.utc)
+    assert ANALYSIS.timestamped_output_dir(tmp_path, generated_at) == (
+        tmp_path / "2026-09-16T034512-123456+0000"
+    )
+    with pytest.raises(ValueError, match="timezone"):
+        ANALYSIS.timestamped_output_dir(tmp_path, generated_at.replace(tzinfo=None))
+
+
+def test_segment_ligands_use_half_open_boundaries_without_duplicates():
+    ligand_df = pd.DataFrame(
+        [
+            {
+                "sequence_record_id": "record",
+                "mhc_class": "I",
+                "display_candidate": True,
+                "start": 24,
+                "end": 32,
+                "percentile_rank": 0.2,
+            },
+            {
+                "sequence_record_id": "record",
+                "mhc_class": "I",
+                "display_candidate": True,
+                "start": 24,
+                "end": 32,
+                "percentile_rank": 0.4,
+            },
+        ]
+    )
+    first = ANALYSIS.segment_ligand_candidates(
+        ligand_df, "record", "I", residue_start=1, residue_end=28
+    )
+    second = ANALYSIS.segment_ligand_candidates(
+        ligand_df, "record", "I", residue_start=28, residue_end=55
+    )
+    assert first.empty
+    assert len(second) == 1
+    assert second.iloc[0]["percentile_rank"] == 0.2
 
 
 def test_score_matrix_keeps_zero_distinct_from_unassessed():
