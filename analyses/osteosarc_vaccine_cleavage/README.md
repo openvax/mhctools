@@ -6,10 +6,11 @@ It answers a narrow question: which bonds in the disclosed synthetic long
 peptides (SLPs) are flagged by several proteasome/endolysosomal predictors or
 by curated human-peptidase recognition rules?
 
-The generated [report](results/REPORT.md), [tables](results/tables), and
-[figure atlas](results/all-figures.pdf) are checked in. The complete model/code/weight
-inventory and checksums are in [provenance.json](results/provenance.json) and
-[SHA256SUMS.json](results/SHA256SUMS.json).
+Every invocation writes a new date/time-stamped directory under `results/` so
+an earlier analysis is never overwritten. The [generated-run index](results/README.md)
+links the checked-in report, tables, and
+[figure atlas](results/2026-09-16T092347-472299-0400/mhctools-all-figures.pdf).
+The complete model/code/weight inventory and checksums travel with that run.
 The PDF begins with a clustered predictor/SLP agreement overview and then
 uses each disclosed SLP sequence as the central visual axis. Large residue
 letters carry bond-aligned cleavage stems and motif flags, disclosed minimal
@@ -17,11 +18,11 @@ epitope windows, and candidate MHC-I/MHC-II ligand spans. Red ticks inside a
 ligand span show relevant pre-binding internal cleavage evidence; they do not
 claim post-binding cleavage or protection. The 80-aa outlier is split across three
 continuation pages rather than compressed. Use
-[`atlas_sequence_order.csv`](results/tables/atlas_sequence_order.csv) to jump
+[`atlas_sequence_order.csv`](results/2026-09-16T092347-472299-0400/tables/atlas_sequence_order.csv) to jump
 from a sequence record to its PDF page.
 
 For a compact answer to “which SLP is flagged by which model,” start with
-[`slp_predictor_matrix.csv`](results/tables/slp_predictor_matrix.csv). Its
+[`slp_predictor_matrix.csv`](results/2026-09-16T092347-472299-0400/tables/slp_predictor_matrix.csv). Its
 column suffixes distinguish within-model fractions above 0.5, native scores,
 and motif-match counts; those unlike quantities must not be combined or
 ranked as though they shared a scale. Exact bond-level outputs remain in the
@@ -84,7 +85,7 @@ available executable is a 32-bit Linux binary. No peptide sequence is uploaded.
 NetCleave and ERAMER are run from local checkouts. Pepsickle and the curated
 motif panel run in the current Python environment. MHCflurry and NetMHCIIpan
 also run locally; the complete file-level model inventories are recorded in
-`results/tables/mhc_model_file_inventory.csv`.
+the timestamped run's `tables/mhc_model_file_inventory.csv`.
 
 ## Primary model references
 
@@ -99,5 +100,5 @@ also run locally; the complete file-level model inventories are recorded in
 - NetMHCIIpan 4.3: Nilsson et al., 2023,
   <https://doi.org/10.1126/sciadv.adj6367>
 - Individual peptidase references and applicability limits are retained in
-  `results/tables/model_catalog.csv` and documented in
+  the timestamped run's `tables/model_catalog.csv` and documented in
   [the cleavage guide](../../docs/cleavage.md).
