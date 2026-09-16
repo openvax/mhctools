@@ -29,22 +29,26 @@ class BindingPredictionCollection(Collection):
             [tuple([getattr(x, name) for name in columns]) for x in self],
             columns=columns)
 
-    def to_preds(self, kind=Kind.pMHC_affinity):
+    def to_preds(self, kind=Kind.pMHC_affinity, predictor_version=""):
         """Convert all BindingPredictions to Prediction objects.
 
         Returns a list of Prediction (not grouped into PeptideResult, since
         BindingPredictionCollection has no peptide-position grouping).
+        ``predictor_version`` supplies the owning model's provenance, which
+        the legacy rows cannot represent; omission leaves it unknown.
         """
-        return [bp.to_pred(kind=kind) for bp in self]
+        return [bp.to_pred(kind=kind, predictor_version=predictor_version) for bp in self]
 
-    def to_peptide_preds(self, kind=Kind.pMHC_affinity):
+    def to_peptide_preds(self, kind=Kind.pMHC_affinity, predictor_version=""):
         """Convert to a list of PeptideResult, grouped by (peptide, offset, source).
 
         Each PeptideResult contains all alleles for one peptide position.
+        ``predictor_version`` supplies the owning model's provenance, which
+        the legacy rows cannot represent; omission leaves it unknown.
         """
         from collections import defaultdict
         groups = defaultdict(list)
         for bp in self:
             key = (bp.peptide, bp.offset, bp.source_sequence_name)
-            groups[key].append(bp.to_pred(kind=kind))
+            groups[key].append(bp.to_pred(kind=kind, predictor_version=predictor_version))
         return [PeptideResult(preds=tuple(preds)) for preds in groups.values()]

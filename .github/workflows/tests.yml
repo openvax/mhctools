@@ -44,6 +44,7 @@ jobs:
           pytest -ra \
             tests/test_binding_prediction.py \
             tests/test_binding_prediction_collection.py \
+            tests/test_mhcflurry_provenance.py \
             tests/test_cli_parsing_helpers.py \
             tests/test_cli_registry.py \
             tests/test_class2_allele_formats.py \

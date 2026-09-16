@@ -160,7 +160,7 @@ class BindingPrediction(Serializable):
     def __lt__(self, other):
         return self.value < other.value
 
-    def to_pred(self, kind=Kind.pMHC_affinity):
+    def to_pred(self, kind=Kind.pMHC_affinity, predictor_version=""):
         """Convert to a Prediction object.
 
         Parameters
@@ -168,6 +168,9 @@ class BindingPrediction(Serializable):
         kind : Kind
             What this prediction measures. Defaults to pMHC_affinity since
             most BindingPrediction objects represent binding affinity.
+        predictor_version : str, optional
+            Provenance supplied by the owning predictor. Legacy binding
+            predictions have no version field; omission leaves it unknown.
 
         Notes
         -----
@@ -193,6 +196,7 @@ class BindingPrediction(Serializable):
             source_sequence_name=self.source_sequence_name,
             offset=self.offset,
             predictor_name=self.prediction_method_name,
+            predictor_version=predictor_version,
         )
 
     @classmethod
@@ -208,4 +212,3 @@ class BindingPrediction(Serializable):
             offset=pred.offset,
             prediction_method_name=pred.predictor_name,
         )
-

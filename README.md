@@ -454,6 +454,19 @@ allele as a separate one-allele synthetic sample and emits one presentation
 record per peptide/allele pair. The default `"auto"` mode uses haplotype mode
 for up to six alleles and per-allele mode for larger allele panels.
 
+MHCflurry predictions carry the Python package and official model-release
+identity in `predictor_version` (for example, `2.2.1+release-2.2.0`). The version
+is captured when weights are loaded and retained with the cached model object.
+`mhcflurry_composite_version()` exposes the same rule publicly; it checks the
+selected directory, including environment overrides, against the official
+bundle path. This is release provenance, not a checksum of the weights.
+
+For custom paths or injected predictors, pass `predictor_version="my-model-id"`
+to `MHCflurry` or `MHCflurry_Affinity` if the predictions need a cacheable
+identity. Otherwise they remain unversioned, never mislabeled as the active
+default release. The modern prediction and DataFrame APIs retain the version;
+legacy `BindingPrediction` objects still have their original unversioned schema.
+
 ### The Prediction object
 
 Every prediction is a frozen, self-contained `Prediction` dataclass:
