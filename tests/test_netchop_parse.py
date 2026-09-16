@@ -109,12 +109,48 @@ class TestNetChopInit:
 
     def test_missing_executable_raises_file_not_found(self):
         with pytest.raises(FileNotFoundError, match="Could not find"):
-            NetChop(program_name="surely_not_installed_netchop_xyz")
+            NetChop(
+                program_name="surely_not_installed_netchop_xyz",
+                execution="native")
 
     @patch("shutil.which", return_value="/usr/local/bin/netChop")
     def test_found_executable_succeeds(self, _mock_which):
-        obj = NetChop(program_name="netChop")
-        assert obj.program_name == "netChop"
+        with patch.dict("os.environ", {}, clear=True):
+            obj = NetChop(program_name="netChop", execution="native")
+            assert obj.program_name == "/usr/local/bin/netChop"
+
+    def test_native_default_bypasses_bundle_launcher(self, tmp_path):
+        netchop_dir = tmp_path / "netchop-3.1"
+        (netchop_dir / "bin").mkdir(parents=True)
+        executable = netchop_dir / "bin" / "netChop"
+        executable.touch()
+        with patch("shutil.which", return_value="/bundle/bin/netChop"):
+            obj = NetChop(
+                execution="native",
+                netchop_dir=netchop_dir,
+                model_variant=0)
+        assert obj.program_name == str(executable)
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value.stdout = GOOD_OUTPUT
+            mock_run.return_value.stderr = b""
+            mock_run.return_value.returncode = 0
+            obj.cleavage_probs("MDS")
+        command = mock_run.call_args.args[0]
+        assert command[0] == str(executable)
+        assert command[1:3] == ["-v", "0"]
+        environment = mock_run.call_args.kwargs["env"]
+        assert environment["NETCHOP"] == str(netchop_dir.resolve())
+        assert "mhctools_netchop_" in environment["TMPDIR"]
+
+    def test_container_requires_installation(self):
+        with patch.dict("os.environ", {}, clear=True):
+            with patch("shutil.which", return_value=None):
+                with pytest.raises(FileNotFoundError, match="licensed NetChop"):
+                    NetChop(execution="container")
+
+    def test_invalid_model_variant(self):
+        with pytest.raises(ValueError, match="model_variant"):
+            NetChop(execution="native", model_variant=2)
 
 
 class TestNetChopCleavageProbs:
@@ -122,7 +158,7 @@ class TestNetChopCleavageProbs:
     @patch("shutil.which", return_value="/usr/local/bin/netChop")
     def test_wrong_number_of_sequences_raises(self, _mock_which):
         """If netChop returns 0 sequences, cleavage_probs should raise."""
-        obj = NetChop()
+        obj = NetChop(execution="native")
         with patch("subprocess.run") as mock_run:
             mock_run.return_value.stdout = EMPTY_OUTPUT
             mock_run.return_value.stderr = b""
@@ -133,7 +169,7 @@ class TestNetChopCleavageProbs:
     @patch("shutil.which", return_value="/usr/local/bin/netChop")
     def test_wrong_length_raises_with_pepsickle_hint(self, _mock_which):
         """Length mismatch should mention pepsickle as alternative."""
-        obj = NetChop()
+        obj = NetChop(execution="native")
         with patch("subprocess.run") as mock_run:
             mock_run.return_value.stdout = GOOD_OUTPUT  # 3 scores
             mock_run.return_value.stderr = b""
@@ -143,7 +179,7 @@ class TestNetChopCleavageProbs:
 
     @patch("shutil.which", return_value="/usr/local/bin/netChop")
     def test_nonzero_returncode_raises(self, _mock_which):
-        obj = NetChop()
+        obj = NetChop(execution="native")
         with patch("subprocess.run") as mock_run:
             mock_run.return_value.stdout = b""
             mock_run.return_value.stderr = b"some error"
@@ -154,7 +190,45 @@ class TestNetChopCleavageProbs:
     @patch("shutil.which", return_value="/usr/local/bin/netChop")
     def test_timeout_raises(self, _mock_which):
         import subprocess
-        obj = NetChop()
+        obj = NetChop(execution="native")
         with patch("subprocess.run", side_effect=subprocess.TimeoutExpired("netChop", 120)):
             with pytest.raises(RuntimeError, match="timed out"):
+                obj.cleavage_probs("MDS")
+
+    def test_container_is_pinned_offline_and_uses_local_install(self, tmp_path):
+        netchop_dir = tmp_path / "netchop-3.1"
+        (netchop_dir / "bin").mkdir(parents=True)
+        (netchop_dir / "bin" / "netChop").touch()
+        with patch("shutil.which", return_value="/usr/local/bin/docker"):
+            obj = NetChop(
+                execution="container",
+                netchop_dir=netchop_dir,
+                model_variant=0)
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value.stdout = GOOD_OUTPUT
+            mock_run.return_value.stderr = b""
+            mock_run.return_value.returncode = 0
+            assert obj.cleavage_probs("MDS") == [0.547588, 0.233, 0.1]
+        command = mock_run.call_args.args[0]
+        assert command[:3] == ["docker", "run", "--rm"]
+        assert command[command.index("--pull") + 1] == "never"
+        assert "--network" in command
+        assert command[command.index("--network") + 1] == "none"
+        assert "--read-only" in command
+        assert "--cap-drop" in command
+        assert obj.container_image.startswith("i386/debian@sha256:")
+        assert "%s:/netchop:ro" % netchop_dir.resolve() in command
+        assert command[-3:-1] == ["-v", "0"]
+
+    def test_missing_container_image_has_preload_hint(self, tmp_path):
+        netchop_dir = tmp_path / "netchop-3.1"
+        (netchop_dir / "bin").mkdir(parents=True)
+        (netchop_dir / "bin" / "netChop").touch()
+        with patch("shutil.which", return_value="/usr/local/bin/docker"):
+            obj = NetChop(execution="container", netchop_dir=netchop_dir)
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value.stdout = b""
+            mock_run.return_value.stderr = b"docker: No such image"
+            mock_run.return_value.returncode = 125
+            with pytest.raises(RuntimeError, match="docker pull --platform"):
                 obj.cleavage_probs("MDS")

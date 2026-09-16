@@ -213,6 +213,7 @@ _MANUAL_EXECUTABLES = {
         "detail": "Install MixMHCpred under its academic/non-commercial license",
     },
     "netchop": {
+        "environment_variables": ("NETCHOP_EXECUTABLE",),
         "executables": ("netChop",),
         "detail": (
             "Install NetChop from DTU Health Tech; its identity-bound "

@@ -654,6 +654,23 @@ results[0].presentation.score
 cleavage probabilities into peptide-level scores (see `ProcessingPredictor`
 and `ProteasomePredictor`).
 
+NetChop 3.1 ships as 32-bit x86 Linux binaries. On macOS and ARM Linux,
+`NetChop` automatically runs a user-supplied licensed installation in a
+digest-pinned compatibility container. Set `NETCHOP_HOME` to the directory
+containing `bin/netChop` (or set `NETMHC_BUNDLE_HOME` to its parent bundle)
+and preload the runtime image once:
+
+```sh
+docker pull --platform linux/386 \
+  i386/debian@sha256:75efd55b326373cf69989912388c0d50c5390638af7378d2fedc3aeb9d100e46
+```
+
+Inference itself runs with Docker network access disabled and image pulling
+forbidden. The licensed NetChop files and input directory are mounted
+read-only. Use `NetChop(execution="native")` or
+`NetChop(execution="container", netchop_dir="/path/to/netchop-3.1")` to
+select a backend explicitly.
+
 `NetCleave` is different: it emits a **single C-terminal cleavage score per
 peptide** and covers **both** the MHC-I proteasomal (`NetCleave_I` →
 `proteasome_cleavage`) and MHC-II endolysosomal (`NetCleave_II` →
