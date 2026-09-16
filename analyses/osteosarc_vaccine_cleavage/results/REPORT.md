@@ -64,7 +64,9 @@ Counts below are matched recognition sites across all disclosed SLP records. Req
 | fap-endo-gp | 3 |
 | enpep-acidic | 1 |
 
-![Peptidase motif matches](figures/slp_peptidase_motif_matches.png)
+![Extracellular and plasma peptidase motif matches](figures/slp_peptidase_motifs_extracellular.png)
+
+![Intracellular and ER peptidase motif matches](figures/slp_peptidase_motifs_intracellular_er.png)
 
 ## Interpretation boundary
 

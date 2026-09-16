@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+from datetime import datetime
 import hashlib
 import importlib.metadata
 import json
@@ -22,6 +23,7 @@ import tempfile
 from typing import Any, Iterable
 
 import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
 import numpy as np
 import pandas as pd
 
@@ -40,6 +42,26 @@ CANONICAL_AA = frozenset("ACDEFGHIKLMNPQRSTVWY")
 SLP_VACCINES = frozenset(("JLF V1", "JLF V2", "JLF V3", "CeGaT"))
 THRESHOLD = 0.5
 NETCHOP_IMAGE = "i386/debian@sha256:75efd55b326373cf69989912388c0d50c5390638af7378d2fedc3aeb9d100e46"
+EXTRACELLULAR_MOTIF_MODELS = [
+    "ace-dipeptidyl",
+    "mme-hydrophobic",
+    "cpb2-basic",
+    "cpn-basic",
+    "app2-xp",
+    "fap-dipeptidyl",
+    "fap-endo-gp",
+    "enpep-acidic",
+    "anpep-ala",
+]
+INTRACELLULAR_ER_MOTIF_MODELS = [
+    "app1-xp",
+    "tpp2-tripeptidyl",
+    "npepps-n-terminal",
+    "dpp8-xp-xa",
+    "dpp9-xp-xa",
+    "prep-pro",
+    "erap2-basic",
+]
 
 
 def sha256_file(path: Path) -> str:
@@ -790,7 +812,11 @@ def row_labels(records: pd.DataFrame) -> dict[str, str]:
     labels: dict[str, str] = {}
     seen: dict[str, int] = {}
     for _, record in records.iterrows():
-        base = f"{record['gene']} {record['protein_change'] or ''} · {record['vaccines']} · {record['length']} aa"
+        vaccines = record["vaccines"].replace(";", ", ")
+        base = (
+            f"{record['gene']} {record['protein_change'] or ''} · "
+            f"{vaccines} · {record['length']} aa"
+        )
         seen[base] = seen.get(base, 0) + 1
         labels[record["sequence_record_id"]] = (
             base if seen[base] == 1 else f"{base} [{seen[base]}]"
@@ -798,13 +824,32 @@ def row_labels(records: pd.DataFrame) -> dict[str, str]:
     return labels
 
 
-def save_figure(fig: plt.Figure, stem: Path) -> None:
+def save_figure(
+    fig: plt.Figure,
+    stem: Path,
+    pdf_pages: PdfPages,
+    figure_number: int,
+    figure_count: int,
+) -> None:
+    fig.text(
+        0.995,
+        0.005,
+        f"Osteosarc vaccine cleavage · Figure {figure_number} of {figure_count}",
+        ha="right",
+        va="bottom",
+        fontsize=7,
+        color="#555555",
+    )
     fig.savefig(stem.with_suffix(".png"), dpi=180, bbox_inches="tight")
+    pdf_pages.savefig(fig, bbox_inches="tight")
     plt.close(fig)
 
 
 def plot_quantitative_heatmap(
-    records: pd.DataFrame, summary_df: pd.DataFrame, figures_dir: Path
+    records: pd.DataFrame,
+    summary_df: pd.DataFrame,
+    figures_dir: Path,
+    pdf_pages: PdfPages,
 ) -> None:
     models = [
         "pepsickle-in-vivo-all-mammal",
@@ -819,19 +864,64 @@ def plot_quantitative_heatmap(
         index="sequence_record_id", columns="model", values="candidate_fraction"
     )
     matrix = matrix.reindex(index=records["sequence_record_id"], columns=models)
-    fig, ax = plt.subplots(figsize=(12, max(12, 0.34 * len(matrix))))
+    display_labels = [
+        "Pepsickle\nall-mammal",
+        "Pepsickle\nhuman-only",
+        "NetChop\nCterm 3.0",
+        "NetChop\n20S 3.0",
+        "NetCleave I\npan-HLA",
+        "NetCleave II\npan-HLA",
+    ]
+    fig, ax = plt.subplots(figsize=(16, 10.5))
     masked = np.ma.masked_invalid(matrix.to_numpy(dtype=float))
-    image = ax.imshow(masked, aspect="auto", vmin=0, vmax=1, cmap="magma")
-    ax.set_xticks(range(len(models)), labels=models, rotation=35, ha="right")
+    cmap = plt.get_cmap("magma").copy()
+    cmap.set_bad("#d9d9d9")
+    image = ax.imshow(masked, aspect="auto", vmin=0, vmax=1, cmap=cmap)
+    ax.set_xticks(range(len(models)), labels=display_labels)
+    ax.tick_params(axis="x", labelsize=9, pad=6)
     ax.set_yticks(
         range(len(matrix)), labels=[labels[index] for index in matrix.index], fontsize=8
     )
-    ax.set_title("Fraction of assessable internal bonds at or above 0.5")
+    ax.set_title(
+        "Fraction of assessable internal bonds at or above 0.5",
+        fontsize=14,
+        pad=34,
+    )
+    ax.text(
+        2,
+        -2.2,
+        "Proteasome / MHC-I processing models",
+        ha="center",
+        va="center",
+        fontsize=9,
+        fontweight="bold",
+    )
+    ax.text(
+        5,
+        -2.2,
+        "MHC-II processing model",
+        ha="center",
+        va="center",
+        fontsize=9,
+        fontweight="bold",
+    )
+    ax.axvline(4.5, color="white", linewidth=4)
+    ax.axvline(4.5, color="#444444", linewidth=0.8)
     ax.set_xlabel("Model (native scores; fractions are not cross-model probabilities)")
     ax.set_ylabel("Disclosed synthetic long-peptide record")
     for y in range(masked.shape[0]):
         for x in range(masked.shape[1]):
-            if not masked.mask[y, x]:
+            if masked.mask[y, x]:
+                ax.text(
+                    x,
+                    y,
+                    "NA",
+                    ha="center",
+                    va="center",
+                    fontsize=6,
+                    color="#555555",
+                )
+            else:
                 ax.text(
                     x,
                     y,
@@ -841,77 +931,157 @@ def plot_quantitative_heatmap(
                     fontsize=6,
                     color="white" if masked[y, x] > 0.48 else "black",
                 )
-    fig.colorbar(image, ax=ax, label="within-model fraction")
-    save_figure(fig, figures_dir / "slp_quantitative_hit_fraction")
+    colorbar = fig.colorbar(image, ax=ax, label="within-model fraction")
+    colorbar.ax.text(
+        0.5,
+        -0.035,
+        "Gray = not assessable",
+        transform=colorbar.ax.transAxes,
+        ha="center",
+        va="top",
+        fontsize=7,
+    )
+    save_figure(
+        fig,
+        figures_dir / "slp_quantitative_hit_fraction",
+        pdf_pages,
+        figure_number=2,
+        figure_count=4,
+    )
 
 
 def plot_motif_heatmap(
     records: pd.DataFrame,
     summary_df: pd.DataFrame,
-    model_catalog_df: pd.DataFrame,
     figures_dir: Path,
+    pdf_pages: PdfPages,
+    models: list[str],
+    title: str,
+    stem: str,
+    figure_number: int,
 ) -> None:
-    models = list(
-        model_catalog_df.loc[
-            (model_catalog_df["included"] == True)  # noqa: E712
-            & (model_catalog_df["evidence_type"] == "motif_rule"),
-            "model",
-        ]
-    )
     labels = row_labels(records)
     matrix = summary_df.loc[summary_df["model"].isin(models)].pivot(
         index="sequence_record_id", columns="model", values="matched_sites"
     )
     matrix = matrix.reindex(index=records["sequence_record_id"], columns=models)
-    fig, ax = plt.subplots(figsize=(15, max(12, 0.34 * len(matrix))))
+    fig, ax = plt.subplots(figsize=(16, 10.5))
     masked = np.ma.masked_invalid(matrix.to_numpy(dtype=float))
     max_count = max(1.0, float(np.nanmax(matrix.to_numpy(dtype=float))))
-    image = ax.imshow(masked, aspect="auto", vmin=0, vmax=max_count, cmap="viridis")
+    cmap = plt.get_cmap("viridis").copy()
+    cmap.set_bad("#d9d9d9")
+    image = ax.imshow(masked, aspect="auto", vmin=0, vmax=max_count, cmap=cmap)
     ax.set_xticks(
         range(len(models)), labels=models, rotation=45, ha="right", fontsize=8
     )
     ax.set_yticks(
         range(len(matrix)), labels=[labels[index] for index in matrix.index], fontsize=8
     )
-    ax.set_title("Matched peptidase motif sites on intact, free-terminal SLPs")
+    ax.set_title(title, fontsize=14, pad=28)
+    ax.text(
+        0.5,
+        1.01,
+        "Compartment grouping is for readability; see model_catalog.csv for full context.",
+        transform=ax.transAxes,
+        ha="center",
+        va="bottom",
+        fontsize=7,
+        color="#555555",
+    )
     ax.set_xlabel("Curated recognition rule (a match is not a cleavage probability)")
     ax.set_ylabel("Disclosed synthetic long-peptide record")
     for y in range(masked.shape[0]):
         for x in range(masked.shape[1]):
-            if not masked.mask[y, x] and masked[y, x] > 0:
+            if masked.mask[y, x]:
                 ax.text(
-                    x, y, str(int(masked[y, x])), ha="center", va="center", fontsize=7
+                    x,
+                    y,
+                    "NA",
+                    ha="center",
+                    va="center",
+                    fontsize=6,
+                    color="#555555",
                 )
-    fig.colorbar(image, ax=ax, label="matched sites")
-    save_figure(fig, figures_dir / "slp_peptidase_motif_matches")
+            elif masked[y, x] > 0:
+                normalized = masked[y, x] / max_count
+                ax.text(
+                    x,
+                    y,
+                    str(int(masked[y, x])),
+                    ha="center",
+                    va="center",
+                    fontsize=7,
+                    color="white" if normalized < 0.5 else "black",
+                )
+    colorbar = fig.colorbar(image, ax=ax, label="matched sites")
+    colorbar.ax.text(
+        0.5,
+        -0.035,
+        "Gray = unsupported",
+        transform=colorbar.ax.transAxes,
+        ha="center",
+        va="top",
+        fontsize=7,
+    )
+    save_figure(
+        fig,
+        figures_dir / stem,
+        pdf_pages,
+        figure_number=figure_number,
+        figure_count=4,
+    )
 
 
-def plot_score_distributions(quantitative_df: pd.DataFrame, figures_dir: Path) -> None:
+def plot_score_distributions(
+    quantitative_df: pd.DataFrame, figures_dir: Path, pdf_pages: PdfPages
+) -> None:
     models = [
         "pepsickle-in-vivo-all-mammal",
-        "pepsickle-in-vivo-human-only",
         "netchop-3.1-cterm-3.0",
-        "netchop-3.1-20s-3.0",
         "netcleave-i-hla",
+        "pepsickle-in-vivo-human-only",
+        "netchop-3.1-20s-3.0",
         "netcleave-ii-hla",
     ]
-    fig, axes = plt.subplots(2, 3, figsize=(14, 8), sharex=True, sharey=False)
+    fig, axes = plt.subplots(2, 3, figsize=(15, 9), sharex=True, sharey=True)
     for ax, model in zip(axes.flat, models):
         values = quantitative_df.loc[
             (quantitative_df["model"] == model) & quantitative_df["assessable"],
             "score",
         ].dropna()
-        ax.hist(values, bins=np.linspace(0, 1, 31), color="#3366a6", alpha=0.85)
-        ax.axvline(THRESHOLD, color="#b33a3a", linestyle="--", linewidth=1)
+        weights = np.full(len(values), 100.0 / len(values))
+        ax.hist(
+            values,
+            bins=np.linspace(0, 1, 31),
+            weights=weights,
+            color="#3366a6",
+            alpha=0.85,
+        )
+        ax.axvline(
+            THRESHOLD,
+            color="#b33a3a",
+            linestyle="--",
+            linewidth=1,
+            label="0.5 display threshold",
+        )
         ax.set_title(f"{model}\nn={len(values):,} assessable bonds", fontsize=10)
         ax.set_xlabel("native score")
-        ax.set_ylabel("bond count")
+        ax.set_ylabel("assessable bonds per bin (%)")
+        ax.tick_params(axis="x", labelbottom=True)
     fig.suptitle(
         "Native output distributions (panels are not calibrated to one another)",
         fontsize=14,
     )
-    fig.tight_layout()
-    save_figure(fig, figures_dir / "quantitative_score_distributions")
+    handles, labels = axes.flat[0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="upper center", bbox_to_anchor=(0.5, 0.945))
+    fig.tight_layout(rect=(0, 0.02, 1, 0.91))
+    save_figure(
+        fig,
+        figures_dir / "quantitative_score_distributions",
+        pdf_pages,
+        figure_number=1,
+        figure_count=4,
+    )
 
 
 def correlations(quantitative_df: pd.DataFrame) -> pd.DataFrame:
@@ -1095,7 +1265,9 @@ def write_report(
     lines.extend(
         [
             "",
-            "![Peptidase motif matches](figures/slp_peptidase_motif_matches.png)",
+            "![Extracellular and plasma peptidase motif matches](figures/slp_peptidase_motifs_extracellular.png)",
+            "",
+            "![Intracellular and ER peptidase motif matches](figures/slp_peptidase_motifs_intracellular_er.png)",
             "",
             "## Interpretation boundary",
             "",
@@ -1137,6 +1309,8 @@ def main() -> None:
     figures_dir.mkdir(parents=True, exist_ok=True)
 
     variants_path = args.osteosarc_repo / "src/data/variants.json"
+    source_commit = git_value(args.osteosarc_repo, "%H")
+    source_date = git_value(args.osteosarc_repo, "%cI")
     inventory_df, missing_df, conflicts_df = extract_inventory(variants_path)
     records = slp_records(inventory_df)
 
@@ -1186,9 +1360,56 @@ def main() -> None:
         tables_dir / "quantitative_model_spearman_correlations.csv"
     )
 
-    plot_quantitative_heatmap(records, summary_df, figures_dir)
-    plot_motif_heatmap(records, summary_df, model_catalog_df, figures_dir)
-    plot_score_distributions(quantitative_df, figures_dir)
+    included_motifs = set(
+        model_catalog_df.loc[
+            model_catalog_df["included"]
+            & (model_catalog_df["evidence_type"] == "motif_rule"),
+            "model",
+        ]
+    )
+    grouped_motifs = set(EXTRACELLULAR_MOTIF_MODELS) | set(
+        INTRACELLULAR_ER_MOTIF_MODELS
+    )
+    if included_motifs != grouped_motifs:
+        raise RuntimeError(
+            "Motif figure groups do not cover the included models exactly: "
+            f"missing={sorted(included_motifs - grouped_motifs)}, "
+            f"extra={sorted(grouped_motifs - included_motifs)}"
+        )
+
+    old_motif_figure = figures_dir / "slp_peptidase_motif_matches.png"
+    old_motif_figure.unlink(missing_ok=True)
+    pdf_metadata = {
+        "Title": "Osteosarc vaccine SLP cleavage prediction figures",
+        "Author": "mhctools",
+        "Subject": "Model-specific cleavage scores and peptidase motif matches",
+        "Keywords": "osteosarcoma vaccine SLP cleavage proteasome peptidase",
+        "CreationDate": datetime.fromisoformat(source_date),
+        "ModDate": datetime.fromisoformat(source_date),
+    }
+    with PdfPages(output_dir / "all-figures.pdf", metadata=pdf_metadata) as pdf_pages:
+        plot_score_distributions(quantitative_df, figures_dir, pdf_pages)
+        plot_quantitative_heatmap(records, summary_df, figures_dir, pdf_pages)
+        plot_motif_heatmap(
+            records,
+            summary_df,
+            figures_dir,
+            pdf_pages,
+            EXTRACELLULAR_MOTIF_MODELS,
+            "Extracellular and plasma peptidase motif matches",
+            "slp_peptidase_motifs_extracellular",
+            figure_number=3,
+        )
+        plot_motif_heatmap(
+            records,
+            summary_df,
+            figures_dir,
+            pdf_pages,
+            INTRACELLULAR_ER_MOTIF_MODELS,
+            "Intracellular and ER peptidase motif matches",
+            "slp_peptidase_motifs_intracellular_er",
+            figure_number=4,
+        )
     write_report(
         output_dir / "REPORT.md",
         inventory_df,
@@ -1196,8 +1417,8 @@ def main() -> None:
         missing_df,
         conflicts_df,
         summary_df,
-        git_value(args.osteosarc_repo, "%H"),
-        git_value(args.osteosarc_repo, "%cI"),
+        source_commit,
+        source_date,
     )
 
     provenance = {
@@ -1205,8 +1426,8 @@ def main() -> None:
         "source": {
             "site": "https://osteosarc.com/",
             "repository": "https://gitlab.com/slowkow/osteosarc.com",
-            "commit": git_value(args.osteosarc_repo, "%H"),
-            "commit_date": git_value(args.osteosarc_repo, "%cI"),
+            "commit": source_commit,
+            "commit_date": source_date,
             "variants_json_sha256": sha256_file(variants_path),
         },
         "analysis": {
