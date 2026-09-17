@@ -1994,7 +1994,7 @@ def plot_sequence_atlas_page(
             ax.text(
                 residue_end + 0.45,
                 omitted_y,
-                f"+{omitted} additional span{'s' if omitted != 1 else ''}\nin CSV",
+                f"+{omitted} more in CSV",
                 ha="right",
                 va="center",
                 fontsize=6.6,
