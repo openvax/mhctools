@@ -2584,6 +2584,51 @@ def render_manuscript_figures(
             )
 
 
+def write_manuscript_caption(path: Path, selection_df: pd.DataFrame) -> None:
+    """Write a self-contained caption and the objective panel-selection audit."""
+    lines = [
+        "# Manuscript figure caption",
+        "",
+        "**Figure. Sequence-aligned cleavage and MHC-ligand evidence for four disclosed "
+        "osteosarcoma vaccine SLPs.** Each full-size panel centers the vaccine sequence; "
+        "gold marks the disclosed intended minimal epitope. Intracellular/class-I "
+        "processing evidence is above the sequence, and endolysosomal/class-II plus "
+        "serum/extracellular evidence is below it. Lines connect adjacent exact native "
+        "bond scores without smoothing. Red sequence marks require all four displayed "
+        "intracellular models to assess a bond and at least three to reach the 0.5 display "
+        "threshold; filled/open beads show the support count and are not probabilities. "
+        "Blue and purple bars are selected MHC-I and MHC-II ligand windows at <=2% and "
+        "<=5% native percentile rank, respectively. Their selection favors intended-"
+        "epitope overlap, then distinct alleles, then native rank; all predictions remain "
+        "in the accompanying CSV.",
+        "",
+        "Panels were chosen by declared complementary criteria, with different genes and "
+        "a disclosed intended epitope on every page:",
+        "",
+    ]
+    for row in selection_df.itertuples(index=False):
+        lines.append(
+            f"- **{row.panel}, {row.gene} {row.protein_change}.** {row.selection_reason.capitalize()}. "
+            f"Audit metrics: {row.intended_epitope_internal_conservative_cuts} conservative "
+            "internal intended-epitope cut site(s), "
+            f"{row.intended_epitope_overlapping_mhc_candidates} eligible MHC window(s) "
+            "overlapping the intended epitope, "
+            f"{row.mhc_i_candidate_count} class-I and {row.mhc_ii_candidate_count} class-II "
+            "eligible windows overall."
+        )
+    lines.extend(
+        [
+            "",
+            "The 0.5 score cutoff is a common visualization threshold, not a calibrated "
+            "cleavage probability. Predictors have different training data and biological "
+            "scope; agreement does not establish in-vivo degradation, uptake, presentation, "
+            "or MHC protection.",
+            "",
+        ]
+    )
+    path.write_text("\n".join(lines), encoding="utf-8")
+
+
 def correlations(quantitative_df: pd.DataFrame) -> pd.DataFrame:
     thresholded = quantitative_df.loc[
         quantitative_df["display_threshold"].notna() & quantitative_df["assessable"]
@@ -2806,7 +2851,9 @@ def write_report(
         "full-size readable maps rather than shrinking them into a crowded contact sheet. "
         "Its examples are selected by four declared criteria—internal intended-epitope cut evidence, "
         "apparent preservation with overlapping MHC windows, class-I density, and class-II density—"
-        "recorded in [the manuscript selection table](tables/manuscript_figure_selection.csv).",
+        "recorded in [the manuscript selection table](tables/manuscript_figure_selection.csv). "
+        "A [self-contained caption](MANUSCRIPT_CAPTION.md) defines every visual encoding and "
+        "lists the panel-specific selection audit.",
         "The atlas shows four intracellular quantitative tracks: human-only Pepsickle, NetChop Cterm, NetChop 20S, "
         "and NetCleave-I. Cterm is ligand-trained and emphasizes candidate MHC-I boundaries, whereas 20S is retained "
         "as a distinct in-vitro proteasome view rather than a substitute for Cterm. The human-only Pepsickle model is "
@@ -3069,6 +3116,9 @@ def main() -> None:
         ligand_df,
         manuscript_selection_df,
         generated_at,
+    )
+    write_manuscript_caption(
+        output_dir / "MANUSCRIPT_CAPTION.md", manuscript_selection_df
     )
     write_report(
         output_dir / "REPORT.md",

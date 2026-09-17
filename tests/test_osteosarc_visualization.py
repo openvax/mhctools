@@ -147,6 +147,29 @@ def test_ligand_display_never_draws_same_span_twice_across_alleles():
     assert selected.iloc[0]["allele"] == "HLA-A*01:01"
 
 
+def test_manuscript_caption_defines_visuals_and_selection_audit(tmp_path):
+    selection = pd.DataFrame(
+        [
+            {
+                "panel": "A",
+                "gene": "GENE1",
+                "protein_change": "p.Arg1Gly",
+                "selection_reason": "representative criterion",
+                "intended_epitope_internal_conservative_cuts": 2,
+                "intended_epitope_overlapping_mhc_candidates": 7,
+                "mhc_i_candidate_count": 4,
+                "mhc_ii_candidate_count": 3,
+            }
+        ]
+    )
+    path = tmp_path / "caption.md"
+    ANALYSIS.write_manuscript_caption(path, selection)
+    text = path.read_text()
+    assert "**A, GENE1 p.Arg1Gly.**" in text
+    assert "not probabilities" in text
+    assert "agreement does not establish in-vivo degradation" in text
+
+
 def test_score_matrix_keeps_zero_distinct_from_unassessed():
     models = ANALYSIS.QUANTITATIVE_SITE_MODELS[:2]
     scores = pd.DataFrame(
