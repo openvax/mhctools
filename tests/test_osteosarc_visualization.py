@@ -12,10 +12,7 @@ pytest.importorskip("scipy")
 
 
 SCRIPT_PATH = (
-    Path(__file__).parents[1]
-    / "analyses"
-    / "osteosarc_vaccine_cleavage"
-    / "analyze.py"
+    Path(__file__).parents[1] / "analyses" / "osteosarc_vaccine_cleavage" / "analyze.py"
 )
 SPEC = spec_from_file_location("osteosarc_vaccine_cleavage_analysis", SCRIPT_PATH)
 assert SPEC is not None and SPEC.loader is not None
@@ -115,9 +112,7 @@ def test_continuous_score_runs_preserve_values_and_break_at_missing_bonds():
 
 
 def test_standalone_map_stem_is_stable_safe_and_segments_long_sequences():
-    stem = ANALYSIS.standalone_map_stem(
-        7, "MT_ND5-chrM-12994:vaccine-peptide-1", 2, 3
-    )
+    stem = ANALYSIS.standalone_map_stem(7, "MT_ND5-chrM-12994:vaccine-peptide-1", 2, 3)
     assert stem == "07-mt-nd5-chrm-12994-vaccine-peptide-1-segment-2-of-3"
 
 
@@ -145,9 +140,7 @@ def test_red_cut_requires_three_hits_and_all_four_display_tracks_assessed():
         }
         for model in ANALYSIS.FIGURE_CYTOSOL_MODELS[:3]
     ]
-    incomplete = ANALYSIS.annotate_ligand_cleavage_exposure(
-        ligand, pd.DataFrame(rows)
-    )
+    incomplete = ANALYSIS.annotate_ligand_cleavage_exposure(ligand, pd.DataFrame(rows))
     assert incomplete.iloc[0]["internal_candidate_cleavage_bonds"] == ""
 
     rows.append(
@@ -159,10 +152,30 @@ def test_red_cut_requires_three_hits_and_all_four_display_tracks_assessed():
             "assessable": True,
         }
     )
-    complete = ANALYSIS.annotate_ligand_cleavage_exposure(
-        ligand, pd.DataFrame(rows)
-    )
+    complete = ANALYSIS.annotate_ligand_cleavage_exposure(ligand, pd.DataFrame(rows))
     assert complete.iloc[0]["internal_candidate_cleavage_bonds"] == "2(3/4)"
+
+
+def test_conservative_cut_support_counts_models_not_duplicate_rows():
+    rows = [
+        {
+            "sequence_record_id": "record",
+            "model": model,
+            "bond": 2,
+            "score": 0.8 if index < 3 else 0.2,
+            "assessable": True,
+        }
+        for index, model in enumerate(ANALYSIS.FIGURE_CYTOSOL_MODELS)
+    ]
+    rows.append(dict(rows[0]))
+    support = ANALYSIS.conservative_cut_support(
+        pd.DataFrame(rows),
+        "record",
+        [1, 2],
+        ANALYSIS.FIGURE_CYTOSOL_MODELS,
+        ANALYSIS.FIGURE_RED_SUPPORT_REQUIRED,
+    )
+    assert support == {2: (3, 4)}
 
 
 def test_merge_residue_spans_forms_a_binary_coverage_overlay():

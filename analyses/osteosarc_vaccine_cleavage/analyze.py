@@ -271,7 +271,9 @@ def slp_records(inventory_df: pd.DataFrame) -> pd.DataFrame:
     ].copy()
 
 
-def peptide_windows(sequence: str, lengths: Iterable[int]) -> list[tuple[int, int, str]]:
+def peptide_windows(
+    sequence: str, lengths: Iterable[int]
+) -> list[tuple[int, int, str]]:
     """Return 1-based inclusive peptide windows for the requested lengths."""
     return [
         (start + 1, start + length, sequence[start : start + length])
@@ -301,7 +303,9 @@ def _window_overlaps_minimal(record: pd.Series, start: int, end: int) -> bool:
     return bool(bounds and start <= bounds[1] and end >= bounds[0])
 
 
-def mhcflurry_ligand_rows(records: pd.DataFrame) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+def mhcflurry_ligand_rows(
+    records: pd.DataFrame,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """Predict class-I ligand windows locally with MHCflurry presentation."""
     from mhcflurry import Class1PresentationPredictor
     from mhcflurry.downloads import (
@@ -322,7 +326,9 @@ def mhcflurry_ligand_rows(records: pd.DataFrame) -> tuple[list[dict[str, Any]], 
             n_flanks.append(sequence[max(0, start - 16) : start - 1])
             c_flanks.append(sequence[end : min(len(sequence), end + 15)])
 
-    sample_to_allele = {f"class_i_{i}": [allele] for i, allele in enumerate(MHC_I_ALLELES)}
+    sample_to_allele = {
+        f"class_i_{i}": [allele] for i, allele in enumerate(MHC_I_ALLELES)
+    }
     frame = predictor.predict(
         peptides=peptides,
         alleles=sample_to_allele,
@@ -447,7 +453,11 @@ def netmhciipan_ligand_rows(
     predictor_output = completed.stdout + "\n" + completed.stderr
     parsed = _parse_netmhciipan_rows(predictor_output)
     version_line = next(
-        (line.lstrip("# ") for line in predictor_output.splitlines() if "version 4.3" in line),
+        (
+            line.lstrip("# ")
+            for line in predictor_output.splitlines()
+            if "version 4.3" in line
+        ),
         "NetMHCIIpan version 4.3",
     )
     rows: list[dict[str, Any]] = []
@@ -509,7 +519,9 @@ def annotate_ligand_cleavage_exposure(
         models = FIGURE_CYTOSOL_MODELS if row.mhc_class == "I" else ["netcleave-ii-hla"]
 
         def support(bond: int) -> tuple[int, int]:
-            values = [lookup.get((row.sequence_record_id, model, bond)) for model in models]
+            values = [
+                lookup.get((row.sequence_record_id, model, bond)) for model in models
+            ]
             values = [value for value in values if value is not None]
             return sum(value[0] for value in values), sum(value[1] for value in values)
 
@@ -531,6 +543,34 @@ def annotate_ligand_cleavage_exposure(
     return output
 
 
+def conservative_cut_support(
+    quantitative_df: pd.DataFrame,
+    record_id: str,
+    bonds: Iterable[int],
+    models: list[str],
+    required_hits: int,
+) -> dict[int, tuple[int, int]]:
+    """Return fully assessed bonds meeting a conservative support-count rule."""
+    requested_bonds = {int(bond) for bond in bonds}
+    subset = quantitative_df.loc[
+        (quantitative_df["sequence_record_id"] == record_id)
+        & quantitative_df["model"].isin(models)
+        & quantitative_df["bond"].isin(requested_bonds)
+        & quantitative_df["assessable"],
+        ["model", "bond", "score"],
+    ]
+    # A model gets one vote per bond even if an upstream adapter emitted a
+    # duplicate row. The atlas must never turn duplicate output into support.
+    unique_scores = subset.groupby(["bond", "model"], as_index=False)["score"].max()
+    supported: dict[int, tuple[int, int]] = {}
+    for bond, group in unique_scores.groupby("bond"):
+        assessed = int(group["model"].nunique())
+        hits = int((group["score"] >= THRESHOLD).sum())
+        if assessed == len(models) and hits >= required_hits:
+            supported[int(bond)] = (hits, assessed)
+    return supported
+
+
 def vulnerable_bond_table(
     records: pd.DataFrame, quantitative_df: pd.DataFrame, motifs_df: pd.DataFrame
 ) -> pd.DataFrame:
@@ -538,7 +578,9 @@ def vulnerable_bond_table(
     record_lookup = records.set_index("sequence_record_id")
     rows: list[dict[str, Any]] = []
 
-    def append_row(record_id: str, bond: int, context: str, models: list[str], rule: str) -> None:
+    def append_row(
+        record_id: str, bond: int, context: str, models: list[str], rule: str
+    ) -> None:
         record = record_lookup.loc[record_id]
         bounds = _minimal_epitope_bounds(record)
         rows.append(
@@ -1251,9 +1293,7 @@ def clustered_orders(
     site_scores = quantitative_df.loc[
         quantitative_df["model"].isin(FIGURE_QUANTITATIVE_MODELS)
         & quantitative_df["assessable"]
-    ].pivot_table(
-        index=["sequence_record_id", "bond"], columns="model", values="score"
-    )
+    ].pivot_table(index=["sequence_record_id", "bond"], columns="model", values="score")
     correlations_df = site_scores.corr(method="spearman", min_periods=10).reindex(
         index=FIGURE_QUANTITATIVE_MODELS, columns=FIGURE_QUANTITATIVE_MODELS
     )
@@ -1269,9 +1309,7 @@ def clustered_orders(
 
     profiles = summary_df.loc[
         summary_df["model"].isin(FIGURE_QUANTITATIVE_MODELS)
-    ].pivot(
-        index="sequence_record_id", columns="model", values="candidate_fraction"
-    )
+    ].pivot(index="sequence_record_id", columns="model", values="candidate_fraction")
     profiles = profiles.reindex(
         index=records["sequence_record_id"], columns=FIGURE_QUANTITATIVE_MODELS
     )
@@ -1477,9 +1515,7 @@ def continuous_score_runs(
             run_bonds = []
             run_scores = []
     if run_bonds:
-        runs.append(
-            (np.asarray(run_bonds, dtype=float) + 0.5, np.asarray(run_scores))
-        )
+        runs.append((np.asarray(run_bonds, dtype=float) + 0.5, np.asarray(run_scores)))
     return runs
 
 
@@ -1588,6 +1624,27 @@ def plot_sequence_atlas_page(
     ax.set_ylim(-4.55, 5.95)
     ax.axis("off")
 
+    # The sequence is the coordinate system, not merely another annotation.
+    ax.add_patch(
+        Rectangle(
+            (residue_start - 0.47, -0.48),
+            residue_end - residue_start + 0.94,
+            0.96,
+            facecolor="#f4f6f8",
+            edgecolor="none",
+            zorder=-1,
+        )
+    )
+    for bond in bonds:
+        ax.plot(
+            [bond + 0.5, bond + 0.5],
+            [-0.16, 0.16],
+            color="#9da7b0",
+            linewidth=0.55,
+            alpha=0.65,
+            zorder=2,
+        )
+
     # Disclosed intended minimal epitope: gold behind the actual residue letters.
     minimal_bounds = _minimal_epitope_bounds(record)
     if minimal_bounds:
@@ -1615,7 +1672,7 @@ def plot_sequence_atlas_page(
             ha="center",
             va="center",
             family="monospace",
-            fontsize=19,
+            fontsize=21,
             fontweight="bold",
             color="#18222d",
             zorder=5,
@@ -1644,17 +1701,16 @@ def plot_sequence_atlas_page(
         "netcleave-ii-hla": "#6f4aa8",
     }
     model_y = {
-        model: 2.42 + index * 0.78
-        for index, model in enumerate(FIGURE_CYTOSOL_MODELS)
+        model: 2.42 + index * 0.78 for index, model in enumerate(FIGURE_CYTOSOL_MODELS)
     }
-    model_y["netcleave-ii-hla"] = -1.86
+    model_y["netcleave-ii-hla"] = -2.08
     model_scores = _score_matrix(
         record_id, quantitative_df, FIGURE_QUANTITATIVE_MODELS, bonds
     )
     for model_index, model in enumerate(FIGURE_QUANTITATIVE_MODELS):
         y = model_y[model]
         direction = 1 if model in FIGURE_CYTOSOL_MODELS else -1
-        amplitude = 0.64
+        amplitude = 0.64 if direction > 0 else 0.56
         ax.plot(
             [residue_start - 0.45, residue_end + 0.45],
             [y, y],
@@ -1674,7 +1730,7 @@ def plot_sequence_atlas_page(
         ax.text(
             residue_start - 0.68,
             y,
-            f"{ATLAS_MODEL_LABELS[model]}  0-1",
+            f"{ATLAS_MODEL_LABELS[model]}  native 0-1",
             ha="right",
             va="center",
             fontsize=8.2,
@@ -1683,7 +1739,7 @@ def plot_sequence_atlas_page(
         ax.text(
             residue_end + 0.55,
             y + direction * amplitude * THRESHOLD,
-            "0.5",
+            "0.5 display",
             ha="left",
             va="center",
             fontsize=6.8,
@@ -1740,29 +1796,57 @@ def plot_sequence_atlas_page(
         fontweight="bold",
         color="#46515b",
     )
+    ax.text(
+        residue_end + 0.45,
+        5.65,
+        "higher native score upward",
+        ha="right",
+        va="center",
+        fontsize=7.2,
+        color="#66717b",
+    )
 
-    # A slash directly between letters marks conservative multi-model support.
-    class_i = score_subset.loc[score_subset["model"].isin(FIGURE_CYTOSOL_MODELS)]
-    for bond, group in class_i.groupby("bond"):
-        assessed = group["model"].nunique()
-        hits = group.loc[group["score"] >= THRESHOLD, "model"].nunique()
-        if assessed == len(FIGURE_CYTOSOL_MODELS) and hits >= FIGURE_RED_SUPPORT_REQUIRED:
-            x = int(bond) + 0.5
-            ax.plot([x, x], [-0.47, 0.47], color="#b3212d", linewidth=3.0, zorder=6)
-            ax.text(
-                x,
-                0.7,
-                f"{hits}/{assessed}",
-                ha="center",
-                va="bottom",
-                fontsize=7.4,
-                fontweight="bold",
-                color="#8f1520",
-            )
+    # A bond mark and faint guide connect conservative support in the four
+    # distant traces to the exact inter-residue coordinate. Four beads encode
+    # the vote without placing a text label on top of an MHC candidate bar.
+    cut_support = conservative_cut_support(
+        quantitative_df,
+        record_id,
+        bonds,
+        FIGURE_CYTOSOL_MODELS,
+        FIGURE_RED_SUPPORT_REQUIRED,
+    )
+    for bond, (hits, assessed) in cut_support.items():
+        x = bond + 0.5
+        ax.plot(
+            [x, x],
+            [0.48, 5.42],
+            color="#b3212d",
+            linewidth=0.65,
+            alpha=0.18,
+            linestyle=(0, (2, 3)),
+            zorder=0,
+        )
+        ax.plot([x, x], [-0.47, 0.47], color="#b3212d", linewidth=2.5, zorder=6)
+        bead_y = np.linspace(-0.27, 0.27, assessed)
+        ax.scatter(
+            [x] * assessed,
+            bead_y,
+            s=17,
+            facecolors=[
+                "#b3212d" if index < hits else "white" for index in range(assessed)
+            ],
+            edgecolors="#8f1520",
+            linewidths=0.65,
+            zorder=7,
+        )
 
     # Native peptidase outputs without a validated common threshold.
     terminal_y = {"eramer-step": 1.98, "dpp4-qpisa": -3.18}
-    terminal_label = {"eramer-step": "ERAP1 / ERAMER", "dpp4-qpisa": "DPP4 native"}
+    terminal_label = {
+        "eramer-step": "ERAP1 / ERAMER",
+        "dpp4-qpisa": "DPP4 native (intact SLP)",
+    }
     terminal_color = {"eramer-step": "#6a4492", "dpp4-qpisa": "#8a5a00"}
     for model, y in terminal_y.items():
         ax.text(
@@ -1906,13 +1990,11 @@ def plot_sequence_atlas_page(
             )
         omitted = len(unique_candidates) - drawn
         if omitted > 0:
-            omitted_y = (
-                max(lane_y) + 0.34 if mhc_class == "I" else min(lane_y) - 0.34
-            )
+            omitted_y = max(lane_y) + 0.34 if mhc_class == "I" else min(lane_y) - 0.12
             ax.text(
                 residue_end + 0.45,
                 omitted_y,
-                f"+{omitted} additional span{'s' if omitted != 1 else ''}\nin CSV",
+                f"+{omitted} more in CSV",
                 ha="right",
                 va="center",
                 fontsize=6.6,
@@ -1922,8 +2004,29 @@ def plot_sequence_atlas_page(
     draw_ligands("I", [0.68, 1.03, 1.38], "#2878b5")
     draw_ligands("II", [-0.72, -1.07, -1.42], "#5b3d91")
 
+    ax.text(
+        residue_start - 0.68,
+        -1.78,
+        "ENDOLYSOSOMAL / CLASS-II PROCESSING - C-terminal score track",
+        ha="left",
+        va="center",
+        fontsize=8.3,
+        fontweight="bold",
+        color="#46515b",
+    )
+    ax.text(
+        residue_end + 0.45,
+        -1.78,
+        "higher native score downward",
+        ha="right",
+        va="center",
+        fontsize=7.2,
+        color="#66717b",
+    )
+
     motif_abbreviation = {
-        model: MOTIF_DISPLAY_NAMES[model].split(" - ", 1)[0] for model in MOTIF_DISPLAY_NAMES
+        model: MOTIF_DISPLAY_NAMES[model].split(" - ", 1)[0]
+        for model in MOTIF_DISPLAY_NAMES
     }
     matched = motifs_df.loc[
         (motifs_df["sequence_record_id"] == record_id)
@@ -1944,7 +2047,9 @@ def plot_sequence_atlas_page(
             color=color,
         )
         for bond, group in matched.loc[matched["model"].isin(models)].groupby("bond"):
-            names = "+".join(motif_abbreviation[model] for model in sorted(group["model"].unique()))
+            names = "+".join(
+                motif_abbreviation[model] for model in sorted(group["model"].unique())
+            )
             x = int(bond) + 0.5
             marker = "^" if y > 0 else "v"
             label_y = y + 0.16 if y > 0 else y - 0.16
@@ -2012,7 +2117,7 @@ def plot_sequence_atlas_page(
     fig.text(
         0.5,
         0.057,
-        "RED CUTS  All four intracellular tracks must assess the bond and at least three must score >=0.5. The 3/4 or 4/4 label is support, not probability.",
+        "RED BOND MARKS  All four intracellular tracks assess the bond; >=3 reach 0.5. Four beads show support (filled = hit, open = miss), not probability.",
         ha="center",
         va="center",
         fontsize=8.8,
@@ -2174,15 +2279,15 @@ def validate_hla_inputs(hla_path: Path, variants_path: Path) -> None:
     disclosed = {f"HLA-{allele}" for allele in normal["allele"]}
     for allele in MHC_I_ALLELES:
         if allele not in disclosed:
-            raise ValueError(f"Class-I prediction allele not found in source HLA table: {allele}")
+            raise ValueError(
+                f"Class-I prediction allele not found in source HLA table: {allele}"
+            )
 
     variants = json.loads(variants_path.read_text(encoding="utf-8"))
     source_pairs = {
         value
         for variant in variants
-        for value in [
-            (variant.get("peptides") or {}).get("pvac25_best_allele")
-        ]
+        for value in [(variant.get("peptides") or {}).get("pvac25_best_allele")]
         if value and ("DPA1" in value or "DQA1" in value or "DRB1" in value)
     }
     for allele in MHC_II_ALLELES:
@@ -2396,9 +2501,9 @@ def write_report(
         "MHC-I predictions use all five disclosed classical class-I alleles. MHC-II predictions use "
         "only alpha/beta combinations already named by the osteosarc source; the unphased HLA table "
         "is not used to invent additional combinations. All inference ran locally.",
-        "For class I, a red sequence slash or ligand-window tick requires all four displayed intracellular "
-        "tracks to assess the bond and at least three to reach the 0.5 display threshold; the adjacent 3/4 or 4/4 "
-        "label is a support fraction, not a probability. Red ticks inside a ligand bar are pre-binding internal cleavage evidence in the relevant "
+        "For class I, a red sequence mark or ligand-window tick requires all four displayed intracellular "
+        "tracks to assess the bond and at least three to reach the 0.5 display threshold. Four beads on the sequence "
+        "mark encode that support count (filled = hit, open = miss), not a probability. Red ticks inside a ligand bar are pre-binding internal cleavage evidence in the relevant "
         "processing view. They do not establish that a bound pMHC complex will be cleaved or protected; "
         "binding occupancy and timing are not modeled.",
         "",
