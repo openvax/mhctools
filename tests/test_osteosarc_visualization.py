@@ -154,7 +154,7 @@ def test_manuscript_caption_defines_visuals_and_selection_audit(tmp_path):
                 "panel": "A",
                 "gene": "GENE1",
                 "protein_change": "p.Arg1Gly",
-                "selection_reason": "representative criterion",
+                "selection_reason": "most MHC-I candidates",
                 "intended_epitope_internal_conservative_cuts": 2,
                 "intended_epitope_overlapping_mhc_candidates": 7,
                 "mhc_i_candidate_count": 4,
@@ -166,6 +166,7 @@ def test_manuscript_caption_defines_visuals_and_selection_audit(tmp_path):
     ANALYSIS.write_manuscript_caption(path, selection)
     text = path.read_text()
     assert "**A, GENE1 p.Arg1Gly.**" in text
+    assert "Most MHC-I candidates" in text
     assert "not probabilities" in text
     assert "agreement does not establish in-vivo degradation" in text
 

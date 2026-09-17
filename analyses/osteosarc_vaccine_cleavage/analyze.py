@@ -2607,8 +2607,10 @@ def write_manuscript_caption(path: Path, selection_df: pd.DataFrame) -> None:
         "",
     ]
     for row in selection_df.itertuples(index=False):
+        reason = str(row.selection_reason)
+        reason = reason[:1].upper() + reason[1:]
         lines.append(
-            f"- **{row.panel}, {row.gene} {row.protein_change}.** {row.selection_reason.capitalize()}. "
+            f"- **{row.panel}, {row.gene} {row.protein_change}.** {reason}. "
             f"Audit metrics: {row.intended_epitope_internal_conservative_cuts} conservative "
             "internal intended-epitope cut site(s), "
             f"{row.intended_epitope_overlapping_mhc_candidates} eligible MHC window(s) "
