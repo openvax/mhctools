@@ -399,12 +399,19 @@ Both take `(peptide, TCR)` inputs; `Tulip` additionally takes the presenting
 MHC allele.
 
 MixTCRpred has a different, deliberately explicit shape: each checkpoint is
-trained for one fixed peptide/MHC target. Its catalog currently contains 147
+trained for one fixed peptide/MHC target. Its catalog currently contains 146
 models (43 marked high-confidence by upstream), spanning human/mouse class I
 and II targets. The input `TCR` stores paired CDR3s and optional `trav`, `traj`,
 `trbv`, and `trbj` assignments. Released models use CDR3alpha/beta plus CDR1/2
 derived from the V genes; J assignments are accepted and QC-reported but are
 not network inputs.
+
+Each checkpoint is about 31.8 MB. The immutable Zenodo record contains 146
+checkpoints totaling 4.64 GB (4.33 GiB); the 43 high-confidence checkpoints
+total 1.37 GB (1.27 GiB). To avoid turning every mhctools installation into a
+multi-gigabyte download, the pinned upstream artifact includes its two bundled
+reference checkpoints and additional models are fetched individually with
+bounded retries, atomic installation, and checksum verification.
 
 ```sh
 pip install "mhctools[mixtcrpred]"
