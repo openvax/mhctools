@@ -50,6 +50,8 @@ def test_segment_ligands_use_half_open_boundaries_without_duplicates():
                 "start": 24,
                 "end": 32,
                 "percentile_rank": 0.2,
+                "allele": "HLA-A*01:01",
+                "overlaps_disclosed_minimal_epitope": False,
             },
             {
                 "sequence_record_id": "record",
@@ -58,6 +60,8 @@ def test_segment_ligands_use_half_open_boundaries_without_duplicates():
                 "start": 24,
                 "end": 32,
                 "percentile_rank": 0.4,
+                "allele": "HLA-A*01:01",
+                "overlaps_disclosed_minimal_epitope": False,
             },
         ]
     )
@@ -70,6 +74,101 @@ def test_segment_ligands_use_half_open_boundaries_without_duplicates():
     assert first.empty
     assert len(second) == 1
     assert second.iloc[0]["percentile_rank"] == 0.2
+
+
+def test_ligand_display_prioritizes_intended_window_then_allele_diversity():
+    candidates = pd.DataFrame(
+        [
+            {
+                "allele": "HLA-A*01:01",
+                "start": 1,
+                "end": 9,
+                "percentile_rank": 0.01,
+                "overlaps_disclosed_minimal_epitope": False,
+            },
+            {
+                "allele": "HLA-A*01:01",
+                "start": 12,
+                "end": 20,
+                "percentile_rank": 0.02,
+                "overlaps_disclosed_minimal_epitope": False,
+            },
+            {
+                "allele": "HLA-B*08:01",
+                "start": 2,
+                "end": 10,
+                "percentile_rank": 0.20,
+                "overlaps_disclosed_minimal_epitope": False,
+            },
+            {
+                "allele": "HLA-C*07:01",
+                "start": 3,
+                "end": 11,
+                "percentile_rank": 0.30,
+                "overlaps_disclosed_minimal_epitope": True,
+            },
+            {
+                "allele": "HLA-C*01:02",
+                "start": 13,
+                "end": 21,
+                "percentile_rank": 0.40,
+                "overlaps_disclosed_minimal_epitope": False,
+            },
+        ]
+    )
+    selected = ANALYSIS.select_ligand_candidates_for_display(candidates)
+    assert len(selected) == 5
+    assert selected.iloc[0]["allele"] == "HLA-C*07:01"
+    assert selected.iloc[0]["selection_reason"] == "intended_epitope"
+    assert selected["allele"].nunique() >= 3
+    assert selected[["start", "end"]].duplicated().sum() == 0
+    assert set(selected["display_lane"]) <= {0, 1, 2}
+
+
+def test_ligand_display_never_draws_same_span_twice_across_alleles():
+    candidates = pd.DataFrame(
+        [
+            {
+                "allele": allele,
+                "start": 4,
+                "end": 12,
+                "percentile_rank": rank,
+                "overlaps_disclosed_minimal_epitope": False,
+            }
+            for allele, rank in (
+                ("HLA-A*01:01", 0.1),
+                ("HLA-B*08:01", 0.2),
+                ("HLA-C*07:01", 0.3),
+            )
+        ]
+    )
+    selected = ANALYSIS.select_ligand_candidates_for_display(candidates)
+    assert len(selected) == 1
+    assert selected.iloc[0]["allele"] == "HLA-A*01:01"
+
+
+def test_manuscript_caption_defines_visuals_and_selection_audit(tmp_path):
+    selection = pd.DataFrame(
+        [
+            {
+                "panel": "A",
+                "gene": "GENE1",
+                "protein_change": "p.Arg1Gly",
+                "selection_reason": "most MHC-I candidates",
+                "intended_epitope_internal_conservative_cuts": 2,
+                "intended_epitope_overlapping_mhc_candidates": 7,
+                "mhc_i_candidate_count": 4,
+                "mhc_ii_candidate_count": 3,
+            }
+        ]
+    )
+    path = tmp_path / "caption.md"
+    ANALYSIS.write_manuscript_caption(path, selection)
+    text = path.read_text()
+    assert "**A, GENE1 p.Arg1Gly.**" in text
+    assert "Most MHC-I candidates" in text
+    assert "not probabilities" in text
+    assert "agreement does not establish in-vivo degradation" in text
 
 
 def test_score_matrix_keeps_zero_distinct_from_unassessed():

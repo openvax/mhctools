@@ -9,7 +9,7 @@ by curated human-peptidase recognition rules?
 Every invocation writes a new date/time-stamped directory under `results/` so
 an earlier analysis is never overwritten. The [generated-run index](results/README.md)
 links the checked-in report, tables, and
-[figure atlas](results/2026-09-16T204951-819874-0400/mhctools-all-figures.pdf).
+[figure atlas](results/2026-09-17T012843-301909-0400/mhctools-all-figures.pdf).
 The complete model/code/weight inventory and checksums travel with that run.
 The PDF begins with a clustered predictor/SLP agreement overview and then
 uses each disclosed SLP sequence as the central visual axis. Large residue
@@ -24,12 +24,22 @@ window; it is binary coverage, not prediction count or probability. Red ticks in
 ligand span show relevant pre-binding internal cleavage evidence; they do not
 claim post-binding cleavage or protection. The 80-aa outlier is split across three
 continuation pages rather than compressed. Use
-[`atlas_sequence_order.csv`](results/2026-09-16T204951-819874-0400/tables/atlas_sequence_order.csv) to jump
+[`atlas_sequence_order.csv`](results/2026-09-17T012843-301909-0400/tables/atlas_sequence_order.csv) to jump
 from a sequence record to its PDF page. Every map page is also exported as a
 vector PDF and 300 dpi PNG; `slp_map_exports.csv` indexes those files.
 
+The atlas has room for six windows per MHC class and sequence segment. It first
+retains the strongest eligible window overlapping a disclosed intended epitope,
+then tries to represent distinct alleles, and finally fills free, non-overlapping
+lane capacity by native percentile rank. This is a display-selection rule, not
+an ensemble score. `slp_mhc_display_selection.csv` records every displayed row
+and its reason; `slp_mhc_ligand_predictions.csv` retains every raw prediction.
+The run also includes a four-page, full-size manuscript subset selected by four
+declared criteria rather than visual preference. Its exact choices and metrics
+are in `manuscript_figure_selection.csv`.
+
 For a compact answer to “which SLP is flagged by which model,” start with
-[`slp_predictor_matrix.csv`](results/2026-09-16T204951-819874-0400/tables/slp_predictor_matrix.csv). Its
+[`slp_predictor_matrix.csv`](results/2026-09-17T012843-301909-0400/tables/slp_predictor_matrix.csv). Its
 column suffixes distinguish within-model fractions above 0.5, native scores,
 and motif-match counts; those unlike quantities must not be combined or
 ranked as though they shared a scale. Exact bond-level outputs remain in the

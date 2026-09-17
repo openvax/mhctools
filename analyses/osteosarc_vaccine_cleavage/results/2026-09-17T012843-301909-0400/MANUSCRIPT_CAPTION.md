@@ -1,0 +1,12 @@
+# Manuscript figure caption
+
+**Figure. Sequence-aligned cleavage and MHC-ligand evidence for four disclosed osteosarcoma vaccine SLPs.** Each full-size panel centers the vaccine sequence; gold marks the disclosed intended minimal epitope. Intracellular/class-I processing evidence is above the sequence, and endolysosomal/class-II plus serum/extracellular evidence is below it. Lines connect adjacent exact native bond scores without smoothing. Red sequence marks require all four displayed intracellular models to assess a bond and at least three to reach the 0.5 display threshold; filled/open beads show the support count and are not probabilities. Blue and purple bars are selected MHC-I and MHC-II ligand windows at <=2% and <=5% native percentile rank, respectively. Their selection favors intended-epitope overlap, then distinct alleles, then native rank; all predictions remain in the accompanying CSV.
+
+Panels were chosen by declared complementary criteria, with different genes and a disclosed intended epitope on every page:
+
+- **A, MAP2 p.Leu867fs.** Most conservative cut evidence inside a disclosed intended epitope. Audit metrics: 3 conservative internal intended-epitope cut site(s), 50 eligible MHC window(s) overlapping the intended epitope, 39 class-I and 11 class-II eligible windows overall.
+- **B, SMC5 p.Arg371Lys.** No conservative internal cut and most MHC windows overlapping the intended epitope. Audit metrics: 0 conservative internal intended-epitope cut site(s), 28 eligible MHC window(s) overlapping the intended epitope, 35 class-I and 13 class-II eligible windows overall.
+- **C, PIP5K1A p.Gly474fs.** Most eligible class-I windows, then greatest class-I allele diversity. Audit metrics: 0 conservative internal intended-epitope cut site(s), 26 eligible MHC window(s) overlapping the intended epitope, 26 class-I and 0 class-II eligible windows overall.
+- **D, DYNC1H1 p.Val314Ile.** Most eligible class-II windows, then greatest class-II allele diversity. Audit metrics: 1 conservative internal intended-epitope cut site(s), 57 eligible MHC window(s) overlapping the intended epitope, 18 class-I and 47 class-II eligible windows overall.
+
+The 0.5 score cutoff is a common visualization threshold, not a calibrated cleavage probability. Predictors have different training data and biological scope; agreement does not establish in-vivo degradation, uptake, presentation, or MHC protection.
