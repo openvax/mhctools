@@ -49,6 +49,7 @@ THRESHOLD = 0.5
 MHC_I_DISPLAY_RANK = 2.0
 MHC_II_DISPLAY_RANK = 5.0
 PDF_FILENAME = "mhctools-all-figures.pdf"
+MANUSCRIPT_PDF_FILENAME = "mhctools-manuscript-figures.pdf"
 MHC_I_ALLELES = (
     "HLA-A*01:01",
     "HLA-B*08:01",
@@ -1249,6 +1250,7 @@ def save_pdf_page(
     standalone_pdf_path: Path | None = None,
     standalone_png_path: Path | None = None,
     standalone_title: str | None = None,
+    footer_label: str = "Osteosarc vaccine cleavage atlas",
 ) -> None:
     if standalone_pdf_path is not None or standalone_png_path is not None:
         metadata = {
@@ -1272,7 +1274,7 @@ def save_pdf_page(
     fig.text(
         0.995,
         0.005,
-        f"Osteosarc vaccine cleavage atlas - page {page_number} of {page_count}",
+        f"{footer_label} - page {page_number} of {page_count}",
         ha="right",
         va="bottom",
         fontsize=7,
@@ -1594,9 +1596,173 @@ def segment_ligand_candidates(
         (candidates["midpoint"] >= residue_start)
         & (candidates["midpoint"] < residue_end)
     ]
-    return candidates.sort_values("percentile_rank").drop_duplicates(
-        ["start", "end"], keep="first"
+    return candidates.sort_values(
+        ["percentile_rank", "allele", "start", "end"], kind="stable"
+    ).drop_duplicates(
+        ["allele", "start", "end"], keep="first"
     )
+
+
+def select_ligand_candidates_for_display(
+    candidates: pd.DataFrame,
+    lane_count: int = 3,
+    max_candidates: int = 6,
+) -> pd.DataFrame:
+    """Select informative non-overlapping ligand windows for fixed display lanes.
+
+    Native percentile rank remains the only within-predictor strength ordering.
+    The passes prevent a single allele from consuming every available lane:
+    first retain the strongest window overlapping a disclosed intended epitope,
+    then represent distinct alleles, and finally fill unused capacity by rank.
+    """
+    if candidates.empty:
+        return candidates.assign(
+            display_lane=pd.Series(dtype="int64"),
+            selection_reason=pd.Series(dtype="object"),
+        )
+    required = {
+        "allele",
+        "start",
+        "end",
+        "percentile_rank",
+        "overlaps_disclosed_minimal_epitope",
+    }
+    missing = required - set(candidates.columns)
+    if missing:
+        raise ValueError(f"ligand candidates missing columns: {sorted(missing)}")
+    if lane_count < 1 or max_candidates < 1:
+        raise ValueError("lane_count and max_candidates must be positive")
+
+    ordered = candidates.sort_values(
+        ["percentile_rank", "allele", "start", "end"], kind="stable"
+    ).reset_index(drop=True)
+    selected: list[tuple[int, str]] = []
+    selected_indices: set[int] = set()
+    used_spans: set[tuple[int, int]] = set()
+    represented_alleles: set[str] = set()
+
+    def lane_assignment(indices: list[int]) -> dict[int, int] | None:
+        lane_ends = [-math.inf] * lane_count
+        assignments: dict[int, int] = {}
+        spatial_order = ordered.loc[indices].sort_values(
+            ["start", "end", "percentile_rank", "allele"], kind="stable"
+        )
+        for index, row in spatial_order.iterrows():
+            lane = next(
+                (
+                    lane_index
+                    for lane_index, lane_end in enumerate(lane_ends)
+                    if float(row["start"]) > lane_end + 0.5
+                ),
+                None,
+            )
+            if lane is None:
+                return None
+            lane_ends[lane] = float(row["end"])
+            assignments[int(index)] = lane
+        return assignments
+
+    def try_add(index: int, reason: str) -> bool:
+        if index in selected_indices or len(selected) >= max_candidates:
+            return False
+        row = ordered.loc[index]
+        span = (int(row["start"]), int(row["end"]))
+        if span in used_spans:
+            return False
+        if lane_assignment([item[0] for item in selected] + [index]) is None:
+            return False
+        selected_indices.add(index)
+        used_spans.add(span)
+        represented_alleles.add(str(row["allele"]))
+        selected.append((index, reason))
+        return True
+
+    intended = ordered.index[
+        ordered["overlaps_disclosed_minimal_epitope"].fillna(False).astype(bool)
+    ]
+    if len(intended):
+        try_add(int(intended[0]), "intended_epitope")
+
+    best_by_allele = (
+        ordered.groupby("allele", sort=False)["percentile_rank"].min().sort_values()
+    )
+    for allele in best_by_allele.index:
+        if str(allele) in represented_alleles:
+            continue
+        allele_rows = ordered.loc[ordered["allele"] == allele].copy()
+        allele_rows["_intended"] = (
+            allele_rows["overlaps_disclosed_minimal_epitope"]
+            .fillna(False)
+            .astype(bool)
+        )
+        allele_rows = allele_rows.sort_values(
+            ["_intended", "percentile_rank", "start", "end"],
+            ascending=[False, True, True, True],
+            kind="stable",
+        )
+        for index in allele_rows.index:
+            if try_add(int(index), "allele_representative"):
+                break
+
+    fill = ordered.copy()
+    fill["_intended"] = (
+        fill["overlaps_disclosed_minimal_epitope"].fillna(False).astype(bool)
+    )
+    fill = fill.sort_values(
+        ["_intended", "percentile_rank", "allele", "start", "end"],
+        ascending=[False, True, True, True, True],
+        kind="stable",
+    )
+    for index in fill.index:
+        try_add(int(index), "rank_fill")
+        if len(selected) >= max_candidates:
+            break
+
+    assignments = lane_assignment([item[0] for item in selected])
+    if assignments is None:
+        raise RuntimeError("selected ligand windows cannot be assigned to display lanes")
+    result: list[dict[str, Any]] = []
+    for index, reason in selected:
+        values = ordered.loc[index].to_dict()
+        values["display_lane"] = assignments[index]
+        values["selection_reason"] = reason
+        result.append(values)
+    return pd.DataFrame(result).reset_index(drop=True)
+
+
+def mhc_display_selections(
+    records: pd.DataFrame, ligand_df: pd.DataFrame
+) -> pd.DataFrame:
+    """Record every ligand window selected for a rendered sequence segment."""
+    rows: list[dict[str, Any]] = []
+    for record in records.itertuples(index=False):
+        segments = sequence_segments(record.sequence)
+        for segment_number, (start_bond, end_bond) in enumerate(segments, start=1):
+            residue_start, residue_end = start_bond, end_bond + 1
+            for mhc_class in ("I", "II"):
+                eligible = segment_ligand_candidates(
+                    ligand_df,
+                    record.sequence_record_id,
+                    mhc_class,
+                    residue_start,
+                    residue_end,
+                )
+                selected = select_ligand_candidates_for_display(eligible)
+                for candidate in selected.to_dict("records"):
+                    rows.append(
+                        {
+                            "sequence_record_id": record.sequence_record_id,
+                            "gene": record.gene,
+                            "mhc_class": mhc_class,
+                            "segment_number": segment_number,
+                            "segment_count": len(segments),
+                            "bond_start": start_bond,
+                            "bond_end": end_bond,
+                            "eligible_candidate_count": len(eligible),
+                            **candidate,
+                        }
+                    )
+    return pd.DataFrame(rows)
 
 
 def plot_sequence_atlas_page(
@@ -1610,8 +1776,10 @@ def plot_sequence_atlas_page(
     segment: tuple[int, int],
     segment_number: int,
     segment_count: int,
-    standalone_pdf_path: Path,
-    standalone_png_path: Path,
+    standalone_pdf_path: Path | None,
+    standalone_png_path: Path | None,
+    panel_label: str | None = None,
+    footer_label: str = "Osteosarc vaccine cleavage atlas",
 ) -> None:
     sequence = record["sequence"]
     start_bond, end_bond = segment
@@ -1881,14 +2049,15 @@ def plot_sequence_atlas_page(
         return value.replace("*", "")
 
     def draw_ligands(mhc_class: str, lane_y: list[float], color: str) -> None:
-        unique_candidates = segment_ligand_candidates(
+        eligible_candidates = segment_ligand_candidates(
             ligand_df,
             record_id,
             mhc_class,
             residue_start,
             residue_end,
         )
-        if unique_candidates.empty:
+        selected_candidates = select_ligand_candidates_for_display(eligible_candidates)
+        if selected_candidates.empty:
             segment_suffix = " in this segment" if segment_count > 1 else ""
             ax.text(
                 residue_start - 0.68,
@@ -1911,22 +2080,9 @@ def plot_sequence_atlas_page(
             fontsize=8.2,
             color=color,
         )
-        lane_ends = [-math.inf] * len(lane_y)
-        drawn = 0
         drawn_spans: list[tuple[int, int]] = []
-        for candidate in unique_candidates.itertuples(index=False):
-            lane = next(
-                (
-                    i
-                    for i, lane_end in enumerate(lane_ends)
-                    if candidate.start > lane_end + 0.5
-                ),
-                None,
-            )
-            if lane is None:
-                continue
-            lane_ends[lane] = candidate.end
-            drawn += 1
+        for candidate in selected_candidates.itertuples(index=False):
+            lane = int(candidate.display_lane)
             drawn_spans.append(
                 (
                     max(int(candidate.start), residue_start),
@@ -1973,8 +2129,6 @@ def plot_sequence_atlas_page(
                         linewidth=1.8,
                         zorder=4,
                     )
-            if drawn >= 6:
-                break
         band_y = 0.0 if mhc_class == "I" else -0.48
         for start, end in merge_residue_spans(drawn_spans):
             ax.add_patch(
@@ -1988,7 +2142,7 @@ def plot_sequence_atlas_page(
                     zorder=1,
                 )
             )
-        omitted = len(unique_candidates) - drawn
+        omitted = len(eligible_candidates) - len(selected_candidates)
         if omitted > 0:
             omitted_y = max(lane_y) + 0.34 if mhc_class == "I" else min(lane_y) - 0.12
             ax.text(
@@ -2090,6 +2244,17 @@ def plot_sequence_atlas_page(
         fontweight="bold",
         y=0.965,
     )
+    if panel_label:
+        fig.text(
+            0.018,
+            0.965,
+            panel_label,
+            ha="left",
+            va="top",
+            fontsize=22,
+            fontweight="bold",
+            color="#18222d",
+        )
     epitope_label = (
         f"disclosed minimal epitope {record['minimal_epitope']} at "
         f"{minimal_bounds[0]}-{minimal_bounds[1]}"
@@ -2126,7 +2291,7 @@ def plot_sequence_atlas_page(
     fig.text(
         0.5,
         0.028,
-        "MHC WINDOWS  Blue/purple tint and outlines show displayed <=2%/<=5% rank candidates; internal red ticks are pre-binding cut evidence. All candidates remain in CSV.",
+        "MHC WINDOWS  <=2%/<=5% rank; display favors intended overlap, then allele diversity, then rank. Internal red ticks are pre-binding cut evidence; all predictions remain in CSV.",
         ha="center",
         va="center",
         fontsize=8.8,
@@ -2143,6 +2308,7 @@ def plot_sequence_atlas_page(
         standalone_pdf_path=standalone_pdf_path,
         standalone_png_path=standalone_png_path,
         standalone_title=standalone_title,
+        footer_label=footer_label,
     )
 
 
@@ -2260,6 +2426,162 @@ def render_figures(
     atlas_order_df = pd.DataFrame(atlas_rows)
     atlas_order_df.attrs["model_cluster_order"] = model_order
     return atlas_order_df, pd.DataFrame(map_rows)
+
+
+def select_manuscript_records(
+    records: pd.DataFrame,
+    ligand_df: pd.DataFrame,
+    vulnerable_df: pd.DataFrame,
+) -> pd.DataFrame:
+    """Choose four complementary, reproducible examples for a compact figure set."""
+    metrics: list[dict[str, Any]] = []
+    for record in records.itertuples(index=False):
+        if len(sequence_segments(record.sequence)) != 1:
+            continue
+        ligands = ligand_df.loc[
+            (ligand_df["sequence_record_id"] == record.sequence_record_id)
+            & ligand_df["display_candidate"]
+        ]
+        vulnerable = vulnerable_df.loc[
+            (vulnerable_df["sequence_record_id"] == record.sequence_record_id)
+            & vulnerable_df["biological_context"].str.startswith(
+                "cytosolic/proteasome", na=False
+            )
+        ]
+        internal = vulnerable.loc[
+            vulnerable["in_disclosed_minimal_epitope"].fillna(False).astype(bool)
+        ]
+        class_i = ligands.loc[ligands["mhc_class"] == "I"]
+        class_ii = ligands.loc[ligands["mhc_class"] == "II"]
+        intended = ligands.loc[
+            ligands["overlaps_disclosed_minimal_epitope"].fillna(False).astype(bool)
+        ]
+        metrics.append(
+            {
+                "sequence_record_id": record.sequence_record_id,
+                "gene": record.gene,
+                "protein_change": record.protein_change,
+                "length": record.length,
+                "has_disclosed_minimal_epitope": pd.notna(record.minimal_epitope)
+                and bool(str(record.minimal_epitope)),
+                "intended_epitope_internal_conservative_cuts": len(internal),
+                "intended_epitope_overlapping_mhc_candidates": len(intended),
+                "mhc_i_candidate_count": len(class_i),
+                "mhc_i_allele_count": class_i["allele"].nunique(),
+                "mhc_ii_candidate_count": len(class_ii),
+                "mhc_ii_allele_count": class_ii["allele"].nunique(),
+            }
+        )
+    candidates = pd.DataFrame(metrics)
+    if len(candidates) < 4:
+        raise RuntimeError("At least four single-page SLP records are required")
+
+    selected: list[dict[str, Any]] = []
+    used: set[str] = set()
+    used_genes: set[str] = set()
+
+    def add_best(pool: pd.DataFrame, columns: list[str], reason: str) -> None:
+        pool = pool.loc[
+            ~pool["sequence_record_id"].isin(used) & ~pool["gene"].isin(used_genes)
+        ]
+        if pool.empty:
+            return
+        ordered = pool.sort_values(
+            columns + ["sequence_record_id"],
+            ascending=[False] * len(columns) + [True],
+            kind="stable",
+        )
+        row = ordered.iloc[0].to_dict()
+        row["selection_reason"] = reason
+        used.add(str(row["sequence_record_id"]))
+        used_genes.add(str(row["gene"]))
+        selected.append(row)
+
+    with_minimal = candidates.loc[candidates["has_disclosed_minimal_epitope"]]
+    add_best(
+        with_minimal,
+        [
+            "intended_epitope_internal_conservative_cuts",
+            "intended_epitope_overlapping_mhc_candidates",
+        ],
+        "most conservative cut evidence inside a disclosed intended epitope",
+    )
+    add_best(
+        with_minimal.loc[
+            with_minimal["intended_epitope_internal_conservative_cuts"] == 0
+        ],
+        ["intended_epitope_overlapping_mhc_candidates"],
+        "no conservative internal cut and most MHC windows overlapping the intended epitope",
+    )
+    add_best(
+        with_minimal,
+        ["mhc_i_candidate_count", "mhc_i_allele_count"],
+        "most eligible class-I windows, then greatest class-I allele diversity",
+    )
+    add_best(
+        with_minimal,
+        ["mhc_ii_candidate_count", "mhc_ii_allele_count"],
+        "most eligible class-II windows, then greatest class-II allele diversity",
+    )
+    while len(selected) < 4:
+        before = len(selected)
+        add_best(
+            candidates,
+            ["intended_epitope_overlapping_mhc_candidates"],
+            "highest remaining intended-epitope MHC-window coverage",
+        )
+        if len(selected) == before:
+            break
+    if len(selected) != 4:
+        raise RuntimeError(f"Selected {len(selected)} manuscript records, expected 4")
+    result = pd.DataFrame(selected)
+    result.insert(0, "panel", list("ABCD"))
+    return result
+
+
+def render_manuscript_figures(
+    output_dir: Path,
+    records: pd.DataFrame,
+    quantitative_df: pd.DataFrame,
+    motifs_df: pd.DataFrame,
+    ligand_df: pd.DataFrame,
+    selection_df: pd.DataFrame,
+    generated_at: datetime,
+) -> None:
+    """Render the objective four-example manuscript subset as full-size panels."""
+    metadata = {
+        "Title": "Osteosarc vaccine SLP cleavage manuscript figure set",
+        "Author": "mhctools",
+        "Subject": "Four complementary sequence-aligned cleavage maps",
+        "Keywords": "osteosarcoma vaccine SLP cleavage MHC manuscript",
+        "CreationDate": generated_at.replace(tzinfo=None),
+        "ModDate": generated_at.replace(tzinfo=None),
+    }
+    records_by_id = records.set_index("sequence_record_id", drop=False)
+    with PdfPages(output_dir / MANUSCRIPT_PDF_FILENAME, metadata=metadata) as pdf_pages:
+        for page_number, selected in enumerate(
+            selection_df.itertuples(index=False), start=1
+        ):
+            record = records_by_id.loc[selected.sequence_record_id]
+            segments = sequence_segments(record["sequence"])
+            if len(segments) != 1:
+                raise RuntimeError("Manuscript selection must fit on one full-size page")
+            plot_sequence_atlas_page(
+                record,
+                quantitative_df,
+                motifs_df,
+                ligand_df,
+                pdf_pages,
+                page_number,
+                len(selection_df),
+                segments[0],
+                1,
+                1,
+                None,
+                None,
+                panel_label=selected.panel,
+                footer_label="Osteosarc manuscript figure set",
+            )
 
 
 def correlations(quantitative_df: pd.DataFrame) -> pd.DataFrame:
@@ -2480,6 +2802,11 @@ def write_report(
         "[Atlas order and PDF page numbers](tables/atlas_sequence_order.csv) are provided for navigation. "
         "Every map page is also available as a vector PDF and 300 dpi PNG, indexed in "
         "[the individual-map export table](tables/slp_map_exports.csv).",
+        f"A compact [four-panel manuscript figure set]({MANUSCRIPT_PDF_FILENAME}) retains "
+        "full-size readable maps rather than shrinking them into a crowded contact sheet. "
+        "Its examples are selected by four declared criteria—internal intended-epitope cut evidence, "
+        "apparent preservation with overlapping MHC windows, class-I density, and class-II density—"
+        "recorded in [the manuscript selection table](tables/manuscript_figure_selection.csv).",
         "The atlas shows four intracellular quantitative tracks: human-only Pepsickle, NetChop Cterm, NetChop 20S, "
         "and NetCleave-I. Cterm is ligand-trained and emphasizes candidate MHC-I boundaries, whereas 20S is retained "
         "as a distinct in-vitro proteasome view rather than a substitute for Cterm. The human-only Pepsickle model is "
@@ -2501,6 +2828,11 @@ def write_report(
         "MHC-I predictions use all five disclosed classical class-I alleles. MHC-II predictions use "
         "only alpha/beta combinations already named by the osteosarc source; the unphased HLA table "
         "is not used to invent additional combinations. All inference ran locally.",
+        "Within each map segment and class, display selection first retains the strongest window "
+        "overlapping a disclosed intended epitope, then tries to represent distinct alleles, and "
+        "finally fills remaining non-overlapping lane capacity by native percentile rank. Exact "
+        "selected rows and reasons are recorded in `slp_mhc_display_selection.csv`; every raw "
+        "prediction remains in `slp_mhc_ligand_predictions.csv`.",
         "For class I, a red sequence mark or ligand-window tick requires all four displayed intracellular "
         "tracks to assess the bond and at least three to reach the 0.5 display threshold. Four beads on the sequence "
         "mark encode that support count (filled = hit, open = miss), not a probability. Red ticks inside a ligand bar are pre-binding internal cleavage evidence in the relevant "
@@ -2688,6 +3020,16 @@ def main() -> None:
     ligand_df.to_csv(tables_dir / "slp_mhc_ligand_predictions.csv", index=False)
     vulnerable_df = vulnerable_bond_table(records, quantitative_df, motifs_df)
     vulnerable_df.to_csv(tables_dir / "slp_vulnerable_bonds.csv", index=False)
+    display_selection_df = mhc_display_selections(records, ligand_df)
+    display_selection_df.to_csv(
+        tables_dir / "slp_mhc_display_selection.csv", index=False
+    )
+    manuscript_selection_df = select_manuscript_records(
+        records, ligand_df, vulnerable_df
+    )
+    manuscript_selection_df.to_csv(
+        tables_dir / "manuscript_figure_selection.csv", index=False
+    )
     mhc_inventory_df = model_file_inventory(mhcflurry_metadata, netmhciipan_metadata)
     mhc_inventory_df.to_csv(tables_dir / "mhc_model_file_inventory.csv", index=False)
 
@@ -2719,6 +3061,15 @@ def main() -> None:
     )
     atlas_order_df.to_csv(tables_dir / "atlas_sequence_order.csv", index=False)
     map_exports_df.to_csv(tables_dir / "slp_map_exports.csv", index=False)
+    render_manuscript_figures(
+        output_dir,
+        records,
+        quantitative_df,
+        motifs_df,
+        ligand_df,
+        manuscript_selection_df,
+        generated_at,
+    )
     write_report(
         output_dir / "REPORT.md",
         inventory_df,

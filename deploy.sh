@@ -86,11 +86,26 @@ fi
 
 branch="$(require_release_branch)"
 require_clean_tree
-require_tooling
 
 requested_version="${1:-}"
+release_version="$(current_version)"
 if [[ -n "$requested_version" ]]; then
     requested_version="${requested_version#v}"
+    release_version="$requested_version"
+fi
+tag="v$release_version"
+
+# Stop on an existing tag, published release, or unverifiable PyPI lookup
+# before tooling checks, expensive gates, build, upload, or version mutation.
+git fetch --tags origin
+if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+    die "tag $tag already exists"
+fi
+"$PYTHON" scripts/check_pypi_release.py mhctools "$release_version"
+
+require_tooling
+
+if [[ -n "$requested_version" ]]; then
     old_version="$(current_version)"
     if [[ "$requested_version" != "$old_version" ]]; then
         bump_version "$requested_version"
@@ -108,12 +123,8 @@ else
     ./test.sh
 fi
 
-release_version="$(current_version)"
-tag="v$release_version"
-
-git fetch --tags origin
-if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
-    die "tag $tag already exists"
+if [[ "$(current_version)" != "$release_version" ]]; then
+    die "release version changed unexpectedly during preflight"
 fi
 
 rm -rf dist

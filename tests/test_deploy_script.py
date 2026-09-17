@@ -25,6 +25,13 @@ def test_deploy_script_matches_documented_release_guards():
     assert 'PYTHON="${PYTHON:-python}"' in text
     assert "git tag -a" in text
     assert "git push origin \"$tag\"" in text
+    assert 'scripts/check_pypi_release.py mhctools "$release_version"' in text
+    fetch = text.index("git fetch --tags origin")
+    preflight = text.index("scripts/check_pypi_release.py")
+    tooling = text.index("\nrequire_tooling\n")
+    assert fetch < preflight < tooling
+    assert preflight < text.index("./lint.sh", tooling)
+    assert preflight < text.index("./test.sh", tooling)
 
 
 def test_deploy_script_is_executable():
