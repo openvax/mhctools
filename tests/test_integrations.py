@@ -143,3 +143,25 @@ def test_integrations_cli_strict_success(monkeypatch, capsys):
     assert result == 0
     assert "REPRODUCED" in output
     assert "reference reproduced" in output
+
+
+def test_predictors_is_canonical_command_and_integrations_remains_alias(
+        monkeypatch, capsys):
+    statuses = [IntegrationStatus(
+        name="example",
+        located=True,
+        runnable=True,
+        reproduced=None,
+        capability="runnable",
+        path="/tools/example",
+        detail="launch succeeded",
+    )]
+    monkeypatch.setattr(
+        integration_cli, "list_integrations", lambda *args, **kwargs: statuses)
+
+    assert main(["predictors", "--check", "runnable", "--strict"]) == 0
+    canonical_output = capsys.readouterr().out
+    assert main(["integrations", "--check", "runnable", "--strict"]) == 0
+    alias_output = capsys.readouterr().out
+
+    assert canonical_output == alias_output
