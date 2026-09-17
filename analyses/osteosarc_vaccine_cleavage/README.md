@@ -37,15 +37,19 @@ long-form tables.
 
 The sequence pages show four complementary intracellular tracks above the
 sequence: human-only Pepsickle, NetChop Cterm, NetChop 20S, and NetCleave-I. A
-red slash is drawn only when all four assess the bond and at least three reach
-the common 0.5 display threshold; its printed `3/4` or `4/4` is a support
-fraction, not a probability. NetChop Cterm is retained because these maps
+red bond mark is drawn only when all four assess the bond and at least three
+reach the common 0.5 display threshold. Four small beads on the mark encode the
+support count (filled beads are hits and an open bead is a miss); this is not a
+probability. A faint guide connects that exact bond to the four intracellular
+tracks. NetChop Cterm is retained because these maps
 emphasize candidate MHC-I ligand boundaries, but it is ligand-trained and not a
 pure proteasome assay. NetChop 20S is shown separately as an in-vitro
 proteasome view. The human-only Pepsickle model is species-matched but
 experimental and trained on less data than the all-mammal model; the
-near-redundant all-mammal output remains in the tables. DPP4 and ERAMER scores remain on visibly separate native
-scales without a binary cutoff. The context-separated
+near-redundant all-mammal output remains in the tables. The NetCleave-II track
+has its own endolysosomal/class-II section below the sequence, separate from
+the serum/extracellular motif section. DPP4 and ERAMER scores remain on visibly
+separate native scales without a binary cutoff. The context-separated
 `slp_vulnerable_bonds.csv` retains its separate, conservative three-of-five
 rule and never combines biological contexts.
 
