@@ -30,6 +30,8 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
+from urllib.error import HTTPError
 from urllib.request import urlopen
 
 import pandas as pd
@@ -42,6 +44,8 @@ from .tcr import TCR
 UPSTREAM_REVISION = "acd6f57444bde675840890207c74ca3b0c7ffac2"
 ZENODO_RECORD = "7930623"
 ZENODO_API_URL = "https://zenodo.org/api/records/%s" % ZENODO_RECORD
+ZENODO_RETRY_DELAYS = (2, 5)
+_RETRYABLE_HTTP_STATUS = frozenset((408, 429, 500, 502, 503, 504))
 _MODEL_MANIFEST = ".mhctools-mixtcrpred-models.json"
 _STANDARD_AMINO_ACIDS = frozenset("ACDEFGHIKLMNPQRSTVWYX-")
 _REQUIRED_HOME_PATHS = (
@@ -127,6 +131,13 @@ def model_catalog(mixtcrpred_path=None, data_dir=None):
     with catalog_path.open(newline="") as input_file:
         for row in csv.DictReader(input_file):
             name = row["MixTCRpred_model_name"].strip()
+            training_tcrs = int(row["Number_training_abTCR"])
+            # The pinned table contains one zero-training placeholder
+            # (A0201_SLLMWITQC) with no checkpoint in either the repository or
+            # immutable Zenodo record. Upstream documents 146 usable models,
+            # so do not advertise that placeholder as fetchable inference.
+            if training_tcrs <= 0:
+                continue
             checkpoint = (
                 home / "pretrained_models" / ("model_%s.ckpt" % name))
             upstream_class = row["MHC_class"].strip()
@@ -139,10 +150,10 @@ def model_catalog(mixtcrpred_path=None, data_dir=None):
                     upstream_class, upstream_class),
                 host_species=row["Host_species"].strip(),
                 origin=row["Origin"].strip(),
-                training_tcrs=int(row["Number_training_abTCR"]),
+                training_tcrs=training_tcrs,
                 auc_5fold=float(row["AUC_5fold"]),
                 # Match upstream's --download_high implementation.
-                high_confidence=int(row["Number_training_abTCR"]) >= 50,
+                high_confidence=training_tcrs >= 50,
                 status="ready" if checkpoint.is_file() else "missing",
                 manager=manager,
                 path=str(checkpoint),
@@ -180,17 +191,57 @@ def _select_catalog_models(
     return selected
 
 
+def _retry_zenodo(description, operation):
+    """Run an idempotent Zenodo read with bounded transient retries."""
+    attempts = len(ZENODO_RETRY_DELAYS) + 1
+    for attempt in range(1, attempts + 1):
+        try:
+            return operation()
+        except (OSError, ValueError) as error:
+            retryable = (
+                not isinstance(error, HTTPError)
+                or error.code in _RETRYABLE_HTTP_STATUS
+            )
+            if not retryable or attempt == attempts:
+                raise RuntimeError(
+                    "Could not %s after %d attempt%s: %s" % (
+                        description,
+                        attempt,
+                        "" if attempt == 1 else "s",
+                        error,
+                    )) from error
+            delay = ZENODO_RETRY_DELAYS[attempt - 1]
+            print(
+                "MixTCRpred %s attempt %d/%d failed: %s; retrying in %ss"
+                % (description, attempt, attempts, error, delay),
+                file=sys.stderr,
+            )
+            time.sleep(delay)
+
+
 def _zenodo_files():
-    try:
+    def read_metadata():
         with urlopen(ZENODO_API_URL, timeout=60) as response:
-            record = json.load(response)
-    except (OSError, ValueError) as error:
-        raise RuntimeError(
-            "Could not read MixTCRpred model metadata from %s: %s" %
-            (ZENODO_API_URL, error)) from error
+            return json.load(response)
+
+    record = _retry_zenodo(
+        "read MixTCRpred model metadata from %s" % ZENODO_API_URL,
+        read_metadata,
+    )
     if str(record.get("id")) != ZENODO_RECORD:
         raise RuntimeError("Zenodo returned unexpected MixTCRpred record")
     return {entry["key"]: entry for entry in record.get("files", ())}
+
+
+def _download_zenodo_file(url, destination):
+    def download():
+        # Truncate on every attempt so a partial response is never appended to
+        # the retry. The caller checksum-verifies before atomic installation.
+        with urlopen(url, timeout=120) as response:
+            with Path(destination).open("wb") as output:
+                shutil.copyfileobj(response, output, length=1024 * 1024)
+
+    _retry_zenodo("download MixTCRpred checkpoint from %s" % url, download)
 
 
 def _hashes(path):
@@ -259,8 +310,7 @@ def _fetch_one_model(model, files, manifest):
                     mode="wb", dir=str(destination.parent),
                     prefix=".%s-" % filename, delete=False) as output:
                 temporary = Path(output.name)
-                with urlopen(url, timeout=120) as response:
-                    shutil.copyfileobj(response, output, length=1024 * 1024)
+            _download_zenodo_file(url, temporary)
             actual_md5, actual_sha256 = _hashes(temporary)
             if temporary.stat().st_size != expected_size or actual_md5 != expected_md5:
                 raise RuntimeError(

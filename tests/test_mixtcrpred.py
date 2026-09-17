@@ -10,6 +10,7 @@ from io import BytesIO
 import hashlib
 import json
 from pathlib import Path
+from urllib.error import HTTPError
 
 import pandas as pd
 import pytest
@@ -46,6 +47,17 @@ def _make_home(tmp_path, checkpoint=True):
         "Host_species": "HomoSapiens",
         "Number_training_abTCR": 20,
         "AUC_5fold": 0.7,
+    }, {
+        # The pinned upstream catalog has one such placeholder but publishes
+        # no corresponding checkpoint. It is not an inference model.
+        "MixTCRpred_model_name": "A0201_SLLMWITQC",
+        "Peptide": "SLLMWITQC",
+        "Origin": "Homo sapiens",
+        "MHC_class": "MHCI",
+        "MHC": "HLA-A*02:01",
+        "Host_species": "HomoSapiens",
+        "Number_training_abTCR": 0,
+        "AUC_5fold": 0,
     }])
     catalog.to_csv(
         home / "pretrained_models" / "info_models.csv", index=False)
@@ -98,6 +110,7 @@ def test_model_catalog_includes_target_metadata_and_weight_status(tmp_path):
     assert models[1].mhc_class == "II"
     assert models[1].high_confidence is False
     assert models[1].status == "missing"
+    assert all(model.name != "A0201_SLLMWITQC" for model in models)
 
 
 def test_resolve_model_uses_normalized_allele(tmp_path):
@@ -204,6 +217,7 @@ def test_fetch_models_downloads_atomically_and_records_hashes(
         raise OSError("fixture offline")
 
     monkeypatch.setattr(mixtcrpred, "urlopen", unavailable)
+    monkeypatch.setattr(mixtcrpred, "ZENODO_RETRY_DELAYS", (0, 0))
     # A previously verified checkpoint can be used with no network access.
     assert mixtcrpred.fetch_models(home, models=[MODEL])[0].status == "ready"
     with pytest.raises(RuntimeError, match="fixture offline"):
@@ -227,8 +241,73 @@ def test_unrecorded_cached_model_requires_remote_verification(monkeypatch, tmp_p
         raise OSError("fixture offline")
 
     monkeypatch.setattr(mixtcrpred, "urlopen", unavailable)
+    monkeypatch.setattr(mixtcrpred, "ZENODO_RETRY_DELAYS", (0, 0))
     with pytest.raises(RuntimeError, match="fixture offline"):
         mixtcrpred.fetch_models(home, models=[MODEL])
+
+
+def test_zenodo_metadata_retries_transient_504(monkeypatch, capsys):
+    record = {"id": int(mixtcrpred.ZENODO_RECORD), "files": []}
+    responses = [
+        HTTPError(mixtcrpred.ZENODO_API_URL, 504, "Gateway Timeout", {}, None),
+        HTTPError(mixtcrpred.ZENODO_API_URL, 503, "Unavailable", {}, None),
+        BytesIO(json.dumps(record).encode()),
+    ]
+    calls = []
+    sleeps = []
+
+    def fake_urlopen(url, timeout):
+        calls.append((url, timeout))
+        response = responses.pop(0)
+        if isinstance(response, Exception):
+            raise response
+        return response
+
+    monkeypatch.setattr(mixtcrpred, "urlopen", fake_urlopen)
+    monkeypatch.setattr(mixtcrpred, "ZENODO_RETRY_DELAYS", (2, 5))
+    monkeypatch.setattr(mixtcrpred.time, "sleep", sleeps.append)
+
+    assert mixtcrpred._zenodo_files() == {}
+    assert len(calls) == 3
+    assert sleeps == [2, 5]
+    diagnostic = capsys.readouterr().err
+    assert "attempt 1/3" in diagnostic
+    assert "attempt 2/3" in diagnostic
+
+
+def test_zenodo_download_retry_truncates_partial_file(monkeypatch, tmp_path):
+    destination = tmp_path / "model.ckpt"
+    responses = [OSError("connection reset"), BytesIO(b"complete")]
+    sleeps = []
+
+    def fake_urlopen(url, timeout):
+        response = responses.pop(0)
+        if isinstance(response, Exception):
+            destination.write_bytes(b"partial")
+            raise response
+        return response
+
+    monkeypatch.setattr(mixtcrpred, "urlopen", fake_urlopen)
+    monkeypatch.setattr(mixtcrpred, "ZENODO_RETRY_DELAYS", (0,))
+    monkeypatch.setattr(mixtcrpred.time, "sleep", sleeps.append)
+
+    mixtcrpred._download_zenodo_file("https://zenodo.example/model", destination)
+
+    assert destination.read_bytes() == b"complete"
+    assert sleeps == [0]
+
+
+def test_zenodo_does_not_retry_nontransient_http_error(monkeypatch):
+    calls = []
+
+    def missing():
+        calls.append(True)
+        raise HTTPError("https://zenodo.example/missing", 404, "Missing", {}, None)
+
+    monkeypatch.setattr(mixtcrpred.time, "sleep", lambda delay: None)
+    with pytest.raises(RuntimeError, match="after 1 attempt.*404"):
+        mixtcrpred._retry_zenodo("download missing model", missing)
+    assert len(calls) == 1
 
 
 def test_model_catalog_json_is_serializable(tmp_path):
