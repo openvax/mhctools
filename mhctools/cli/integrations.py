@@ -44,10 +44,10 @@ def _print_table(statuses):
             print("%s: %s" % (status.name, status.detail))
 
 
-def integrations_main(args_list=None):
-    """Run ``mhctools integrations``."""
+def predictors_main(args_list=None, command_name="predictors"):
+    """Run the predictor capability-report command."""
     parser = ArgumentParser(
-        prog="mhctools integrations",
+        prog="mhctools %s" % command_name,
         description=(
             "Report artifact location, bounded launchability, and reference "
             "inference reproduction as separate capabilities."),
@@ -84,3 +84,8 @@ def integrations_main(args_list=None):
     if args.strict and not all(status.meets(args.check) for status in statuses):
         return 1
     return 0
+
+
+def integrations_main(args_list=None):
+    """Run the backward-compatible ``mhctools integrations`` alias."""
+    return predictors_main(args_list, command_name="integrations")
