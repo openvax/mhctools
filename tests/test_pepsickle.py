@@ -15,7 +15,8 @@ import subprocess
 
 import pytest
 
-from mhctools.pepsickle import Pepsickle
+from mhctools.cleavage import CleavageInput
+from mhctools.pepsickle import Pepsickle, PepsickleCleavage
 from mhctools.processing_predictor import (
     score_cterm,
     score_cterm_anti_max_internal,
@@ -228,6 +229,53 @@ def test_predict_cleavage_sites(predictor):
     probs = result["spike"]
     assert len(probs) == len(PROTEIN)
     assert all(0.0 <= p <= 1.0 for p in probs)
+
+
+def test_canonical_bond_result_excludes_endpoint_sentinel(monkeypatch):
+    predictor = Pepsickle(human_only=True, threshold=0.37)
+    monkeypatch.setattr(
+        predictor,
+        "cleavage_probs",
+        lambda sequence: [0.11, 0.22, 0.33, 0.0],
+    )
+    result = predictor.predict_cleavage(
+        CleavageInput("SIIN", source_id="construct", source_start=20)
+    )
+    assert [site.bond for site in result.sites] == [1, 2, 3]
+    assert [site.score for site in result.sites] == [0.11, 0.22, 0.33]
+    assert [site["source_bond"] for site in result.to_dict()["sites"]] == [21, 22, 23]
+    assert result.model.name == "pepsickle-in-vivo-human-only"
+    assert "weights-sha256:" in result.model.version
+    assert "inference-sha256:" in result.model.version
+    assert "features-sha256:" in result.model.version
+    assert dict(result.conditions)["threshold"] == "0.37"
+
+
+def test_canonical_facade_rejects_unmodeled_terminal_chemistry():
+    facade = PepsickleCleavage(human_only=True)
+    result = facade.predict(
+        CleavageInput("SIINFEKL", n_term="acetylated")
+    )
+    assert facade.predictor.isolate_subprocess is True
+    assert result.sites == ()
+    assert "terminal chemistry" in result.unsupported_reason
+
+
+def test_canonical_models_are_available_through_cleavage_registry():
+    from mhctools import cleavage_models, get_cleavage_model
+
+    catalog = {model.name: model for model in cleavage_models(include_optional=True)}
+    assert "pepsickle-in-vivo-human-only" in catalog
+    assert "weights-sha256:" in catalog["pepsickle-in-vivo-human-only"].version
+    predictor = get_cleavage_model("pepsickle-in-vivo-human-only")
+    assert isinstance(predictor, PepsickleCleavage)
+    assert predictor.predictor.human_only is True
+
+
+def test_legacy_peptide_level_predict_api_is_unchanged(predictor):
+    result = predictor.predict(["SIINFEKL"])
+    assert len(result) == 1
+    assert result[0].preds[0].peptide == "SIINFEKL"
 
 
 # -- scoring --

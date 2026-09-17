@@ -122,7 +122,7 @@ def test_ligand_display_prioritizes_intended_window_then_allele_diversity():
     assert selected.iloc[0]["selection_reason"] == "intended_epitope"
     assert selected["allele"].nunique() >= 3
     assert selected[["start", "end"]].duplicated().sum() == 0
-    assert set(selected["display_lane"]) <= {0, 1, 2}
+    assert set(selected["display_lane"]) <= {0, 1, 2, 3, 4}
 
 
 def test_ligand_display_never_draws_same_span_twice_across_alleles():
@@ -223,6 +223,26 @@ def test_figure_model_set_keeps_distinct_20s_but_omits_redundant_all_mammal():
         "netchop-3.1-cterm-3.0",
     ]
     assert "pepsickle-in-vivo-all-mammal" not in ANALYSIS.FIGURE_QUANTITATIVE_MODELS
+
+
+def test_display_uses_top_ten_cap_and_opinionated_slp_enzyme_tracks():
+    assert ANALYSIS.MHC_DISPLAY_MAX_WINDOWS == 10
+    assert ANALYSIS.MHC_DISPLAY_LANES == 5
+    displayed = {
+        model
+        for _, models, _ in ANALYSIS.FIGURE_SLP_ENZYME_TRACKS
+        for model in models
+    }
+    assert displayed == {
+        "mme-hydrophobic",
+        "fap-dipeptidyl",
+        "fap-endo-gp",
+        "anpep-ala",
+        "enpep-acidic",
+    }
+    assert not displayed.intersection({
+        "ace-dipeptidyl", "cpb2-basic", "cpn-basic", "app1-xp", "erap2-basic"
+    })
 
 
 def test_red_cut_requires_three_hits_and_all_four_display_tracks_assessed():

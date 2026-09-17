@@ -26,6 +26,7 @@ from mhctools.cli.script import (
     main,
     parse_args,
     run_predictor,
+    write_predictions,
 )
 from .common import eq_
 
@@ -83,8 +84,55 @@ def test_format_predictions_has_no_index_column_and_short_floats():
         "affinity": [11927.161441410432],
     })
     lines = format_predictions(df).splitlines()
-    assert lines[0].split() == ["peptide", "affinity"]
-    assert lines[1].split() == ["SIINFEKL", "11927.2"]
+    assert lines[0].split("\t") == ["peptide", "affinity"]
+    assert lines[1].split("\t") == ["SIINFEKL", "11927.2"]
+
+
+def test_stdout_tsv_preserves_empty_source_name_as_a_real_field():
+    df = pd.DataFrame({
+        "source_sequence_name": [""],
+        "peptide": ["SIINFEKL"],
+        "offset": [0],
+    })
+    rendered = format_predictions(df).splitlines()
+    assert rendered[0] == "source_sequence_name\tpeptide\toffset"
+    assert rendered[1] == "\tSIINFEKL\t0"
+    assert len(rendered[0].split("\t")) == len(rendered[1].split("\t")) == 3
+
+
+def test_write_predictions_streams_rows_without_dataframe_to_string(monkeypatch):
+    class Sink:
+        def __init__(self):
+            self.writes = []
+
+        def write(self, value):
+            self.writes.append(value)
+
+    df = pd.DataFrame({"peptide": ["A", "B"], "score": [0.1, 0.2]})
+    monkeypatch.setattr(
+        pd.DataFrame,
+        "to_string",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("buffered")),
+    )
+    sink = Sink()
+    write_predictions(df, sink)
+    assert "".join(sink.writes).splitlines() == [
+        "peptide\tscore", "A\t0.1", "B\t0.2"
+    ]
+
+
+def test_main_treats_closed_pipe_as_success(monkeypatch):
+    monkeypatch.setattr(
+        cli_script,
+        "write_predictions",
+        lambda dataframe, stream: (_ for _ in ()).throw(BrokenPipeError()),
+    )
+    monkeypatch.setattr(cli_script, "_silence_closed_stdout", lambda: None)
+    assert main([
+        "--mhc-predictor", "random",
+        "--sequence", "SIINFEKL",
+        "--mhc-alleles", "HLA-A*02:01",
+    ]) == 0
 
 
 def test_format_predictions_when_empty():

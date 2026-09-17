@@ -122,6 +122,7 @@ mhctools cleavage --list-models --json
 mhctools cleavage --sequence RPPGFSPFR --model app2-xp --model cpn-basic
 mhctools cleavage --sequence VPYGSFKHV --compartment cytosol --out cleavage.json
 mhctools cleavage --sequence HAEGTFTSD --model dpp4-qpisa --n-term acetylated
+mhctools cleavage --sequence SIINFEKL --model pepsickle-in-vivo-human-only
 ```
 
 ```python
@@ -132,6 +133,9 @@ results = predict_cleavage("TSGPNQ", models=["fap-endo-gp", "prep-pro"])
 The default panel evaluates all 20 built-in models and returns separate
 results. `--model` and `--sequence` can be repeated. `--list-models` prints a
 compact discovery table; add `--json` for its full machine-readable catalog.
+The two optional Pepsickle epitope models are listed as unresolved when the
+package/assets are absent. When present, their catalog and prediction results
+carry SHA-256 identities for weights, inference code, and feature code.
 Prediction JSON uses schema version 2: its top-level `models` object stores each
 full provenance record once, keyed by model name, and each item in `results`
 references that name in its `model` field. The output retains unmatched and
@@ -317,8 +321,14 @@ of the actual workbook snapshot used for inference. The GPL-licensed workbook
 is loaded at runtime and is not included in the mhctools distribution.
 
 The existing `ERAMER` cascade API, `NetChop`, `Pepsickle` and other proteasome
-predictors remain available through their existing interfaces. Their output
-scales must not be mixed with qPISA scores or motif decisions.
+predictors remain available through their existing interfaces. Pepsickle also
+has a canonical `PepsickleCleavage.predict()` facade and the two CLI model names
+shown above. Array index `i` maps to internal bond `i + 1`; the upstream final
+zero is an endpoint sentinel and is never emitted as a bond. Canonical results
+default to subprocess isolation because the upstream package deserializes a
+pickle, while still requiring users to trust the installed model artifact.
+Processing-model output scales must not be mixed with qPISA scores or motif
+decisions.
 
 ## Wider candidate inventory and next PRs
 

@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "constructs": [
+    {
+      "id": "example-injected-slp",
+      "sequence": "RISVTPGEKIILNFTTLDLYRSR",
+      "delivery": "synthetic_long_peptide",
+      "exposures": ["tumor_stroma"],
+      "intended_epitopes": [
+        {"label": "mutant target", "start": 9, "end": 17}
+      ],
+      "mhc_windows": [
+        {"mhc_class": "I", "allele": "HLA-A*02:01", "start": 9, "end": 17, "percentile_rank": 0.4, "predictor": "example-I"},
+        {"mhc_class": "II", "allele": "HLA-DRB1*03:01", "start": 4, "end": 18, "percentile_rank": 1.8, "predictor": "example-II"}
+      ],
+      "cleavage_tracks": [
+        {
+          "name": "example proteasome",
+          "context": "cytosolic_proteasome",
+          "evidence_type": "quantitative_model",
+          "scores": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6],
+          "threshold": 0.5,
+          "units": "dimensionless native output",
+          "provenance": "example only"
+        },
+        {
+          "name": "example endolysosomal",
+          "context": "endolysosomal",
+          "evidence_type": "quantitative_model",
+          "scores": [0.6, 0.3, 0.2, 0.1, 0.2, 0.4, 0.7, 0.9, 0.4, 0.2, 0.1, 0.3, 0.5, 0.8, 0.7, 0.4, 0.2, 0.1, 0.2, 0.3, 0.4, 0.5],
+          "threshold": 0.5,
+          "units": "dimensionless native output",
+          "provenance": "example only"
+        },
+        {
+          "name": "example MME",
+          "context": "extracellular_interstitial",
+          "evidence_type": "motif_rule",
+          "scores": [0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+          "threshold": 1,
+          "units": "binary motif decision",
+          "provenance": "example only"
+        }
+      ]
+    },
+    {
+      "id": "example-cytosolic-rna",
+      "sequence": "RISVTPGEKIILNFTTLDLYRSR",
+      "delivery": "rna_encoded",
+      "routing": "cytosolic",
+      "intended_epitopes": [
+        {"label": "encoded target", "start": 9, "end": 17}
+      ],
+      "mhc_windows": [
+        {"mhc_class": "I", "allele": "HLA-A*02:01", "start": 9, "end": 17, "percentile_rank": 0.4, "predictor": "example-I"}
+      ],
+      "cleavage_tracks": [
+        {
+          "name": "example proteasome",
+          "context": "cytosolic_proteasome",
+          "evidence_type": "quantitative_model",
+          "scores": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6],
+          "threshold": 0.5,
+          "units": "dimensionless native output",
+          "provenance": "example only"
+        },
+        {
+          "name": "should not display for cytosolic RNA",
+          "context": "circulation",
+          "evidence_type": "motif_rule",
+          "scores": [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          "threshold": 1,
+          "units": "binary motif decision",
+          "provenance": "example only"
+        }
+      ]
+    }
+  ]
+}

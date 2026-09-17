@@ -83,7 +83,19 @@ from .processing_predictor import (
 from .proteasome_predictor import ProteasomePredictor
 from .netchop import NetChop
 from .netcleave import NetCleave, NetCleave_I, NetCleave_II
-from .pepsickle import Pepsickle
+from .pepsickle import Pepsickle, PepsickleCleavage as PepsickleCleavage
+from .vaccine_report import (
+    CleavageTrack as CleavageTrack,
+    EpitopeWindow as EpitopeWindow,
+    MHCWindow as MHCWindow,
+    RoutePolicy as RoutePolicy,
+    VaccineConstruct as VaccineConstruct,
+    VaccineReportInput as VaccineReportInput,
+    generate_vaccine_report as generate_vaccine_report,
+    placement_assessments as placement_assessments,
+    processing_route_policy as processing_route_policy,
+    select_mhc_windows as select_mhc_windows,
+)
 from .netmhc import NetMHC
 from .netmhc3 import NetMHC3
 from .netmhc4 import NetMHC4
@@ -131,7 +143,7 @@ def __getattr__(name):
     raise AttributeError(
         "module %r has no attribute %r" % (__name__, name))
 
-__version__ = "3.44.43"
+__version__ = "3.44.44"
 
 __all__ = [
     "mhcflurry_composite_version",

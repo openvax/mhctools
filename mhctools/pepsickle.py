@@ -10,19 +10,65 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import hashlib
+import importlib.metadata
 import json
 import logging
+from pathlib import Path
 import subprocess
 import sys
 
+from .cleavage import CleavageModel, CleavageResult, CleavageSite, coerce_peptide
 from .proteasome_predictor import ProteasomePredictor
 
 # Module-level cache for loaded pepsickle models. Keyed by human_only.
 _model_cache = {}
+_identity_cache = {}
 
 logger = logging.getLogger(__name__)
 
 PEPSICKLE_SUBPROCESS_TIMEOUT_SECONDS = 300
+
+
+def _sha256(path):
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _pepsickle_identity(human_only):
+    """Return verified code, feature, and weight identity for pepsickle."""
+    cache_key = bool(human_only)
+    if cache_key in _identity_cache:
+        return _identity_cache[cache_key]
+
+    import pepsickle.model_functions as model_functions
+    import pepsickle.sequence_featurization_tools as feature_functions
+
+    package_dir = Path(model_functions.__file__).resolve().parent
+    weights_path = package_dir / "trained_model_dict.pickle"
+    if not weights_path.is_file():
+        raise RuntimeError(
+            "Installed pepsickle is missing trained_model_dict.pickle at %s"
+            % weights_path)
+    identity = {
+        "package_version": importlib.metadata.version("pepsickle"),
+        "weights_path": str(weights_path),
+        "weights_sha256": _sha256(weights_path),
+        "inference_path": str(Path(model_functions.__file__).resolve()),
+        "inference_sha256": _sha256(model_functions.__file__),
+        "features_path": str(Path(feature_functions.__file__).resolve()),
+        "features_sha256": _sha256(feature_functions.__file__),
+        "model_key": (
+            "human_epitope_sequence_mod+human_epitope_motif_mod"
+            if human_only else
+            "all_mammal_epitope_sequence_mod+all_mammal_epitope_motif_mod"
+        ),
+    }
+    _identity_cache[cache_key] = identity
+    return identity
 
 _PEPSICKLE_SUBPROCESS_SCRIPT = r"""
 import json
@@ -110,6 +156,110 @@ class Pepsickle(ProteasomePredictor):
 
     def _predictor_name(self):
         return "pepsickle"
+
+    @staticmethod
+    def _cleavage_model_from_identity(human_only, identity):
+        population = "human-only" if human_only else "all-mammal"
+        if identity is None:
+            version = "unresolved: pepsickle package/assets not located"
+        else:
+            version = (
+                "package:%s;model:%s;weights-sha256:%s;inference-sha256:%s;"
+                "features-sha256:%s"
+                % (
+                    identity["package_version"],
+                    identity["model_key"],
+                    identity["weights_sha256"],
+                    identity["inference_sha256"],
+                    identity["features_sha256"],
+                )
+            )
+        return CleavageModel(
+            name="pepsickle-in-vivo-%s" % population,
+            version=version,
+            enzyme="proteasome epitope proxy",
+            uniprot="",
+            species="Homo sapiens" if human_only else "Mammalia",
+            compartments=("cytosol",),
+            evidence="quantitative_model",
+            references=(
+                "https://doi.org/10.1093/bioinformatics/btab628",
+                "https://github.com/pdxgx/pepsickle",
+            ),
+            assay=(
+                "Neural ensemble trained from observed epitope C termini; %s "
+                "training subset" % population
+            ),
+            limitations=(
+                "Native dimensionless model output, not an empirical cleavage, "
+                "degradation, presentation, or vaccine efficacy probability. "
+                "Uses an eight-residue context on each side with terminal "
+                "padding. The upstream package deserializes a pickle model; "
+                "isolate_subprocess controls process isolation but does not make "
+                "an untrusted pickle safe."
+            ),
+            score_name="pepsickle_epitope_model_output",
+            score_units="dimensionless native model output",
+            scored_endpoint="site_cleavage",
+        )
+
+    @classmethod
+    def catalog_cleavage_model(cls, human_only):
+        """Describe a known optional model without claiming absent assets."""
+        try:
+            identity = _pepsickle_identity(human_only)
+        except (ImportError, OSError, RuntimeError,
+                importlib.metadata.PackageNotFoundError):
+            identity = None
+        return cls._cleavage_model_from_identity(human_only, identity)
+
+    def cleavage_model(self):
+        """Return canonical per-bond metadata tied to installed assets."""
+        return self._cleavage_model_from_identity(
+            self.human_only, _pepsickle_identity(self.human_only))
+
+    def predict_cleavage(self, peptide):
+        """Return every internal bond through the canonical cleavage contract.
+
+        Pepsickle emits one score after each residue and forces its last score
+        to zero because a sequence endpoint is not an internal peptide bond.
+        This adapter maps array index ``i`` to bond ``i + 1`` and deliberately
+        excludes that endpoint sentinel.
+        """
+        peptide = coerce_peptide(peptide)
+        model = self.cleavage_model()
+        if peptide.n_term != "free" or peptide.c_term != "free":
+            return CleavageResult(
+                peptide,
+                model,
+                unsupported_reason=(
+                    "Pepsickle does not model modified terminal chemistry"
+                ),
+            )
+        scores = self.cleavage_probs(peptide.sequence)
+        if len(scores) != len(peptide.sequence):
+            raise ValueError(
+                "Expected %d pepsickle scores for sequence, got %d"
+                % (len(peptide.sequence), len(scores)))
+        sites = tuple(
+            CleavageSite(
+                bond,
+                "scored",
+                "Pepsickle epitope-model output after residue %d" % bond,
+                float(score),
+            )
+            for bond, score in enumerate(scores[:-1], start=1)
+        )
+        identity = _pepsickle_identity(self.human_only)
+        conditions = (
+            ("human_only", str(bool(self.human_only)).lower()),
+            ("model_mode", "epitope"),
+            ("model_key", identity["model_key"]),
+            ("threshold", "%.17g" % self.threshold),
+            ("isolate_subprocess", str(bool(self.isolate_subprocess)).lower()),
+            ("subprocess_timeout_seconds", str(self.subprocess_timeout)),
+        )
+        return CleavageResult(peptide, model, sites, conditions=conditions)
 
     def _load_model(self):
         if self._model is None:
@@ -221,3 +371,18 @@ class Pepsickle(ProteasomePredictor):
                     % (len(sequence), len(probs)))
             output[sequence] = [float(p) for p in probs]
         return output
+
+
+class PepsickleCleavage:
+    """Canonical facade that leaves legacy peptide-level ``predict`` intact."""
+
+    def __init__(self, **kwargs):
+        kwargs.setdefault("isolate_subprocess", True)
+        self.predictor = Pepsickle(**kwargs)
+
+    @property
+    def model(self):
+        return self.predictor.cleavage_model()
+
+    def predict(self, peptide):
+        return self.predictor.predict_cleavage(peptide)

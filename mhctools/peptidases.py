@@ -257,6 +257,14 @@ def cleavage_models(include_optional=False):
         # external PWM asset; only constructing ERAMERCleavage() does that.
         from .eramer_cleavage import ERAMERCleavage
         models += (ERAMERCleavage.model,)
+        # Unlike ERAMER, pepsickle's exact model metadata depends on installed
+        # package code, feature implementation, and weight bytes. Include it
+        # only when those files can be located and hashed truthfully.
+        from .pepsickle import Pepsickle
+        models += (
+            Pepsickle.catalog_cleavage_model(human_only=True),
+            Pepsickle.catalog_cleavage_model(human_only=False),
+        )
     names = [m.name for m in models]
     if len(set(names)) != len(names):
         raise ValueError("Duplicate cleavage model name in the built-in panel: %r" % (
@@ -280,15 +288,20 @@ def get_cleavage_model(name, *, enzyme_state=None):
     matches += [reference for reference in substrate_references() if reference.model.name == name]
     is_dpp4 = name == "dpp4-qpisa"
     is_eramer = name == "eramer-step"
-    if len(matches) + is_dpp4 + is_eramer > 1:
+    pepsickle_human = name == "pepsickle-in-vivo-human-only"
+    pepsickle_mammal = name == "pepsickle-in-vivo-all-mammal"
+    if len(matches) + is_dpp4 + is_eramer + pepsickle_human + pepsickle_mammal > 1:
         raise ValueError("Duplicate cleavage model name %r in the built-in panel" % name)
-    if is_dpp4 or is_eramer:
+    if is_dpp4 or is_eramer or pepsickle_human or pepsickle_mammal:
         if enzyme_state is not None:
             raise ValueError("Explicit enzyme state is not supported for %s" % name)
         if is_dpp4:
             return DPP4qPISA()
-        from .eramer_cleavage import ERAMERCleavage
-        return ERAMERCleavage()
+        if is_eramer:
+            from .eramer_cleavage import ERAMERCleavage
+            return ERAMERCleavage()
+        from .pepsickle import PepsickleCleavage
+        return PepsickleCleavage(human_only=pepsickle_human)
     if matches:
         [candidate] = matches
         if isinstance(candidate, PeptidaseMotif):

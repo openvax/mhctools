@@ -1074,6 +1074,9 @@ those coordinates. `prediction_method_name` is the exact CLI predictor name
 selected (including version and mode). `affinity` is IC50 in nM,
 `percentile_rank` is a 0–100 percentile, and `score` remains
 predictor-specific. CSV floats are serialized with six significant digits.
+Default stdout is streamed as tab-separated values, so an empty source name is
+preserved as an empty field and large tables do not require a second formatted
+copy in memory. A downstream closed pipe (for example `| head`) exits cleanly.
 
 ### Automatically extract peptides as subsequences of specified length
 
@@ -1171,8 +1174,31 @@ anything else. An optional `eramer-step` model exposes ERAP1's existing
 length-specific PWM score at the initial trimming bond. Discover models with
 `mhctools cleavage --list-models`, or run
 `mhctools cleavage --sequence RPPGFSPFR --model app2-xp --model cpn-basic`.
+Installed Pepsickle epitope models are also available through this per-bond
+contract with exact weight, inference-code, and feature-code hashes; their
+forced endpoint zero is excluded rather than mislabeled as an internal bond.
 The [guide](docs/cleavage.md) includes a wider candidate inventory and
 prioritized follow-up issues.
+
+### Route-aware vaccine reports
+
+`mhctools vaccine-report` reads a structured construct manifest and writes a
+new date/time-stamped directory containing a sequence-centered PDF, declared
+processing-route policy, selected MHC windows, placement assessments, and
+checksums:
+
+```sh
+mhctools vaccine-report \
+    --input docs/vaccine-report-example.json \
+    --output-dir vaccine-reports
+```
+
+Injected SLP and RNA-encoded constructs use different route policies. Cytosolic
+RNA emphasizes proteasome/ER/class-I processing and omits free serum-peptide
+tracks; an injected SLP begins extracellularly/endolysosomally while retaining
+proteasome/TAP cross-presentation as a conditional route. See the
+[vaccine report guide](docs/vaccine-reports.md) for the Python API, input
+schema, and a Vaxrank placement-audit integration pattern.
 
 `mhctools benchmark` evaluates source-linked observations in separate assay,
 endpoint and native-unit strata. It reports training overlap, repeated

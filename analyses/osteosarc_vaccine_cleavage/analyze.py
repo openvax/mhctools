@@ -105,6 +105,24 @@ FIGURE_CYTOSOL_MODELS = [
 ]
 FIGURE_QUANTITATIVE_MODELS = FIGURE_CYTOSOL_MODELS + ["netcleave-ii-hla"]
 FIGURE_RED_SUPPORT_REQUIRED = 3
+MHC_DISPLAY_MAX_WINDOWS = 10
+MHC_DISPLAY_LANES = 5
+# Opinionated default for injected SLPs. Plasma carboxypeptidases/ACE require
+# declared circulation, and intact-SLP cytosolic aminopeptidase motifs assume
+# termini that generally do not survive uptake/export. Both remain in CSV.
+FIGURE_SLP_EXTRACELLULAR_MODELS = [
+    "mme-hydrophobic",
+    "fap-dipeptidyl",
+    "fap-endo-gp",
+    "anpep-ala",
+    "enpep-acidic",
+]
+FIGURE_SLP_ENZYME_TRACKS = [
+    ("MME / neprilysin", ("mme-hydrophobic",), "extracellular exposure"),
+    ("FAP", ("fap-dipeptidyl", "fap-endo-gp"), "tumor-stroma conditional"),
+    ("ANPEP / CD13", ("anpep-ala",), "exposed N-terminus only"),
+    ("ENPEP", ("enpep-acidic",), "exposed N-terminus only"),
+]
 MODEL_DISPLAY_NAMES = {
     "netchop-3.1-20s-3.0": "NetChop 20S",
     "pepsickle-in-vivo-human-only": "Pepsickle human",
@@ -1605,8 +1623,8 @@ def segment_ligand_candidates(
 
 def select_ligand_candidates_for_display(
     candidates: pd.DataFrame,
-    lane_count: int = 3,
-    max_candidates: int = 6,
+    lane_count: int = MHC_DISPLAY_LANES,
+    max_candidates: int = MHC_DISPLAY_MAX_WINDOWS,
 ) -> pd.DataFrame:
     """Select informative non-overlapping ligand windows for fixed display lanes.
 
@@ -1786,10 +1804,10 @@ def plot_sequence_atlas_page(
     bonds = list(range(start_bond, end_bond + 1))
     record_id = record["sequence_record_id"]
     residue_start, residue_end = start_bond, end_bond + 1
-    fig = plt.figure(figsize=(16, 10.5))
-    ax = fig.add_axes([0.12, 0.15, 0.835, 0.71])
+    fig = plt.figure(figsize=(16, 12.5))
+    ax = fig.add_axes([0.12, 0.13, 0.835, 0.75])
     ax.set_xlim(residue_start - 0.8, residue_end + 0.8)
-    ax.set_ylim(-4.55, 5.95)
+    ax.set_ylim(-7.85, 6.95)
     ax.axis("off")
 
     # The sequence is the coordinate system, not merely another annotation.
@@ -1869,9 +1887,9 @@ def plot_sequence_atlas_page(
         "netcleave-ii-hla": "#6f4aa8",
     }
     model_y = {
-        model: 2.42 + index * 0.78 for index, model in enumerate(FIGURE_CYTOSOL_MODELS)
+        model: 3.05 + index * 0.85 for index, model in enumerate(FIGURE_CYTOSOL_MODELS)
     }
-    model_y["netcleave-ii-hla"] = -2.08
+    model_y["netcleave-ii-hla"] = -3.05
     model_scores = _score_matrix(
         record_id, quantitative_df, FIGURE_QUANTITATIVE_MODELS, bonds
     )
@@ -1956,8 +1974,8 @@ def plot_sequence_atlas_page(
 
     ax.text(
         residue_start - 0.68,
-        5.65,
-        "INTRACELLULAR / CLASS-I PROCESSING - four complementary score tracks",
+        6.58,
+        "CYTOSOLIC CROSS-PRESENTATION - conditional after SLP uptake/export",
         ha="left",
         va="center",
         fontsize=8.6,
@@ -1966,8 +1984,8 @@ def plot_sequence_atlas_page(
     )
     ax.text(
         residue_end + 0.45,
-        5.65,
-        "higher native score upward",
+        6.58,
+        "four model-native tracks",
         ha="right",
         va="center",
         fontsize=7.2,
@@ -1988,7 +2006,7 @@ def plot_sequence_atlas_page(
         x = bond + 0.5
         ax.plot(
             [x, x],
-            [0.48, 5.42],
+            [0.48, 6.35],
             color="#b3212d",
             linewidth=0.65,
             alpha=0.18,
@@ -2009,13 +2027,12 @@ def plot_sequence_atlas_page(
             zorder=7,
         )
 
-    # Native peptidase outputs without a validated common threshold.
-    terminal_y = {"eramer-step": 1.98, "dpp4-qpisa": -3.18}
-    terminal_label = {
-        "eramer-step": "ERAP1 / ERAMER",
-        "dpp4-qpisa": "DPP4 native (intact SLP)",
-    }
-    terminal_color = {"eramer-step": "#6a4492", "dpp4-qpisa": "#8a5a00"}
+    # DPP4 is the one quantitative extracellular assay in this panel. ERAP1
+    # scores are kept in the tables but not drawn against the intact SLP:
+    # ER trimming applies to shorter precursors after cross-presentation.
+    terminal_y = {"dpp4-qpisa": -4.72}
+    terminal_label = {"dpp4-qpisa": "DPP4 - exposed N-terminus (native score)"}
+    terminal_color = {"dpp4-qpisa": "#8a5a00"}
     for model, y in terminal_y.items():
         ax.text(
             residue_start - 0.68,
@@ -2034,9 +2051,9 @@ def plot_sequence_atlas_page(
                 marker="D",
                 s=38,
                 color=terminal_color[model],
-                edgecolor="#49323f" if model == "eramer-step" else "#6a4600",
+                edgecolor="#6a4600",
             )
-            ax.text(x + 0.08, y + 0.12, f"{float(result.score):.2g}", fontsize=6.5)
+            ax.text(x + 0.10, y + 0.15, f"{float(result.score):.2g}", fontsize=8)
 
     def short_allele(value: str) -> str:
         value = value.replace("HLA-", "").replace("DRA1*01:01-", "")
@@ -2074,10 +2091,11 @@ def plot_sequence_atlas_page(
         ax.text(
             residue_start - 0.68,
             sum(lane_y) / len(lane_y),
-            f"MHC-{mhc_class} candidate ligands",
+            f"MHC-{mhc_class}: {len(selected_candidates)} shown / "
+            f"{len(eligible_candidates)} eligible (top-{MHC_DISPLAY_MAX_WINDOWS} cap)",
             ha="right",
             va="center",
-            fontsize=8.2,
+            fontsize=8.4,
             color=color,
         )
         drawn_spans: list[tuple[int, int]] = []
@@ -2111,7 +2129,7 @@ def plot_sequence_atlas_page(
                 label,
                 ha="center",
                 va="center",
-                fontsize=6.3,
+                fontsize=7.4,
                 color=color,
                 fontweight="bold",
                 clip_on=True,
@@ -2142,26 +2160,13 @@ def plot_sequence_atlas_page(
                     zorder=1,
                 )
             )
-        omitted = len(eligible_candidates) - len(selected_candidates)
-        if omitted > 0:
-            omitted_y = max(lane_y) + 0.34 if mhc_class == "I" else min(lane_y) - 0.12
-            ax.text(
-                residue_end + 0.45,
-                omitted_y,
-                f"+{omitted} more in CSV",
-                ha="right",
-                va="center",
-                fontsize=6.6,
-                color=color,
-            )
-
-    draw_ligands("I", [0.68, 1.03, 1.38], "#2878b5")
-    draw_ligands("II", [-0.72, -1.07, -1.42], "#5b3d91")
+    draw_ligands("I", [0.82, 1.26, 1.70, 2.14, 2.58], "#2878b5")
+    draw_ligands("II", [-0.82, -1.26, -1.70, -2.14, -2.58], "#5b3d91")
 
     ax.text(
         residue_start - 0.68,
-        -1.78,
-        "ENDOLYSOSOMAL / CLASS-II PROCESSING - C-terminal score track",
+        -3.88,
+        "ENDOLYSOSOMAL / CLASS-II PROCESSING - primary SLP uptake route",
         ha="left",
         va="center",
         fontsize=8.3,
@@ -2170,60 +2175,56 @@ def plot_sequence_atlas_page(
     )
     ax.text(
         residue_end + 0.45,
-        -1.78,
-        "higher native score downward",
+        -3.88,
+        "NetCleave-II is not a named-cathepsin assay",
         ha="right",
         va="center",
         fontsize=7.2,
         color="#66717b",
     )
 
-    motif_abbreviation = {
-        model: MOTIF_DISPLAY_NAMES[model].split(" - ", 1)[0]
-        for model in MOTIF_DISPLAY_NAMES
-    }
     matched = motifs_df.loc[
         (motifs_df["sequence_record_id"] == record_id)
         & (motifs_df["status"] == "matched")
         & motifs_df["bond"].isin(bonds)
     ]
-    for models, y, label, color in (
-        (INTRACELLULAR_ER_MOTIF_MODELS, 1.66, "cytosol / ER motifs", "#6a4492"),
-        (EXTRACELLULAR_MOTIF_MODELS, -3.82, "serum / extracellular motifs", "#007b83"),
-    ):
+    shown_enzyme_tracks = []
+    for label, models, scope in FIGURE_SLP_ENZYME_TRACKS:
+        subset = matched.loc[matched["model"].isin(models)]
+        if not subset.empty:
+            shown_enzyme_tracks.append((label, models, scope, subset))
+    for track_index, (label, models, scope, subset) in enumerate(shown_enzyme_tracks):
+        y = -5.40 - 0.58 * track_index
+        color = "#007b83"
         ax.text(
             residue_start - 0.68,
             y,
-            label,
+            f"{label} - {scope}",
             ha="right",
             va="center",
-            fontsize=8.2,
+            fontsize=8.4,
             color=color,
         )
-        for bond, group in matched.loc[matched["model"].isin(models)].groupby("bond"):
-            names = "+".join(
-                motif_abbreviation[model] for model in sorted(group["model"].unique())
-            )
+        ax.plot(
+            [residue_start - 0.45, residue_end + 0.45],
+            [y, y],
+            color="#c9d0d6",
+            linewidth=0.7,
+            zorder=0,
+        )
+        for bond, group in subset.groupby("bond"):
             x = int(bond) + 0.5
-            marker = "^" if y > 0 else "v"
-            label_y = y + 0.16 if y > 0 else y - 0.16
-            va = "bottom" if y > 0 else "top"
-            ax.scatter([x], [y], marker=marker, s=38, color=color, zorder=3)
-            ax.text(
-                x,
-                label_y,
-                names,
-                rotation=45,
-                ha="right",
-                va=va,
-                fontsize=6.1,
-                color=color,
-            )
+            # Multiple source rules for the same enzyme remain distinct in
+            # CSV; one larger marker on the enzyme's own row keeps the page
+            # readable and avoids implying independent enzyme support.
+            marker_size = 46 + 12 * (group["model"].nunique() - 1)
+            ax.scatter([x], [y], marker="v", s=marker_size, color=color,
+                       edgecolor="white", linewidth=0.6, zorder=3)
 
     ax.text(
         residue_start - 0.68,
-        -2.78,
-        "SERUM / EXTRACELLULAR - native scores and recognition motifs",
+        -4.18,
+        "EXTRACELLULAR BEFORE/DURING SLP UPTAKE - exposure-dependent evidence",
         ha="left",
         va="center",
         fontsize=8.6,
@@ -2273,7 +2274,7 @@ def plot_sequence_atlas_page(
     fig.text(
         0.5,
         0.086,
-        "SCORES  Native 0-1 bond scores; lines join adjacent assessed bonds only (no smoothing). Dashed line = 0.5 display threshold; gaps = unassessed.",
+        "SCORES  Separate native 0-1 tracks; joined assessed bonds are not smoothed. Dashed = 0.5 display threshold; gaps = unassessed.",
         ha="center",
         va="center",
         fontsize=8.8,
@@ -2282,7 +2283,7 @@ def plot_sequence_atlas_page(
     fig.text(
         0.5,
         0.057,
-        "RED BOND MARKS  All four intracellular tracks assess the bond; >=3 reach 0.5. Four beads show support (filled = hit, open = miss), not probability.",
+        "RED  All four cytosolic tracks assessed the bond and >=3 reached 0.5. Four filled/open beads show model concurrence, never probability.",
         ha="center",
         va="center",
         fontsize=8.8,
@@ -2291,7 +2292,7 @@ def plot_sequence_atlas_page(
     fig.text(
         0.5,
         0.028,
-        "MHC WINDOWS  <=2%/<=5% rank; display favors intended overlap, then allele diversity, then rank. Internal red ticks are pre-binding cut evidence; all predictions remain in CSV.",
+        "MHC  Up to 10/class: intended overlap, then allele diversity, then native rank. Red ticks inside bars are pre-binding cut evidence; full results stay in CSV.",
         ha="center",
         va="center",
         fontsize=8.8,
@@ -2856,11 +2857,15 @@ def write_report(
         "recorded in [the manuscript selection table](tables/manuscript_figure_selection.csv). "
         "A [self-contained caption](MANUSCRIPT_CAPTION.md) defines every visual encoding and "
         "lists the panel-specific selection audit.",
-        "The atlas shows four intracellular quantitative tracks: human-only Pepsickle, NetChop Cterm, NetChop 20S, "
-        "and NetCleave-I. Cterm is ligand-trained and emphasizes candidate MHC-I boundaries, whereas 20S is retained "
+        "The atlas shows four cytosolic cross-presentation tracks: human-only Pepsickle, NetChop Cterm, NetChop 20S, "
+        "and NetCleave-I. This is explicitly conditional on SLP uptake and cytosolic export. Cterm is ligand-trained and emphasizes candidate MHC-I boundaries, whereas 20S is retained "
         "as a distinct in-vitro proteasome view rather than a substitute for Cterm. The human-only Pepsickle model is "
         "species-matched but experimental and trained on less data than its all-mammal counterpart. The near-redundant "
         "all-mammal Pepsickle output remains available in the exact-score and summary tables.",
+        "Below the sequence, NetCleave-II is separated from extracellular exposure. DPP4 and each matched, "
+        "biologically prioritized MME, FAP, ANPEP, or ENPEP rule receives its own readable enzyme track. "
+        "Plasma-oriented and intact-SLP intracellular terminal rules remain in CSV instead of being presented "
+        "as default injection-site biology.",
         "",
         "![Predictor agreement and clustered SLP order](figures/predictor_agreement_and_slp_clusters.png)",
         "",
@@ -2879,7 +2884,8 @@ def write_report(
         "is not used to invent additional combinations. All inference ran locally.",
         "Within each map segment and class, display selection first retains the strongest window "
         "overlapping a disclosed intended epitope, then tries to represent distinct alleles, and "
-        "finally fills remaining non-overlapping lane capacity by native percentile rank. Exact "
+        f"finally fills remaining non-overlapping lane capacity by native percentile rank, up to "
+        f"{MHC_DISPLAY_MAX_WINDOWS} windows per class. Each page states selected and eligible counts. Exact "
         "selected rows and reasons are recorded in `slp_mhc_display_selection.csv`; every raw "
         "prediction remains in `slp_mhc_ligand_predictions.csv`.",
         "For class I, a red sequence mark or ligand-window tick requires all four displayed intracellular "
@@ -3089,14 +3095,15 @@ def main() -> None:
             "model",
         ]
     )
-    grouped_motifs = set(EXTRACELLULAR_MOTIF_MODELS) | set(
-        INTRACELLULAR_ER_MOTIF_MODELS
-    )
-    if included_motifs != grouped_motifs:
+    displayed_motifs = {
+        model
+        for _, models, _ in FIGURE_SLP_ENZYME_TRACKS
+        for model in models
+    }
+    if not displayed_motifs <= included_motifs:
         raise RuntimeError(
-            "Motif figure groups do not cover the included models exactly: "
-            f"missing={sorted(included_motifs - grouped_motifs)}, "
-            f"extra={sorted(grouped_motifs - included_motifs)}"
+            "SLP figure enzyme tracks name models absent from the catalog: "
+            f"{sorted(displayed_motifs - included_motifs)}"
         )
 
     atlas_order_df, map_exports_df = render_figures(

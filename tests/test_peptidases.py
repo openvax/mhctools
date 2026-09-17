@@ -143,9 +143,10 @@ def test_cli_lists_optional_models_as_table_without_loading_assets(
     lines = output.splitlines()
     assert lines[0].split() == [
         "NAME", "ENZYME", "COMPARTMENTS", "EVIDENCE", "SCORE", "UNITS"]
-    assert len(lines) == 22
+    assert len(lines) == 24
     assert "dpp4-qpisa" in output
     assert "eramer-step" in output
+    assert "pepsickle-in-vivo-human-only" in output
     assert "limitations" not in output
 
 
@@ -154,8 +155,9 @@ def test_cli_lists_optional_models_as_json(capsys, monkeypatch):
     main(["cleavage", "--list-models", "--json"])
     data = json.loads(capsys.readouterr().out)
     assert data["schema_version"] == 1
-    assert len(data["models"]) == 21
+    assert len(data["models"]) == 23
     assert any(m["name"] == "eramer-step" for m in data["models"])
+    assert any(m["name"] == "pepsickle-in-vivo-human-only" for m in data["models"])
 
 
 def test_cli_list_models_can_write_json(capsys, tmp_path):
