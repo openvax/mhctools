@@ -42,6 +42,11 @@ mhctools fetch eramer
 # Academic licenses must be reviewed and accepted explicitly.
 mhctools fetch nettcr --accept-license
 
+# NetCleave publishes no license at all. mhctools can still fetch a pinned
+# snapshot, but only when you confirm your own use is authorized; --accept-license
+# records that acknowledgement, it does not grant rights mhctools does not have.
+mhctools fetch netcleave --accept-license
+
 # MixTCRpred includes two upstream checkpoints; fetch another by model name.
 mhctools fetch mixtcrpred --accept-license
 mhctools fetch mixtcrpred --model A0201_NLVPMVATV
@@ -672,7 +677,7 @@ results[0].presentation.score
 |---|---|---|
 | `Pepsickle` | proteasome cleavage | `pip install pepsickle` ([paper](https://doi.org/10.1093/bioinformatics/btab628)) |
 | `NetChop` | proteasome cleavage | [NetChop](https://services.healthtech.dtu.dk/services/NetChop-3.1/) |
-| `NetCleave_I` / `NetCleave_II` | proteasomal (I) / endolysosomal (II) C-terminal cleavage | [NetCleave](https://github.com/BSC-CNS-EAPM/NetCleave) clone (set `NETCLEAVE_DIR`) |
+| `NetCleave_I` / `NetCleave_II` | proteasomal (I) / endolysosomal (II) C-terminal cleavage | `mhctools fetch netcleave --accept-license`, or your own clone via `NETCLEAVE_DIR` |
 
 `Pepsickle` and `NetChop` use configurable scoring to aggregate per-position
 cleavage probabilities into peptide-level scores (see `ProcessingPredictor`
@@ -704,10 +709,18 @@ the cleavage site, so pass `c_flanks` (or scan proteins). Its weights ship in
 the git repo; the R dependency in NetCleave's README is only for its training
 pipeline, not prediction.
 
+`mhctools fetch netcleave --accept-license` installs a pinned snapshot (~10 MB:
+the entry script, `predictor/`, and `data/models/`, skipping the ~118 MB of IEDB
+and UniParc databases that only upstream's `--generate`/`--train` paths use).
+Upstream publishes no license file, so unlike other snapshots the flag is an
+acknowledgement that you have confirmed your own use is authorized rather than
+acceptance of stated terms; the recorded manifest says `"license": "none
+published"`. A checkout you manage yourself still takes precedence.
+
 ```python
 from mhctools import NetCleave_II
 
-predictor = NetCleave_II()                 # resolves NETCLEAVE_DIR / ~/NetCleave
+predictor = NetCleave_II()                 # NETCLEAVE_DIR, ~/NetCleave, then fetched snapshot
 # score peptides with their C-terminal flanking residues (>= 3)
 results = predictor.predict(["SIINFEKL"], c_flanks=["DGH"])
 results[0].endolysosomal_cleavage.score

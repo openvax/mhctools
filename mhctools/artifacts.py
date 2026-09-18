@@ -64,6 +64,10 @@ class _Snapshot:
     license_name: str = ""
     license_url: str = ""
     acceptance_required: bool = False
+    # Upstream publishes no license at all. mhctools can still fetch a pinned
+    # snapshot on explicit request, but it cannot grant rights it does not
+    # have, so the acknowledgement must not be worded as accepting a license.
+    unlicensed: bool = False
     environment_variable: str = ""
     legacy_paths: tuple = ()
 
@@ -133,6 +137,40 @@ _SNAPSHOTS = {
             "7745d5cf72d99bcda1c73f26ca746d025b46b7f3/LICENSE"),
         environment_variable="ERAMER_HOME",
         legacy_paths=("~/ERAMER",),
+    ),
+    "netcleave": _Snapshot(
+        repository="https://github.com/BSC-CNS-EAPM/NetCleave.git",
+        revision="bc90bf8490dcc5bc7628b1f0c06f860a50e6f338",
+        # Non-cone patterns keep the ~10 MB needed for --predict and skip the
+        # ~118 MB of IEDB/UniParc databases and training data, which only the
+        # upstream --generate/--train paths use.
+        sparse_paths=(
+            "/NetCleave.py",
+            "/predictor/",
+            "/data/models/",
+            # The wrapper runs NetCleave with cwd set to this checkout and
+            # NetCleave writes its result there, so the directory must exist.
+            "/output/",
+        ),
+        sparse_cone=False,
+        required_paths=(
+            "NetCleave.py",
+            "output",
+            "predictor/core/cleavage_site_generator.py",
+            "predictor/ml_main/QSAR_table.csv",
+            "predictor/predictions/predict_csv.py",
+            "data/models/I_mass-spectrometry_HLA/"
+            "I_mass-spectrometry_HLA_model.h5",
+            "data/models/II_mass-spectrometry_HLA/"
+            "II_mass-spectrometry_HLA_model.h5",
+        ),
+        license_url=(
+            "https://github.com/BSC-CNS-EAPM/NetCleave/tree/"
+            "bc90bf8490dcc5bc7628b1f0c06f860a50e6f338"),
+        acceptance_required=True,
+        unlicensed=True,
+        environment_variable="NETCLEAVE_DIR",
+        legacy_paths=("~/NetCleave", "~/code/NetCleave"),
     ),
     "nettcr": _Snapshot(
         repository="https://github.com/mnielLab/NetTCR-2.2.git",
@@ -262,13 +300,6 @@ _MANUAL_EXECUTABLES = {
 }
 
 _MANUAL_DIRECTORIES = {
-    "netcleave": {
-        "environment_variable": "NETCLEAVE_DIR",
-        "legacy_paths": ("~/NetCleave", "~/code/NetCleave"),
-        "required_path": "NetCleave.py",
-        "detail": (
-            "Install NetCleave manually; its repository has no license file"),
-    },
     "tlimmuno2": {
         "environment_variable": "TLIMMUNO2_HOME",
         "legacy_paths": ("~/TLimmuno2",),
@@ -477,7 +508,11 @@ def _snapshot_status(name, data_dir=None):
     detail = "Pinned upstream snapshot managed by mhctools"
     if path.exists() and not ready:
         detail = "Managed destination is incomplete or has invalid provenance"
-    if snapshot.acceptance_required:
+    if snapshot.unlicensed:
+        detail += ("; upstream publishes no license, so the initial fetch "
+                   "requires explicit --accept-license (%s)"
+                   % snapshot.license_url)
+    elif snapshot.acceptance_required:
         detail += "; initial fetch requires explicit acceptance of %s (%s)" % (
             snapshot.license_name, snapshot.license_url)
     if name == "mixtcrpred" and ready:
@@ -680,6 +715,13 @@ def _fetch_snapshot(name, version=None, data_dir=None, accept_license=False):
             "and fetch again." % target)
 
     if snapshot.acceptance_required and not accept_license:
+        if snapshot.unlicensed:
+            raise RuntimeError(
+                "%s publishes no license: by default its authors reserve all "
+                "rights and ask only to be cited. mhctools cannot grant "
+                "permission to use it. Review %s and confirm your own use is "
+                "authorized, then rerun with --accept-license (or "
+                "accept_license=True)." % (name, snapshot.license_url))
         raise RuntimeError(
             "%s is distributed under the %s. Review %s, then rerun with "
             "--accept-license (or accept_license=True)." % (
@@ -721,9 +763,16 @@ def _fetch_snapshot(name, version=None, data_dir=None, accept_license=False):
                 % (name, revision))
 
         manifest = {
-            "license": snapshot.license_name,
+            "license": (
+                "none published" if snapshot.unlicensed
+                else snapshot.license_name),
+            # Nothing is "accepted" when upstream states no terms; record the
+            # weaker thing that actually happened instead.
             "license_accepted": bool(
-                snapshot.acceptance_required and accept_license),
+                snapshot.acceptance_required and accept_license
+                and not snapshot.unlicensed),
+            "unlicensed_use_acknowledged": bool(
+                snapshot.unlicensed and accept_license),
             "license_url": snapshot.license_url,
             "name": name,
             "repository": snapshot.repository,

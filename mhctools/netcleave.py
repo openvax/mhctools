@@ -70,7 +70,9 @@ def _find_netcleave_dir(netcleave_path=None):
     """Resolve the NetCleave installation directory.
 
     Checks, in order: the *netcleave_path* argument, the ``NETCLEAVE_DIR``
-    environment variable, then ``~/NetCleave`` and ``~/code/NetCleave``. An
+    environment variable, ``~/NetCleave`` and ``~/code/NetCleave``, then the
+    pinned snapshot installed by ``mhctools fetch netcleave``. A user-managed
+    checkout wins so an existing install keeps being used. An
     explicitly-provided path is validated up front.
     """
     clone_hint = "Clone from https://github.com/BSC-CNS-EAPM/NetCleave"
@@ -89,9 +91,15 @@ def _find_netcleave_dir(netcleave_path=None):
             os.path.join(home, "code", "NetCleave")):
         if os.path.isdir(candidate):
             return candidate
+    from .artifacts import artifact_status
+    managed = artifact_status("netcleave")
+    if managed.manager == "mhctools" and managed.status == "ready":
+        return managed.path
     raise FileNotFoundError(
         "NetCleave not found. Set NETCLEAVE_DIR or pass netcleave_path= to "
-        "the constructor. %s" % clone_hint)
+        "the constructor. Run `mhctools fetch netcleave --accept-license`; "
+        "upstream publishes no license, so that flag records that you "
+        "confirmed your own use is authorized. %s" % clone_hint)
 
 
 class NetCleave(object):
