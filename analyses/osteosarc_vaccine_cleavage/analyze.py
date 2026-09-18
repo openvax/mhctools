@@ -1807,7 +1807,7 @@ def plot_sequence_atlas_page(
     fig = plt.figure(figsize=(16, 12.5))
     ax = fig.add_axes([0.12, 0.13, 0.835, 0.75])
     ax.set_xlim(residue_start - 0.8, residue_end + 0.8)
-    ax.set_ylim(-7.85, 6.95)
+    ax.set_ylim(-8.05, 6.95)
     ax.axis("off")
 
     # The sequence is the coordinate system, not merely another annotation.
@@ -1889,7 +1889,7 @@ def plot_sequence_atlas_page(
     model_y = {
         model: 3.05 + index * 0.85 for index, model in enumerate(FIGURE_CYTOSOL_MODELS)
     }
-    model_y["netcleave-ii-hla"] = -3.05
+    model_y["netcleave-ii-hla"] = -3.50
     model_scores = _score_matrix(
         record_id, quantitative_df, FIGURE_QUANTITATIVE_MODELS, bonds
     )
@@ -2030,7 +2030,7 @@ def plot_sequence_atlas_page(
     # DPP4 is the one quantitative extracellular assay in this panel. ERAP1
     # scores are kept in the tables but not drawn against the intact SLP:
     # ER trimming applies to shorter precursors after cross-presentation.
-    terminal_y = {"dpp4-qpisa": -4.72}
+    terminal_y = {"dpp4-qpisa": -5.10}
     terminal_label = {"dpp4-qpisa": "DPP4 - exposed N-terminus (native score)"}
     terminal_color = {"dpp4-qpisa": "#8a5a00"}
     for model, y in terminal_y.items():
@@ -2165,7 +2165,7 @@ def plot_sequence_atlas_page(
 
     ax.text(
         residue_start - 0.68,
-        -3.88,
+        -2.96,
         "ENDOLYSOSOMAL / CLASS-II PROCESSING - primary SLP uptake route",
         ha="left",
         va="center",
@@ -2175,7 +2175,7 @@ def plot_sequence_atlas_page(
     )
     ax.text(
         residue_end + 0.45,
-        -3.88,
+        -2.96,
         "NetCleave-II is not a named-cathepsin assay",
         ha="right",
         va="center",
@@ -2194,7 +2194,7 @@ def plot_sequence_atlas_page(
         if not subset.empty:
             shown_enzyme_tracks.append((label, models, scope, subset))
     for track_index, (label, models, scope, subset) in enumerate(shown_enzyme_tracks):
-        y = -5.40 - 0.58 * track_index
+        y = -5.70 - 0.58 * track_index
         color = "#007b83"
         ax.text(
             residue_start - 0.68,
@@ -2223,7 +2223,7 @@ def plot_sequence_atlas_page(
 
     ax.text(
         residue_start - 0.68,
-        -4.18,
+        -4.55,
         "EXTRACELLULAR BEFORE/DURING SLP UPTAKE - exposure-dependent evidence",
         ha="left",
         va="center",
