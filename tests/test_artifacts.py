@@ -162,6 +162,28 @@ def test_license_gated_snapshot_requires_acceptance(tmp_path):
         fetch("mixtcrpred", data_dir=tmp_path)
 
 
+def test_unlicensed_snapshot_is_gated_without_claiming_a_license(tmp_path):
+    """NetCleave has no license, so the gate must not imply accepting terms."""
+    with pytest.raises(RuntimeError) as caught:
+        fetch("netcleave", data_dir=tmp_path)
+    message = str(caught.value)
+    assert "--accept-license" in message
+    assert "publishes no license" in message
+    assert "cannot grant permission" in message
+    # "distributed under the ..." is the wording for a real license and would
+    # be a false statement of terms here.
+    assert "distributed under" not in message
+
+
+def test_unlicensed_snapshot_records_absent_license_in_inventory():
+    from mhctools.artifacts import artifact_status
+
+    status = artifact_status("netcleave")
+    assert status.manager == "mhctools"
+    assert status.fetchable is True
+    assert "publishes no license" in status.detail
+
+
 def test_snapshot_rejects_untested_revision(tmp_path):
     with pytest.raises(ValueError, match="tested only at revision"):
         fetch("eramer", version="main", data_dir=tmp_path)
