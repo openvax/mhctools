@@ -190,8 +190,13 @@ def resolve_netcleave_dir(netcleave_dir: Path | None) -> tuple[Path, str]:
         if not directory.is_dir():
             raise SystemExit(f"--netcleave-dir does not exist: {directory}")
     else:
+        # Any ready install counts, not only an mhctools-managed one. Whoever
+        # owns it, the wrapper would resolve it through the same inventory, and
+        # a user checkout carries .git so the revision is still recoverable.
+        # Requiring manager == "mhctools" rejected a perfectly usable
+        # NETCLEAVE_DIR with the self-contradictory "not available ... ready".
         status = artifact_status("netcleave")
-        if status.manager != "mhctools" or status.status != "ready":
+        if status.status != "ready":
             raise SystemExit(
                 "NetCleave is not available. Either pass --netcleave-dir "
                 "pointing at a checkout, or install the pinned snapshot with "
@@ -199,12 +204,21 @@ def resolve_netcleave_dir(netcleave_dir: Path | None) -> tuple[Path, str]:
                 "publishes no license, so that flag records that you "
                 f"confirmed your own use is authorized). Status: {status.status}"
             )
-        directory = Path(status.path)
+        directory = Path(status.path).resolve()
     if (directory / ".git").exists():
         return directory, git_value(directory, "%H")
     record = directory / ".mhctools-artifact.json"
     if record.is_file():
-        revision = json.loads(record.read_text(encoding="utf-8")).get("revision")
+        try:
+            manifest = json.loads(record.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as error:
+            # An interrupted write must not surface as a raw traceback when
+            # every other failure here is a diagnosed SystemExit.
+            raise SystemExit(
+                f"{record} is not valid JSON ({error}), so the NetCleave "
+                "revision cannot be recorded. Re-fetch the snapshot."
+            ) from error
+        revision = manifest.get("revision")
         if revision:
             return directory, revision
     raise SystemExit(

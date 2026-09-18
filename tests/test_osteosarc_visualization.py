@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 import json
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -505,3 +506,41 @@ def test_netcleave_without_git_or_artifact_record_is_refused(tmp_path):
     plain.mkdir()
     with pytest.raises(SystemExit, match="neither a git checkout"):
         ANALYSIS.resolve_netcleave_dir(plain)
+
+
+def test_a_user_managed_netcleave_install_is_accepted(monkeypatch, tmp_path):
+    """Any ready NetCleave counts, not only an mhctools-managed snapshot.
+
+    Requiring manager == "mhctools" rejected a perfectly usable NETCLEAVE_DIR
+    with the self-contradictory "NetCleave is not available ... Status: ready",
+    aborting the run even though the wrapper resolves that same checkout.
+    """
+    revision = "bc90bf8490dcc5bc7628b1f0c06f860a50e6f338"
+    checkout = tmp_path / "user-netcleave"
+    checkout.mkdir()
+    (checkout / ".mhctools-artifact.json").write_text(
+        json.dumps({"revision": revision}), encoding="utf-8")
+    status = SimpleNamespace(
+        status="ready", manager="user", path=str(checkout))
+    monkeypatch.setattr(ANALYSIS, "artifact_status", lambda name: status)
+
+    directory, resolved = ANALYSIS.resolve_netcleave_dir(None)
+
+    assert directory == checkout.resolve()
+    assert resolved == revision
+
+
+def test_missing_netcleave_still_stops_the_run(monkeypatch):
+    status = SimpleNamespace(status="missing", manager="mhctools", path="")
+    monkeypatch.setattr(ANALYSIS, "artifact_status", lambda name: status)
+    with pytest.raises(SystemExit, match="NetCleave is not available"):
+        ANALYSIS.resolve_netcleave_dir(None)
+
+
+def test_corrupt_artifact_record_is_diagnosed_not_a_traceback(tmp_path):
+    """An interrupted manifest write must not surface as JSONDecodeError."""
+    checkout = tmp_path / "snapshot"
+    checkout.mkdir()
+    (checkout / ".mhctools-artifact.json").write_text("{trunc", encoding="utf-8")
+    with pytest.raises(SystemExit, match="is not valid JSON"):
+        ANALYSIS.resolve_netcleave_dir(checkout)

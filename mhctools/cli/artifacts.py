@@ -97,8 +97,11 @@ def ls_main(args_list=None):
         parser.error("--downloaded/--high-confidence require --models")
     try:
         statuses = list_artifacts(args.name or None, data_dir=args.data_dir)
-    except ValueError as error:
-        parser.error(str(error))
+    except CLI_ERROR_TYPES as error:
+        # Same contract as fetch: ls walks candidate install trees and imports
+        # optional backends, so an unreadable symlink or a missing optional
+        # dependency must not escape as a traceback and exit 1.
+        parser.error(cli_error_message(error))
     if args.json:
         print(json.dumps([status.to_dict() for status in statuses], indent=2))
     else:

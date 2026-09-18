@@ -4,7 +4,6 @@
 #
 #       http://www.apache.org/licenses/LICENSE-2.0
 
-import errno
 import io
 import json
 from importlib.resources import files
@@ -35,6 +34,10 @@ def no_user_installs(monkeypatch, tmp_path):
     home.mkdir()
     monkeypatch.setenv("HOME", str(home))
     monkeypatch.setattr(Path, "home", classmethod(lambda cls: home))
+    # data_path() prefers MHCTOOLS_DATA_DIR over anything derived from HOME,
+    # so leaving it set would let a developer's real fetched snapshots answer
+    # "missing"/"mhctools" assertions despite the patched home.
+    monkeypatch.setenv("MHCTOOLS_DATA_DIR", str(tmp_path / "isolated-data"))
     for snapshot in artifacts._SNAPSHOTS.values():
         if snapshot.environment_variable:
             monkeypatch.delenv(snapshot.environment_variable, raising=False)
@@ -586,25 +589,71 @@ def test_mhcflurry_downloader_failure_becomes_a_clean_cli_error(
         )
 
 
-def test_concurrent_fetch_recovery_handles_a_populated_destination(
-        monkeypatch, tmp_path):
-    """The process that loses a fetch race uses the winner's snapshot.
+def _stage_losing_fetch(monkeypatch, tmp_path, winner_contents):
+    """Drive _fetch_snapshot to the rename with the destination populated.
 
-    Renaming onto a populated directory raises a plain OSError with
-    ENOTEMPTY, not FileExistsError, so the recovery this exercises had never
-    run and the loser got a traceback instead.
+    git is stubbed out and the staged checkout is built by hand, so the test
+    exercises mhctools' own race recovery rather than the network.
     """
-    target = tmp_path / "winner"
-    target.mkdir()
-    (target / "PWM.xlsx").touch()
-    source = tmp_path / "loser"
-    source.mkdir()
-    (source / "PWM.xlsx").touch()
+    snapshot = artifacts._SNAPSHOTS["eramer"]
+    target = artifacts.managed_path("eramer", data_dir=tmp_path)
 
-    with pytest.raises(OSError) as raised:
-        source.rename(target)
-    assert raised.value.errno == errno.ENOTEMPTY
-    assert not isinstance(raised.value, FileExistsError)
+    def fake_run_git(arguments):
+        # The final git call is the checkout. Populate the staged directory
+        # and, at the same moment, let the "winner" appear at the
+        # destination: _fetch_snapshot returns early if the target already
+        # exists when it starts, so the race can only be reproduced by the
+        # destination being created mid-fetch.
+        if "checkout" in arguments:
+            checkout = Path(arguments[arguments.index("-C") + 1])
+            checkout.mkdir(parents=True, exist_ok=True)
+            (checkout / "PWM.xlsx").write_text("loser", encoding="utf-8")
+            (checkout / ".git").mkdir(exist_ok=True)
+            target.mkdir(parents=True, exist_ok=True)
+            for relative, text in winner_contents.items():
+                (target / relative).write_text(text, encoding="utf-8")
+
+    monkeypatch.setattr(artifacts, "_run_git", fake_run_git)
+    monkeypatch.setattr(
+        artifacts.shutil, "which", lambda name: "/usr/bin/git")
+    monkeypatch.setattr(
+        artifacts.subprocess, "run",
+        lambda *args, **kwargs: subprocess.CompletedProcess(
+            args[0], 0, stdout=snapshot.revision))
+    return snapshot, target
+
+
+def test_losing_a_fetch_race_returns_the_winners_snapshot(
+        monkeypatch, tmp_path):
+    """Recovery has to run on a real ENOTEMPTY, not on FileExistsError.
+
+    Renaming onto a populated directory never raises FileExistsError, so the
+    original ``except FileExistsError`` guard was unreachable and the loser
+    of a race got a traceback instead of the completed snapshot.
+    """
+    eramer = artifacts._SNAPSHOTS["eramer"]
+    snapshot, target = _stage_losing_fetch(
+        monkeypatch, tmp_path,
+        {"PWM.xlsx": "winner", ".mhctools-artifact.json": json.dumps({
+            "name": "eramer",
+            "repository": eramer.repository,
+            "revision": eramer.revision,
+        })})
+
+    status = artifacts._fetch_snapshot("eramer", data_dir=tmp_path)
+
+    assert status.status == "ready"
+    assert status.path == str(target)
+    # The winner's content survived; the loser did not overwrite it.
+    assert (target / "PWM.xlsx").read_text(encoding="utf-8") == "winner"
+
+
+def test_losing_a_fetch_race_to_an_invalid_snapshot_still_raises(
+        monkeypatch, tmp_path):
+    """Recovery must not paper over a destination that is not usable."""
+    _stage_losing_fetch(monkeypatch, tmp_path, {"PWM.xlsx": "winner"})
+    with pytest.raises(OSError):
+        artifacts._fetch_snapshot("eramer", data_dir=tmp_path)
 
 
 def test_tlimmuno2_is_a_fetchable_unlicensed_snapshot():
@@ -631,7 +680,70 @@ def test_unlicensed_snapshots_require_acknowledgement_not_acceptance(tmp_path):
 
 
 def test_fetchable_wrappers_all_expose_a_fetch_classmethod():
-    """NetCleave was the one fetchable wrapper without the shortcut."""
-    from mhctools.netcleave import NetCleave
+    """Every snapshot-backed wrapper offers the Python fetch() shortcut.
 
-    assert callable(NetCleave.fetch)
+    Asserting this for one wrapper let the invariant lapse twice: NetCleave
+    had no fetch() until it was added here, and TLimmuno2 arrived as a
+    snapshot without one. The mapping is explicit so a new snapshot entry
+    fails until its wrapper is named.
+    """
+    import importlib
+
+    wrappers = {
+        "bigmhc": ("bigmhc", "BigMHC"),
+        "caphla": ("caphla", "CapHLA"),
+        "deepimmuno": ("deepimmuno", "DeepImmuno"),
+        "deeptap": ("deeptap", "DeepTAP"),
+        "eramer": ("eramer", "ERAMER"),
+        "netcleave": ("netcleave", "NetCleave"),
+        "nettcr": ("nettcr", "NetTCR"),
+        "mixtcrpred": ("mixtcrpred", "MixTCRpred"),
+        "tlimmuno2": ("tlimmuno2", "TLimmuno2"),
+        "tulip": ("tulip", "Tulip"),
+    }
+    assert set(wrappers) == set(artifacts._SNAPSHOTS), (
+        "a snapshot was added or removed without naming its wrapper here")
+    for name, (module_name, class_name) in wrappers.items():
+        module = importlib.import_module("mhctools.%s" % module_name)
+        predictor = getattr(module, class_name)
+        assert callable(getattr(predictor, "fetch", None)), name
+
+
+def test_progress_fallback_preserves_the_childs_explanation(monkeypatch):
+    """A failure under a replaced stderr must not discard the reason.
+
+    The fallback branch captured only stdout, so CalledProcessError.stderr
+    was None and the wrapped message lost the actual cause (disk full,
+    network error) on exactly the path the fallback exists to serve.
+    """
+    monkeypatch.setattr(sys, "stderr", io.StringIO())
+    with pytest.raises(subprocess.CalledProcessError) as raised:
+        artifacts._run_showing_progress(
+            [sys.executable, "-c",
+             "import sys; sys.stderr.write('no space left'); sys.exit(1)"],
+            check=True)
+    assert "no space left" in artifacts._process_failure_detail(raised.value)
+
+
+def test_mhcflurry_path_failure_is_not_reported_as_a_failed_download(
+        monkeypatch):
+    """Naming the wrong step sends the user debugging the wrong thing."""
+    calls = []
+
+    def fake_run(command, **kwargs):
+        calls.append(command)
+        if "path" in command:
+            raise subprocess.CalledProcessError(
+                1, command, stderr="unknown download")
+        return subprocess.CompletedProcess(command, 0)
+
+    monkeypatch.setattr(
+        artifacts.shutil, "which", lambda name: "/bin/mhcflurry-downloads")
+    monkeypatch.setattr(artifacts.subprocess, "run", fake_run)
+    with pytest.raises(RuntimeError, match="could not report its path"):
+        artifacts._fetch_mhcflurry(
+            name="mhcflurry",
+            download_name="models_class1_presentation",
+            relative_path="models",
+            version="2.2.0",
+        )
