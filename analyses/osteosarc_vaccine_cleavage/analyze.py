@@ -39,6 +39,7 @@ from mhctools import (
     cleavage_models,
     get_cleavage_model,
 )
+from mhctools.artifacts import artifact_status
 from mhctools.eramer_cleavage import ERAMERCleavage
 from mhctools.netchop import NETCHOP_CONTAINER_IMAGE, NetChop
 
@@ -172,6 +173,45 @@ def git_value(repo: Path, format_string: str) -> str:
         ["git", "-C", str(repo), "log", "-1", f"--format={format_string}"],
         text=True,
     ).strip()
+
+
+def resolve_netcleave_dir(netcleave_dir: Path | None) -> tuple[Path, str]:
+    """Resolve the NetCleave installation and its upstream revision.
+
+    Returns the directory and the revision that identifies its contents. A
+    user-supplied checkout is identified by ``git log``, matching the other
+    model repositories. The snapshot installed by ``mhctools fetch netcleave``
+    has no ``.git`` directory, so its pinned revision comes from the artifact
+    record instead; shelling out to git there would either fail or, inside a
+    parent repository, silently record an unrelated commit.
+    """
+    if netcleave_dir is not None:
+        directory = netcleave_dir.resolve()
+        if not directory.is_dir():
+            raise SystemExit(f"--netcleave-dir does not exist: {directory}")
+    else:
+        status = artifact_status("netcleave")
+        if status.manager != "mhctools" or status.status != "ready":
+            raise SystemExit(
+                "NetCleave is not available. Either pass --netcleave-dir "
+                "pointing at a checkout, or install the pinned snapshot with "
+                "`mhctools fetch netcleave --accept-license` (upstream "
+                "publishes no license, so that flag records that you "
+                f"confirmed your own use is authorized). Status: {status.status}"
+            )
+        directory = Path(status.path)
+    if (directory / ".git").exists():
+        return directory, git_value(directory, "%H")
+    record = directory / ".mhctools-artifact.json"
+    if record.is_file():
+        revision = json.loads(record.read_text(encoding="utf-8")).get("revision")
+        if revision:
+            return directory, revision
+    raise SystemExit(
+        f"Cannot determine the NetCleave revision for {directory}: it is "
+        "neither a git checkout nor an mhctools-managed snapshot, so the run "
+        "could not record reproducible model provenance."
+    )
 
 
 def write_csv(path: Path, rows: Iterable[dict[str, Any]], columns: list[str]) -> None:
@@ -2705,6 +2745,7 @@ def inventory_digest(inventory_df: pd.DataFrame, model: str) -> str:
 def model_hashes(
     netchop_dir: Path,
     netcleave_dir: Path,
+    netcleave_revision: str,
     eramer_dir: Path,
     mhcflurry_metadata: dict[str, Any],
     netmhciipan_metadata: dict[str, Any],
@@ -2748,7 +2789,7 @@ def model_hashes(
         },
         "netcleave": {
             "repository": "https://github.com/BSC-CNS-EAPM/NetCleave",
-            "commit": git_value(netcleave_dir, "%H"),
+            "commit": netcleave_revision,
             "files": {
                 str(path.relative_to(netcleave_dir)): sha256_file(path)
                 for path in netcleave_files
@@ -2977,7 +3018,12 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--osteosarc-repo", type=Path, required=True)
     parser.add_argument("--netchop-dir", type=Path, required=True)
-    parser.add_argument("--netcleave-dir", type=Path, required=True)
+    parser.add_argument(
+        "--netcleave-dir",
+        type=Path,
+        help="NetCleave checkout; defaults to the pinned snapshot installed "
+             "by `mhctools fetch netcleave`",
+    )
     parser.add_argument("--eramer-dir", type=Path, required=True)
     parser.add_argument("--netmhciipan-path", type=Path, required=True)
     parser.add_argument(
@@ -3004,6 +3050,7 @@ def timestamped_output_dir(base_dir: Path, generated_at: datetime) -> Path:
 
 def main() -> None:
     args = parse_args()
+    netcleave_dir, netcleave_revision = resolve_netcleave_dir(args.netcleave_dir)
     generated_at = datetime.now().astimezone()
     output_dir = timestamped_output_dir(args.output_dir.resolve(), generated_at)
     tables_dir = output_dir / "tables"
@@ -3031,7 +3078,7 @@ def main() -> None:
     rows, models = netchop_rows(records, args.netchop_dir)
     quantitative_rows.extend(rows)
     model_rows.extend(models)
-    rows, models = netcleave_rows(records, args.netcleave_dir)
+    rows, models = netcleave_rows(records, netcleave_dir)
     quantitative_rows.extend(rows)
     model_rows.extend(models)
     rows, motif_rows, models = peptidase_rows(records, args.eramer_dir)
@@ -3190,7 +3237,8 @@ def main() -> None:
         },
         "models": model_hashes(
             args.netchop_dir,
-            args.netcleave_dir,
+            netcleave_dir,
+            netcleave_revision,
             args.eramer_dir,
             mhcflurry_metadata,
             netmhciipan_metadata,

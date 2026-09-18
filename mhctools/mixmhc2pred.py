@@ -70,6 +70,27 @@ def to_mixmhc2pred_allele(allele):
     return "__".join(chains)
 
 
+def _default_program_name():
+    """Resolve the MixMHC2pred executable the inventory reports as ready.
+
+    ``mhctools ls mixmhc2pred`` accepts ``MIXMHC2PRED_EXECUTABLE`` or either
+    upstream executable name on ``PATH``, so the wrapper's default resolves
+    the same three sources. Upstream ships the Linux build as
+    ``MixMHC2pred_unix``, which is why a bare ``MixMHC2pred`` default alone
+    could not run an install the inventory called ready.
+    """
+    from os import environ
+    from shutil import which
+
+    candidate = environ.get("MIXMHC2PRED_EXECUTABLE")
+    if candidate:
+        return candidate
+    for name in ("MixMHC2pred", "MixMHC2pred_unix"):
+        if which(name):
+            return name
+    return "MixMHC2pred"
+
+
 class MixMHC2pred(BasePredictor):
     """Wrapper for the MixMHC2pred class-II presentation predictor.
 
@@ -78,10 +99,13 @@ class MixMHC2pred(BasePredictor):
     alleles : list of str
         Class-II alleles (any spelling :func:`to_mixmhc2pred_allele` accepts).
     default_peptide_lengths : list of int
-    program_name : str
+    program_name : str, optional
         MixMHC2pred executable (name on ``PATH`` or an absolute path — use
         ``MixMHC2pred_unix`` on Linux, ``MixMHC2pred`` on macOS). The allele
         definition folder (``PWMdef``) is resolved relative to the executable.
+        If omitted, resolve ``MIXMHC2PRED_EXECUTABLE``, then ``MixMHC2pred``
+        and ``MixMHC2pred_unix`` on ``PATH``, which is the resolution
+        ``mhctools ls mixmhc2pred`` reports.
     """
 
     mhc_class = "II"
@@ -90,7 +114,7 @@ class MixMHC2pred(BasePredictor):
             self,
             alleles,
             default_peptide_lengths=[15],
-            program_name="MixMHC2pred"):
+            program_name=None):
         BasePredictor.__init__(
             self,
             alleles=alleles,
@@ -103,7 +127,7 @@ class MixMHC2pred(BasePredictor):
             # spellings are still canonicalized. to_mixmhc2pred_allele maps
             # either onto the CLI form.
             keep_unparseable_alleles=True)
-        self.program_name = program_name
+        self.program_name = program_name or _default_program_name()
 
     def predict(self, peptides, n_flanks=None, c_flanks=None):
         """Predict class-II presentation for a list of peptides.

@@ -70,8 +70,10 @@ _PSEUDOSEQ_RELPATH = join("Python", "data", "pseudosequence.2016.all.X.dat")
 def _find_tlimmuno2_home(tlimmuno2_home=None):
     """Resolve the TLimmuno2 checkout directory (holds ``Python/TLimmuno2.py``).
 
-    Checks, in order: the *tlimmuno2_home* argument, ``$TLIMMUNO2_HOME``, then
-    ``~/TLimmuno2`` / ``~/code/TLimmuno2``.
+    Checks, in order: the *tlimmuno2_home* argument, ``$TLIMMUNO2_HOME``,
+    ``~/TLimmuno2`` / ``~/code/TLimmuno2``, then the pinned snapshot installed
+    by ``mhctools fetch tlimmuno2``. A user-managed checkout wins so an
+    existing install keeps being used.
     """
     candidate = tlimmuno2_home or os.environ.get("TLIMMUNO2_HOME")
     if not candidate:
@@ -80,9 +82,17 @@ def _find_tlimmuno2_home(tlimmuno2_home=None):
                 candidate = str(home)
                 break
     if not candidate:
+        from .artifacts import artifact_status
+        managed = artifact_status("tlimmuno2")
+        if managed.manager == "mhctools" and managed.status == "ready":
+            candidate = managed.path
+    if not candidate:
         raise FileNotFoundError(
-            "TLimmuno2 not found. Set TLIMMUNO2_HOME or pass tlimmuno2_home= to "
-            "the constructor. Clone from https://github.com/XSLiuLab/TLimmuno2")
+            "TLimmuno2 not found. Set TLIMMUNO2_HOME or pass tlimmuno2_home= "
+            "to the constructor. Run `mhctools fetch tlimmuno2 "
+            "--accept-license`; upstream publishes no license, so that flag "
+            "records that you confirmed your own use is authorized. Clone "
+            "from https://github.com/XSLiuLab/TLimmuno2")
     if not isfile(join(candidate, "Python", "TLimmuno2.py")):
         raise FileNotFoundError(
             "Python/TLimmuno2.py not found in %r — is this a TLimmuno2 checkout?"

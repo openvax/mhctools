@@ -19,7 +19,7 @@ import json
 import string
 
 from ..artifacts import fetch, list_artifacts
-from .errors import cli_error_message
+from .errors import CLI_ERROR_TYPES, cli_error_message
 
 
 def _print_table(statuses):
@@ -148,7 +148,10 @@ def fetch_main(args_list=None):
             all_models=args.all_models,
             high_confidence=args.high_confidence,
         )
-    except (RuntimeError, ValueError) as error:
+    except CLI_ERROR_TYPES as error:
+        # Every expected failure exits 2 with one error: line. Catching only
+        # RuntimeError/ValueError let an OSError from the data directory, or
+        # a CalledProcessError, escape as a traceback and exit 1.
         parser.error(cli_error_message(error))
     if args.json:
         print(json.dumps(status.to_dict(), indent=2))

@@ -115,8 +115,9 @@ class NetCleave(object):
         (``data/models/{class}_mass-spectrometry_{allele}``). Default
         ``"HLA"`` (the pan-allele model for the class).
     netcleave_path : str, optional
-        Path to the cloned NetCleave repository. Resolved from
-        ``NETCLEAVE_DIR`` / ``~/NetCleave`` when omitted.
+        Path to the cloned NetCleave repository. When omitted, resolved from
+        ``NETCLEAVE_DIR``, then ``~/NetCleave`` and ``~/code/NetCleave``, then
+        the pinned snapshot installed by ``mhctools fetch netcleave``.
     model_path : str, optional
         Full path to a specific model directory, overriding
         ``mhc_class`` / ``mhc_allele`` selection.
@@ -138,6 +139,21 @@ class NetCleave(object):
     """
 
     VALID_CLASSES = ("I", "II")
+
+    @classmethod
+    def fetch(cls, version=None, data_dir=None, accept_license=False):
+        """Fetch the pinned NetCleave snapshot.
+
+        Upstream publishes no license, so ``accept_license`` records that the
+        caller confirmed their own use is authorized; it cannot grant rights
+        mhctools does not have.
+        """
+        from .artifacts import fetch
+        return fetch(
+            "netcleave",
+            version=version,
+            data_dir=data_dir,
+            accept_license=accept_license)
 
     def __init__(self, mhc_class="I", mhc_allele="HLA", netcleave_path=None,
                  model_path=None, python_executable=None,

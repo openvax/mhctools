@@ -4,6 +4,8 @@
 #
 #       http://www.apache.org/licenses/LICENSE-2.0
 
+import errno
+import io
 import json
 from importlib.resources import files
 from pathlib import Path
@@ -17,6 +19,32 @@ from mhctools import artifacts
 from mhctools.artifacts import ArtifactStatus, artifact_status, fetch, list_artifacts
 from mhctools.cli import artifacts as artifact_cli
 from mhctools.cli.script import main
+from mhctools.optional_backend import common_checkout_paths
+
+
+@pytest.fixture
+def no_user_installs(monkeypatch, tmp_path):
+    """Hide the developer's own checkouts from the inventory.
+
+    The inventory deliberately reports a user-managed install ahead of a
+    managed snapshot, so any assertion about an artifact being "missing" or
+    "mhctools"-managed otherwise depends on what the machine running the
+    tests happens to have in ``~`` or ``~/code``.
+    """
+    home = tmp_path / "isolated-home"
+    home.mkdir()
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: home))
+    for snapshot in artifacts._SNAPSHOTS.values():
+        if snapshot.environment_variable:
+            monkeypatch.delenv(snapshot.environment_variable, raising=False)
+    for definition in artifacts._MANUAL_DIRECTORIES.values():
+        monkeypatch.delenv(definition["environment_variable"], raising=False)
+    for definition in artifacts._MANUAL_EXECUTABLES.values():
+        for variable in definition.get("environment_variables", ()):
+            monkeypatch.delenv(variable, raising=False)
+    monkeypatch.delenv("ERAMER_PWM", raising=False)
+    return home
 
 
 def test_curated_json_files_are_explicit_package_resources():
@@ -34,7 +62,7 @@ def test_curated_json_files_are_explicit_package_resources():
     }
 
 
-def test_list_includes_native_and_packaged_artifacts():
+def test_list_includes_native_and_packaged_artifacts(no_user_installs):
     statuses = {status.name: status for status in list_artifacts()}
     assert set(statuses) == {
         "bigmhc", "calis", "caphla", "deepimmuno", "deeptap", "eramer",
@@ -103,7 +131,7 @@ def test_unfetchable_missing_artifact_names_its_resolution_mechanism():
     """One error shape that says what to install and what the wrapper reads."""
     for name, expected in (
             ("prime", "PRIME_EXECUTABLE"),
-            ("tlimmuno2", "TLIMMUNO2_HOME"),
+            ("netchop", "NETCHOP_HOME"),
             ("mixmhc2pred", "MIXMHC2PRED_EXECUTABLE")):
         status = ArtifactStatus(
             name=name, status="missing", manager="manual", version="",
@@ -116,6 +144,34 @@ def test_unfetchable_missing_artifact_names_its_resolution_mechanism():
         assert "once installed." in message
 
 
+def test_inventory_covers_wrapper_checkout_paths():
+    """``ls``/``fetch`` must not call an install missing that a wrapper runs.
+
+    Each wrapper below resolves conventional checkouts through
+    ``common_checkout_paths``, which searches ``~/NAME`` and ``~/code/NAME``.
+    When the inventory listed only ``~/NAME``, ``mhctools fetch tlimmuno2``
+    exited 2 with "not installed" on a machine whose wrapper was happily
+    using ``~/code/TLimmuno2``.
+    """
+    expected = {
+        "caphla": ("CapHLA",),
+        "deepimmuno": ("DeepImmuno",),
+        "deeptap": ("DeepTAP",),
+        "eramer": ("ERAMER",),
+        "netcleave": ("NetCleave",),
+        "nettcr": ("NetTCR-2.2", "nettcr"),
+        "tlimmuno2": ("TLimmuno2",),
+    }
+    for name, directory_names in expected.items():
+        wrapper_paths = set(common_checkout_paths(*directory_names))
+        if name in artifacts._SNAPSHOTS:
+            listed = artifacts._SNAPSHOTS[name].legacy_paths
+        else:
+            listed = artifacts._MANUAL_DIRECTORIES[name]["legacy_paths"]
+        inventory_paths = {Path(path).expanduser() for path in listed}
+        assert wrapper_paths <= inventory_paths, name
+
+
 def test_data_path_precedence(monkeypatch, tmp_path):
     configured = tmp_path / "configured"
     explicit = tmp_path / "explicit"
@@ -124,7 +180,8 @@ def test_data_path_precedence(monkeypatch, tmp_path):
     assert artifacts.data_path(explicit) == explicit
 
 
-def test_managed_status_reports_destination_and_pinned_version(tmp_path):
+def test_managed_status_reports_destination_and_pinned_version(
+        no_user_installs, tmp_path):
     status = artifact_status("eramer", data_dir=tmp_path)
     snapshot = artifacts._SNAPSHOTS["eramer"]
     assert status.status == "missing"
@@ -134,7 +191,7 @@ def test_managed_status_reports_destination_and_pinned_version(tmp_path):
         tmp_path / "artifacts" / "eramer" / snapshot.revision)
 
 
-def test_managed_status_rejects_missing_provenance(tmp_path):
+def test_managed_status_rejects_missing_provenance(no_user_installs, tmp_path):
     target = artifacts.managed_path("eramer", data_dir=tmp_path)
     target.mkdir(parents=True)
     (target / "PWM.xlsx").touch()
@@ -463,3 +520,118 @@ def test_fetch_cli_passes_mixtcrpred_model_selection(monkeypatch):
     assert calls[0][0] == "mixtcrpred"
     assert calls[0][1]["models"] == ["A0201_GILGFVFTL"]
     assert calls[0][1]["accept_license"] is True
+
+
+def test_fetch_mhcflurry_is_a_no_op_when_the_models_are_present(monkeypatch):
+    """The native tier has to honour "ready is success" like the others.
+
+    Re-running otherwise restarted MHCflurry's downloader, and failed with
+    exit 2 whenever ``mhcflurry-downloads`` was off PATH -- a venv invoked by
+    absolute path, cron, an IDE -- even though ``ls`` called it ready.
+    """
+    status = ArtifactStatus(
+        name="mhcflurry", status="ready", manager="mhcflurry",
+        version="2.2.0", path="/models", fetchable=True,
+        detail="Managed by MHCflurry")
+    monkeypatch.setattr(
+        artifacts, "artifact_status", lambda *args, **kwargs: status)
+
+    def fail(*args, **kwargs):
+        raise AssertionError("a ready artifact must not run the downloader")
+
+    monkeypatch.setattr(artifacts.subprocess, "run", fail)
+    assert fetch("mhcflurry") == status
+
+
+def test_progress_forwarding_survives_a_replaced_stderr(monkeypatch, capsys):
+    """``sys.stderr`` need not own a file descriptor.
+
+    Passing it straight to the child raised ``io.UnsupportedOperation:
+    fileno`` under ``contextlib.redirect_stderr``, pytest's capture, or any
+    host that replaces the stream, which broke the Python fetch API.
+    """
+    monkeypatch.setattr(sys, "stderr", io.StringIO())
+    completed = artifacts._run_showing_progress(
+        [sys.executable, "-c", "print('downloading')"], check=True)
+    assert completed.returncode == 0
+    assert "downloading" in sys.stderr.getvalue()
+
+
+def test_unfetchable_hint_is_a_sentence_without_a_leading_or():
+    """An artifact with no environment variable still reads as English."""
+    status = ArtifactStatus(
+        name="netmhcpan", status="missing", manager="manual", version="",
+        path="", fetchable=False, detail="Install NetMHCpan from DTU")
+    message = artifacts._unfetchable_message("netmhcpan", status)
+    assert "Put netMHCpan on PATH once installed." in message
+    assert "Or put" not in message
+
+
+def test_mhcflurry_downloader_failure_becomes_a_clean_cli_error(
+        monkeypatch, tmp_path):
+    """A failed download exits 2 with an ``error:`` line, not a traceback."""
+    def fake_run(command, **kwargs):
+        raise subprocess.CalledProcessError(
+            1, command, stderr="no space left on device")
+
+    monkeypatch.setattr(
+        artifacts.shutil, "which", lambda name: "/bin/mhcflurry-downloads")
+    monkeypatch.setattr(artifacts.subprocess, "run", fake_run)
+    with pytest.raises(RuntimeError, match="no space left on device"):
+        artifacts._fetch_mhcflurry(
+            name="mhcflurry",
+            download_name="models_class1_presentation",
+            relative_path="models",
+            version="2.2.0",
+        )
+
+
+def test_concurrent_fetch_recovery_handles_a_populated_destination(
+        monkeypatch, tmp_path):
+    """The process that loses a fetch race uses the winner's snapshot.
+
+    Renaming onto a populated directory raises a plain OSError with
+    ENOTEMPTY, not FileExistsError, so the recovery this exercises had never
+    run and the loser got a traceback instead.
+    """
+    target = tmp_path / "winner"
+    target.mkdir()
+    (target / "PWM.xlsx").touch()
+    source = tmp_path / "loser"
+    source.mkdir()
+    (source / "PWM.xlsx").touch()
+
+    with pytest.raises(OSError) as raised:
+        source.rename(target)
+    assert raised.value.errno == errno.ENOTEMPTY
+    assert not isinstance(raised.value, FileExistsError)
+
+
+def test_tlimmuno2_is_a_fetchable_unlicensed_snapshot():
+    """No published license is NetCleave's situation, not netMHC's.
+
+    Refusing to fetch grants no rights either way, so TLimmuno2 is acquired
+    on an explicit acknowledgement rather than left as manual-only.
+    """
+    snapshot = artifacts._SNAPSHOTS["tlimmuno2"]
+    assert snapshot.unlicensed is True
+    assert snapshot.acceptance_required is True
+    assert snapshot.environment_variable == "TLIMMUNO2_HOME"
+    # Cone mode materializes every root-level file, and this repository keeps
+    # an 88 MB .RData session dump beside its code.
+    assert snapshot.sparse_cone is False
+    assert snapshot.sparse_paths == ("/Python/",)
+    assert "tlimmuno2" not in artifacts._MANUAL_DIRECTORIES
+
+
+def test_unlicensed_snapshots_require_acknowledgement_not_acceptance(tmp_path):
+    for name in ("netcleave", "tlimmuno2"):
+        with pytest.raises(RuntimeError, match="publishes no license"):
+            fetch(name, data_dir=tmp_path)
+
+
+def test_fetchable_wrappers_all_expose_a_fetch_classmethod():
+    """NetCleave was the one fetchable wrapper without the shortcut."""
+    from mhctools.netcleave import NetCleave
+
+    assert callable(NetCleave.fetch)

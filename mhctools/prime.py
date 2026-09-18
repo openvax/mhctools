@@ -32,6 +32,7 @@ generalizes to novel neoepitopes (independent benchmarks put the field near
 AUC 0.5-0.65) — a prioritization aid, not ground truth.
 """
 
+import os
 from os.path import exists, join
 from subprocess import TimeoutExpired
 from tempfile import mkdtemp
@@ -54,8 +55,10 @@ class PRIME(BasePredictor):
     alleles : list of str
         Class-I alleles.
     default_peptide_lengths : list of int
-    program_name : str
-        PRIME executable (name on ``PATH`` or an absolute path).
+    program_name : str, optional
+        PRIME executable (name on ``PATH`` or an absolute path). If omitted,
+        resolve ``PRIME_EXECUTABLE`` and then ``PRIME`` on ``PATH``, which is
+        the resolution ``mhctools ls prime`` reports.
     mixmhcpred_path : str, optional
         Absolute path to the MixMHCpred executable PRIME should use, forwarded
         as PRIME's ``-mix`` option. If omitted, PRIME finds MixMHCpred on
@@ -68,7 +71,7 @@ class PRIME(BasePredictor):
             self,
             alleles,
             default_peptide_lengths=[9],
-            program_name="PRIME",
+            program_name=None,
             mixmhcpred_path=None,
             timeout=300):
         BasePredictor.__init__(
@@ -79,7 +82,11 @@ class PRIME(BasePredictor):
             max_peptide_length=14,
             allow_X_in_peptides=False,
             allow_lowercase_in_peptides=False)
-        self.program_name = program_name
+        # mhctools ls/fetch report PRIME as ready when PRIME_EXECUTABLE is
+        # set, so the wrapper has to honor the same variable or the reported
+        # status would not describe the executable actually run.
+        self.program_name = (
+            program_name or os.environ.get("PRIME_EXECUTABLE") or "PRIME")
         self.mixmhcpred_path = mixmhcpred_path
         if timeout <= 0:
             raise ValueError("timeout must be greater than zero")
