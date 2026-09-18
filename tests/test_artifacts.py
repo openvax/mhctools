@@ -4,6 +4,7 @@
 #
 #       http://www.apache.org/licenses/LICENSE-2.0
 
+import errno
 import io
 import json
 from importlib.resources import files
@@ -130,7 +131,7 @@ def test_unfetchable_missing_artifact_names_its_resolution_mechanism():
     """One error shape that says what to install and what the wrapper reads."""
     for name, expected in (
             ("prime", "PRIME_EXECUTABLE"),
-            ("tlimmuno2", "TLIMMUNO2_HOME"),
+            ("netchop", "NETCHOP_HOME"),
             ("mixmhc2pred", "MIXMHC2PRED_EXECUTABLE")):
         status = ArtifactStatus(
             name=name, status="missing", manager="manual", version="",
@@ -583,3 +584,54 @@ def test_mhcflurry_downloader_failure_becomes_a_clean_cli_error(
             relative_path="models",
             version="2.2.0",
         )
+
+
+def test_concurrent_fetch_recovery_handles_a_populated_destination(
+        monkeypatch, tmp_path):
+    """The process that loses a fetch race uses the winner's snapshot.
+
+    Renaming onto a populated directory raises a plain OSError with
+    ENOTEMPTY, not FileExistsError, so the recovery this exercises had never
+    run and the loser got a traceback instead.
+    """
+    target = tmp_path / "winner"
+    target.mkdir()
+    (target / "PWM.xlsx").touch()
+    source = tmp_path / "loser"
+    source.mkdir()
+    (source / "PWM.xlsx").touch()
+
+    with pytest.raises(OSError) as raised:
+        source.rename(target)
+    assert raised.value.errno == errno.ENOTEMPTY
+    assert not isinstance(raised.value, FileExistsError)
+
+
+def test_tlimmuno2_is_a_fetchable_unlicensed_snapshot():
+    """No published license is NetCleave's situation, not netMHC's.
+
+    Refusing to fetch grants no rights either way, so TLimmuno2 is acquired
+    on an explicit acknowledgement rather than left as manual-only.
+    """
+    snapshot = artifacts._SNAPSHOTS["tlimmuno2"]
+    assert snapshot.unlicensed is True
+    assert snapshot.acceptance_required is True
+    assert snapshot.environment_variable == "TLIMMUNO2_HOME"
+    # Cone mode materializes every root-level file, and this repository keeps
+    # an 88 MB .RData session dump beside its code.
+    assert snapshot.sparse_cone is False
+    assert snapshot.sparse_paths == ("/Python/",)
+    assert "tlimmuno2" not in artifacts._MANUAL_DIRECTORIES
+
+
+def test_unlicensed_snapshots_require_acknowledgement_not_acceptance(tmp_path):
+    for name in ("netcleave", "tlimmuno2"):
+        with pytest.raises(RuntimeError, match="publishes no license"):
+            fetch(name, data_dir=tmp_path)
+
+
+def test_fetchable_wrappers_all_expose_a_fetch_classmethod():
+    """NetCleave was the one fetchable wrapper without the shortcut."""
+    from mhctools.netcleave import NetCleave
+
+    assert callable(NetCleave.fetch)

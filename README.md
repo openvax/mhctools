@@ -42,10 +42,12 @@ mhctools fetch eramer
 # Academic licenses must be reviewed and accepted explicitly.
 mhctools fetch nettcr --accept-license
 
-# NetCleave publishes no license at all. mhctools can still fetch a pinned
-# snapshot, but only when you confirm your own use is authorized; --accept-license
-# records that acknowledgement, it does not grant rights mhctools does not have.
+# NetCleave and TLimmuno2 publish no license at all. mhctools can still fetch a
+# pinned snapshot, but only when you confirm your own use is authorized;
+# --accept-license records that acknowledgement, it does not grant rights
+# mhctools does not have.
 mhctools fetch netcleave --accept-license
+mhctools fetch tlimmuno2 --accept-license
 
 # MixTCRpred includes two upstream checkpoints; fetch another by model name.
 mhctools fetch mixtcrpred --accept-license
@@ -948,7 +950,7 @@ interpreter.
 | `BigMHC_IM` | immunogenicity | `mhctools fetch bigmhc --accept-license` + PyTorch, or set `BIGMHC_DIR` |
 | `PRIME` | immunogenicity | [PRIME](https://github.com/GfellerLab/PRIME) clone + MixMHCpred |
 | `DeepImmuno` | immunogenicity | `mhctools fetch deepimmuno` + a TensorFlow/Keras-2-capable Python |
-| `TLimmuno2` | immunogenicity (class II) | [TLimmuno2](https://github.com/XSLiuLab/TLimmuno2) clone (set `TLIMMUNO2_HOME`) |
+| `TLimmuno2` | immunogenicity (class II) | `mhctools fetch tlimmuno2 --accept-license`, or your own clone via `TLIMMUNO2_HOME` |
 
 `Calis` is the classic sequence-only IEDB class-I immunogenicity model (Calis et
 al. 2013): a fixed per-amino-acid log-enrichment scale weighted by per-position
@@ -1033,15 +1035,16 @@ and `percentile_rank` from its %Rank against a background set, rescaled to
 0–100 (lower = more immunogenic). Native NetMHCIIpan-style keys (`DRB1_0803`,
 `HLA-DPA10103-DPB10101`) pass through; common DR forms (`HLA-DRB1*08:03`) are
 converted; anything TLimmuno2 does not know raises. Its upstream license is
-ambiguous (an Apache-2.0 README badge, no LICENSE file), so mhctools does not
-vendor it — it shells out to a user-provided checkout (`TLIMMUNO2_HOME`), with
-`TLIMMUNO2_PYTHON` naming an interpreter that has TensorFlow (Keras 2, or newer
-TensorFlow plus `tf-keras`).
+ambiguous (an Apache-2.0 README badge, no LICENSE file), which mhctools treats
+the same way as NetCleave: it can fetch a pinned snapshot, but only when you
+confirm your own use is authorized, so the first fetch requires
+`--accept-license`. `TLIMMUNO2_PYTHON` names an interpreter that has
+TensorFlow (Keras 2, or newer TensorFlow plus `tf-keras`).
 
 ```python
 from mhctools import TLimmuno2
 
-predictor = TLimmuno2(alleles=["DRB1_0803"])       # resolves TLIMMUNO2_HOME / ~/TLimmuno2
+predictor = TLimmuno2(alleles=["DRB1_0803"])  # TLIMMUNO2_HOME, ~/TLimmuno2, then snapshot
 results = predictor.predict(["FHTMWHVTRGAVLMY"])
 results[0].immunogenicity.score                    # 0.9874 (higher = more immunogenic)
 ```

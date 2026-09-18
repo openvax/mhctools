@@ -17,11 +17,15 @@
 Predictors that already manage their own downloads retain ownership of their
 cache. For upstream repositories that have no download manager, mhctools can
 install a pinned, minimal git snapshot in its data directory. Other tools are
-inventory-only because their licenses or distribution mechanisms require a
-manual installation.
+inventory-only because their distribution mechanism cannot be automated at
+all: an identity-bound request form, or a build step. A repository that
+merely publishes no license is not one of those -- mhctools fetches it on an
+explicit acknowledgement instead, since refusing to fetch grants no rights
+either way.
 """
 
 from dataclasses import asdict, dataclass
+import errno
 from importlib import metadata, util
 import json
 import os
@@ -234,6 +238,32 @@ _SNAPSHOTS = {
         environment_variable="MIXTCRPRED_HOME",
         legacy_paths=_checkout_paths("MixTCRpred"),
     ),
+    "tlimmuno2": _Snapshot(
+        repository="https://github.com/XSLiuLab/TLimmuno2.git",
+        revision="8b02617025e6896f2a4bcd1f977ed5b4a720805b",
+        # The wrapper only runs Python/TLimmuno2.py, which needs the two model
+        # directories and the pseudosequence table beside it. Restricting the
+        # checkout to Python/ takes ~65 MB instead of the repository's ~700 MB
+        # of manuscript data, reports, and rendered figures. Non-cone: cone
+        # mode also materializes every root-level file, and this repository
+        # keeps an 88 MB .RData session dump there.
+        sparse_paths=("/Python/",),
+        sparse_cone=False,
+        required_paths=(
+            "Python/TLimmuno2.py",
+            "Python/model/TLimmuno2",
+            "Python/model/BAmodel",
+            "Python/data/pseudosequence.2016.all.X.dat",
+            "Python/data/pseudo_blosum62.feather",
+        ),
+        license_url=(
+            "https://github.com/XSLiuLab/TLimmuno2/tree/"
+            "8b02617025e6896f2a4bcd1f977ed5b4a720805b"),
+        acceptance_required=True,
+        unlicensed=True,
+        environment_variable="TLIMMUNO2_HOME",
+        legacy_paths=_checkout_paths("TLimmuno2"),
+    ),
     "tulip": _Snapshot(
         repository="https://github.com/barthelemymp/TULIP-TCR.git",
         revision="798fab97a3b13d08dcbfc381ea643e8dc14297c2",
@@ -316,15 +346,11 @@ _MANUAL_EXECUTABLES = {
     },
 }
 
-_MANUAL_DIRECTORIES = {
-    "tlimmuno2": {
-        "environment_variable": "TLIMMUNO2_HOME",
-        "legacy_paths": _checkout_paths("TLimmuno2"),
-        "required_path": "Python/TLimmuno2.py",
-        "detail": (
-            "Install TLimmuno2 manually; its repository has no license file"),
-    },
-}
+# Distributions that cannot be fetched but are still worth resolving. Empty
+# today: TLimmuno2 moved to _SNAPSHOTS once "no license file" was recognized
+# as the same situation NetCleave is in, which mhctools handles with an
+# explicit unlicensed acknowledgement rather than by refusing to fetch.
+_MANUAL_DIRECTORIES = {}
 
 
 def data_path(data_dir=None):
@@ -842,7 +868,13 @@ def _fetch_snapshot(name, version=None, data_dir=None, accept_license=False):
         shutil.rmtree(checkout / ".git")
         try:
             checkout.rename(target)
-        except FileExistsError:
+        except OSError as error:
+            # A concurrent fetch got there first. Renaming onto its populated
+            # directory raises ENOTEMPTY (EEXIST on some platforms), never
+            # FileExistsError, so this recovery never ran and the process that
+            # lost the race got a traceback instead of the winner's snapshot.
+            if error.errno not in (errno.ENOTEMPTY, errno.EEXIST):
+                raise
             if not _managed_snapshot_is_valid(name, target, snapshot):
                 raise
     except subprocess.CalledProcessError as error:

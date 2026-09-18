@@ -140,6 +140,21 @@ class NetCleave(object):
 
     VALID_CLASSES = ("I", "II")
 
+    @classmethod
+    def fetch(cls, version=None, data_dir=None, accept_license=False):
+        """Fetch the pinned NetCleave snapshot.
+
+        Upstream publishes no license, so ``accept_license`` records that the
+        caller confirmed their own use is authorized; it cannot grant rights
+        mhctools does not have.
+        """
+        from .artifacts import fetch
+        return fetch(
+            "netcleave",
+            version=version,
+            data_dir=data_dir,
+            accept_license=accept_license)
+
     def __init__(self, mhc_class="I", mhc_allele="HLA", netcleave_path=None,
                  model_path=None, python_executable=None,
                  subprocess_timeout=NETCLEAVE_TIMEOUT_SECONDS):
