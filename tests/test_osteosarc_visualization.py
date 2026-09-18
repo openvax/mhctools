@@ -477,3 +477,31 @@ def test_rerender_reports_a_missing_frozen_file_instead_of_skipping_it(tmp_path)
     (source / "tables" / "scores.csv").unlink()
     with pytest.raises(RuntimeError, match="tables/scores.csv"):
         rerender._verified_source_manifest(source)
+
+
+def test_netcleave_revision_comes_from_the_managed_snapshot_record(tmp_path):
+    """A fetched snapshot has no .git, so its pinned revision must be read
+    from the artifact record rather than from `git log`."""
+    revision = "bc90bf8490dcc5bc7628b1f0c06f860a50e6f338"
+    snapshot = tmp_path / revision
+    snapshot.mkdir()
+    (snapshot / ".mhctools-artifact.json").write_text(
+        json.dumps({"name": "netcleave", "revision": revision}), encoding="utf-8"
+    )
+    directory, resolved = ANALYSIS.resolve_netcleave_dir(snapshot)
+    assert directory == snapshot.resolve()
+    assert resolved == revision
+
+
+def test_netcleave_directory_must_exist(tmp_path):
+    with pytest.raises(SystemExit, match="does not exist"):
+        ANALYSIS.resolve_netcleave_dir(tmp_path / "absent")
+
+
+def test_netcleave_without_git_or_artifact_record_is_refused(tmp_path):
+    """Recording an unidentifiable NetCleave install would silently break the
+    run's model provenance, so the run stops instead."""
+    plain = tmp_path / "unidentified"
+    plain.mkdir()
+    with pytest.raises(SystemExit, match="neither a git checkout"):
+        ANALYSIS.resolve_netcleave_dir(plain)

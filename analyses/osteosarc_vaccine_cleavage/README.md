@@ -9,7 +9,7 @@ by curated human-peptidase recognition rules?
 Every invocation writes a new date/time-stamped directory under `results/` so
 an earlier analysis is never overwritten. The [generated-run index](results/README.md)
 links the checked-in report, tables, and
-[figure atlas](results/2026-09-17T012843-301909-0400/mhctools-all-figures.pdf).
+[figure atlas](results/2026-09-18T071153-774463-0400/mhctools-all-figures.pdf).
 The complete model/code/weight inventory and checksums travel with that run.
 The PDF begins with a clustered predictor/SLP agreement overview and then
 uses each disclosed SLP sequence as the central visual axis. Large residue
@@ -24,7 +24,7 @@ window; it is binary coverage, not prediction count or probability. Red ticks in
 ligand span show relevant pre-binding internal cleavage evidence; they do not
 claim post-binding cleavage or protection. The 80-aa outlier is split across three
 continuation pages rather than compressed. Use
-[`atlas_sequence_order.csv`](results/2026-09-17T012843-301909-0400/tables/atlas_sequence_order.csv) to jump
+[`atlas_sequence_order.csv`](results/2026-09-18T071153-774463-0400/tables/atlas_sequence_order.csv) to jump
 from a sequence record to its PDF page. Every map page is also exported as a
 vector PDF and 300 dpi PNG; `slp_map_exports.csv` indexes those files.
 
@@ -41,7 +41,7 @@ declared criteria rather than visual preference. Its exact choices and metrics
 are in `manuscript_figure_selection.csv`.
 
 For a compact answer to “which SLP is flagged by which model,” start with
-[`slp_predictor_matrix.csv`](results/2026-09-17T012843-301909-0400/tables/slp_predictor_matrix.csv). Its
+[`slp_predictor_matrix.csv`](results/2026-09-18T071153-774463-0400/tables/slp_predictor_matrix.csv). Its
 column suffixes distinguish within-model fractions above 0.5, native scores,
 and motif-match counts; those unlike quantities must not be combined or
 ranked as though they shared a scale. Exact bond-level outputs remain in the
@@ -115,13 +115,20 @@ The recorded run used the exact commits and file hashes in `provenance.json`.
 With those repositories checked out locally and Docker running:
 
 ```sh
+mhctools fetch netcleave --accept-license
 python analyses/osteosarc_vaccine_cleavage/analyze.py \
   --osteosarc-repo /path/to/osteosarc.com \
   --netchop-dir /path/to/netchop-3.1 \
-  --netcleave-dir /path/to/NetCleave \
   --eramer-dir /path/to/ERAMER \
   --netmhciipan-path /path/to/netMHCIIpan-4.3
 ```
+
+`--netcleave-dir` is optional: without it the run uses the pinned snapshot
+installed by `mhctools fetch netcleave`, and records that snapshot's revision
+from the artifact record rather than from `git log`, which a fetched snapshot
+has no way to answer. Upstream NetCleave publishes no license, so the initial
+fetch requires the explicit flag above. Pass `--netcleave-dir` to prefer your
+own checkout.
 
 NetChop is licensed software and is not redistributed here. The script runs a
 user-supplied installation inside a pinned 32-bit Debian container because the
