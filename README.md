@@ -64,6 +64,19 @@ mhctools predictors
 mhctools predictors calis netchop --check reproduced --strict --json
 ```
 
+`fetch` behaves the same way for every artifact, whichever tier it belongs to:
+
+- **Already available is a success**, whether mhctools, a native downloader, the
+  package itself, or you installed it. Re-running is a no-op, so provisioning
+  scripts can call it over a whole list without special-casing manual tools.
+  `manager` and `fetchable` say who owns it; `--version` still errors if it
+  disagrees with what a foreign manager has.
+- **Missing and mhctools cannot install it** fails with one shape of message:
+  what to install, then the environment variable or `PATH` entry the wrapper
+  actually reads.
+- **`--json` writes only JSON to stdout.** Downloader and git progress go to
+  stderr, so `mhctools fetch <name> --json | jq` is always safe.
+
 The same operations are available in Python:
 
 ```python

@@ -644,7 +644,9 @@ def _fetch_mhcflurry(name, download_name, relative_path, version=None):
         environment["MHCFLURRY_DOWNLOADS_CURRENT_RELEASE"] = str(version)
         command.extend(["--release", str(version)])
     command.append(download_name)
-    subprocess.run(command, check=True, env=environment)
+    # Keep MHCflurry's progress visible without corrupting ``fetch --json``
+    # stdout, matching _run_git.
+    subprocess.run(command, check=True, env=environment, stdout=sys.stderr)
 
     path_result = subprocess.run(
         [executable, "path", download_name],
@@ -807,6 +809,37 @@ def _fetch_snapshot(name, version=None, data_dir=None, accept_license=False):
     )
 
 
+def _unfetchable_message(name, status):
+    """Explain a missing artifact mhctools cannot install, and what to do.
+
+    Manual entries previously surfaced their inventory ``detail`` verbatim,
+    which described the distribution but never named the environment variable
+    or executable the wrapper actually looks for.
+    """
+    hints = []
+    definition = _MANUAL_EXECUTABLES.get(name, {})
+    variables = list(definition.get("environment_variables", ()))
+    executables = list(definition.get("executables", ()))
+    directory = _MANUAL_DIRECTORIES.get(name, {})
+    if directory:
+        variables.append(directory["environment_variable"])
+    if variables:
+        hints.append("set %s" % " or ".join(variables))
+    if executables:
+        hints.append("or put %s on PATH" % " or ".join(executables))
+    message = "%s is not installed and mhctools cannot fetch it: %s." % (
+        name, status.detail.rstrip("."))
+    if hints:
+        # A separate sentence: several details already contain their own
+        # clauses, and appending to them produced garbled instructions.
+        # Only the leading character: str.capitalize() would lowercase the
+        # rest, and these are case-sensitive variable and executable names.
+        sentence = " ".join(hints)
+        message += " %s%s once installed." % (
+            sentence[:1].upper(), sentence[1:])
+    return message
+
+
 def fetch(
         name,
         version=None,
@@ -869,9 +902,8 @@ def fetch(
                 "%s is managed by %s at version %s; mhctools cannot fetch "
                 "version %s" % (
                     canonical, status.manager, status.version, version))
-        if status.manager == "manual":
-            raise RuntimeError(
-                "%s is already available at %s but is manually managed; "
-                "nothing for mhctools to fetch" % (canonical, status.path))
+        # Already available is a success for every tier. Whether mhctools
+        # could have installed it is reported by ``manager``/``fetchable``,
+        # not by failing a request whose goal is already met.
         return status
-    raise RuntimeError(status.detail)
+    raise RuntimeError(_unfetchable_message(canonical, status))

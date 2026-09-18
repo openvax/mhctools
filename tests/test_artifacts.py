@@ -79,7 +79,13 @@ def test_fetch_packaged_artifact_rejects_other_version():
         fetch("calis", version="never")
 
 
-def test_fetch_ready_manual_artifact_reports_nothing_to_fetch(monkeypatch):
+def test_fetch_is_a_no_op_success_for_any_ready_artifact(monkeypatch):
+    """Ready is success in every tier, not only for packaged predictors.
+
+    A manually installed tool used to raise even though the request's goal was
+    already met, which made ``fetch`` unusable in a provisioning loop. Who
+    manages it stays visible through ``manager`` and ``fetchable``.
+    """
     status = ArtifactStatus(
         name="netmhcpan",
         status="ready",
@@ -90,8 +96,24 @@ def test_fetch_ready_manual_artifact_reports_nothing_to_fetch(monkeypatch):
         detail="Install manually",
     )
     monkeypatch.setattr(artifacts, "artifact_status", lambda *args, **kwargs: status)
-    with pytest.raises(RuntimeError, match="nothing for mhctools to fetch"):
-        fetch("netmhcpan")
+    assert fetch("netmhcpan") == status
+
+
+def test_unfetchable_missing_artifact_names_its_resolution_mechanism():
+    """One error shape that says what to install and what the wrapper reads."""
+    for name, expected in (
+            ("prime", "PRIME_EXECUTABLE"),
+            ("tlimmuno2", "TLIMMUNO2_HOME"),
+            ("mixmhc2pred", "MIXMHC2PRED_EXECUTABLE")):
+        status = ArtifactStatus(
+            name=name, status="missing", manager="manual", version="",
+            path="", fetchable=False, detail="Install %s somehow" % name)
+        message = artifacts._unfetchable_message(name, status)
+        assert message.startswith(
+            "%s is not installed and mhctools cannot fetch it:" % name)
+        # Case-sensitive identifiers must survive sentence formatting.
+        assert expected in message
+        assert "once installed." in message
 
 
 def test_data_path_precedence(monkeypatch, tmp_path):
@@ -242,6 +264,32 @@ def test_git_progress_is_sent_to_stderr(monkeypatch):
         "check": True,
         "stdout": sys.stderr,
     })]
+
+
+def test_mhcflurry_download_progress_is_sent_to_stderr(monkeypatch, tmp_path):
+    """``fetch --json`` must emit only JSON, whoever does the downloading.
+
+    MHCflurry's downloader prints a progress table; inheriting stdout put that
+    ahead of the JSON document and broke machine-readable consumers.
+    """
+    calls = []
+
+    def fake_run(command, **kwargs):
+        calls.append((command, kwargs))
+        return subprocess.CompletedProcess(command, 0, stdout=str(tmp_path))
+
+    monkeypatch.setattr(
+        artifacts.shutil, "which", lambda name: "/bin/mhcflurry-downloads")
+    monkeypatch.setattr(artifacts.subprocess, "run", fake_run)
+    monkeypatch.setattr(artifacts.os.path, "exists", lambda path: True)
+    artifacts._fetch_mhcflurry(
+        name="mhcflurry",
+        download_name="models_class1_presentation",
+        relative_path="models",
+    )
+    fetch_call = next(
+        kwargs for command, kwargs in calls if "fetch" in command)
+    assert fetch_call["stdout"] is sys.stderr
 
 
 def test_mhcflurry_status_uses_native_manager(monkeypatch, tmp_path):
