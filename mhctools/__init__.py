@@ -143,7 +143,7 @@ def __getattr__(name):
     raise AttributeError(
         "module %r has no attribute %r" % (__name__, name))
 
-__version__ = "3.44.46"
+__version__ = "3.44.47"
 
 __all__ = [
     "mhcflurry_composite_version",
