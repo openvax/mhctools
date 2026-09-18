@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import csv
+from io import StringIO
+import math
+import os
 import sys
 
 from pyensembl.fasta import parse_fasta_dictionary
@@ -177,8 +181,38 @@ def apply_filters(df, args):
     return df
 
 
+def _prediction_cell(value):
+    """Return one lossless-enough, machine-readable stdout field."""
+    if value is None:
+        return ""
+    try:
+        if math.isnan(value):
+            return ""
+    except TypeError:
+        pass
+    if isinstance(value, float):
+        return "%.6g" % value
+    return str(value)
+
+
+def write_predictions(df, stream):
+    """Stream a tab-separated prediction table without a full-table buffer.
+
+    TSV preserves empty strings as actual fields and remains readable at a
+    terminal.  Rows are written one at a time, so a proteome-wide result does
+    not create a second, formatted copy of the whole table in memory.
+    """
+    if len(df) == 0:
+        stream.write("No predictions.\n")
+        return
+    writer = csv.writer(stream, delimiter="\t", lineterminator="\n")
+    writer.writerow(df.columns)
+    for row in df.itertuples(index=False, name=None):
+        writer.writerow(_prediction_cell(value) for value in row)
+
+
 def format_predictions(df):
-    """Render a prediction DataFrame as an aligned, index-free text table.
+    """Render predictions as TSV for callers that explicitly need a string.
 
     Parameters
     ----------
@@ -189,12 +223,26 @@ def format_predictions(df):
     Returns
     -------
     str
-        Every row and column of ``df``, with floats trimmed to six
-        significant digits, or a short notice when ``df`` is empty.
+        Every row and column of ``df`` as tab-separated fields, with floats
+        trimmed to six significant digits, or a short notice when ``df`` is
+        empty. The CLI uses :func:`write_predictions` directly so it streams.
     """
-    if len(df) == 0:
-        return "No predictions."
-    return df.to_string(index=False, float_format=lambda value: "%.6g" % value)
+    stream = StringIO()
+    write_predictions(df, stream)
+    return stream.getvalue().rstrip("\n")
+
+
+def _silence_closed_stdout():
+    """Prevent Python's shutdown flush from reporting a second broken pipe."""
+    try:
+        stdout_fd = sys.stdout.fileno()
+        devnull_fd = os.open(os.devnull, os.O_WRONLY)
+        try:
+            os.dup2(devnull_fd, stdout_fd)
+        finally:
+            os.close(devnull_fd)
+    except (AttributeError, OSError, ValueError):
+        pass
 
 
 def main(args_list=None):
@@ -238,6 +286,9 @@ def main(args_list=None):
     if args_list and args_list[0] == "mixtcrpred":
         from .mixtcrpred import main as mixtcrpred_main
         return mixtcrpred_main(args_list[1:])
+    if args_list and args_list[0] == "vaccine-report":
+        from .vaccine_report import main as vaccine_report_main
+        return vaccine_report_main(args_list[1:])
 
     args = parse_args(args_list)
     try:
@@ -257,6 +308,11 @@ def main(args_list=None):
             print("Wrote: %s (%d rows, %d columns)" % (
                 args.output_csv, len(df), len(df.columns)))
         else:
-            print(format_predictions(df))
+            write_predictions(df, sys.stdout)
+    except BrokenPipeError:
+        # A downstream consumer such as ``head`` intentionally closed the
+        # pipe. This is successful early termination, not malformed usage.
+        _silence_closed_stdout()
+        return 0
     except CLI_ERROR_TYPES as error:
         arg_parser.error(cli_error_message(error))

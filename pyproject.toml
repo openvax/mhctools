@@ -63,6 +63,9 @@ mixtcrpred = [
   "scipy",
   "scikit-learn",
 ]
+vaccine-report = [
+  "matplotlib",
+]
 dev = [
   "build",
   # Ruff 0.16 changed its default rule set; keep lint reproducible until #268.

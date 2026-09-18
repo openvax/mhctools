@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+import json
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 
@@ -122,7 +123,7 @@ def test_ligand_display_prioritizes_intended_window_then_allele_diversity():
     assert selected.iloc[0]["selection_reason"] == "intended_epitope"
     assert selected["allele"].nunique() >= 3
     assert selected[["start", "end"]].duplicated().sum() == 0
-    assert set(selected["display_lane"]) <= {0, 1, 2}
+    assert set(selected["display_lane"]) <= {0, 1, 2, 3, 4}
 
 
 def test_ligand_display_never_draws_same_span_twice_across_alleles():
@@ -223,6 +224,26 @@ def test_figure_model_set_keeps_distinct_20s_but_omits_redundant_all_mammal():
         "netchop-3.1-cterm-3.0",
     ]
     assert "pepsickle-in-vivo-all-mammal" not in ANALYSIS.FIGURE_QUANTITATIVE_MODELS
+
+
+def test_display_uses_top_ten_cap_and_opinionated_slp_enzyme_tracks():
+    assert ANALYSIS.MHC_DISPLAY_MAX_WINDOWS == 10
+    assert ANALYSIS.MHC_DISPLAY_LANES == 5
+    displayed = {
+        model
+        for _, models, _ in ANALYSIS.FIGURE_SLP_ENZYME_TRACKS
+        for model in models
+    }
+    assert displayed == {
+        "mme-hydrophobic",
+        "fap-dipeptidyl",
+        "fap-endo-gp",
+        "anpep-ala",
+        "enpep-acidic",
+    }
+    assert not displayed.intersection({
+        "ace-dipeptidyl", "cpb2-basic", "cpn-basic", "app1-xp", "erap2-basic"
+    })
 
 
 def test_red_cut_requires_three_hits_and_all_four_display_tracks_assessed():
@@ -396,3 +417,63 @@ def test_vulnerable_bonds_require_context_separated_support():
     ]
     assert observed["support_count"].tolist() == [3, 2]
     assert observed["in_disclosed_minimal_epitope"].tolist() == [True, True]
+
+
+def _load_rerender():
+    """Import rerender.py, which imports ``analyze`` as a sibling script."""
+    import sys
+
+    directory = str(SCRIPT_PATH.parent)
+    inserted = directory not in sys.path
+    if inserted:
+        sys.path.insert(0, directory)
+    try:
+        spec = spec_from_file_location(
+            "osteosarc_vaccine_cleavage_rerender", SCRIPT_PATH.with_name("rerender.py")
+        )
+        module = module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+    finally:
+        if inserted:
+            sys.path.remove(directory)
+
+
+def _frozen_run(directory, contents):
+    directory.mkdir(parents=True, exist_ok=True)
+    manifest = {}
+    for name, text in contents.items():
+        path = directory / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+        manifest[name] = ANALYSIS.sha256_file(path)
+    (directory / "SHA256SUMS.json").write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    return manifest
+
+
+def test_rerender_reuses_a_frozen_run_only_when_every_checksum_matches(tmp_path):
+    rerender = _load_rerender()
+    source = tmp_path / "run"
+    manifest = _frozen_run(
+        source, {"tables/scores.csv": "bond,score\n1,0.5\n", "REPORT.md": "# report\n"}
+    )
+    assert rerender._verified_source_manifest(source) == manifest
+
+    # A table edited after the run was frozen must not be silently re-rendered
+    # as though it were the checksummed prediction output.
+    (source / "tables" / "scores.csv").write_text(
+        "bond,score\n1,0.9\n", encoding="utf-8"
+    )
+    with pytest.raises(RuntimeError, match="tables/scores.csv"):
+        rerender._verified_source_manifest(source)
+
+
+def test_rerender_reports_a_missing_frozen_file_instead_of_skipping_it(tmp_path):
+    rerender = _load_rerender()
+    source = tmp_path / "run"
+    _frozen_run(source, {"tables/scores.csv": "bond,score\n1,0.5\n"})
+    (source / "tables" / "scores.csv").unlink()
+    with pytest.raises(RuntimeError, match="tables/scores.csv"):
+        rerender._verified_source_manifest(source)

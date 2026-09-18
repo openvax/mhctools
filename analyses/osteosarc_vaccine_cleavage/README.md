@@ -28,12 +28,14 @@ continuation pages rather than compressed. Use
 from a sequence record to its PDF page. Every map page is also exported as a
 vector PDF and 300 dpi PNG; `slp_map_exports.csv` indexes those files.
 
-The atlas has room for six windows per MHC class and sequence segment. It first
+The atlas selects up to ten windows per MHC class and sequence segment, using
+five dedicated non-overlapping lanes. It first
 retains the strongest eligible window overlapping a disclosed intended epitope,
 then tries to represent distinct alleles, and finally fills free, non-overlapping
 lane capacity by native percentile rank. This is a display-selection rule, not
-an ensemble score. `slp_mhc_display_selection.csv` records every displayed row
-and its reason; `slp_mhc_ligand_predictions.csv` retains every raw prediction.
+an ensemble score. Each map header states “shown / eligible” instead of an
+ambiguous “+N more” footnote. `slp_mhc_display_selection.csv` records every
+displayed row and its reason; `slp_mhc_ligand_predictions.csv` retains every raw prediction.
 The run also includes a four-page, full-size manuscript subset selected by four
 declared criteria rather than visual preference. Its exact choices and metrics
 are in `manuscript_figure_selection.csv`.
@@ -45,8 +47,11 @@ and motif-match counts; those unlike quantities must not be combined or
 ranked as though they shared a scale. Exact bond-level outputs remain in the
 long-form tables.
 
-The sequence pages show four complementary intracellular tracks above the
-sequence: human-only Pepsickle, NetChop Cterm, NetChop 20S, and NetCleave-I. A
+The sequence pages treat the injected SLP route explicitly. Four complementary
+cytosolic cross-presentation tracks sit above the sequence: human-only
+Pepsickle, NetChop Cterm, NetChop 20S, and NetCleave-I. This is a conditional
+route after dendritic-cell uptake/export, not direct exposure of an injected
+peptide to the cytosol. A
 red bond mark is drawn only when all four assess the bond and at least three
 reach the common 0.5 display threshold. Four small beads on the mark encode the
 support count (filled beads are hits and an open bead is a miss); this is not a
@@ -57,11 +62,22 @@ pure proteasome assay. NetChop 20S is shown separately as an in-vitro
 proteasome view. The human-only Pepsickle model is species-matched but
 experimental and trained on less data than the all-mammal model; the
 near-redundant all-mammal output remains in the tables. The NetCleave-II track
-has its own endolysosomal/class-II section below the sequence, separate from
-the serum/extracellular motif section. DPP4 and ERAMER scores remain on visibly
-separate native scales without a binary cutoff. The context-separated
+has its own primary endolysosomal/class-II section below the sequence, while
+DPP4 and matched MME, FAP, ANPEP, and ENPEP rules each receive a readable
+enzyme-specific extracellular track. FAP is labeled tumor-stroma conditional.
+Plasma-oriented ACE, CPB2, and CPN, XPNPEP2, intact-SLP cytosolic aminopeptidase
+motifs, and ERAP1-on-the-intact-SLP are omitted from the map because injection
+does not establish their exposure or substrate state; their raw assessments
+remain in the tables. The context-separated
 `slp_vulnerable_bonds.csv` retains its separate, conservative three-of-five
 rule and never combines biological contexts.
+
+For a reusable input contract rather than the osteosarc-specific adapter, use
+`mhctools vaccine-report`; see [`docs/vaccine-reports.md`](../../docs/vaccine-reports.md).
+Its manifest distinguishes `synthetic_long_peptide` from `rna_encoded` and
+requires an explicit RNA routing policy. Cytosolic RNA emphasizes endogenous
+proteasome/ER/class-I processing and omits free serum-peptide tracks unless
+secretion or extracellular exposure is declared.
 
 ## Scope
 
@@ -114,6 +130,17 @@ NetCleave and ERAMER are run from local checkouts. Pepsickle and the curated
 motif panel run in the current Python environment. MHCflurry and NetMHCIIpan
 also run locally; the complete file-level model inventories are recorded in
 the timestamped run's `tables/mhc_model_file_inventory.csv`.
+
+For a visualization-only revision, reuse the exact checksummed prediction
+tables instead of silently rerunning models:
+
+```sh
+python analyses/osteosarc_vaccine_cleavage/rerender.py \
+  --source-run analyses/osteosarc_vaccine_cleavage/results/<timestamp>
+```
+
+The command verifies every source-run checksum, creates another timestamped
+directory, and records that inference was not repeated in `provenance.json`.
 
 ## Primary model references
 
