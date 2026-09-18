@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+import json
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 
@@ -416,3 +417,63 @@ def test_vulnerable_bonds_require_context_separated_support():
     ]
     assert observed["support_count"].tolist() == [3, 2]
     assert observed["in_disclosed_minimal_epitope"].tolist() == [True, True]
+
+
+def _load_rerender():
+    """Import rerender.py, which imports ``analyze`` as a sibling script."""
+    import sys
+
+    directory = str(SCRIPT_PATH.parent)
+    inserted = directory not in sys.path
+    if inserted:
+        sys.path.insert(0, directory)
+    try:
+        spec = spec_from_file_location(
+            "osteosarc_vaccine_cleavage_rerender", SCRIPT_PATH.with_name("rerender.py")
+        )
+        module = module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+    finally:
+        if inserted:
+            sys.path.remove(directory)
+
+
+def _frozen_run(directory, contents):
+    directory.mkdir(parents=True, exist_ok=True)
+    manifest = {}
+    for name, text in contents.items():
+        path = directory / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+        manifest[name] = ANALYSIS.sha256_file(path)
+    (directory / "SHA256SUMS.json").write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    return manifest
+
+
+def test_rerender_reuses_a_frozen_run_only_when_every_checksum_matches(tmp_path):
+    rerender = _load_rerender()
+    source = tmp_path / "run"
+    manifest = _frozen_run(
+        source, {"tables/scores.csv": "bond,score\n1,0.5\n", "REPORT.md": "# report\n"}
+    )
+    assert rerender._verified_source_manifest(source) == manifest
+
+    # A table edited after the run was frozen must not be silently re-rendered
+    # as though it were the checksummed prediction output.
+    (source / "tables" / "scores.csv").write_text(
+        "bond,score\n1,0.9\n", encoding="utf-8"
+    )
+    with pytest.raises(RuntimeError, match="tables/scores.csv"):
+        rerender._verified_source_manifest(source)
+
+
+def test_rerender_reports_a_missing_frozen_file_instead_of_skipping_it(tmp_path):
+    rerender = _load_rerender()
+    source = tmp_path / "run"
+    _frozen_run(source, {"tables/scores.csv": "bond,score\n1,0.5\n"})
+    (source / "tables" / "scores.csv").unlink()
+    with pytest.raises(RuntimeError, match="tables/scores.csv"):
+        rerender._verified_source_manifest(source)
