@@ -115,8 +115,9 @@ class NetCleave(object):
         (``data/models/{class}_mass-spectrometry_{allele}``). Default
         ``"HLA"`` (the pan-allele model for the class).
     netcleave_path : str, optional
-        Path to the cloned NetCleave repository. Resolved from
-        ``NETCLEAVE_DIR`` / ``~/NetCleave`` when omitted.
+        Path to the cloned NetCleave repository. When omitted, resolved from
+        ``NETCLEAVE_DIR``, then ``~/NetCleave`` and ``~/code/NetCleave``, then
+        the pinned snapshot installed by ``mhctools fetch netcleave``.
     model_path : str, optional
         Full path to a specific model directory, overriding
         ``mhc_class`` / ``mhc_allele`` selection.

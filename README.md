@@ -70,7 +70,9 @@ mhctools predictors calis netchop --check reproduced --strict --json
   package itself, or you installed it. Re-running is a no-op, so provisioning
   scripts can call it over a whole list without special-casing manual tools.
   `manager` and `fetchable` say who owns it; `--version` still errors if it
-  disagrees with what a foreign manager has.
+  disagrees with what a foreign manager has. Naming a different destination or
+  revision with `--data-dir` or `--version` is a request to install that
+  exact thing, so it is not answered by an install found elsewhere.
 - **Missing and mhctools cannot install it** fails with one shape of message:
   what to install, then the environment variable or `PATH` entry the wrapper
   actually reads.
@@ -733,7 +735,7 @@ published"`. A checkout you manage yourself still takes precedence.
 ```python
 from mhctools import NetCleave_II
 
-predictor = NetCleave_II()                 # NETCLEAVE_DIR, ~/NetCleave, then fetched snapshot
+predictor = NetCleave_II()   # NETCLEAVE_DIR, ~/NetCleave, ~/code/NetCleave, then snapshot
 # score peptides with their C-terminal flanking residues (>= 3)
 results = predictor.predict(["SIINFEKL"], c_flanks=["DGH"])
 results[0].endolysosomal_cleavage.score

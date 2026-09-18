@@ -34,6 +34,22 @@ import tempfile
 from platformdirs import user_data_path
 
 
+def _checkout_paths(*directory_names):
+    """Name the user checkout locations the wrappers actually search.
+
+    Wrappers resolve conventional checkouts through
+    :func:`mhctools.optional_backend.common_checkout_paths`, which looks in
+    both ``~/NAME`` and ``~/code/NAME``. The inventory has to name the same
+    locations, or ``ls`` and ``fetch`` would call an install missing while the
+    wrapper happily runs it. ``test_inventory_covers_wrapper_checkout_paths``
+    keeps the two definitions in step.
+    """
+    return tuple(
+        "~/%s" % suffix
+        for directory_name in directory_names
+        for suffix in (directory_name, "code/%s" % directory_name))
+
+
 @dataclass(frozen=True)
 class ArtifactStatus:
     """Status of the artifacts required by one predictor wrapper."""
@@ -101,7 +117,7 @@ _SNAPSHOTS = {
             "https://github.com/changyunjian/CapHLA/blob/"
             "33ebdd6ce6dadbbb1c66b026ce4b5d81dbf3a831/LICENSE"),
         environment_variable="CAPHLA_HOME",
-        legacy_paths=("~/CapHLA",),
+        legacy_paths=_checkout_paths("CapHLA"),
     ),
     "deepimmuno": _Snapshot(
         repository="https://github.com/frankligy/DeepImmuno.git",
@@ -113,7 +129,7 @@ _SNAPSHOTS = {
             "https://github.com/frankligy/DeepImmuno/blob/"
             "df42ac5b6bddfe531268335e2dcb496559cd488b/LICENSE"),
         environment_variable="DEEPIMMUNO_HOME",
-        legacy_paths=("~/DeepImmuno",),
+        legacy_paths=_checkout_paths("DeepImmuno"),
     ),
     "deeptap": _Snapshot(
         repository="https://github.com/zjupgx/DeepTAP.git",
@@ -125,7 +141,7 @@ _SNAPSHOTS = {
             "https://github.com/zjupgx/DeepTAP/blob/"
             "d2dad5bdea146ecc245304f509e97ae8137f94fd/LICENSE"),
         environment_variable="DEEPTAP_HOME",
-        legacy_paths=("~/DeepTAP",),
+        legacy_paths=_checkout_paths("DeepTAP"),
     ),
     "eramer": _Snapshot(
         repository="https://github.com/aalokaily/ERAMER.git",
@@ -136,7 +152,7 @@ _SNAPSHOTS = {
             "https://github.com/aalokaily/ERAMER/blob/"
             "7745d5cf72d99bcda1c73f26ca746d025b46b7f3/LICENSE"),
         environment_variable="ERAMER_HOME",
-        legacy_paths=("~/ERAMER",),
+        legacy_paths=_checkout_paths("ERAMER"),
     ),
     "netcleave": _Snapshot(
         repository="https://github.com/BSC-CNS-EAPM/NetCleave.git",
@@ -170,7 +186,7 @@ _SNAPSHOTS = {
         acceptance_required=True,
         unlicensed=True,
         environment_variable="NETCLEAVE_DIR",
-        legacy_paths=("~/NetCleave", "~/code/NetCleave"),
+        legacy_paths=_checkout_paths("NetCleave"),
     ),
     "nettcr": _Snapshot(
         repository="https://github.com/mnielLab/NetTCR-2.2.git",
@@ -190,7 +206,7 @@ _SNAPSHOTS = {
             "academic_software_license_agreement.pdf"),
         acceptance_required=True,
         environment_variable="NETTCR_DIR",
-        legacy_paths=("~/NetTCR-2.2", "~/code/NetTCR-2.2"),
+        legacy_paths=_checkout_paths("NetTCR-2.2", "nettcr"),
     ),
     "mixtcrpred": _Snapshot(
         repository="https://github.com/GfellerLab/MixTCRpred.git",
@@ -216,7 +232,7 @@ _SNAPSHOTS = {
             "acd6f57444bde675840890207c74ca3b0c7ffac2/LICENSE.md"),
         acceptance_required=True,
         environment_variable="MIXTCRPRED_HOME",
-        legacy_paths=("~/MixTCRpred", "~/code/MixTCRpred"),
+        legacy_paths=_checkout_paths("MixTCRpred"),
     ),
     "tulip": _Snapshot(
         repository="https://github.com/barthelemymp/TULIP-TCR.git",
@@ -231,7 +247,7 @@ _SNAPSHOTS = {
             "https://github.com/barthelemymp/TULIP-TCR/blob/"
             "798fab97a3b13d08dcbfc381ea643e8dc14297c2/LICENSE"),
         environment_variable="TULIP_HOME",
-        legacy_paths=("~/TULIP-TCR", "~/code/TULIP-TCR"),
+        legacy_paths=_checkout_paths("TULIP-TCR"),
     ),
 }
 
@@ -251,6 +267,7 @@ _MANUAL_EXECUTABLES = {
         "detail": "Install MixMHCpred under its academic/non-commercial license",
     },
     "netchop": {
+        "environment_variables": ("NETCHOP_HOME", "NETMHC_BUNDLE_HOME"),
         "executables": ("netChop",),
         "detail": (
             "Install NetChop from DTU Health Tech; its identity-bound "
@@ -302,7 +319,7 @@ _MANUAL_EXECUTABLES = {
 _MANUAL_DIRECTORIES = {
     "tlimmuno2": {
         "environment_variable": "TLIMMUNO2_HOME",
-        "legacy_paths": ("~/TLimmuno2",),
+        "legacy_paths": _checkout_paths("TLimmuno2"),
         "required_path": "Python/TLimmuno2.py",
         "detail": (
             "Install TLimmuno2 manually; its repository has no license file"),
@@ -646,15 +663,26 @@ def _fetch_mhcflurry(name, download_name, relative_path, version=None):
     command.append(download_name)
     # Keep MHCflurry's progress visible without corrupting ``fetch --json``
     # stdout, matching _run_git.
-    subprocess.run(command, check=True, env=environment, stdout=sys.stderr)
-
-    path_result = subprocess.run(
-        [executable, "path", download_name],
-        check=True,
-        capture_output=True,
-        text=True,
-        env=environment,
-    )
+    try:
+        _run_showing_progress(command, check=True, env=environment)
+        path_result = subprocess.run(
+            [executable, "path", download_name],
+            check=True,
+            capture_output=True,
+            text=True,
+            env=environment,
+        )
+    except subprocess.CalledProcessError as error:
+        # Surfaced as a clean ``error:`` line and exit 2 like every other
+        # fetch failure, instead of a traceback and exit 1.
+        detail = (error.stderr or "").strip()
+        raise RuntimeError(
+            "MHCflurry failed to fetch %s (%s exited %d)%s" % (
+                download_name,
+                os.path.basename(error.cmd[0]),
+                error.returncode,
+                ": %s" % detail if detail else "",
+            )) from error
     root = path_result.stdout.strip()
     path = os.path.abspath(os.path.join(root, relative_path))
     if not os.path.exists(path):
@@ -688,13 +716,38 @@ def _resolve_revision(name, snapshot, version):
             name, snapshot.revision, version))
 
 
+def _run_showing_progress(command, **keywords):
+    """Run *command* with its stdout redirected to mhctools' stderr.
+
+    ``fetch --json`` promises that stdout carries nothing but JSON, so a
+    child's progress output has to go to stderr. Handing the child
+    ``sys.stderr`` directly requires a real file descriptor, which it does not
+    have under ``contextlib.redirect_stderr``, pytest's capture, or any host
+    that replaces the stream; relaying the captured output keeps the Python
+    API usable in those callers at the cost of buffering progress.
+    """
+    try:
+        sys.stderr.fileno()
+    except (AttributeError, OSError, ValueError):
+        pass
+    else:
+        return subprocess.run(command, stdout=sys.stderr, **keywords)
+    check = keywords.pop("check", False)
+    completed = subprocess.run(
+        command, stdout=subprocess.PIPE, text=True, **keywords)
+    if completed.stdout:
+        sys.stderr.write(completed.stdout)
+    if check:
+        completed.check_returncode()
+    return completed
+
+
 def _run_git(arguments):
     executable = shutil.which("git")
     if executable is None:
         raise RuntimeError("git is required to fetch upstream model artifacts")
     # Keep command progress visible without corrupting ``fetch --json`` stdout.
-    subprocess.run(
-        [executable] + list(arguments), check=True, stdout=sys.stderr)
+    _run_showing_progress([executable] + list(arguments), check=True)
 
 
 def _fetch_snapshot(name, version=None, data_dir=None, accept_license=False):
@@ -826,7 +879,7 @@ def _unfetchable_message(name, status):
     if variables:
         hints.append("set %s" % " or ".join(variables))
     if executables:
-        hints.append("or put %s on PATH" % " or ".join(executables))
+        hints.append("put %s on PATH" % " or ".join(executables))
     message = "%s is not installed and mhctools cannot fetch it: %s." % (
         name, status.detail.rstrip("."))
     if hints:
@@ -834,7 +887,9 @@ def _unfetchable_message(name, status):
         # clauses, and appending to them produced garbled instructions.
         # Only the leading character: str.capitalize() would lowercase the
         # rest, and these are case-sensitive variable and executable names.
-        sentence = " ".join(hints)
+        # The clauses carry no leading "or", which otherwise began the
+        # sentence for the artifacts that have no environment variable.
+        sentence = " or ".join(hints)
         message += " %s%s once installed." % (
             sentence[:1].upper(), sentence[1:])
     return message
@@ -859,18 +914,24 @@ def fetch(
     if model_selection and canonical != "mixtcrpred":
         raise ValueError(
             "Model selection is supported only for the mixtcrpred artifact")
-    if canonical == "mhcflurry":
+    if canonical in ("mhcflurry", "mhcflurry-affinity"):
+        # Ready is a no-op here too. Re-running otherwise restarted
+        # MHCflurry's downloader, which then tells the user to delete the
+        # models to re-download, and failed outright with exit 2 whenever
+        # mhcflurry-downloads was off PATH even though the models were
+        # already present.
+        if version is None:
+            current = artifact_status(canonical)
+            if current.status == "ready":
+                return current
+        download_name, relative_path = {
+            "mhcflurry": ("models_class1_presentation", "models"),
+            "mhcflurry-affinity": ("models_class1_pan", "models.combined"),
+        }[canonical]
         return _fetch_mhcflurry(
-            name="mhcflurry",
-            download_name="models_class1_presentation",
-            relative_path="models",
-            version=version,
-        )
-    if canonical == "mhcflurry-affinity":
-        return _fetch_mhcflurry(
-            name="mhcflurry-affinity",
-            download_name="models_class1_pan",
-            relative_path="models.combined",
+            name=canonical,
+            download_name=download_name,
+            relative_path=relative_path,
             version=version,
         )
     if canonical in _SNAPSHOTS:
