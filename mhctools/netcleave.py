@@ -89,7 +89,10 @@ def _find_netcleave_dir(netcleave_path=None):
     for candidate in (
             os.path.join(home, "NetCleave"),
             os.path.join(home, "code", "NetCleave")):
-        if os.path.isdir(candidate):
+        # Require the entry point, not just the directory: an empty or
+        # half-cloned ~/NetCleave would otherwise shadow a fetched snapshot
+        # that `mhctools ls` correctly reports as ready.
+        if os.path.isfile(os.path.join(candidate, "NetCleave.py")):
             return candidate
     from .artifacts import artifact_status
     managed = artifact_status("netcleave")

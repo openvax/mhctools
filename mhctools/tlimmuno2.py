@@ -47,7 +47,7 @@ import logging
 import os
 import re
 import sys
-from os.path import exists, isdir, isfile, join
+from os.path import exists, isfile, join
 from tempfile import mkdtemp
 
 import pandas as pd
@@ -78,7 +78,10 @@ def _find_tlimmuno2_home(tlimmuno2_home=None):
     candidate = tlimmuno2_home or os.environ.get("TLIMMUNO2_HOME")
     if not candidate:
         for home in common_checkout_paths("TLimmuno2"):
-            if isdir(home):
+            # Require the entry point, not just the directory: an empty or
+            # half-cloned ~/code/TLimmuno2 would otherwise shadow a fetched
+            # snapshot that `mhctools ls` correctly reports as ready.
+            if isfile(join(home, "Python", "TLimmuno2.py")):
                 candidate = str(home)
                 break
     if not candidate:
@@ -164,13 +167,29 @@ class TLimmuno2(NewModelPredictorMixin):
         does not know raises a ``ValueError``.
     tlimmuno2_home : str, optional
         Path to a TLimmuno2 checkout. Resolved from the argument, then
-        ``$TLIMMUNO2_HOME``, then ``~/TLimmuno2``.
+        ``$TLIMMUNO2_HOME``, then ``~/TLimmuno2`` and ``~/code/TLimmuno2``,
+        then the pinned snapshot installed by ``mhctools fetch tlimmuno2``.
     tlimmuno2_python : str, optional
         Interpreter that can run TLimmuno2 (TensorFlow with Keras 2, or newer
         TensorFlow plus the ``tf-keras`` shim). Resolved from the argument,
         then ``$TLIMMUNO2_PYTHON``, then the current interpreter
         (``sys.executable``).
     """
+
+    @classmethod
+    def fetch(cls, version=None, data_dir=None, accept_license=False):
+        """Fetch the pinned TLimmuno2 snapshot.
+
+        Upstream publishes no license, so ``accept_license`` records that the
+        caller confirmed their own use is authorized; it cannot grant rights
+        mhctools does not have.
+        """
+        from .artifacts import fetch
+        return fetch(
+            "tlimmuno2",
+            version=version,
+            data_dir=data_dir,
+            accept_license=accept_license)
 
     def __init__(self, alleles, tlimmuno2_home=None, tlimmuno2_python=None):
         if isinstance(alleles, str):

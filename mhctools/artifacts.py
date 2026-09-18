@@ -689,8 +689,18 @@ def _fetch_mhcflurry(name, download_name, relative_path, version=None):
     command.append(download_name)
     # Keep MHCflurry's progress visible without corrupting ``fetch --json``
     # stdout, matching _run_git.
+    # Each subprocess is wrapped separately so the message names the step that
+    # actually failed; a single try reported a failed `path` lookup as a failed
+    # download.
     try:
         _run_showing_progress(command, check=True, env=environment)
+    except subprocess.CalledProcessError as error:
+        # Surfaced as a clean ``error:`` line and exit 2 like every other
+        # fetch failure, instead of a traceback and exit 1.
+        raise RuntimeError(
+            "MHCflurry failed to fetch %s%s" % (
+                download_name, _process_failure_detail(error))) from error
+    try:
         path_result = subprocess.run(
             [executable, "path", download_name],
             check=True,
@@ -699,16 +709,9 @@ def _fetch_mhcflurry(name, download_name, relative_path, version=None):
             env=environment,
         )
     except subprocess.CalledProcessError as error:
-        # Surfaced as a clean ``error:`` line and exit 2 like every other
-        # fetch failure, instead of a traceback and exit 1.
-        detail = (error.stderr or "").strip()
         raise RuntimeError(
-            "MHCflurry failed to fetch %s (%s exited %d)%s" % (
-                download_name,
-                os.path.basename(error.cmd[0]),
-                error.returncode,
-                ": %s" % detail if detail else "",
-            )) from error
+            "MHCflurry downloaded %s but could not report its path%s" % (
+                download_name, _process_failure_detail(error))) from error
     root = path_result.stdout.strip()
     path = os.path.abspath(os.path.join(root, relative_path))
     if not os.path.exists(path):
@@ -742,6 +745,15 @@ def _resolve_revision(name, snapshot, version):
             name, snapshot.revision, version))
 
 
+def _process_failure_detail(error):
+    """Render a child process failure, keeping whatever it said about why."""
+    detail = (error.stderr or "").strip()
+    return " (%s exited %d)%s" % (
+        os.path.basename(error.cmd[0]),
+        error.returncode,
+        ": %s" % detail if detail else "")
+
+
 def _run_showing_progress(command, **keywords):
     """Run *command* with its stdout redirected to mhctools' stderr.
 
@@ -759,10 +771,16 @@ def _run_showing_progress(command, **keywords):
     else:
         return subprocess.run(command, stdout=sys.stderr, **keywords)
     check = keywords.pop("check", False)
+    keywords.setdefault("text", True)
+    # stderr is captured too, so a failure here still carries the child's
+    # explanation into CalledProcessError.stderr; relaying it keeps the
+    # output the caller would have seen on a real descriptor.
     completed = subprocess.run(
-        command, stdout=subprocess.PIPE, text=True, **keywords)
-    if completed.stdout:
-        sys.stderr.write(completed.stdout)
+        command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **keywords)
+    for stream, text in (
+            (sys.stderr, completed.stdout), (sys.stderr, completed.stderr)):
+        if text:
+            stream.write(text)
     if check:
         completed.check_returncode()
     return completed
