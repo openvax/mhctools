@@ -14,7 +14,6 @@ from mhctools.deepimmuno import _find_deepimmuno_home
 from mhctools.deeptap import _find_deeptap_home
 from mhctools.eramer import _find_pwm_path
 from mhctools.nettcr import _find_nettcr_dir
-from mhctools.tlimmuno2 import _find_tlimmuno2_home
 
 
 @pytest.mark.parametrize(
@@ -30,13 +29,6 @@ from mhctools.tlimmuno2 import _find_tlimmuno2_home
         ),
         (_find_deeptap_home, "DEEPTAP_HOME", "DeepTAP", "deeptap.py", False),
         (_find_pwm_path, "ERAMER_HOME", "ERAMER", "PWM.xlsx", True),
-        (
-            _find_tlimmuno2_home,
-            "TLIMMUNO2_HOME",
-            "TLimmuno2",
-            "Python/TLimmuno2.py",
-            False,
-        ),
     ],
 )
 def test_resolver_finds_common_code_checkout(

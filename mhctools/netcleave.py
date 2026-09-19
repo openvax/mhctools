@@ -71,8 +71,8 @@ def _find_netcleave_dir(netcleave_path=None):
 
     Checks, in order: the *netcleave_path* argument, the ``NETCLEAVE_DIR``
     environment variable, ``~/NetCleave`` and ``~/code/NetCleave``, then the
-    pinned snapshot installed by ``mhctools fetch netcleave``. A user-managed
-    checkout wins so an existing install keeps being used. An
+    pinned snapshot installed by ``mhctools fetch netcleave``. A complete
+    user-managed checkout wins so an existing install keeps being used. An
     explicitly-provided path is validated up front.
     """
     clone_hint = "Clone from https://github.com/BSC-CNS-EAPM/NetCleave"
@@ -85,19 +85,12 @@ def _find_netcleave_dir(netcleave_path=None):
                     "NetCleave directory from %s does not exist: %s. %s"
                     % (source, path, clone_hint))
             return path
-    home = os.path.expanduser("~")
-    for candidate in (
-            os.path.join(home, "NetCleave"),
-            os.path.join(home, "code", "NetCleave")):
-        # Require the entry point, not just the directory: an empty or
-        # half-cloned ~/NetCleave would otherwise shadow a fetched snapshot
-        # that `mhctools ls` correctly reports as ready.
-        if os.path.isfile(os.path.join(candidate, "NetCleave.py")):
-            return candidate
     from .artifacts import artifact_status
-    managed = artifact_status("netcleave")
-    if managed.manager == "mhctools" and managed.status == "ready":
-        return managed.path
+    # Use the inventory's asset checks and user-before-managed precedence.
+    # An entry point alone does not make a partial checkout runnable.
+    installed = artifact_status("netcleave")
+    if installed.status == "ready":
+        return installed.path
     raise FileNotFoundError(
         "NetCleave not found. Set NETCLEAVE_DIR or pass netcleave_path= to "
         "the constructor. Run `mhctools fetch netcleave --accept-license`; "

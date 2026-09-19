@@ -53,7 +53,6 @@ from tempfile import mkdtemp
 import pandas as pd
 
 from .cleanup_context import CleanupFiles
-from .optional_backend import common_checkout_paths
 from .pred import Kind, PeptideResult, Prediction
 from .process_helpers import run_command
 from .wrapper_base import NewModelPredictorMixin
@@ -72,23 +71,16 @@ def _find_tlimmuno2_home(tlimmuno2_home=None):
 
     Checks, in order: the *tlimmuno2_home* argument, ``$TLIMMUNO2_HOME``,
     ``~/TLimmuno2`` / ``~/code/TLimmuno2``, then the pinned snapshot installed
-    by ``mhctools fetch tlimmuno2``. A user-managed checkout wins so an
+    by ``mhctools fetch tlimmuno2``. A complete user-managed checkout wins so an
     existing install keeps being used.
     """
     candidate = tlimmuno2_home or os.environ.get("TLIMMUNO2_HOME")
     if not candidate:
-        for home in common_checkout_paths("TLimmuno2"):
-            # Require the entry point, not just the directory: an empty or
-            # half-cloned ~/code/TLimmuno2 would otherwise shadow a fetched
-            # snapshot that `mhctools ls` correctly reports as ready.
-            if isfile(join(home, "Python", "TLimmuno2.py")):
-                candidate = str(home)
-                break
-    if not candidate:
         from .artifacts import artifact_status
-        managed = artifact_status("tlimmuno2")
-        if managed.manager == "mhctools" and managed.status == "ready":
-            candidate = managed.path
+        # Share the inventory's complete-asset validation and precedence.
+        installed = artifact_status("tlimmuno2")
+        if installed.status == "ready":
+            candidate = installed.path
     if not candidate:
         raise FileNotFoundError(
             "TLimmuno2 not found. Set TLIMMUNO2_HOME or pass tlimmuno2_home= "
