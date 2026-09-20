@@ -53,6 +53,7 @@ jobs:
             tests/test_netchop_parse.py \
             tests/test_process_helpers.py \
             tests/test_iedb_transport.py \
+            tests/test_require_all.py \
             tests/test_peptiverse.py \
             tests/test_plifepred2.py \
             tests/test_cleavage.py \
@@ -217,7 +218,7 @@ jobs:
           TULIP_HOME: ${{ github.workspace }}/TULIP-TCR
           TULIP_PYTHON: ${{ github.workspace }}/tulip-env/bin/python
         run: |
-          python -m pytest tests/test_tulip.py -ra
+          python -m pytest tests/test_tulip.py --require-all -ra
 
   integration-caphla:
     # Public MIT-licensed code/weights, fetched through mhctools itself. This
@@ -251,7 +252,7 @@ jobs:
         run: mhctools fetch caphla
 
       - name: Run CapHLA official regression
-        run: python -m pytest tests/test_caphla.py -ra
+        run: python -m pytest tests/test_caphla.py --require-all -ra
 
   integration-mixtcrpred:
     # Upstream code is academic/non-commercial and is fetched directly after
@@ -291,4 +292,47 @@ jobs:
             --model A0201_NLVPMVATV
 
       - name: Run MixTCRpred catalog, download, and inference regression
-        run: python -m pytest tests/test_mixtcrpred.py -ra
+        run: python -m pytest tests/test_mixtcrpred.py --require-all -ra
+
+  integration-optional:
+    if: github.repository == 'openvax/mhctools'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - group: half-life
+            tests: tests/test_peptiverse.py tests/test_plifepred2.py
+          - group: gfeller
+            tests: tests/test_mixmhcpred.py tests/test_mixmhc2pred2.py tests/test_prime.py
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install test dependencies
+        run: |
+          python -m pip install -e ".[dev]"
+          sudo apt-get update
+          sudo apt-get install -y mafft build-essential
+
+      - name: Cache pinned half-life snapshots
+        if: matrix.group == 'half-life'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/huggingface
+            env/test-backends/PeptiVerse
+          key: half-life-${{ runner.os }}-${{ hashFiles('mhctools/peptiverse.py') }}
+
+      - name: Provision upstream models and isolated runtimes
+        run: python scripts/setup_test_backends.py ${{ matrix.group }} --python python --accept-license
+
+      - name: Run real-model regressions without skips
+        run: |
+          source env/test-backends/activate.sh
+          python -m pytest ${{ matrix.tests }} --require-all -ra

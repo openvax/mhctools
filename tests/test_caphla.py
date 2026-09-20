@@ -209,7 +209,10 @@ def test_reproduces_official_el_and_ba_fixture():
     results = predictor.predict_pairs(inputs[0], inputs[1])
     presentation = [result.presentation.score for result in results]
     affinity = [result.affinity.score for result in results]
+    # The wrapper and upstream CPU functions agree exactly, but float32
+    # kernels differ from the published CSV by up to 3.9e-7 on Apple Silicon.
+    # Keep an absolute half-part-per-million bound on these 0-1 scores.
     assert presentation == pytest.approx(
-        expected["presentation_score"].tolist(), abs=3e-7)
+        expected["presentation_score"].tolist(), abs=5e-7)
     assert affinity == pytest.approx(
-        expected["affinity_score"].tolist(), abs=3e-7)
+        expected["affinity_score"].tolist(), abs=5e-7)

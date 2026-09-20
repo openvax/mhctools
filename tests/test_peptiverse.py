@@ -38,6 +38,19 @@ from mhctools.peptiverse import (
 from mhctools.pred import VALUE_BEST_DIRECTIONS, best_direction
 
 
+@pytest.fixture(autouse=True)
+def peptiverse_environment(monkeypatch):
+    """Keep synthetic snapshots independent of the user's real ESM install."""
+    configured = {}
+    for argument, variable in (
+            ("peptiverse_home", "PEPTIVERSE_HOME"),
+            ("peptiverse_python", "PEPTIVERSE_PYTHON"),
+            ("peptiverse_esm_home", "PEPTIVERSE_ESM_HOME")):
+        configured[argument] = os.environ.get(variable)
+        monkeypatch.delenv(variable, raising=False)
+    return configured
+
+
 # Sidecar output for three peptides, in the shape peptiverse_sidecar.py writes.
 _OUTPUT = (
     "__mhctools_id,peptide,hours,emb_tag,uncertainty,uncertainty_type\n"
@@ -506,8 +519,8 @@ requires_peptiverse = pytest.mark.skipif(
 
 
 @requires_peptiverse
-def test_end_to_end_returns_hours():
-    predictor = PeptiVerse(device="cpu")
+def test_end_to_end_returns_hours(peptiverse_environment):
+    predictor = PeptiVerse(device="cpu", **peptiverse_environment)
     peptides = ["SIINFEKL", "KLGGALQAK"]
     results = predictor.predict(peptides)
     assert len(results) == len(peptides)
@@ -526,29 +539,29 @@ def test_end_to_end_returns_hours():
 
 
 @requires_peptiverse
-def test_end_to_end_is_deterministic():
-    predictor = PeptiVerse(device="cpu")
+def test_end_to_end_is_deterministic(peptiverse_environment):
+    predictor = PeptiVerse(device="cpu", **peptiverse_environment)
     first = predictor.predict(["SIINFEKL"])[0].preds[0].value
     second = predictor.predict(["SIINFEKL"])[0].preds[0].value
     assert first == second
 
 
 @requires_peptiverse
-def test_end_to_end_dataframe_has_the_standard_columns():
+def test_end_to_end_dataframe_has_the_standard_columns(peptiverse_environment):
     from mhctools.pred import COLUMNS
-    predictor = PeptiVerse(device="cpu")
+    predictor = PeptiVerse(device="cpu", **peptiverse_environment)
     frame = predictor.predict_dataframe(["SIINFEKL"])
     assert list(frame.columns) == list(COLUMNS)
     assert frame["kind"].tolist() == [Kind.peptide_half_life]
 
 
 @requires_peptiverse
-def test_end_to_end_uncertainty_stays_out_of_the_prediction():
+def test_end_to_end_uncertainty_stays_out_of_the_prediction(peptiverse_environment):
     # Upstream's half-life conformal bundle references a class defined in its
     # training script's __main__, so it cannot be unpickled at inference time.
     # Whatever upstream reports must stay in last_qc, never in a field that
     # would read as a calibrated bound on the hours estimate.
-    predictor = PeptiVerse(device="cpu", uncertainty=True)
+    predictor = PeptiVerse(device="cpu", uncertainty=True, **peptiverse_environment)
     pred = predictor.predict(["SIINFEKL"])[0].preds[0]
     assert pred.percentile_rank is None
     assert pred.value == pred.score

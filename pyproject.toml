@@ -40,6 +40,8 @@ pepsickle = [
 ]
 mixmhcpred = [
   # Runtime packages used by the separately licensed upstream v3 checkout.
+  # Upstream uses read_csv(delim_whitespace=...), removed in pandas 3.
+  "pandas<3",
   "scipy",
   "logomaker",
   "matplotlib",

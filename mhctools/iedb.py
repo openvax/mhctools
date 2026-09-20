@@ -290,7 +290,7 @@ class IedbBasePredictor(BasePredictor):
 
         return BindingPredictionCollection(binding_predictions)
 
-IEDB_MHC_CLASS_I_URL = "http://tools-cluster-interface.iedb.org/tools_api/mhci/"
+IEDB_MHC_CLASS_I_URL = "https://tools-cluster-interface.iedb.org/tools_api/mhci/"
 
 class IedbNetMHCcons(IedbBasePredictor):
     def __init__(
@@ -356,7 +356,7 @@ class IedbSMM_PMBEC(IedbBasePredictor):
             prediction_method="smmpmbec",
             url=IEDB_MHC_CLASS_I_URL)
 
-IEDB_MHC_CLASS_II_URL = "http://tools-cluster-interface.iedb.org/tools_api/mhcii/"
+IEDB_MHC_CLASS_II_URL = "https://tools-cluster-interface.iedb.org/tools_api/mhcii/"
 
 class IedbNetMHCIIpan(IedbBasePredictor):
     mhc_class = "II"
