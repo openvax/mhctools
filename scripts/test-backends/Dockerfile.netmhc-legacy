@@ -1,0 +1,11 @@
+# Runtime only: the user's licensed NetMHC bundle is mounted at execution time.
+FROM python:2.7.18-slim-buster@sha256:6c1ffdff499e29ea663e6e67c9b6b9a3b401d554d2c9f061f9a45344e3992363
+
+RUN printf 'deb http://archive.debian.org/debian buster main\n' > /etc/apt/sources.list \
+    && apt-get -o Acquire::Check-Valid-Until=false update \
+    && apt-get install -y --no-install-recommends tcsh gawk perl \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV NETMHC_BUNDLE_HOME=/netmhc-bundle
+ENV NETMHC_BUNDLE_TMPDIR=/tmp
+ENV PATH=/netmhc-bundle/bin:$PATH

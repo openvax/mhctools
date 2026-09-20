@@ -1,5 +1,7 @@
 import mhctools
-from .arch import apple_silicon
+import pytest
+
+from mhctools.optional_backend import probe_executable
 
 mhc1_predictor_classes = [
     mhctools.NetMHCpan,
@@ -7,25 +9,17 @@ mhc1_predictor_classes = [
     mhctools.NetMHC4
 ]
 
-# for now excluding because of 403 errors
-mhc1_iedb_predictors = [
-    mhctools.IedbNetMHCcons,
-    mhctools.IedbNetMHCpan,
-    mhctools.IedbSMM,
-    mhctools.IedbSMM_PMBEC,
-]
-
-if not apple_silicon: 
-    mhc1_predictor_classes += [
-        mhctools.NetMHC3,
-        mhctools.NetMHCcons,
-    ]
+# Availability, not host architecture, determines whether these integrations
+# can run: the test runtime supports the legacy Linux tools on Apple Silicon.
+netmhc3 = probe_executable("netMHC-3.4", args=("-h",))
+netmhccons = probe_executable("netMHCcons", args=("-h",))
+for predictor, capabilities in (
+        (mhctools.NetMHC3, (netmhc3,)),
+        (mhctools.NetMHCcons, (netmhc3, netmhccons))):
+    reasons = "; ".join(c.reason for c in capabilities if not c.runnable)
+    mhc1_predictor_classes.append(pytest.param(
+        predictor, marks=pytest.mark.skipif(bool(reasons), reason=reasons)))
 
 mhc2_predictor_classes = [
     mhctools.NetMHCIIpan,
-]
-
-# for now excluding because of 403 errors
-mhc2_iedb_predictors = [
-    mhctools.IedbNetMHCIIpan,
 ]

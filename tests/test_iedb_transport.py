@@ -25,6 +25,8 @@ def test_public_predictors_forward_timeout_and_close_response(
 
     def open_response(request, timeout):
         assert request.get_method() == "POST"
+        assert request.full_url.startswith(
+            "https://tools-cluster-interface.iedb.org/tools_api/")
         timeouts.append(timeout)
         handle = io.BytesIO(RESPONSE)
         handles.append(handle)

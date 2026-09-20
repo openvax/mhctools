@@ -7,6 +7,8 @@
 
 Python interface to MHC binding, presentation, immunogenicity, and antigen processing predictors.
 
+For development and a complete run without skipped tests, see [testing](docs/testing.md).
+
 ## Installation
 
 ```sh
