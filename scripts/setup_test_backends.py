@@ -132,6 +132,7 @@ def gfeller(root, python, config):
         runtime_tree = root / "PRIME-linux"
         library = runtime_tree / "lib"
         library.mkdir(parents=True, exist_ok=True)
+        (runtime_tree / "temp").mkdir(exist_ok=True)
         shutil.copy2(prime / "PRIME", runtime_tree / "PRIME")
         for asset in (prime / "lib").iterdir():
             destination = library / asset.name
