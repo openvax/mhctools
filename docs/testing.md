@@ -69,12 +69,15 @@ Set `MHCTOOLS_TEST_ENV=/dev/null` to run without this configuration.
 ## Local SMM and SMM-PMBEC
 
 The `smm` setup group downloads the official [IEDB MHC-I 3.1.7 bundle](https://downloads.iedb.org/tools/mhci/3.1.7/README),
-verifies its pinned SHA-256, and installs its Python code, allele metadata,
+verifies its pinned SHA-256 (including cache hits), and installs its Python code, allele metadata,
 and model/percentile data. It does not install or execute the bundled DTU
 binaries. SMM 1.0 and SMM-PMBEC 1.0 run with the current Python interpreter,
 including on Apple Silicon; no extra Python dependencies are needed.
 Review the archive's `LIAI_license.txt` (Non-Profit Open Software License 3.0)
 before accepting the license. Upstream code and models stay outside the package.
+Setup requires `curl`; cold downloads use bounded transient-error retries and
+are promoted from a temporary file only after checksum verification. CI caches
+the immutable archive, while model inference needs no network access.
 
 ```sh
 python scripts/setup_test_backends.py smm --accept-license
