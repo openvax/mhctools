@@ -1,0 +1,389 @@
+{
+  "captures": [
+    {
+      "alleles": [
+        "HLA-A*01:01",
+        "HLA-B*08:01"
+      ],
+      "command": [
+        "netMHCpan-4.1",
+        "-f",
+        "{inputs}/class_i.fasta",
+        "-l",
+        "9,10",
+        "-a",
+        "HLA-A01:01,HLA-B08:01",
+        "-BA"
+      ],
+      "executable_sha256": "121ff43af501de19c3c00fbfe3ac217b8761fcd1306954e89ba481963d91546e",
+      "installations": {
+        "netMHCpan-4.1": {
+          "bytes": 114042985,
+          "files": 8441,
+          "sha256": "02cf699234afd202ab995dbf3dabbdd72dc465635a34180a993514b6d77a185b"
+        }
+      },
+      "name": "netmhcpan",
+      "native_alleles": [],
+      "panel": "class_i",
+      "raw": "netmhcpan.stdout",
+      "runtime": null
+    },
+    {
+      "alleles": [
+        "HLA-DRB1*03:01",
+        "HLA-DRB1*08:01"
+      ],
+      "command": [
+        "netMHCIIpan-4.3",
+        "-f",
+        "{inputs}/class_ii.fasta",
+        "-length",
+        "15",
+        "-a",
+        "DRB1_0301,DRB1_0801",
+        "-BA"
+      ],
+      "executable_sha256": "97baa799ea48667a9fd8feb2c1e0650c419648e0959f3e0002a43a30e149047a",
+      "installations": {
+        "netMHCIIpan-4.3": {
+          "bytes": 222353462,
+          "files": 9002,
+          "sha256": "fbdc5835497705a8d3b7dfe0d477f4dff300eb3fd1bba215ee08f215d1ff5f80"
+        }
+      },
+      "name": "netmhciipan",
+      "native_alleles": [],
+      "panel": "class_ii",
+      "raw": "netmhciipan.stdout",
+      "runtime": null
+    },
+    {
+      "alleles": [
+        "HLA-A*01:01"
+      ],
+      "command": [
+        "netMHCcons",
+        "-f",
+        "{inputs}/cons_9mer.fasta",
+        "-length",
+        "9",
+        "-a",
+        "HLA-A01:01"
+      ],
+      "executable_sha256": "b3ef85c2fd2fc1ab4682cb458da3899ae30fed860ba0f85118f423a810facecf",
+      "installations": {
+        "netMHC-3.4": {
+          "bytes": 179512716,
+          "files": 2699,
+          "sha256": "203a9bbbba8c0ac437f03e82b598d7ee070d2620d2578a8a45259a5268316a31"
+        },
+        "netMHCcons-1.1": {
+          "bytes": 7415957,
+          "files": 5080,
+          "sha256": "486f26b9b4afaa3476f7e3227aae6de90ac087f359a571ed815761e57008734a"
+        },
+        "netMHCpan-2.8": {
+          "bytes": 39477777,
+          "files": 3746,
+          "sha256": "5e34ea9d15adccedb69dfb18e52800e384f5e2d618fb600b8427b90c3a253d71"
+        },
+        "pickpocket-1.1": {
+          "bytes": 1598411,
+          "files": 144,
+          "sha256": "ec52d357a6f1c2402496a7b2a1a023bf53eaf6a66d9e7a8e612a47f981ba6c3e"
+        }
+      },
+      "name": "netmhccons-a0101",
+      "native_alleles": [],
+      "panel": "cons_9mer",
+      "raw": "netmhccons-a0101.stdout",
+      "runtime": {
+        "image": "mhctools-test-netmhc-legacy:1",
+        "image_id": "sha256:305827215f3867e5eb3b984d797e77beb3d96ad85d208dfeb8db3474396b4299"
+      }
+    },
+    {
+      "alleles": [
+        "HLA-B*08:01"
+      ],
+      "command": [
+        "netMHCcons",
+        "-f",
+        "{inputs}/cons_9mer.fasta",
+        "-length",
+        "9",
+        "-a",
+        "HLA-B08:01"
+      ],
+      "executable_sha256": "b3ef85c2fd2fc1ab4682cb458da3899ae30fed860ba0f85118f423a810facecf",
+      "installations": {
+        "netMHC-3.4": {
+          "bytes": 179512716,
+          "files": 2699,
+          "sha256": "203a9bbbba8c0ac437f03e82b598d7ee070d2620d2578a8a45259a5268316a31"
+        },
+        "netMHCcons-1.1": {
+          "bytes": 7415957,
+          "files": 5080,
+          "sha256": "486f26b9b4afaa3476f7e3227aae6de90ac087f359a571ed815761e57008734a"
+        },
+        "netMHCpan-2.8": {
+          "bytes": 39477777,
+          "files": 3746,
+          "sha256": "5e34ea9d15adccedb69dfb18e52800e384f5e2d618fb600b8427b90c3a253d71"
+        },
+        "pickpocket-1.1": {
+          "bytes": 1598411,
+          "files": 144,
+          "sha256": "ec52d357a6f1c2402496a7b2a1a023bf53eaf6a66d9e7a8e612a47f981ba6c3e"
+        }
+      },
+      "name": "netmhccons-b0801",
+      "native_alleles": [],
+      "panel": "cons_9mer",
+      "raw": "netmhccons-b0801.stdout",
+      "runtime": {
+        "image": "mhctools-test-netmhc-legacy:1",
+        "image_id": "sha256:305827215f3867e5eb3b984d797e77beb3d96ad85d208dfeb8db3474396b4299"
+      }
+    },
+    {
+      "alleles": [
+        "HLA-A*01:01",
+        "HLA-B*08:01"
+      ],
+      "command": [
+        "/Users/iskander/code/mhctools/env/test-backends/MixMHCpred/mhctools-test-launcher",
+        "-i",
+        "{inputs}/class_i.txt",
+        "-o",
+        "{outputs}/mixmhcpred.tsv",
+        "-a",
+        "HLA-A*01:01,HLA-B*08:01"
+      ],
+      "executable_sha256": "e8631aa1028a3df335fbb0a67ab9a140ff6b07463ff2067464990929dd9d0afb",
+      "installations": {
+        "MixMHCpred": {
+          "bytes": 112604736,
+          "files": 2370,
+          "sha256": "bcc1a7175017f03797ab92e01a2b852283e7c386a2f3d1a0e3eafb1511180eca"
+        }
+      },
+      "name": "mixmhcpred",
+      "native_alleles": [],
+      "panel": "class_i",
+      "raw": "mixmhcpred.tsv",
+      "runtime": null
+    },
+    {
+      "alleles": [
+        "HLA-A*01:01",
+        "HLA-B*08:01"
+      ],
+      "command": [
+        "/Users/iskander/code/mhctools/env/test-backends/PRIME/PRIME",
+        "-i",
+        "{inputs}/class_i.txt",
+        "-o",
+        "{outputs}/prime.tsv",
+        "-a",
+        "HLA-A*01:01,HLA-B*08:01",
+        "-mix",
+        "/Users/iskander/code/mhctools/env/test-backends/MixMHCpred/mhctools-test-launcher"
+      ],
+      "executable_sha256": "9df8216b3ece91f04a61e232ba2efe8e0c0fb14cd66d38df2d8a4ba2fca94ae0",
+      "installations": {
+        "MixMHCpred": {
+          "bytes": 112604736,
+          "files": 2370,
+          "sha256": "bcc1a7175017f03797ab92e01a2b852283e7c386a2f3d1a0e3eafb1511180eca"
+        },
+        "PRIME": {
+          "bytes": 6889380,
+          "files": 5139,
+          "sha256": "4bba28ac40457d41861e3f4f426e030f30e3d82dd227db29f30c6ac437f45d1a"
+        }
+      },
+      "name": "prime",
+      "native_alleles": [],
+      "panel": "class_i",
+      "raw": "prime.tsv",
+      "runtime": null
+    },
+    {
+      "alleles": [
+        "HLA-DRB1*03:01",
+        "HLA-DRB1*08:01"
+      ],
+      "command": [
+        "/Users/iskander/code/mhctools/env/test-backends/MixMHC2pred/MixMHC2pred",
+        "-i",
+        "{inputs}/class_ii.txt",
+        "-o",
+        "{outputs}/mixmhc2pred.tsv",
+        "-a",
+        "DRB1_03_01",
+        "DRB1_08_01",
+        "--no_context",
+        "--extra_out"
+      ],
+      "executable_sha256": "05b29eb616f7348cf52ae1ed6094eeaa481e70ef70778dc5c425851bef635382",
+      "installations": {
+        "MixMHC2pred": {
+          "bytes": 66558898,
+          "files": 6646,
+          "sha256": "cac1a93683b00091fe4443f71fa4793fac625191bd34f37ea2ec31f0a6a9808f"
+        }
+      },
+      "name": "mixmhc2pred",
+      "native_alleles": [
+        "DRB1_03_01",
+        "DRB1_08_01"
+      ],
+      "panel": "class_ii",
+      "raw": "mixmhc2pred.tsv",
+      "runtime": null
+    },
+    {
+      "alleles": [],
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "--pull",
+        "never",
+        "--platform",
+        "linux/386",
+        "--network",
+        "none",
+        "--read-only",
+        "--cap-drop",
+        "ALL",
+        "--security-opt",
+        "no-new-privileges",
+        "--tmpfs",
+        "/tmp:rw,nosuid,size=64m",
+        "-e",
+        "NETCHOP=/netchop",
+        "-e",
+        "TMPDIR=/tmp",
+        "-v",
+        "/Users/iskander/code/netmhc-bundle/netchop-3.1:/netchop:ro",
+        "-v",
+        "{inputs}:/work:ro",
+        "i386/debian@sha256:75efd55b326373cf69989912388c0d50c5390638af7378d2fedc3aeb9d100e46",
+        "/netchop/bin/netChop",
+        "-v",
+        "0",
+        "/work/cleavage.fasta"
+      ],
+      "executable_sha256": "b45bbd4e5deb0bdcb767111a013c99b2647db7788d0e5fccd89c4629662e1a0e",
+      "installations": {
+        "NetChop-3.1": {
+          "bytes": 3352743,
+          "files": 39,
+          "sha256": "8e05d9a5c0d926901c792cb32f2c33583e4628717164b5f7431a61bb55aea8a4"
+        }
+      },
+      "name": "netchop-cterm",
+      "native_alleles": [],
+      "panel": "cleavage",
+      "raw": "netchop-cterm.stdout",
+      "runtime": {
+        "image": "i386/debian@sha256:75efd55b326373cf69989912388c0d50c5390638af7378d2fedc3aeb9d100e46",
+        "platform": "linux/386"
+      }
+    },
+    {
+      "alleles": [],
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "--pull",
+        "never",
+        "--platform",
+        "linux/386",
+        "--network",
+        "none",
+        "--read-only",
+        "--cap-drop",
+        "ALL",
+        "--security-opt",
+        "no-new-privileges",
+        "--tmpfs",
+        "/tmp:rw,nosuid,size=64m",
+        "-e",
+        "NETCHOP=/netchop",
+        "-e",
+        "TMPDIR=/tmp",
+        "-v",
+        "/Users/iskander/code/netmhc-bundle/netchop-3.1:/netchop:ro",
+        "-v",
+        "{inputs}:/work:ro",
+        "i386/debian@sha256:75efd55b326373cf69989912388c0d50c5390638af7378d2fedc3aeb9d100e46",
+        "/netchop/bin/netChop",
+        "-v",
+        "1",
+        "/work/cleavage.fasta"
+      ],
+      "executable_sha256": "b45bbd4e5deb0bdcb767111a013c99b2647db7788d0e5fccd89c4629662e1a0e",
+      "installations": {
+        "NetChop-3.1": {
+          "bytes": 3352743,
+          "files": 39,
+          "sha256": "8e05d9a5c0d926901c792cb32f2c33583e4628717164b5f7431a61bb55aea8a4"
+        }
+      },
+      "name": "netchop-20s",
+      "native_alleles": [],
+      "panel": "cleavage",
+      "raw": "netchop-20s.stdout",
+      "runtime": {
+        "image": "i386/debian@sha256:75efd55b326373cf69989912388c0d50c5390638af7378d2fedc3aeb9d100e46",
+        "platform": "linux/386"
+      }
+    }
+  ],
+  "files": {
+    "mixmhc2pred.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "mixmhc2pred.stdout": "354c93dbf3c781a9c091e6898ad86802dbc18b8deff5a0bc366bd1aa857eee64",
+    "mixmhc2pred.tsv": "3b61ffd6f165d1893d111d13dc2a45feaec545a517c076fe5ba7f8b501fbf93b",
+    "mixmhcpred.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "mixmhcpred.stdout": "1a35d2b8b8bbb11105f40439295a53adae57f192438d4a08586be20b501f5a37",
+    "mixmhcpred.tsv": "0980a3a028b71070a2ce9830a8b414b9452cfd7e4323426f0ff4e93746921c24",
+    "netchop-20s.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "netchop-20s.stdout": "f81d67b40d2af28dc94a5238b6329db78cb50981078fe686bc745e39c0ab3cb9",
+    "netchop-cterm.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "netchop-cterm.stdout": "7ec28a8cca3a0c5faed1d76473150534f2cf5b78871fc78d05a58aca02775f83",
+    "netmhccons-a0101.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "netmhccons-a0101.stdout": "f7a91d7cc7f6fa0b11a587cfc57f8461e68448743a6f08523e79464174a669e2",
+    "netmhccons-b0801.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "netmhccons-b0801.stdout": "0462e3befe375655bf56674523fba482248e0d12abbaef9a6ea82eafcfa07a91",
+    "netmhciipan.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "netmhciipan.stdout": "bd20720a3183096de9395e0c4878510f7538605f7d14c6e03e7db99d6929bf7a",
+    "netmhcpan.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "netmhcpan.stdout": "bb934285914c436f48d6f5a4813bf7e352644d1e264099c5aec7134203f36387",
+    "prime.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "prime.stdout": "10276abe4e9929ebdb9e8d3c0e56350b99e720981779bd159635724b8f0a1b02",
+    "prime.tsv": "d6f132fcd9806dad3eb3c4cd248b18f428cce8451fdbeb1d74c125d12d7c76c1"
+  },
+  "inputs": {
+    "class_i.fasta": "09983b849b70c0ce6416811dfa7d1089e1306a5d1cb7644925023a82183b36d5",
+    "class_i.txt": "7533f21f70d01f91f4fe1cbedcffc35bbd70079a81aecf0b206fe21504243a9d",
+    "class_ii.fasta": "b7b1a3def1a87bc1e38b4b5ab7c54ac60ebb676c28402bb0c0d2364d7d40783a",
+    "class_ii.txt": "ee543a80e17cd38713262ea3c98b00066f02502383d1277ee3dee100a25ddf4d",
+    "cleavage.fasta": "ee54fb69ee635102be46b9cfccf1659cacf4d98f99fd85f874f350afead9e74a",
+    "cleavage.txt": "336681c76efd7ad0a9f4148609f6b1eddb0d862fc5cc665e884093b51329fb93",
+    "cons_9mer.fasta": "fa95445373accc1ffcabccd2b91399318699eaf37a8e46e9aa200228a2903bec",
+    "cons_9mer.txt": "1deca0c62f4ded589cc3b81c5a6cc716fcb0e8123dc7fbe990d7d8c91c278c8b",
+    "panels.json": "b0b3a6519f25c143431a66056a896fdee6fd4d0f2f2db2cc20e80b6a14cdb0c1",
+    "source.json": "89573e2bf726f6d8f2a5c94614ea53f1a936458ab0abc8ee107c21d3dbcb2612"
+  },
+  "mhctools_version": "3.44.8",
+  "platform": "macOS-26.5-arm64-arm-64bit",
+  "python": "3.12.6",
+  "recorded_at": "2026-09-21T13:39:59.358955+00:00",
+  "schema_version": 1
+}

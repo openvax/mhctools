@@ -1,0 +1,3986 @@
+{
+  "curation_report": [
+    {
+      "action": "edit",
+      "changes": [
+        {
+          "differing": [],
+          "match": "bam_file=TL-24-5GQLV9WSXQ_T.sorted.bam",
+          "records": 0,
+          "source": "vafs",
+          "state": "missing"
+        },
+        {
+          "differing": [],
+          "match": "bam_file=TL-24-5GQLV9WSXQ_T.sorted.bam, variant_id=PDZRN4-chr12-41572809",
+          "records": 0,
+          "source": "vafs",
+          "state": "missing"
+        }
+      ],
+      "evaluation": "stale",
+      "evidence": [
+        "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/vendor/tempus/TL-24-5GQLV9WSXQ/DNA/TL-24-5GQLV9WSXQ_T.sorted.bam (header: AS:human_g1k_v37)",
+        "https://gitlab.com/slowkow/osteosarc.com/-/raw/main/scripts/variants/run_pileup-json.sh",
+        "https://gitlab.com/slowkow/osteosarc.com/-/raw/main/crates/pileup-json/src/main.rs (resolve_chrom only toggles 'chr')"
+      ],
+      "id": "tempus-grch37-counts",
+      "status": "stale",
+      "summary": "The website counted reads in the GRCh37 (b37) Tempus WES BAM TL-24-5GQLV9WSXQ at GRCh38 coordinates, so every count for this BAM describes an unrelated locus. PDZRN4's 7/7 (100% VAF) are reference reads elsewhere; at the lifted position depth is 0. Recounted at lifted positions, six empty sites have coverage (e.g. KMT2D 0/1851, AKT2 2/1217). Counts are cleared; recount from the BAM on GRCh37 coordinates if needed.",
+      "verified": "2026-09-18"
+    },
+    {
+      "action": "edit",
+      "changes": [
+        {
+          "differing": [
+            "name"
+          ],
+          "match": "url=rna-seq/reprocessed/BG009368/BG009368.Aligned.sortedByCoord.out.md.bam",
+          "records": 1,
+          "source": "bams",
+          "state": "already_correct"
+        }
+      ],
+      "evaluation": "fixed_upstream",
+      "evidence": [
+        "https://gitlab.com/slowkow/osteosarc.com/-/raw/main/scripts/data/bam-metadata-consolidated.tsv (notes column)",
+        "https://osteosarc.com/bams/bams.json"
+      ],
+      "id": "viewer-label-BG009368",
+      "status": "fixed_upstream",
+      "summary": "The BAM viewer still labels BG009368 'T0 BostonGene Tumor RNA 2022-12 (BG009368 reprocessed)'; the consolidated metadata deliberately re-assigned it (oncoanalyser T1 RNA was built from its 2024-06-11 FASTQ; 123/133 variants VAF-match).",
+      "verified": "2026-09-18"
+    },
+    {
+      "action": "edit",
+      "changes": [
+        {
+          "differing": [
+            "name"
+          ],
+          "match": "url=rna-seq/reprocessed/SARC0277/SARC0277.Aligned.sortedByCoord.out.md.bam",
+          "records": 1,
+          "source": "bams",
+          "state": "already_correct"
+        }
+      ],
+      "evaluation": "fixed_upstream",
+      "evidence": [
+        "https://gitlab.com/slowkow/osteosarc.com/-/raw/main/scripts/data/bam-metadata-consolidated.tsv (notes column)",
+        "https://osteosarc.com/bams/bams.json"
+      ],
+      "id": "viewer-label-SARC0277",
+      "status": "fixed_upstream",
+      "summary": "The BAM viewer still labels SARC0277 'T0 BostonGene Tumor RNA 2022-12 (SARC0277 reprocessed)'; the consolidated metadata deliberately re-assigned it (oncoanalyser T2 RNA was built from its 2025-01-28 FASTQ; 114/120 variants VAF-match).",
+      "verified": "2026-09-18"
+    },
+    {
+      "action": "edit",
+      "changes": [
+        {
+          "differing": [],
+          "match": "s3_path=kamil/oncoanalyser/IPISRC044_T1_ucla/alignments/rna/IPISRC044_tumor_T1_ucla_rna.md.bam",
+          "records": 1,
+          "source": "bam_metadata",
+          "state": "pending"
+        },
+        {
+          "differing": [],
+          "match": "url=kamil/oncoanalyser/IPISRC044_T1_ucla/alignments/rna/IPISRC044_tumor_T1_ucla_rna.md.bam",
+          "records": 1,
+          "source": "bams",
+          "state": "pending"
+        }
+      ],
+      "evaluation": "applied",
+      "evidence": [
+        "https://gitlab.com/slowkow/osteosarc.com/-/raw/main/scripts/data/bam-metadata-consolidated.tsv",
+        "https://osteosarc.com/variants/variant_vafs_long.tsv",
+        "https://osteosarc.com/bams/bams.json"
+      ],
+      "id": "provider-IPISRC044-T1-rna",
+      "status": "applied",
+      "summary": "The oncoanalyser T1 RNA BAM was built from BostonGene's BG009368 FASTQ (per the consolidated metadata's own note), but its consolidated row and viewer label say UCLA. The VAF export already says BostonGene.",
+      "verified": "2026-09-18"
+    },
+    {
+      "action": "edit",
+      "changes": [
+        {
+          "differing": [],
+          "match": "id=TMRO-chr9-97910412",
+          "records": 1,
+          "source": "variant_index",
+          "state": "pending"
+        },
+        {
+          "differing": [],
+          "match": "id=TMRO-chr9-97910412",
+          "records": 1,
+          "source": "source_variants",
+          "state": "pending"
+        },
+        {
+          "differing": [],
+          "match": "variant_id=TMRO-chr9-97910412",
+          "records": 37,
+          "source": "vafs",
+          "state": "pending"
+        }
+      ],
+      "evaluation": "applied",
+      "evidence": [
+        "https://www.genenames.org/data/gene-symbol-report/#!/symbol/TRMO",
+        "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/neoantigen_prediction/pvactools/2025.04.27.sg.curated.neoantigen.predictions/MHC_Class_I/SG.WGS_SG.WGS.UCLA.2025.01.tumor.tsv"
+      ],
+      "id": "gene-symbol-TRMO",
+      "status": "applied",
+      "summary": "Catalogue gene symbol TMRO is a typo for TRMO (HGNC, and the symbol pVACseq reports at the identical chr9:97910412 C>T allele). Gene-symbol joins otherwise miss it.",
+      "verified": "2026-09-18"
+    },
+    {
+      "action": "edit",
+      "changes": [
+        {
+          "differing": [],
+          "match": "id=CDC40-chr6-110228838",
+          "records": 1,
+          "source": "source_variants",
+          "state": "pending"
+        },
+        {
+          "differing": [],
+          "match": "id=PIP5K1A-chr1-151242178",
+          "records": 1,
+          "source": "source_variants",
+          "state": "pending"
+        },
+        {
+          "differing": [],
+          "match": "id=SMC5-chr9-70298024",
+          "records": 1,
+          "source": "source_variants",
+          "state": "pending"
+        },
+        {
+          "differing": [],
+          "match": "id=TECPR1-chr7-98241127",
+          "records": 1,
+          "source": "source_variants",
+          "state": "pending"
+        }
+      ],
+      "evaluation": "applied",
+      "evidence": [
+        "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/neoantigen_prediction/pvactools/2025.04.27.sg.curated.neoantigen.predictions/MHC_Class_I/SG.WGS_SG.WGS.UCLA.2025.01.tumor.tsv"
+      ],
+      "id": "pvac-2025-detection",
+      "status": "applied",
+      "summary": "The pVACtools 2025 detection flag reflects only the 2025-04-25 run. The 2025-04-27 runs add exactly CDC40, PIP5K1A, SMC5 and TECPR1 at identical alleles, with hundreds of epitope rows each.",
+      "verified": "2026-09-18"
+    },
+    {
+      "action": "flag",
+      "changes": [
+        {
+          "differing": [],
+          "match": "key=neoantigen_prediction/pvactools/*/MHC_Class_I/*.filtered.tsv",
+          "records": 2,
+          "source": "bucket",
+          "state": "pending"
+        },
+        {
+          "differing": [],
+          "match": "key=neoantigen_prediction/pvactools/*/MHC_Class_II/*.filtered.tsv",
+          "records": 3,
+          "source": "bucket",
+          "state": "pending"
+        },
+        {
+          "differing": [],
+          "match": "key=neoantigen_prediction/pvactools/*/combined/*.filtered.tsv",
+          "records": 2,
+          "source": "bucket",
+          "state": "pending"
+        }
+      ],
+      "evaluation": "applied",
+      "evidence": [
+        "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/neoantigen_prediction/pvactools/"
+      ],
+      "id": "pvac-header-only-filtered-reports",
+      "status": "applied",
+      "summary": "Seven pVACseq filtered reports contain only a header (byte-identical across runs). An empty filtered report is not evidence that no epitope passed review.",
+      "verified": "2026-09-18"
+    },
+    {
+      "action": "flag",
+      "changes": [
+        {
+          "differing": [],
+          "match": "key=neoantigen_prediction/pvactools/*.tsv",
+          "records": 35,
+          "source": "bucket",
+          "state": "pending"
+        }
+      ],
+      "evaluation": "applied",
+      "evidence": [
+        "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/neoantigen_prediction/pvactools/"
+      ],
+      "id": "pvac-rna-fields-na",
+      "status": "applied",
+      "summary": "RNA depth, RNA VAF, gene and transcript expression are NA in every row of all 21 published pVACseq reports (131,209 rows) and in their input TSVs; RNA support was never supplied to pVACseq.",
+      "verified": "2026-09-18"
+    },
+    {
+      "action": "flag",
+      "changes": [
+        {
+          "differing": [],
+          "match": "key=neoantigen_prediction/pvactools/2025.04.27.sg.curated.neoantigen.predictions.MHCI.extended/*",
+          "records": 295,
+          "source": "bucket",
+          "state": "pending"
+        }
+      ],
+      "evaluation": "applied",
+      "evidence": [
+        "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/neoantigen_prediction/pvactools/2025.04.27.sg.curated.neoantigen.predictions.MHCI.extended/"
+      ],
+      "id": "pvac-extended-run-no-class-i",
+      "status": "applied",
+      "summary": "Despite its name, the MHCI.extended pVACtools run has no Class-I or combined final reports; only its Class-II reports exist.",
+      "verified": "2026-09-18"
+    },
+    {
+      "action": "edit",
+      "changes": [
+        {
+          "differing": [],
+          "match": "id=MUC3A-chr7-100953130",
+          "records": 1,
+          "source": "source_variants",
+          "state": "pending"
+        },
+        {
+          "differing": [],
+          "match": "id=MUC3A-chr7-100953130",
+          "records": 1,
+          "source": "variant_index",
+          "state": "pending"
+        },
+        {
+          "differing": [],
+          "match": "variant_id=MUC3A-chr7-100953130",
+          "records": 37,
+          "source": "vafs",
+          "state": "pending"
+        }
+      ],
+      "evaluation": "applied",
+      "evidence": [
+        "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/vendor/tempus/TL-24-ALMY2X4KMV/DNA/TL-24-ALMY2X4KMV.soma.pindel.vcf",
+        "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=nuccore&id=NC_000007.13&seq_start=100550167&seq_stop=100551367&rettype=fasta&retmode=text",
+        "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=nuccore&id=NC_000007.14&seq_start=100952527&seq_stop=100959238&rettype=fasta&retmode=text",
+        "https://hgdownload.soe.ucsc.edu/goldenPath/hg19/liftOver/hg19ToHg38.over.chain.gz"
+      ],
+      "id": "muc3a-grch38-placement",
+      "status": "applied",
+      "summary": "The Tempus GRCh37 102-base duplication matches the catalogue transcript annotation, but its anchor lies in a gap in the checked GRCh37-to-GRCh38 chain. No GRCh38 allele is established.",
+      "verified": "2026-09-20"
+    },
+    {
+      "action": "edit",
+      "changes": [
+        {
+          "differing": [],
+          "match": "id=CABLES1-chr18-23135500",
+          "records": 0,
+          "source": "source_variants",
+          "state": "missing"
+        },
+        {
+          "differing": [],
+          "match": "variant_id=CABLES1-chr18-23135500",
+          "records": 0,
+          "source": "vafs",
+          "state": "missing"
+        },
+        {
+          "differing": [],
+          "match": "id=CABLES1-chr18-23135500",
+          "records": 0,
+          "source": "variant_index",
+          "state": "missing"
+        }
+      ],
+      "evaluation": "stale",
+      "evidence": [
+        "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/vendor/tempus/TL-24-ALMY2X4KMV/DNA/TL-24-ALMY2X4KMV.soma.pindel.vcf",
+        "https://rest.ensembl.org/map/human/GRCh37/18:20715728..20715728:1/GRCh38"
+      ],
+      "id": "allele-CABLES1-chr18-23135500",
+      "status": "stale",
+      "summary": "The catalogue places this Tempus call at chr18:23135500 without a literal allele. The original Tempus TL-24-ALMY2X4KMV record (GRCh37 18:20715728) lifts to chr18:23135764, where its REF matches GRCh38; indel normalization cannot bridge the gap. The website position came from a wrong transcript offset. Counts measured at the old position are cleared.",
+      "verified": "2026-09-18"
+    },
+    {
+      "action": "edit",
+      "changes": [
+        {
+          "differing": [],
+          "match": "id=CCDC40-chr17-80058951",
+          "records": 0,
+          "source": "source_variants",
+          "state": "missing"
+        },
+        {
+          "differing": [],
+          "match": "variant_id=CCDC40-chr17-80058951",
+          "records": 0,
+          "source": "vafs",
+          "state": "missing"
+        },
+        {
+          "differing": [],
+          "match": "id=CCDC40-chr17-80058951",
+          "records": 0,
+          "source": "variant_index",
+          "state": "missing"
+        }
+      ],
+      "evaluation": "stale",
+      "evidence": [
+        "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/vendor/tempus/TL-24-ALMY2X4KMV/DNA/TL-24-ALMY2X4KMV.soma.pindel.vcf",
+        "https://rest.ensembl.org/map/human/GRCh37/17:78063947..78063947:1/GRCh38"
+      ],
+      "id": "allele-CCDC40-chr17-80058951",
+      "status": "stale",
+      "summary": "The catalogue places this Tempus call at chr17:80058951 without a literal allele. The original Tempus TL-24-ALMY2X4KMV record (GRCh37 17:78063947) lifts to chr17:80090148, where its REF matches GRCh38; indel normalization cannot bridge the gap. The website position came from a wrong transcript offset. Counts measured at the old position are cleared.",
+      "verified": "2026-09-18"
+    },
+    {
+      "action": "edit",
+      "changes": [
+        {
+          "differing": [],
+          "match": "id=DCHS2-chr4-154322488",
+          "records": 0,
+          "source": "source_variants",
+          "state": "missing"
+        },
+        {
+          "differing": [],
+          "match": "variant_id=DCHS2-chr4-154322488",
+          "records": 0,
+          "source": "vafs",
+          "state": "missing"
+        },
+        {
+          "differing": [],
+          "match": "id=DCHS2-chr4-154322488",
+          "records": 0,
+          "source": "variant_index",
+          "state": "missing"
+        }
+      ],
+      "evaluation": "stale",
+      "evidence": [
+        "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/vendor/tempus/TL-24-ALMY2X4KMV/DNA/TL-24-ALMY2X4KMV.soma.pindel.vcf",
+        "https://rest.ensembl.org/map/human/GRCh37/4:155244425..155244425:1/GRCh38"
+      ],
+      "id": "allele-DCHS2-chr4-154322488",
+      "status": "stale",
+      "summary": "The catalogue places this Tempus call at chr4:154322488 without a literal allele. The original Tempus TL-24-ALMY2X4KMV record (GRCh37 4:155244425) lifts to chr4:154323273, where its REF matches GRCh38; indel normalization cannot bridge the gap. The website position came from a wrong transcript offset. Counts measured at the old position are cleared.",
+      "verified": "2026-09-18"
+    },
+    {
+      "action": "edit",
+      "changes": [
+        {
+          "differing": [],
+          "match": "id=GAPVD1-chr9-125299105",
+          "records": 0,
+          "source": "source_variants",
+          "state": "missing"
+        },
+        {
+          "differing": [],
+          "match": "variant_id=GAPVD1-chr9-125299105",
+          "records": 0,
+          "source": "vafs",
+          "state": "missing"
+        },
+        {
+          "differing": [],
+          "match": "id=GAPVD1-chr9-125299105",
+          "records": 0,
+          "source": "variant_index",
+          "state": "missing"
+        }
+      ],
+      "evaluation": "stale",
+      "evidence": [
+        "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/vendor/tempus/TL-24-ALMY2X4KMV/DNA/TL-24-ALMY2X4KMV.soma.pindel.vcf",
+        "https://rest.ensembl.org/map/human/GRCh37/9:128064259..128064259:1/GRCh38"
+      ],
+      "id": "allele-GAPVD1-chr9-125299105",
+      "status": "stale",
+      "summary": "The catalogue places this Tempus call at chr9:125299105 without a literal allele. The original Tempus TL-24-ALMY2X4KMV record (GRCh37 9:128064259) lifts to chr9:125301980, where its REF matches GRCh38; indel normalization cannot bridge the gap. The website position came from a wrong transcript offset. Counts measured at the old position are cleared.",
+      "verified": "2026-09-18"
+    },
+    {
+      "action": "edit",
+      "changes": [
+        {
+          "differing": [],
+          "match": "id=GOLGA6L2-chr15-23441121",
+          "records": 0,
+          "source": "source_variants",
+          "state": "missing"
+        },
+        {
+          "differing": [],
+          "match": "variant_id=GOLGA6L2-chr15-23441121",
+          "records": 0,
+          "source": "vafs",
+          "state": "missing"
+        },
+        {
+          "differing": [],
+          "match": "id=GOLGA6L2-chr15-23441121",
+          "records": 0,
+          "source": "variant_index",
+          "state": "missing"
+        }
+      ],
+      "evaluation": "stale",
+      "evidence": [
+        "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/vendor/tempus/TL-24-ALMY2X4KMV/DNA/TL-24-ALMY2X4KMV.soma.pindel.vcf",
+        "https://rest.ensembl.org/map/human/GRCh37/15:23685344..23685344:1/GRCh38"
+      ],
+      "id": "allele-GOLGA6L2-chr15-23441121",
+      "status": "stale",
+      "summary": "The catalogue places this Tempus call at chr15:23441121 without a literal allele. The original Tempus TL-24-ALMY2X4KMV record (GRCh37 15:23685344) lifts to chr15:23440197, where its REF matches GRCh38; indel normalization cannot bridge the gap. The website position came from a wrong transcript offset. Counts measured at the old position are cleared.",
+      "verified": "2026-09-18"
+    },
+    {
+      "action": "edit",
+      "changes": [
+        {
+          "differing": [],
+          "match": "id=MAP2-chr2-209694768",
+          "records": 1,
+          "source": "source_variants",
+          "state": "pending"
+        },
+        {
+          "differing": [],
+          "match": "variant_id=MAP2-chr2-209694768",
+          "records": 37,
+          "source": "vafs",
+          "state": "pending"
+        }
+      ],
+      "evaluation": "applied",
+      "evidence": [
+        "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/vendor/tempus/TL-24-ALMY2X4KMV/DNA/TL-24-ALMY2X4KMV.soma.pindel.vcf",
+        "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/vendor/tempus/TL-24-ALMY2X4KMV/DNA/TL-24-ALMY2X4KMV.soma.freebayes.vcf",
+        "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/vendor/cegat/P116686_2_S000048/P116686_2_somatic.tsv"
+      ],
+      "id": "allele-MAP2-chr2-209694768",
+      "status": "applied",
+      "summary": "The curated 22-bp deletion (a JLF/mRNA vaccine target) is not the observed allele. Tempus (freebayes and pindel) and CeGaT describe one net -28 bp complex replacement, c.2599_2630delinsAGGG; the catalogue's own protein sequence (\u2026DSQLEDRAHCHHLF\u2026) translates from it, not from the 22-bp deletion. It is written here anchored at the same position. The vaccine peptide lies downstream in the shared frame and is unaffected.",
+      "verified": "2026-09-18"
+    },
+    {
+      "action": "flag",
+      "changes": [
+        {
+          "differing": [],
+          "match": "variant_id=MAP2-chr2-209694769",
+          "records": 37,
+          "source": "vafs",
+          "state": "pending"
+        },
+        {
+          "differing": [],
+          "match": "id=MAP2-chr2-209694772",
+          "records": 1,
+          "source": "variant_index",
+          "state": "pending"
+        },
+        {
+          "differing": [],
+          "match": "variant_id=MAP2-chr2-209694772",
+          "records": 37,
+          "source": "vafs",
+          "state": "pending"
+        }
+      ],
+      "evaluation": "applied",
+      "evidence": [
+        "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/vendor/tempus/TL-24-ALMY2X4KMV/DNA/TL-24-ALMY2X4KMV.soma.pindel.vcf",
+        "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/vendor/cegat/P116686_2_S000048/P116686_2_somatic.tsv"
+      ],
+      "id": "map2-split-representations",
+      "status": "applied",
+      "summary": "MAP2-chr2-209694769 (CT>AG, off-site) plus MAP2-chr2-209694772 (28-bp deletion) are pieces of the same complex event as MAP2-chr2-209694768; do not count them as independent variants.",
+      "verified": "2026-09-18"
+    },
+    {
+      "action": "edit",
+      "changes": [
+        {
+          "differing": [],
+          "match": "id=DCHS2-chr4-154322488",
+          "records": 0,
+          "source": "source_variants",
+          "state": "missing"
+        }
+      ],
+      "evaluation": "stale",
+      "evidence": [
+        "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/vendor/tempus/TL-24-ALMY2X4KMV/DNA/TL-24-ALMY2X4KMV.soma.pindel.vcf"
+      ],
+      "id": "transcript-DCHS2",
+      "status": "stale",
+      "summary": "DCHS2's RefSeq accession is missing two leading zeros and its version.",
+      "verified": "2026-09-18"
+    },
+    {
+      "action": "flag",
+      "changes": [
+        {
+          "differing": [],
+          "match": "id=FAM157A-p_W70_Q71ins_14",
+          "records": 1,
+          "source": "variant_index",
+          "state": "pending"
+        }
+      ],
+      "evaluation": "applied",
+      "evidence": [
+        "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/vendor/tempus/TL-24-ALMY2X4KMV/DNA/TL-24-ALMY2X4KMV.soma.pindel.vcf",
+        "https://www.ncbi.nlm.nih.gov/nuccore/NM_001145248.1",
+        "https://www.ncbi.nlm.nih.gov/gene/728262"
+      ],
+      "id": "fam157a-withdrawn-protein",
+      "status": "applied",
+      "summary": "The 14-residue insertion is annotated on NM_001145248.1, which NCBI has suppressed (transcript supported, protein not); FAM157A is now only lncRNA NR_146164.1. Tempus gives a literal allele (GRCh37 3:197880130 G>G+42, GRCh38 chr3:198153259) inside a low-complexity repeat. The genomic allele is supplied separately from this protein caveat.",
+      "verified": "2026-09-18"
+    },
+    {
+      "action": "edit",
+      "changes": [
+        {
+          "differing": [],
+          "match": "id=USH2A-chr1-215560752",
+          "records": 0,
+          "source": "source_variants",
+          "state": "missing"
+        },
+        {
+          "differing": [],
+          "match": "id=USH2A-chr1-215560752",
+          "records": 0,
+          "source": "variant_index",
+          "state": "missing"
+        },
+        {
+          "differing": [],
+          "match": "variant_id=USH2A-chr1-215560752",
+          "records": 0,
+          "source": "vafs",
+          "state": "missing"
+        },
+        {
+          "differing": [
+            "genomic_change_on_cdna",
+            "refseq_id"
+          ],
+          "match": "id=USH2A-chr1-215650752",
+          "records": 1,
+          "source": "source_variants",
+          "state": "changed"
+        }
+      ],
+      "evaluation": "stale",
+      "evidence": [
+        "https://gitlab.com/slowkow/osteosarc.com/-/raw/main/scripts/variants/source_data/SS%20neoantigen%20_%20mutations%20-%20Mutations.tsv"
+      ],
+      "id": "ush2a-transposed-duplicate",
+      "status": "stale",
+      "summary": "The positions differ by a digit transposition and both entries carry p.Cys4728Phe. Public Tempus evidence verifies chr1:215650752 C>A, but cannot establish the identity of the original Natera entry.",
+      "verified": "2026-09-20"
+    },
+    {
+      "action": "edit",
+      "changes": [
+        {
+          "differing": [],
+          "match": "id=FAM157A-p_W70_Q71ins_14",
+          "records": 1,
+          "source": "source_variants",
+          "state": "pending"
+        },
+        {
+          "differing": [],
+          "match": "id=FAM157A-p_W70_Q71ins_14",
+          "records": 1,
+          "source": "variant_index",
+          "state": "pending"
+        }
+      ],
+      "evaluation": "applied",
+      "evidence": [
+        "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/vendor/tempus/TL-24-ALMY2X4KMV/DNA/TL-24-ALMY2X4KMV.soma.pindel.vcf",
+        "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=nuccore&id=NC_000003.11&seq_start=197879630&seq_stop=197880630&rettype=fasta&retmode=text",
+        "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=nuccore&id=NC_000003.12&seq_start=198152759&seq_stop=198153759&rettype=fasta&retmode=text",
+        "https://hgdownload.soe.ucsc.edu/goldenPath/hg19/liftOver/hg19ToHg38.over.chain.gz"
+      ],
+      "id": "allele-FAM157A-p_W70_Q71ins_14",
+      "status": "applied",
+      "summary": "The public Tempus Pindel call supplies the 42-base insertion. Its REF and flanking sequence match both assemblies.",
+      "verified": "2026-09-20"
+    },
+    {
+      "action": "edit",
+      "changes": [
+        {
+          "differing": [],
+          "match": "id=COL3A1-Splice",
+          "records": 1,
+          "source": "source_variants",
+          "state": "pending"
+        },
+        {
+          "differing": [],
+          "match": "id=COL3A1-Splice",
+          "records": 1,
+          "source": "variant_index",
+          "state": "pending"
+        }
+      ],
+      "evaluation": "applied",
+      "evidence": [
+        "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/vendor/tempus/TL-24-ALMY2X4KMV/DNA/TL-24-ALMY2X4KMV.soma.pindel.vcf",
+        "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=nuccore&id=NC_000002.11&seq_start=189875115&seq_stop=189876852&rettype=fasta&retmode=text",
+        "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=nuccore&id=NC_000002.12&seq_start=189010389&seq_stop=189012126&rettype=fasta&retmode=text",
+        "https://hgdownload.soe.ucsc.edu/goldenPath/hg19/liftOver/hg19ToHg38.over.chain.gz"
+      ],
+      "id": "allele-COL3A1-Splice",
+      "status": "applied",
+      "summary": "The public Tempus Pindel call matches the catalogue transcript and c.4254+1_4255-1del annotation: a 737-base intronic deletion. Its full REF and flanking sequence match both assemblies.",
+      "verified": "2026-09-20"
+    },
+    {
+      "action": "edit",
+      "changes": [
+        {
+          "differing": [],
+          "match": "id=OTUD4-p_A153del",
+          "records": 1,
+          "source": "source_variants",
+          "state": "pending"
+        },
+        {
+          "differing": [],
+          "match": "id=OTUD4-p_A153del",
+          "records": 1,
+          "source": "variant_index",
+          "state": "pending"
+        }
+      ],
+      "evaluation": "applied",
+      "evidence": [
+        "https://gitlab.com/slowkow/osteosarc.com/-/raw/main/scripts/variants/source_data/SS%20neoantigen%20_%20mutations%20-%20Mutations.tsv"
+      ],
+      "id": "otud4-source-unavailable",
+      "status": "applied",
+      "summary": "The catalogue reports Natera p.Ala153del without a transcript, cDNA change or genomic allele. The original clinical variant report is not public; no matching allele was found in the public Tempus or CeGaT calls checked.",
+      "verified": "2026-09-20"
+    },
+    {
+      "action": "edit",
+      "changes": [
+        {
+          "differing": [],
+          "match": "sample_id=T1_tumor",
+          "records": 1,
+          "source": "specimens",
+          "state": "pending"
+        }
+      ],
+      "evaluation": "applied",
+      "evidence": [
+        "https://gitlab.com/slowkow/osteosarc.com/-/raw/main/src/data/samples.json",
+        "https://osteosarc.com/data/events.json",
+        "https://gitlab.com/slowkow/osteosarc.com/-/raw/main/src/data/pathology-slides.json"
+      ],
+      "id": "specimen-T1-site",
+      "status": "applied",
+      "summary": "The registry records T1 as a UCSF resection. The homepage summary ('UCLA (Th4 biopsy)'), the timeline (UCLA biopsies and pathology) and the pathology archive all describe a UCLA biopsy. T1 actually spans two UCLA biopsies (2024-06-06 T4 and 2024-06-11 T4/5); the BostonGene libraries (e.g. BG009368) come from the 2024-06-11 procedure, so the date is left as published.",
+      "verified": "2026-09-18"
+    },
+    {
+      "action": "edit",
+      "changes": [
+        {
+          "differing": [],
+          "match": "sample_id=T2_tumor",
+          "records": 1,
+          "source": "specimens",
+          "state": "pending"
+        }
+      ],
+      "evaluation": "applied",
+      "evidence": [
+        "https://gitlab.com/slowkow/osteosarc.com/-/raw/main/src/data/samples.json",
+        "https://osteosarc.com/data/events.json",
+        "https://gitlab.com/slowkow/osteosarc.com/-/raw/main/src/data/pathology-slides.json"
+      ],
+      "id": "specimen-T2-date-site",
+      "status": "applied",
+      "summary": "The registry dates T2 2025-01-06 (the bucket delivery folder genomics-bulk/2025.01.06). The homepage summary, the timeline's time point, biopsy and pathology events, and the pathology archive (2025-01-28_Biopsy) all give a UCLA biopsy on 2025-01-28.",
+      "verified": "2026-09-18"
+    },
+    {
+      "action": "edit",
+      "changes": [
+        {
+          "differing": [],
+          "match": "sample_id=T3_tumor",
+          "records": 1,
+          "source": "specimens",
+          "state": "pending"
+        },
+        {
+          "differing": [],
+          "match": "sample_id=T3_tumor_CD45neg",
+          "records": 1,
+          "source": "specimens",
+          "state": "pending"
+        }
+      ],
+      "evaluation": "applied",
+      "evidence": [
+        "https://gitlab.com/slowkow/osteosarc.com/-/raw/main/src/data/samples.json",
+        "https://osteosarc.com/data/events.json",
+        "https://gitlab.com/slowkow/osteosarc.com/-/raw/main/src/data/pathology-slides.json"
+      ],
+      "id": "specimen-T3-site",
+      "status": "applied",
+      "summary": "The registry records T3 as a UCSF biopsy. The homepage summary ('MSKCC (Th4-Th5 excision)'), the timeline (T4/5 resection surgery, MSKCC pathology) and the pathology archive (2025-04-17_Resection) describe an MSKCC resection; UCSF performed the single-cell assays.",
+      "verified": "2026-09-18"
+    },
+    {
+      "action": "flag",
+      "changes": [
+        {
+          "differing": [],
+          "match": "sample_id=blood_2025-06-26",
+          "records": 1,
+          "source": "specimens",
+          "state": "pending"
+        },
+        {
+          "differing": [],
+          "match": "sample_id=blood_2025-07-24",
+          "records": 1,
+          "source": "specimens",
+          "state": "pending"
+        },
+        {
+          "differing": [],
+          "match": "sample_id=blood_2025-08-21",
+          "records": 1,
+          "source": "specimens",
+          "state": "pending"
+        },
+        {
+          "differing": [],
+          "match": "sample_id=blood_2025-09-22",
+          "records": 1,
+          "source": "specimens",
+          "state": "pending"
+        }
+      ],
+      "evaluation": "applied",
+      "evidence": [
+        "https://osteosarc.com/data/flow/manifest.json",
+        "https://gitlab.com/slowkow/osteosarc.com/-/raw/main/scripts/flow_data/sample_dates.tsv",
+        "https://osteosarc.com/data/mrd.json"
+      ],
+      "id": "pbmc-capture-dates",
+      "status": "applied",
+      "summary": "These PBMC single-cell specimens are dated by their capture files. The flow-cytometry workbook (documented as authoritative, and stating that file tokens are not draw dates) gives draws two to four days earlier: 2025-06-24, 07-22, 08-20 and 09-18. MRD draws fall on the same flow dates.",
+      "verified": "2026-09-18"
+    },
+    {
+      "action": "flag",
+      "changes": [
+        {
+          "differing": [],
+          "match": "title=SQ3370 (Doxorubicin Biogel click), date=2023-07-17",
+          "records": 2,
+          "source": "events",
+          "state": "pending"
+        },
+        {
+          "differing": [],
+          "match": "title=Trabectedin, date=2024-05-22",
+          "records": 2,
+          "source": "events",
+          "state": "pending"
+        }
+      ],
+      "evaluation": "applied",
+      "evidence": [
+        "https://osteosarc.com/data/events.json"
+      ],
+      "id": "events-duplicate-rows",
+      "status": "applied",
+      "summary": "SQ3370 (2023-07-17..2024-01-26) and Trabectedin (2024-05-22) each appear twice as identical timeline rows; count each course once.",
+      "verified": "2026-09-18"
+    },
+    {
+      "action": "flag",
+      "changes": [
+        {
+          "differing": [],
+          "match": "title=Tempus xT, date=2022-12-16",
+          "records": 1,
+          "source": "events",
+          "state": "pending"
+        },
+        {
+          "differing": [],
+          "match": "title=Tempus xE, date=2022-12-16",
+          "records": 1,
+          "source": "events",
+          "state": "pending"
+        },
+        {
+          "differing": [],
+          "match": "title=Tempus xR, date=2022-12-16",
+          "records": 1,
+          "source": "events",
+          "state": "pending"
+        }
+      ],
+      "evaluation": "applied",
+      "evidence": [
+        "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/vendor/tempus/",
+        "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/vendor/tempus/TL-24-ALMY2X4KMV/DNA/TL-24-ALMY2X4KMV.soma.pindel.vcf"
+      ],
+      "id": "tempus-timepoint",
+      "status": "applied",
+      "summary": "The timeline dates Tempus xT/xE/xR at T0 (2022-12-16), but every public Tempus BAM and VCF is a TL-24 accession labelled T1 2024-06; the only 2022 Tempus objects are RNA FASTQs. The catalogue's 'Tempus 2022' detection flag comes from TL-24-ALMY2X4KMV.",
+      "verified": "2026-09-18"
+    },
+    {
+      "action": "flag",
+      "changes": [
+        {
+          "differing": [],
+          "match": "title=Apheresis, date=2024-05-14",
+          "records": 1,
+          "source": "events",
+          "state": "pending"
+        }
+      ],
+      "evaluation": "applied",
+      "evidence": [
+        "https://osteosarc.com/data/events.json",
+        "https://gitlab.com/slowkow/osteosarc.com/-/raw/main/src/data/variants.json"
+      ],
+      "id": "apheresis-date",
+      "status": "applied",
+      "summary": "The timeline dates the apheresis 2024-05-14; the ELISPOT records label the same PBMCs 'Apheresis (2024/05/15)'.",
+      "verified": "2026-09-18"
+    },
+    {
+      "action": "flag",
+      "changes": [
+        {
+          "differing": [],
+          "match": "title=ReyaGel, date=2026-06-15",
+          "records": 1,
+          "source": "events",
+          "state": "pending"
+        },
+        {
+          "differing": [],
+          "match": "Title=ReyaGel, Start date=06/15/2026",
+          "records": 1,
+          "source": "events_sheet",
+          "state": "pending"
+        }
+      ],
+      "evaluation": "applied",
+      "evidence": [
+        "https://gitlab.com/slowkow/osteosarc.com/-/raw/main/scripts/timeline/timeline.csv",
+        "https://osteosarc.com/data/events.json"
+      ],
+      "id": "reyagel-end-date",
+      "status": "applied",
+      "summary": "The timeline sheet gives ReyaGel (started 2026-06-15) the end date '7/14' with no year; the site's build drops it, so the course appears as a single day. It probably ended 2026-07-14, but the year is not stated, so the end is not supplied here.",
+      "verified": "2026-09-18"
+    },
+    {
+      "action": "flag",
+      "changes": [
+        {
+          "differing": [],
+          "match": "id=COL3A1-Splice",
+          "records": 1,
+          "source": "variant_index",
+          "state": "pending"
+        },
+        {
+          "differing": [],
+          "match": "id=OTUD4-p_A153del",
+          "records": 1,
+          "source": "variant_index",
+          "state": "pending"
+        }
+      ],
+      "evaluation": "applied",
+      "evidence": [
+        "https://gitlab.com/slowkow/osteosarc.com/-/raw/main/scripts/variants/source_data/SS%20neoantigen%20_%20mutations%20-%20Mutations.tsv",
+        "https://sid-sijbrandij-osteosarc-dataset.s3.us-west-2.amazonaws.com/vendor/natera/manifest.tsv"
+      ],
+      "id": "natera-alleles-unavailable",
+      "status": "applied",
+      "summary": "COL3A1 (splice) and OTUD4 (p.Ala153del) come from the Natera 2022 report, which is not public. An independent public Tempus call now resolves COL3A1; OTUD4 remains unavailable.",
+      "verified": "2026-09-18"
+    }
+  ],
+  "osteosarc_version": "0.1.2",
+  "records": [
+    {
+      "corrections": [],
+      "experiments": [],
+      "gene": "ABI3BP",
+      "in_vaccines": [
+        "mRNA"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": 17,
+      "record_id": "ABI3BP-chr3-100850671:vaccine-peptide-1",
+      "sequence": "TATSDRILDSIPPKTSRTLEQPMATLAPSET",
+      "source_url": "https://osteosarc.com/variant/ABI3BP-chr3-100850671/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": false,
+        "elispot_response": null,
+        "elispot_status": "not_tested"
+      },
+      "variant_id": "ABI3BP-chr3-100850671"
+    },
+    {
+      "corrections": [],
+      "experiments": [],
+      "gene": "ABI3BP",
+      "in_vaccines": [
+        "mRNA"
+      ],
+      "is_mrna_minimal_epitope": true,
+      "minimal_epitope_offset": null,
+      "record_id": "ABI3BP-chr3-100850671:vaccine-peptide-2",
+      "sequence": "TLEQPMATL",
+      "source_url": "https://osteosarc.com/variant/ABI3BP-chr3-100850671/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": false,
+        "elispot_response": null,
+        "elispot_status": "not_tested"
+      },
+      "variant_id": "ABI3BP-chr3-100850671"
+    },
+    {
+      "corrections": [],
+      "experiments": [
+        {
+          "additional_testing": "Sent to Celldom",
+          "date": "2023-09-22",
+          "experiment": "PFO Lab 14-day stim, PFO-S18 (Spring, 2025)",
+          "outcomes": "Identification of 2x TECPR1 SCT-binding TCR-Ts via Celldom",
+          "pbmcs_label": "Sample #1: pre-vaccine PBMCs (2023/09/22)  Sample #2: apheresis (2024/05/15)  Sample #3: combined PBMCs (2024/07/16, 2024/08/03)  Sample #4: PBMCs (2024/08/20)  Sample #5: combined PBMCs (2024/10/10, 2024/11/21, 2024/12/13)",
+          "peptide_id": "JLF-100-038R.MT.34.ADGRF5",
+          "pool": "L3",
+          "result": "Positive",
+          "summary": "Various peptide pools; CD8 T cells co-cultured with irradiated EBV-LCLs. ELISPOT and 10x single cell TCR sequencing"
+        },
+        {
+          "additional_testing": "",
+          "date": "2024-05-15",
+          "experiment": "UNC Immune Monitoring (Summer, 2024)",
+          "outcomes": "26 TCRs extracted; 4 reactive to CSBio peptides (1x DYNC1H1, 3x EXOC4) via Class-II stimulation",
+          "pbmcs_label": "Apheresis (2024/05/15), Whole PBMCs",
+          "peptide_id": "JLF-100-038R.MT.34.ADGRF5.1",
+          "pool": "NA",
+          "result": "Positive (Weak)",
+          "summary": "Whole PBMCs individually stimulated with 15 CSBio long peptides. ELISPOT and 10x single cell TCR sequencing"
+        }
+      ],
+      "gene": "ADGRF5",
+      "in_vaccines": [
+        "JLF V2"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": null,
+      "record_id": "ADGRF5-chr6-46856758:vaccine-peptide-1",
+      "sequence": "VQEALLSKFSLSRWSSQHSKST",
+      "source_url": "https://osteosarc.com/variant/ADGRF5-chr6-46856758/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": true,
+        "elispot_response": "response",
+        "elispot_status": "positive"
+      },
+      "variant_id": "ADGRF5-chr6-46856758"
+    },
+    {
+      "corrections": [],
+      "experiments": [
+        {
+          "additional_testing": "",
+          "date": "2023-09-22",
+          "experiment": "PFO Lab 14-day stim, PFO-S18 (Spring, 2025)",
+          "outcomes": "Identification of 2x TECPR1 SCT-binding TCR-Ts via Celldom",
+          "pbmcs_label": "Sample #1: pre-vaccine PBMCs (2023/09/22)   Sample #2: apheresis (2024/05/15)",
+          "peptide_id": "P14-2.ADGRF5",
+          "pool": "S4",
+          "result": "Negative",
+          "summary": "Various peptide pools; CD8 T cells co-cultured with irradiated EBV-LCLs. ELISPOT and 10x single cell TCR sequencing"
+        }
+      ],
+      "gene": "ADGRF5",
+      "in_vaccines": [],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": null,
+      "record_id": "ADGRF5-chr6-46856758:vaccine-peptide-2",
+      "sequence": "EALLSKFSL",
+      "source_url": "https://osteosarc.com/variant/ADGRF5-chr6-46856758/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": true,
+        "elispot_response": "response",
+        "elispot_status": "positive"
+      },
+      "variant_id": "ADGRF5-chr6-46856758"
+    },
+    {
+      "corrections": [],
+      "experiments": [
+        {
+          "additional_testing": "",
+          "date": "2023-09-22",
+          "experiment": "PFO Lab 14-day stim, PFO-S18 (Spring, 2025)",
+          "outcomes": "Identification of 2x TECPR1 SCT-binding TCR-Ts via Celldom",
+          "pbmcs_label": "Sample #1: pre-vaccine PBMCs (2023/09/22)   Sample #2: apheresis (2024/05/15)",
+          "peptide_id": "P14-1.ADGRF5",
+          "pool": "S4",
+          "result": "Negative",
+          "summary": "Various peptide pools; CD8 T cells co-cultured with irradiated EBV-LCLs. ELISPOT and 10x single cell TCR sequencing"
+        }
+      ],
+      "gene": "ADGRF5",
+      "in_vaccines": [],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": null,
+      "record_id": "ADGRF5-chr6-46856758:vaccine-peptide-3",
+      "sequence": "SKFSLSRWS",
+      "source_url": "https://osteosarc.com/variant/ADGRF5-chr6-46856758/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": true,
+        "elispot_response": "response",
+        "elispot_status": "positive"
+      },
+      "variant_id": "ADGRF5-chr6-46856758"
+    },
+    {
+      "corrections": [],
+      "experiments": [],
+      "gene": "ANKRD17",
+      "in_vaccines": [
+        "mRNA"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": 17,
+      "record_id": "ANKRD17-chr4-73097139:vaccine-peptide-1",
+      "sequence": "PNGKLTVASPKRGQKREERWKEVVRRSKKV",
+      "source_url": "https://osteosarc.com/variant/ANKRD17-chr4-73097139/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": false,
+        "elispot_response": null,
+        "elispot_status": "not_tested"
+      },
+      "variant_id": "ANKRD17-chr4-73097139"
+    },
+    {
+      "corrections": [],
+      "experiments": [],
+      "gene": "ANKRD17",
+      "in_vaccines": [
+        "mRNA"
+      ],
+      "is_mrna_minimal_epitope": true,
+      "minimal_epitope_offset": null,
+      "record_id": "ANKRD17-chr4-73097139:vaccine-peptide-2",
+      "sequence": "ERWKEVVRR",
+      "source_url": "https://osteosarc.com/variant/ANKRD17-chr4-73097139/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": false,
+        "elispot_response": null,
+        "elispot_status": "not_tested"
+      },
+      "variant_id": "ANKRD17-chr4-73097139"
+    },
+    {
+      "corrections": [],
+      "experiments": [],
+      "gene": "ASPM",
+      "in_vaccines": [
+        "mRNA"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": 18,
+      "record_id": "ASPM-chr1-197102716:vaccine-peptide-1",
+      "sequence": "REKYLTILKAVKVLQASFRRVRVRRTLRKMQ",
+      "source_url": "https://osteosarc.com/variant/ASPM-chr1-197102716/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": false,
+        "elispot_response": null,
+        "elispot_status": "not_tested"
+      },
+      "variant_id": "ASPM-chr1-197102716"
+    },
+    {
+      "corrections": [],
+      "experiments": [],
+      "gene": "ASPM",
+      "in_vaccines": [
+        "mRNA"
+      ],
+      "is_mrna_minimal_epitope": true,
+      "minimal_epitope_offset": null,
+      "record_id": "ASPM-chr1-197102716:vaccine-peptide-2",
+      "sequence": "RRVRVRRTLR",
+      "source_url": "https://osteosarc.com/variant/ASPM-chr1-197102716/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": false,
+        "elispot_response": null,
+        "elispot_status": "not_tested"
+      },
+      "variant_id": "ASPM-chr1-197102716"
+    },
+    {
+      "corrections": [],
+      "experiments": [],
+      "gene": "BMP1",
+      "in_vaccines": [
+        "mRNA"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": 17,
+      "record_id": "BMP1-chr8-22192067:vaccine-peptide-1",
+      "sequence": "YSAHMHCVWRISVTPGEKIILNFTTLDLYRSRL",
+      "source_url": "https://osteosarc.com/variant/BMP1-chr8-22192067/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": false,
+        "elispot_response": null,
+        "elispot_status": "not_tested"
+      },
+      "variant_id": "BMP1-chr8-22192067"
+    },
+    {
+      "corrections": [],
+      "experiments": [],
+      "gene": "BMP1",
+      "in_vaccines": [
+        "mRNA"
+      ],
+      "is_mrna_minimal_epitope": true,
+      "minimal_epitope_offset": null,
+      "record_id": "BMP1-chr8-22192067:vaccine-peptide-2",
+      "sequence": "KIILNFTTL",
+      "source_url": "https://osteosarc.com/variant/BMP1-chr8-22192067/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": false,
+        "elispot_response": null,
+        "elispot_status": "not_tested"
+      },
+      "variant_id": "BMP1-chr8-22192067"
+    },
+    {
+      "corrections": [],
+      "experiments": [],
+      "gene": "BMP1",
+      "in_vaccines": [
+        "JLF V3"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": 8,
+      "record_id": "BMP1-chr8-22192067:vaccine-peptide-3",
+      "sequence": "RISVTPGEKIILNFTTLDLYRSR",
+      "source_url": "https://osteosarc.com/variant/BMP1-chr8-22192067/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": false,
+        "elispot_response": null,
+        "elispot_status": "not_tested"
+      },
+      "variant_id": "BMP1-chr8-22192067"
+    },
+    {
+      "corrections": [],
+      "experiments": [],
+      "gene": "BTD",
+      "in_vaccines": [
+        "mRNA"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": 16,
+      "record_id": "BTD-chr3-15645183:vaccine-peptide-1",
+      "sequence": "YLLYERPTLSKELYALGVVDGLHTVHGTYYI",
+      "source_url": "https://osteosarc.com/variant/BTD-chr3-15645183/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": true,
+        "elispot_response": "strong",
+        "elispot_status": "positive"
+      },
+      "variant_id": "BTD-chr3-15645183"
+    },
+    {
+      "corrections": [],
+      "experiments": [
+        {
+          "additional_testing": "",
+          "date": "2023-09-22",
+          "experiment": "PFO Lab 14-day stim, PFO-S18 (Spring, 2025)",
+          "outcomes": "Identification of 2x TECPR1 SCT-binding TCR-Ts via Celldom",
+          "pbmcs_label": "Sample #1: pre-vaccine PBMCs (2023/09/22)   Sample #2: apheresis (2024/05/15)",
+          "peptide_id": "P4-2.BTD",
+          "pool": "S1",
+          "result": "Negative",
+          "summary": "Various peptide pools; CD8 T cells co-cultured with irradiated EBV-LCLs. ELISPOT and 10x single cell TCR sequencing"
+        }
+      ],
+      "gene": "BTD",
+      "in_vaccines": [
+        "mRNA"
+      ],
+      "is_mrna_minimal_epitope": true,
+      "minimal_epitope_offset": null,
+      "record_id": "BTD-chr3-15645183:vaccine-peptide-2",
+      "sequence": "GVVDGLHTV",
+      "source_url": "https://osteosarc.com/variant/BTD-chr3-15645183/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": true,
+        "elispot_response": "strong",
+        "elispot_status": "positive"
+      },
+      "variant_id": "BTD-chr3-15645183"
+    },
+    {
+      "corrections": [],
+      "experiments": [
+        {
+          "additional_testing": "",
+          "date": "2023-09-22",
+          "experiment": "PFO Lab 14-day stim, PFO-S18 (Spring, 2025)",
+          "outcomes": "Identification of 2x TECPR1 SCT-binding TCR-Ts via Celldom",
+          "pbmcs_label": "Sample #1: pre-vaccine PBMCs (2023/09/22)  Sample #2: apheresis (2024/05/15)  Sample #3: combined PBMCs (2024/07/16, 2024/08/03)  Sample #4: PBMCs (2024/08/20)  Sample #5: combined PBMCs (2024/10/10, 2024/11/21, 2024/12/13)",
+          "peptide_id": "JLF-100-038.MT.19.BTD",
+          "pool": "L1",
+          "result": "Negative",
+          "summary": "Various peptide pools; CD8 T cells co-cultured with irradiated EBV-LCLs. ELISPOT and 10x single cell TCR sequencing"
+        },
+        {
+          "additional_testing": "",
+          "date": "2023-09-22",
+          "experiment": "UNC Immune Monitoring (Spring, 2024)",
+          "outcomes": "Observed reactivity to MAP2 / TECPR1; no sequencing performed",
+          "pbmcs_label": "(2023/09/22, 2023/11/28)",
+          "peptide_id": "JLF-100-038R.MT.19.BTD.1",
+          "pool": "NA",
+          "result": "Negative",
+          "summary": "Whole PBMCs stimulated with 9 pooled CSBio long peptides. ELISPOT performed with individual peptide stimulation."
+        },
+        {
+          "additional_testing": "",
+          "date": "2024-05-15",
+          "experiment": "UNC Immune Monitoring (Summer, 2024)",
+          "outcomes": "26 TCRs extracted; 4 reactive to CSBio peptides (1x DYNC1H1, 3x EXOC4) via Class-II stimulation",
+          "pbmcs_label": "Apheresis (2024/05/15), Whole PBMCs",
+          "peptide_id": "JLF-100-038R.MT.19.BTD.1",
+          "pool": "NA",
+          "result": "Positive (Strong)",
+          "summary": "Whole PBMCs individually stimulated with 15 CSBio long peptides. ELISPOT and 10x single cell TCR sequencing"
+        }
+      ],
+      "gene": "BTD",
+      "in_vaccines": [
+        "JLF V3",
+        "JLF V2",
+        "JLF V1"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": 11,
+      "record_id": "BTD-chr3-15645183:vaccine-peptide-3",
+      "sequence": "RPTLSKELYALGVVDGLHTVHGT",
+      "source_url": "https://osteosarc.com/variant/BTD-chr3-15645183/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": true,
+        "elispot_response": "strong",
+        "elispot_status": "positive"
+      },
+      "variant_id": "BTD-chr3-15645183"
+    },
+    {
+      "corrections": [],
+      "experiments": [
+        {
+          "additional_testing": "",
+          "date": "2023-09-22",
+          "experiment": "PFO Lab 14-day stim, PFO-S18 (Spring, 2025)",
+          "outcomes": "Identification of 2x TECPR1 SCT-binding TCR-Ts via Celldom",
+          "pbmcs_label": "Sample #1: pre-vaccine PBMCs (2023/09/22)   Sample #2: apheresis (2024/05/15)",
+          "peptide_id": "P4-3.BTD",
+          "pool": "S2",
+          "result": "Negative",
+          "summary": "Various peptide pools; CD8 T cells co-cultured with irradiated EBV-LCLs. ELISPOT and 10x single cell TCR sequencing"
+        }
+      ],
+      "gene": "BTD",
+      "in_vaccines": [],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": null,
+      "record_id": "BTD-chr3-15645183:vaccine-peptide-4",
+      "sequence": "LYALGVVDGL",
+      "source_url": "https://osteosarc.com/variant/BTD-chr3-15645183/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": true,
+        "elispot_response": "strong",
+        "elispot_status": "positive"
+      },
+      "variant_id": "BTD-chr3-15645183"
+    },
+    {
+      "corrections": [],
+      "experiments": [
+        {
+          "additional_testing": "",
+          "date": "2023-09-22",
+          "experiment": "PFO Lab 14-day stim, PFO-S18 (Spring, 2025)",
+          "outcomes": "Identification of 2x TECPR1 SCT-binding TCR-Ts via Celldom",
+          "pbmcs_label": "Sample #1: pre-vaccine PBMCs (2023/09/22)   Sample #2: apheresis (2024/05/15)",
+          "peptide_id": "P4-1.BTD",
+          "pool": "S1",
+          "result": "Negative",
+          "summary": "Various peptide pools; CD8 T cells co-cultured with irradiated EBV-LCLs. ELISPOT and 10x single cell TCR sequencing"
+        }
+      ],
+      "gene": "BTD",
+      "in_vaccines": [],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": null,
+      "record_id": "BTD-chr3-15645183:vaccine-peptide-5",
+      "sequence": "YALGVVDGL",
+      "source_url": "https://osteosarc.com/variant/BTD-chr3-15645183/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": true,
+        "elispot_response": "strong",
+        "elispot_status": "positive"
+      },
+      "variant_id": "BTD-chr3-15645183"
+    },
+    {
+      "corrections": [],
+      "experiments": [],
+      "gene": "CD109",
+      "in_vaccines": [
+        "JLF V3"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": null,
+      "record_id": "CD109-chr6-73818405:vaccine-peptide-1",
+      "sequence": "SFSGPGMSGMALMEVNLLSGKKK",
+      "source_url": "https://osteosarc.com/variant/CD109-chr6-73818405/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": false,
+        "elispot_response": null,
+        "elispot_status": "not_tested"
+      },
+      "variant_id": "CD109-chr6-73818405"
+    },
+    {
+      "corrections": [
+        "pvac-2025-detection"
+      ],
+      "experiments": [],
+      "gene": "CDC40",
+      "in_vaccines": [
+        "mRNA"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": 10,
+      "record_id": "CDC40-chr6-110228838:vaccine-peptide-1",
+      "sequence": "EPSMHSMPAVTLSPNGKSLACQSMDNQILIF",
+      "source_url": "https://osteosarc.com/variant/CDC40-chr6-110228838/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": false,
+        "elispot_response": null,
+        "elispot_status": "not_tested"
+      },
+      "variant_id": "CDC40-chr6-110228838"
+    },
+    {
+      "corrections": [
+        "pvac-2025-detection"
+      ],
+      "experiments": [],
+      "gene": "CDC40",
+      "in_vaccines": [
+        "mRNA"
+      ],
+      "is_mrna_minimal_epitope": true,
+      "minimal_epitope_offset": null,
+      "record_id": "CDC40-chr6-110228838:vaccine-peptide-2",
+      "sequence": "TLSPNGKSL",
+      "source_url": "https://osteosarc.com/variant/CDC40-chr6-110228838/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": false,
+        "elispot_response": null,
+        "elispot_status": "not_tested"
+      },
+      "variant_id": "CDC40-chr6-110228838"
+    },
+    {
+      "corrections": [
+        "pvac-2025-detection"
+      ],
+      "experiments": [],
+      "gene": "CDC40",
+      "in_vaccines": [
+        "JLF V3"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": 6,
+      "record_id": "CDC40-chr6-110228838:vaccine-peptide-3",
+      "sequence": "HSMPAVTLSPNGKSLACQSMDNQKK",
+      "source_url": "https://osteosarc.com/variant/CDC40-chr6-110228838/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": false,
+        "elispot_response": null,
+        "elispot_status": "not_tested"
+      },
+      "variant_id": "CDC40-chr6-110228838"
+    },
+    {
+      "corrections": [],
+      "experiments": [],
+      "gene": "CENPL",
+      "in_vaccines": [
+        "JLF V3"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": null,
+      "record_id": "CENPL-chr1-173811223:vaccine-peptide-1",
+      "sequence": "SSRPEDYFIGATHLQKRLESVRK",
+      "source_url": "https://osteosarc.com/variant/CENPL-chr1-173811223/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": false,
+        "elispot_response": null,
+        "elispot_status": "not_tested"
+      },
+      "variant_id": "CENPL-chr1-173811223"
+    },
+    {
+      "corrections": [],
+      "experiments": [
+        {
+          "additional_testing": "Sent to Celldom",
+          "date": "2023-09-22",
+          "experiment": "PFO Lab 14-day stim, PFO-S18 (Spring, 2025)",
+          "outcomes": "Identification of 2x TECPR1 SCT-binding TCR-Ts via Celldom",
+          "pbmcs_label": "Sample #1: pre-vaccine PBMCs (2023/09/22)  Sample #2: apheresis (2024/05/15)  Sample #3: combined PBMCs (2024/07/16, 2024/08/03)  Sample #4: PBMCs (2024/08/20)  Sample #5: combined PBMCs (2024/10/10, 2024/11/21, 2024/12/13)",
+          "peptide_id": "JLF-100-038R.MT.33.CUL9",
+          "pool": "L3",
+          "result": "Positive",
+          "summary": "Various peptide pools; CD8 T cells co-cultured with irradiated EBV-LCLs. ELISPOT and 10x single cell TCR sequencing"
+        },
+        {
+          "additional_testing": "",
+          "date": "2024-05-15",
+          "experiment": "UNC Immune Monitoring (Summer, 2024)",
+          "outcomes": "26 TCRs extracted; 4 reactive to CSBio peptides (1x DYNC1H1, 3x EXOC4) via Class-II stimulation",
+          "pbmcs_label": "Apheresis (2024/05/15), Whole PBMCs",
+          "peptide_id": "JLF-100-038R.MT.33.CUL9.1",
+          "pool": "NA",
+          "result": "Positive (Weak)",
+          "summary": "Whole PBMCs individually stimulated with 15 CSBio long peptides. ELISPOT and 10x single cell TCR sequencing"
+        }
+      ],
+      "gene": "CUL9",
+      "in_vaccines": [
+        "JLF V2"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": null,
+      "record_id": "CUL9-chr6-43186384:vaccine-peptide-1",
+      "sequence": "RMLDYYEEISAGDEGEFRQSKKK",
+      "source_url": "https://osteosarc.com/variant/CUL9-chr6-43186384/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": true,
+        "elispot_response": "response",
+        "elispot_status": "positive"
+      },
+      "variant_id": "CUL9-chr6-43186384"
+    },
+    {
+      "corrections": [],
+      "experiments": [
+        {
+          "additional_testing": "",
+          "date": "2023-09-22",
+          "experiment": "PFO Lab 14-day stim, PFO-S18 (Spring, 2025)",
+          "outcomes": "Identification of 2x TECPR1 SCT-binding TCR-Ts via Celldom",
+          "pbmcs_label": "Sample #1: pre-vaccine PBMCs (2023/09/22)   Sample #2: apheresis (2024/05/15)",
+          "peptide_id": "P13-1.CUL9",
+          "pool": "S3",
+          "result": "Negative",
+          "summary": "Various peptide pools; CD8 T cells co-cultured with irradiated EBV-LCLs. ELISPOT and 10x single cell TCR sequencing"
+        }
+      ],
+      "gene": "CUL9",
+      "in_vaccines": [],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": null,
+      "record_id": "CUL9-chr6-43186384:vaccine-peptide-2",
+      "sequence": "RMLDYYEEI",
+      "source_url": "https://osteosarc.com/variant/CUL9-chr6-43186384/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": true,
+        "elispot_response": "response",
+        "elispot_status": "positive"
+      },
+      "variant_id": "CUL9-chr6-43186384"
+    },
+    {
+      "corrections": [],
+      "experiments": [],
+      "gene": "DYNC1H1",
+      "in_vaccines": [
+        "mRNA"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": 11,
+      "record_id": "DYNC1H1-chr14-101980529:vaccine-peptide-1",
+      "sequence": "VLLTLDILKHGKRFHATISFDTDTGLKQAL",
+      "source_url": "https://osteosarc.com/variant/DYNC1H1-chr14-101980529/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": true,
+        "elispot_response": "very strong",
+        "elispot_status": "positive"
+      },
+      "variant_id": "DYNC1H1-chr14-101980529"
+    },
+    {
+      "corrections": [],
+      "experiments": [
+        {
+          "additional_testing": "",
+          "date": "2023-09-22",
+          "experiment": "PFO Lab 14-day stim, PFO-S18 (Spring, 2025)",
+          "outcomes": "Identification of 2x TECPR1 SCT-binding TCR-Ts via Celldom",
+          "pbmcs_label": "Sample #1: pre-vaccine PBMCs (2023/09/22)   Sample #2: apheresis (2024/05/15)",
+          "peptide_id": "P10-3.DYNC1H1",
+          "pool": "S3",
+          "result": "Negative",
+          "summary": "Various peptide pools; CD8 T cells co-cultured with irradiated EBV-LCLs. ELISPOT and 10x single cell TCR sequencing"
+        }
+      ],
+      "gene": "DYNC1H1",
+      "in_vaccines": [
+        "mRNA"
+      ],
+      "is_mrna_minimal_epitope": true,
+      "minimal_epitope_offset": null,
+      "record_id": "DYNC1H1-chr14-101980529:vaccine-peptide-2",
+      "sequence": "KRFHATISF",
+      "source_url": "https://osteosarc.com/variant/DYNC1H1-chr14-101980529/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": true,
+        "elispot_response": "very strong",
+        "elispot_status": "positive"
+      },
+      "variant_id": "DYNC1H1-chr14-101980529"
+    },
+    {
+      "corrections": [],
+      "experiments": [
+        {
+          "additional_testing": "Sent to Celldom",
+          "date": "2023-09-22",
+          "experiment": "PFO Lab 14-day stim, PFO-S18 (Spring, 2025)",
+          "outcomes": "Identification of 2x TECPR1 SCT-binding TCR-Ts via Celldom",
+          "pbmcs_label": "Sample #1: pre-vaccine PBMCs (2023/09/22)  Sample #2: apheresis (2024/05/15)  Sample #3: combined PBMCs (2024/07/16, 2024/08/03)  Sample #4: PBMCs (2024/08/20)  Sample #5: combined PBMCs (2024/10/10, 2024/11/21, 2024/12/13)",
+          "peptide_id": "JLF-100-038R.MT.52.DYNC1H1",
+          "pool": "L2",
+          "result": "Positive",
+          "summary": "Various peptide pools; CD8 T cells co-cultured with irradiated EBV-LCLs. ELISPOT and 10x single cell TCR sequencing"
+        },
+        {
+          "additional_testing": "",
+          "date": "2024-05-15",
+          "experiment": "PFO Lab ex vivo ELISPOT, PFO-S45 (Fall, 2025)",
+          "outcomes": "ex vivo responses observed in pooled and invididual peptides (MAP2, DYNC1H1); classII blockade supports CD8 resposes",
+          "pbmcs_label": "Apheresis (2024/05/15)",
+          "peptide_id": "JLF-100-038R.MT.52.DYNC1H1.2",
+          "pool": "Pool 1",
+          "result": "Positive (Weak)",
+          "summary": "ex vivo ELISPOT optimizing detection of CD8 T cell responses"
+        },
+        {
+          "additional_testing": "",
+          "date": "2024-05-15",
+          "experiment": "PFO Lab ex vivo ELISPOT, PFO-S45 (Fall, 2025)",
+          "outcomes": "ex vivo responses observed in pooled and invididual peptides (MAP2, DYNC1H1); classII blockade supports CD8 resposes",
+          "pbmcs_label": "Apheresis (2024/05/15)",
+          "peptide_id": "JLF-100-038R.MT.52.DYNC1H1.2",
+          "pool": "",
+          "result": "Positive (Weak)",
+          "summary": "ex vivo ELISPOT optimizing detection of CD8 T cell responses"
+        },
+        {
+          "additional_testing": "Sent to MUSC for expansion",
+          "date": "2024-05-15",
+          "experiment": "UNC Immune Monitoring (Summer, 2024)",
+          "outcomes": "26 TCRs extracted; 4 reactive to CSBio peptides (1x DYNC1H1, 3x EXOC4) via Class-II stimulation",
+          "pbmcs_label": "Apheresis (2024/05/15), Whole PBMCs",
+          "peptide_id": "JLF-100-038R.MT.52.DYNC1H1.2",
+          "pool": "NA",
+          "result": "Positive (Strong)",
+          "summary": "Whole PBMCs individually stimulated with 15 CSBio long peptides. ELISPOT and 10x single cell TCR sequencing"
+        }
+      ],
+      "gene": "DYNC1H1",
+      "in_vaccines": [
+        "JLF V3",
+        "JLF V2"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": 1,
+      "record_id": "DYNC1H1-chr14-101980529:vaccine-peptide-3",
+      "sequence": "GKRFHATISFDTDTGLKQALETKK",
+      "source_url": "https://osteosarc.com/variant/DYNC1H1-chr14-101980529/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": true,
+        "elispot_response": "very strong",
+        "elispot_status": "positive"
+      },
+      "variant_id": "DYNC1H1-chr14-101980529"
+    },
+    {
+      "corrections": [],
+      "experiments": [],
+      "gene": "DYNC1H1",
+      "in_vaccines": [
+        "CeGaT"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": 3,
+      "record_id": "DYNC1H1-chr14-101980529:vaccine-peptide-4",
+      "sequence": "KHGKRFHATISFDTDTGL",
+      "source_url": "https://osteosarc.com/variant/DYNC1H1-chr14-101980529/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": true,
+        "elispot_response": "very strong",
+        "elispot_status": "positive"
+      },
+      "variant_id": "DYNC1H1-chr14-101980529"
+    },
+    {
+      "corrections": [],
+      "experiments": [
+        {
+          "additional_testing": "",
+          "date": "2023-09-22",
+          "experiment": "PFO Lab 14-day stim, PFO-S18 (Spring, 2025)",
+          "outcomes": "Identification of 2x TECPR1 SCT-binding TCR-Ts via Celldom",
+          "pbmcs_label": "Sample #1: pre-vaccine PBMCs (2023/09/22)   Sample #2: apheresis (2024/05/15)",
+          "peptide_id": "P10-1.DYNC1H1",
+          "pool": "S2",
+          "result": "Negative",
+          "summary": "Various peptide pools; CD8 T cells co-cultured with irradiated EBV-LCLs. ELISPOT and 10x single cell TCR sequencing"
+        }
+      ],
+      "gene": "DYNC1H1",
+      "in_vaccines": [],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": null,
+      "record_id": "DYNC1H1-chr14-101980529:vaccine-peptide-5",
+      "sequence": "ISFDTDTGL",
+      "source_url": "https://osteosarc.com/variant/DYNC1H1-chr14-101980529/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": true,
+        "elispot_response": "very strong",
+        "elispot_status": "positive"
+      },
+      "variant_id": "DYNC1H1-chr14-101980529"
+    },
+    {
+      "corrections": [],
+      "experiments": [
+        {
+          "additional_testing": "",
+          "date": "2023-09-22",
+          "experiment": "PFO Lab 14-day stim, PFO-S18 (Spring, 2025)",
+          "outcomes": "Identification of 2x TECPR1 SCT-binding TCR-Ts via Celldom",
+          "pbmcs_label": "Sample #1: pre-vaccine PBMCs (2023/09/22)   Sample #2: apheresis (2024/05/15)",
+          "peptide_id": "P10-2.DYNC1H1",
+          "pool": "S2",
+          "result": "Negative",
+          "summary": "Various peptide pools; CD8 T cells co-cultured with irradiated EBV-LCLs. ELISPOT and 10x single cell TCR sequencing"
+        }
+      ],
+      "gene": "DYNC1H1",
+      "in_vaccines": [],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": null,
+      "record_id": "DYNC1H1-chr14-101980529:vaccine-peptide-6",
+      "sequence": "RFHATISF",
+      "source_url": "https://osteosarc.com/variant/DYNC1H1-chr14-101980529/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": true,
+        "elispot_response": "very strong",
+        "elispot_status": "positive"
+      },
+      "variant_id": "DYNC1H1-chr14-101980529"
+    },
+    {
+      "corrections": [],
+      "experiments": [
+        {
+          "additional_testing": "",
+          "date": "2023-09-22",
+          "experiment": "PFO Lab 14-day stim, PFO-S18 (Spring, 2025)",
+          "outcomes": "Identification of 2x TECPR1 SCT-binding TCR-Ts via Celldom",
+          "pbmcs_label": "Sample #1: pre-vaccine PBMCs (2023/09/22)  Sample #2: apheresis (2024/05/15)  Sample #3: combined PBMCs (2024/07/16, 2024/08/03)  Sample #4: PBMCs (2024/08/20)  Sample #5: combined PBMCs (2024/10/10, 2024/11/21, 2024/12/13)",
+          "peptide_id": "JLF-100-038R.MT.76.EPG5",
+          "pool": "L1",
+          "result": "Negative",
+          "summary": "Various peptide pools; CD8 T cells co-cultured with irradiated EBV-LCLs. ELISPOT and 10x single cell TCR sequencing"
+        },
+        {
+          "additional_testing": "",
+          "date": "2023-09-22",
+          "experiment": "UNC Immune Monitoring (Spring, 2024)",
+          "outcomes": "Observed reactivity to MAP2 / TECPR1; no sequencing performed",
+          "pbmcs_label": "(2023/09/22, 2023/11/28)",
+          "peptide_id": "JLF-100-038R.MT.76.EPG5.2",
+          "pool": "NA",
+          "result": "Negative",
+          "summary": "Whole PBMCs stimulated with 9 pooled CSBio long peptides. ELISPOT performed with individual peptide stimulation."
+        },
+        {
+          "additional_testing": "",
+          "date": "2024-05-15",
+          "experiment": "UNC Immune Monitoring (Summer, 2024)",
+          "outcomes": "26 TCRs extracted; 4 reactive to CSBio peptides (1x DYNC1H1, 3x EXOC4) via Class-II stimulation",
+          "pbmcs_label": "Apheresis (2024/05/15), Whole PBMCs",
+          "peptide_id": "JLF-100-038R.MT.76.EPG5.2",
+          "pool": "NA",
+          "result": "Positive (Weak)",
+          "summary": "Whole PBMCs individually stimulated with 15 CSBio long peptides. ELISPOT and 10x single cell TCR sequencing"
+        }
+      ],
+      "gene": "EPG5",
+      "in_vaccines": [
+        "JLF V2"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": null,
+      "record_id": "EPG5-chr18-45925851:vaccine-peptide-1",
+      "sequence": "KELPLYLWQPSTSEIAVIRDWKK",
+      "source_url": "https://osteosarc.com/variant/EPG5-chr18-45925851/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": true,
+        "elispot_response": "response",
+        "elispot_status": "positive"
+      },
+      "variant_id": "EPG5-chr18-45925851"
+    },
+    {
+      "corrections": [],
+      "experiments": [],
+      "gene": "EPG5",
+      "in_vaccines": [
+        "JLF V1"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": null,
+      "record_id": "EPG5-chr18-45925851:vaccine-peptide-2",
+      "sequence": "KELPLYLWQPSTSEIAVIRD",
+      "source_url": "https://osteosarc.com/variant/EPG5-chr18-45925851/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": true,
+        "elispot_response": "response",
+        "elispot_status": "positive"
+      },
+      "variant_id": "EPG5-chr18-45925851"
+    },
+    {
+      "corrections": [],
+      "experiments": [],
+      "gene": "EPG5",
+      "in_vaccines": [
+        "CeGaT"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": null,
+      "record_id": "EPG5-chr18-45925851:vaccine-peptide-3",
+      "sequence": "KKSVIRTLSTIDDVEDRENEKGR",
+      "source_url": "https://osteosarc.com/variant/EPG5-chr18-45925851/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": true,
+        "elispot_response": "response",
+        "elispot_status": "positive"
+      },
+      "variant_id": "EPG5-chr18-45925851"
+    },
+    {
+      "corrections": [],
+      "experiments": [
+        {
+          "additional_testing": "",
+          "date": "2023-09-22",
+          "experiment": "PFO Lab 14-day stim, PFO-S18 (Spring, 2025)",
+          "outcomes": "Identification of 2x TECPR1 SCT-binding TCR-Ts via Celldom",
+          "pbmcs_label": "Sample #1: pre-vaccine PBMCs (2023/09/22)   Sample #2: apheresis (2024/05/15)",
+          "peptide_id": "P1-1.EPG5",
+          "pool": "S1",
+          "result": "Negative",
+          "summary": "Various peptide pools; CD8 T cells co-cultured with irradiated EBV-LCLs. ELISPOT and 10x single cell TCR sequencing"
+        }
+      ],
+      "gene": "EPG5",
+      "in_vaccines": [],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": null,
+      "record_id": "EPG5-chr18-45925851:vaccine-peptide-4",
+      "sequence": "LWQPSTSEI",
+      "source_url": "https://osteosarc.com/variant/EPG5-chr18-45925851/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": true,
+        "elispot_response": "response",
+        "elispot_status": "positive"
+      },
+      "variant_id": "EPG5-chr18-45925851"
+    },
+    {
+      "corrections": [],
+      "experiments": [],
+      "gene": "EXD3",
+      "in_vaccines": [
+        "mRNA"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": 12,
+      "record_id": "EXD3-chr9-137373504:vaccine-peptide-1",
+      "sequence": "LAGLLDMLESCRGQRGDGPSLAAWISHQLQ",
+      "source_url": "https://osteosarc.com/variant/EXD3-chr9-137373504/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": false,
+        "elispot_response": null,
+        "elispot_status": "not_tested"
+      },
+      "variant_id": "EXD3-chr9-137373504"
+    },
+    {
+      "corrections": [],
+      "experiments": [],
+      "gene": "EXD3",
+      "in_vaccines": [
+        "mRNA"
+      ],
+      "is_mrna_minimal_epitope": true,
+      "minimal_epitope_offset": null,
+      "record_id": "EXD3-chr9-137373504:vaccine-peptide-2",
+      "sequence": "GQRGDGPSL",
+      "source_url": "https://osteosarc.com/variant/EXD3-chr9-137373504/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": false,
+        "elispot_response": null,
+        "elispot_status": "not_tested"
+      },
+      "variant_id": "EXD3-chr9-137373504"
+    },
+    {
+      "corrections": [],
+      "experiments": [
+        {
+          "additional_testing": "Sent to Celldom",
+          "date": "2023-09-22",
+          "experiment": "PFO Lab 14-day stim, PFO-S18 (Spring, 2025)",
+          "outcomes": "Identification of 2x TECPR1 SCT-binding TCR-Ts via Celldom",
+          "pbmcs_label": "Sample #1: pre-vaccine PBMCs (2023/09/22)  Sample #2: apheresis (2024/05/15)  Sample #3: combined PBMCs (2024/07/16, 2024/08/03)  Sample #4: PBMCs (2024/08/20)  Sample #5: combined PBMCs (2024/10/10, 2024/11/21, 2024/12/13)",
+          "peptide_id": "JLF-100-038R.MT.39.EXOC4",
+          "pool": "L3",
+          "result": "Positive",
+          "summary": "Various peptide pools; CD8 T cells co-cultured with irradiated EBV-LCLs. ELISPOT and 10x single cell TCR sequencing"
+        },
+        {
+          "additional_testing": "",
+          "date": "2024-05-15",
+          "experiment": "PFO Lab ex vivo ELISPOT, PFO-S45 (Fall, 2025)",
+          "outcomes": "ex vivo responses observed in pooled and invididual peptides (MAP2, DYNC1H1); classII blockade supports CD8 resposes",
+          "pbmcs_label": "Apheresis (2024/05/15)",
+          "peptide_id": "JLF-100-038R.MT.39.EXOC4.1",
+          "pool": "Pool 1",
+          "result": "Positive (Weak)",
+          "summary": "ex vivo ELISPOT optimizing detection of CD8 T cell responses"
+        },
+        {
+          "additional_testing": "",
+          "date": "2024-05-15",
+          "experiment": "PFO Lab ex vivo ELISPOT, PFO-S45 (Fall, 2025)",
+          "outcomes": "ex vivo responses observed in pooled and invididual peptides (MAP2, DYNC1H1); classII blockade supports CD8 resposes",
+          "pbmcs_label": "Apheresis (2024/05/15)",
+          "peptide_id": "JLF-100-038R.MT.39.EXOC4.1",
+          "pool": "",
+          "result": "Positive (Weak)",
+          "summary": "ex vivo ELISPOT optimizing detection of CD8 T cell responses"
+        },
+        {
+          "additional_testing": "Sent to MUSC for expansion",
+          "date": "2024-05-15",
+          "experiment": "UNC Immune Monitoring (Summer, 2024)",
+          "outcomes": "26 TCRs extracted; 4 reactive to CSBio peptides (1x DYNC1H1, 3x EXOC4) via Class-II stimulation",
+          "pbmcs_label": "Apheresis (2024/05/15), Whole PBMCs",
+          "peptide_id": "JLF-100-038R.MT.39.EXOC4.1",
+          "pool": "NA",
+          "result": "Positive (Strong)",
+          "summary": "Whole PBMCs individually stimulated with 15 CSBio long peptides. ELISPOT and 10x single cell TCR sequencing"
+        }
+      ],
+      "gene": "EXOC4",
+      "in_vaccines": [
+        "JLF V3",
+        "JLF V2"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": null,
+      "record_id": "EXOC4-chr7-133274996:vaccine-peptide-1",
+      "sequence": "KKSVIRTLSTIDDVEDRENEKGR",
+      "source_url": "https://osteosarc.com/variant/EXOC4-chr7-133274996/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": true,
+        "elispot_response": "strong",
+        "elispot_status": "positive"
+      },
+      "variant_id": "EXOC4-chr7-133274996"
+    },
+    {
+      "corrections": [],
+      "experiments": [],
+      "gene": "EXOC4",
+      "in_vaccines": [
+        "CeGaT"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": null,
+      "record_id": "EXOC4-chr7-133274996:vaccine-peptide-2",
+      "sequence": "SVIRTLSTIDDVEDREN",
+      "source_url": "https://osteosarc.com/variant/EXOC4-chr7-133274996/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": true,
+        "elispot_response": "strong",
+        "elispot_status": "positive"
+      },
+      "variant_id": "EXOC4-chr7-133274996"
+    },
+    {
+      "corrections": [],
+      "experiments": [
+        {
+          "additional_testing": "",
+          "date": "2023-09-22",
+          "experiment": "PFO Lab 14-day stim, PFO-S18 (Spring, 2025)",
+          "outcomes": "Identification of 2x TECPR1 SCT-binding TCR-Ts via Celldom",
+          "pbmcs_label": "Sample #1: pre-vaccine PBMCs (2023/09/22)   Sample #2: apheresis (2024/05/15)",
+          "peptide_id": "P15-1.EXOC4",
+          "pool": "S4",
+          "result": "Negative",
+          "summary": "Various peptide pools; CD8 T cells co-cultured with irradiated EBV-LCLs. ELISPOT and 10x single cell TCR sequencing"
+        }
+      ],
+      "gene": "EXOC4",
+      "in_vaccines": [],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": null,
+      "record_id": "EXOC4-chr7-133274996:vaccine-peptide-3",
+      "sequence": "TIDDVEDRENE",
+      "source_url": "https://osteosarc.com/variant/EXOC4-chr7-133274996/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": true,
+        "elispot_response": "strong",
+        "elispot_status": "positive"
+      },
+      "variant_id": "EXOC4-chr7-133274996"
+    },
+    {
+      "corrections": [],
+      "experiments": [
+        {
+          "additional_testing": "",
+          "date": "2023-09-22",
+          "experiment": "PFO Lab 14-day stim, PFO-S18 (Spring, 2025)",
+          "outcomes": "Identification of 2x TECPR1 SCT-binding TCR-Ts via Celldom",
+          "pbmcs_label": "Sample #1: pre-vaccine PBMCs (2023/09/22)   Sample #2: apheresis (2024/05/15)",
+          "peptide_id": "P15-2.EXOC4",
+          "pool": "S4",
+          "result": "Negative",
+          "summary": "Various peptide pools; CD8 T cells co-cultured with irradiated EBV-LCLs. ELISPOT and 10x single cell TCR sequencing"
+        }
+      ],
+      "gene": "EXOC4",
+      "in_vaccines": [],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": null,
+      "record_id": "EXOC4-chr7-133274996:vaccine-peptide-4",
+      "sequence": "SVIRTLSTI",
+      "source_url": "https://osteosarc.com/variant/EXOC4-chr7-133274996/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": true,
+        "elispot_response": "strong",
+        "elispot_status": "positive"
+      },
+      "variant_id": "EXOC4-chr7-133274996"
+    },
+    {
+      "corrections": [],
+      "experiments": [],
+      "gene": "GLIS3",
+      "in_vaccines": [
+        "JLF V3"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": null,
+      "record_id": "GLIS3-chr9-3856149:vaccine-peptide-1",
+      "sequence": "QPPESSSSFFNTAKNTASLYPAAIRFTPEVLSARNKLFFSTKWYPCPWILWAAAEVLSPTLPRFPENCAACQLLQCGAFV",
+      "source_url": "https://osteosarc.com/variant/GLIS3-chr9-3856149/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": false,
+        "elispot_response": null,
+        "elispot_status": "not_tested"
+      },
+      "variant_id": "GLIS3-chr9-3856149"
+    },
+    {
+      "corrections": [],
+      "experiments": [],
+      "gene": "H1-2",
+      "in_vaccines": [
+        "CeGaT"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": null,
+      "record_id": "H1_2-chr6-26055824:vaccine-peptide-1",
+      "sequence": "AAKAVKPKVVKPKKAA",
+      "source_url": "https://osteosarc.com/variant/H1_2-chr6-26055824/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": false,
+        "elispot_response": null,
+        "elispot_status": "not_tested"
+      },
+      "variant_id": "H1_2-chr6-26055824"
+    },
+    {
+      "corrections": [],
+      "experiments": [
+        {
+          "additional_testing": "",
+          "date": "2023-09-22",
+          "experiment": "PFO Lab 14-day stim, PFO-S18 (Spring, 2025)",
+          "outcomes": "Identification of 2x TECPR1 SCT-binding TCR-Ts via Celldom",
+          "pbmcs_label": "Sample #1: pre-vaccine PBMCs (2023/09/22)  Sample #2: apheresis (2024/05/15)  Sample #3: combined PBMCs (2024/07/16, 2024/08/03)  Sample #4: PBMCs (2024/08/20)  Sample #5: combined PBMCs (2024/10/10, 2024/11/21, 2024/12/13)",
+          "peptide_id": "JLF-100-038R.MT.29.KDM3B",
+          "pool": "L1",
+          "result": "Negative",
+          "summary": "Various peptide pools; CD8 T cells co-cultured with irradiated EBV-LCLs. ELISPOT and 10x single cell TCR sequencing"
+        },
+        {
+          "additional_testing": "",
+          "date": "2023-09-22",
+          "experiment": "UNC Immune Monitoring (Spring, 2024)",
+          "outcomes": "Observed reactivity to MAP2 / TECPR1; no sequencing performed",
+          "pbmcs_label": "(2023/09/22, 2023/11/28)",
+          "peptide_id": "JLF-100-038R.MT.29.KDM3B.1",
+          "pool": "NA",
+          "result": "Negative",
+          "summary": "Whole PBMCs stimulated with 9 pooled CSBio long peptides. ELISPOT performed with individual peptide stimulation."
+        },
+        {
+          "additional_testing": "",
+          "date": "2024-05-15",
+          "experiment": "UNC Immune Monitoring (Summer, 2024)",
+          "outcomes": "26 TCRs extracted; 4 reactive to CSBio peptides (1x DYNC1H1, 3x EXOC4) via Class-II stimulation",
+          "pbmcs_label": "Apheresis (2024/05/15), Whole PBMCs",
+          "peptide_id": "JLF-100-038R.MT.29.KDM3B.1",
+          "pool": "NA",
+          "result": "Positive (Strong)",
+          "summary": "Whole PBMCs individually stimulated with 15 CSBio long peptides. ELISPOT and 10x single cell TCR sequencing"
+        }
+      ],
+      "gene": "KDM3B",
+      "in_vaccines": [
+        "JLF V2",
+        "JLF V1"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": null,
+      "record_id": "KDM3B-chr5-138391529:vaccine-peptide-1",
+      "sequence": "HENLFLQPPKLSREESSNPFLAFVEK",
+      "source_url": "https://osteosarc.com/variant/KDM3B-chr5-138391529/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": true,
+        "elispot_response": "strong",
+        "elispot_status": "positive"
+      },
+      "variant_id": "KDM3B-chr5-138391529"
+    },
+    {
+      "corrections": [],
+      "experiments": [],
+      "gene": "KDM3B",
+      "in_vaccines": [
+        "CeGaT"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": null,
+      "record_id": "KDM3B-chr5-138391529:vaccine-peptide-2",
+      "sequence": "PPKLSREESSNPFLAFV",
+      "source_url": "https://osteosarc.com/variant/KDM3B-chr5-138391529/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": true,
+        "elispot_response": "strong",
+        "elispot_status": "positive"
+      },
+      "variant_id": "KDM3B-chr5-138391529"
+    },
+    {
+      "corrections": [],
+      "experiments": [
+        {
+          "additional_testing": "",
+          "date": "2023-09-22",
+          "experiment": "PFO Lab 14-day stim, PFO-S18 (Spring, 2025)",
+          "outcomes": "Identification of 2x TECPR1 SCT-binding TCR-Ts via Celldom",
+          "pbmcs_label": "Sample #1: pre-vaccine PBMCs (2023/09/22)   Sample #2: apheresis (2024/05/15)",
+          "peptide_id": "P3-1.KDM3B",
+          "pool": "S1",
+          "result": "Negative",
+          "summary": "Various peptide pools; CD8 T cells co-cultured with irradiated EBV-LCLs. ELISPOT and 10x single cell TCR sequencing"
+        }
+      ],
+      "gene": "KDM3B",
+      "in_vaccines": [],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": null,
+      "record_id": "KDM3B-chr5-138391529:vaccine-peptide-3",
+      "sequence": "SREESSNPF",
+      "source_url": "https://osteosarc.com/variant/KDM3B-chr5-138391529/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": true,
+        "elispot_response": "strong",
+        "elispot_status": "positive"
+      },
+      "variant_id": "KDM3B-chr5-138391529"
+    },
+    {
+      "corrections": [],
+      "experiments": [
+        {
+          "additional_testing": "",
+          "date": "2023-09-22",
+          "experiment": "PFO Lab 14-day stim, PFO-S18 (Spring, 2025)",
+          "outcomes": "Identification of 2x TECPR1 SCT-binding TCR-Ts via Celldom",
+          "pbmcs_label": "Sample #1: pre-vaccine PBMCs (2023/09/22)  Sample #2: apheresis (2024/05/15)  Sample #3: combined PBMCs (2024/07/16, 2024/08/03)  Sample #4: PBMCs (2024/08/20)  Sample #5: combined PBMCs (2024/10/10, 2024/11/21, 2024/12/13)",
+          "peptide_id": "JLF-100-038R.MT.60.KIF1C",
+          "pool": "L1",
+          "result": "Negative",
+          "summary": "Various peptide pools; CD8 T cells co-cultured with irradiated EBV-LCLs. ELISPOT and 10x single cell TCR sequencing"
+        },
+        {
+          "additional_testing": "",
+          "date": "2023-09-22",
+          "experiment": "UNC Immune Monitoring (Spring, 2024)",
+          "outcomes": "Observed reactivity to MAP2 / TECPR1; no sequencing performed",
+          "pbmcs_label": "(2023/09/22, 2023/11/28)",
+          "peptide_id": "JLF-100-038R.MT.60.KIF1C.2",
+          "pool": "NA",
+          "result": "Negative",
+          "summary": "Whole PBMCs stimulated with 9 pooled CSBio long peptides. ELISPOT performed with individual peptide stimulation."
+        },
+        {
+          "additional_testing": "",
+          "date": "2024-05-15",
+          "experiment": "UNC Immune Monitoring (Summer, 2024)",
+          "outcomes": "26 TCRs extracted; 4 reactive to CSBio peptides (1x DYNC1H1, 3x EXOC4) via Class-II stimulation",
+          "pbmcs_label": "Apheresis (2024/05/15), Whole PBMCs",
+          "peptide_id": "JLF-100-038R.MT.60.KIF1C.2",
+          "pool": "NA",
+          "result": "Positive (Weak)",
+          "summary": "Whole PBMCs individually stimulated with 15 CSBio long peptides. ELISPOT and 10x single cell TCR sequencing"
+        }
+      ],
+      "gene": "KIF1C",
+      "in_vaccines": [
+        "JLF V2",
+        "JLF V1"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": null,
+      "record_id": "KIF1C-chr17-5007293:vaccine-peptide-1",
+      "sequence": "TEKIIAELNKTWEEKLRKTEA",
+      "source_url": "https://osteosarc.com/variant/KIF1C-chr17-5007293/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": true,
+        "elispot_response": "response",
+        "elispot_status": "positive"
+      },
+      "variant_id": "KIF1C-chr17-5007293"
+    },
+    {
+      "corrections": [],
+      "experiments": [
+        {
+          "additional_testing": "",
+          "date": "2023-09-22",
+          "experiment": "PFO Lab 14-day stim, PFO-S18 (Spring, 2025)",
+          "outcomes": "Identification of 2x TECPR1 SCT-binding TCR-Ts via Celldom",
+          "pbmcs_label": "Sample #1: pre-vaccine PBMCs (2023/09/22)   Sample #2: apheresis (2024/05/15)",
+          "peptide_id": "P2-1.KIF1C",
+          "pool": "S1",
+          "result": "Negative",
+          "summary": "Various peptide pools; CD8 T cells co-cultured with irradiated EBV-LCLs. ELISPOT and 10x single cell TCR sequencing"
+        }
+      ],
+      "gene": "KIF1C",
+      "in_vaccines": [],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": null,
+      "record_id": "KIF1C-chr17-5007293:vaccine-peptide-2",
+      "sequence": "LNKTWEEKL",
+      "source_url": "https://osteosarc.com/variant/KIF1C-chr17-5007293/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": true,
+        "elispot_response": "response",
+        "elispot_status": "positive"
+      },
+      "variant_id": "KIF1C-chr17-5007293"
+    },
+    {
+      "corrections": [
+        "allele-MAP2-chr2-209694768"
+      ],
+      "experiments": [],
+      "gene": "MAP2",
+      "in_vaccines": [
+        "mRNA"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": 22,
+      "record_id": "MAP2-chr2-209694768:vaccine-peptide-1",
+      "sequence": "DSQLEDRAHCHHLFKTVRIYQGRVVPFTKALMIKFEEIWPQTFH",
+      "source_url": "https://osteosarc.com/variant/MAP2-chr2-209694768/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": true,
+        "elispot_response": "strong",
+        "elispot_status": "positive"
+      },
+      "variant_id": "MAP2-chr2-209694768"
+    },
+    {
+      "corrections": [
+        "allele-MAP2-chr2-209694768"
+      ],
+      "experiments": [],
+      "gene": "MAP2",
+      "in_vaccines": [
+        "mRNA"
+      ],
+      "is_mrna_minimal_epitope": true,
+      "minimal_epitope_offset": null,
+      "record_id": "MAP2-chr2-209694768:vaccine-peptide-2",
+      "sequence": "RVVPFTKAL",
+      "source_url": "https://osteosarc.com/variant/MAP2-chr2-209694768/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": true,
+        "elispot_response": "strong",
+        "elispot_status": "positive"
+      },
+      "variant_id": "MAP2-chr2-209694768"
+    },
+    {
+      "corrections": [
+        "allele-MAP2-chr2-209694768"
+      ],
+      "experiments": [],
+      "gene": "MAP2",
+      "in_vaccines": [
+        "JLF V3"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": 8,
+      "record_id": "MAP2-chr2-209694768:vaccine-peptide-3",
+      "sequence": "KTVRIYQGRVVPFTKALMIKFEE",
+      "source_url": "https://osteosarc.com/variant/MAP2-chr2-209694768/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": true,
+        "elispot_response": "strong",
+        "elispot_status": "positive"
+      },
+      "variant_id": "MAP2-chr2-209694768"
+    },
+    {
+      "corrections": [
+        "allele-MAP2-chr2-209694768"
+      ],
+      "experiments": [
+        {
+          "additional_testing": "Sent to Celldom",
+          "date": "2023-09-22",
+          "experiment": "PFO Lab 14-day stim, PFO-S18 (Spring, 2025)",
+          "outcomes": "Identification of 2x TECPR1 SCT-binding TCR-Ts via Celldom",
+          "pbmcs_label": "Sample #1: pre-vaccine PBMCs (2023/09/22)  Sample #2: apheresis (2024/05/15)  Sample #3: combined PBMCs (2024/07/16, 2024/08/03)  Sample #4: PBMCs (2024/08/20)  Sample #5: combined PBMCs (2024/10/10, 2024/11/21, 2024/12/13)",
+          "peptide_id": "JLF-100-038.MT.14.MAP2",
+          "pool": "L2",
+          "result": "Positive",
+          "summary": "Various peptide pools; CD8 T cells co-cultured with irradiated EBV-LCLs. ELISPOT and 10x single cell TCR sequencing"
+        },
+        {
+          "additional_testing": "",
+          "date": "2023-09-22",
+          "experiment": "UNC Immune Monitoring (Spring, 2024)",
+          "outcomes": "Observed reactivity to MAP2 / TECPR1; no sequencing performed",
+          "pbmcs_label": "(2023/09/22, 2023/11/28)",
+          "peptide_id": "JLF-100-038.MT.14.MAP2.2",
+          "pool": "NA",
+          "result": "Positive (Strong)",
+          "summary": "Whole PBMCs stimulated with 9 pooled CSBio long peptides. ELISPOT performed with individual peptide stimulation."
+        },
+        {
+          "additional_testing": "",
+          "date": "2024-05-15",
+          "experiment": "PFO Lab ex vivo ELISPOT, PFO-S45 (Fall, 2025)",
+          "outcomes": "ex vivo responses observed in pooled and invididual peptides (MAP2, DYNC1H1); classII blockade supports CD8 resposes",
+          "pbmcs_label": "Apheresis (2024/05/15)",
+          "peptide_id": "JLF-100-038.MT.14.MAP2.2",
+          "pool": "Pool 1",
+          "result": "Positive (Weak)",
+          "summary": "ex vivo ELISPOT optimizing detection of CD8 T cell responses"
+        },
+        {
+          "additional_testing": "",
+          "date": "2024-05-15",
+          "experiment": "PFO Lab ex vivo ELISPOT, PFO-S45 (Fall, 2025)",
+          "outcomes": "ex vivo responses observed in pooled and invididual peptides (MAP2, DYNC1H1); classII blockade supports CD8 resposes",
+          "pbmcs_label": "Apheresis (2024/05/15)",
+          "peptide_id": "JLF-100-038.MT.14.MAP2.2",
+          "pool": "",
+          "result": "Positive (Weak)",
+          "summary": "ex vivo ELISPOT optimizing detection of CD8 T cell responses"
+        },
+        {
+          "additional_testing": "",
+          "date": "2024-05-15",
+          "experiment": "UNC Immune Monitoring (Summer, 2024)",
+          "outcomes": "26 TCRs extracted; 4 reactive to CSBio peptides (1x DYNC1H1, 3x EXOC4) via Class-II stimulation",
+          "pbmcs_label": "Apheresis (2024/05/15), Whole PBMCs",
+          "peptide_id": "JLF-100-038.MT.14.MAP2.2",
+          "pool": "NA",
+          "result": "Positive (Strong**)",
+          "summary": "Whole PBMCs individually stimulated with 15 CSBio long peptides. ELISPOT and 10x single cell TCR sequencing"
+        }
+      ],
+      "gene": "MAP2",
+      "in_vaccines": [
+        "JLF V2",
+        "JLF V1"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": 8,
+      "record_id": "MAP2-chr2-209694768:vaccine-peptide-4",
+      "sequence": "KTVRIYQGRVVPFTKALMIKFEEI",
+      "source_url": "https://osteosarc.com/variant/MAP2-chr2-209694768/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": true,
+        "elispot_response": "strong",
+        "elispot_status": "positive"
+      },
+      "variant_id": "MAP2-chr2-209694768"
+    },
+    {
+      "corrections": [],
+      "experiments": [],
+      "gene": "MT-ND5",
+      "in_vaccines": [
+        "CeGaT"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": null,
+      "record_id": "MT_ND5-chrM-12994:vaccine-peptide-1",
+      "sequence": "PLLGLLLATAGKSAQLG",
+      "source_url": "https://osteosarc.com/variant/MT_ND5-chrM-12994/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": false,
+        "elispot_response": null,
+        "elispot_status": "not_tested"
+      },
+      "variant_id": "MT_ND5-chrM-12994"
+    },
+    {
+      "corrections": [],
+      "experiments": [
+        {
+          "additional_testing": "",
+          "date": "2023-09-22",
+          "experiment": "PFO Lab 14-day stim, PFO-S18 (Spring, 2025)",
+          "outcomes": "Identification of 2x TECPR1 SCT-binding TCR-Ts via Celldom",
+          "pbmcs_label": "Sample #1: pre-vaccine PBMCs (2023/09/22)  Sample #2: apheresis (2024/05/15)  Sample #3: combined PBMCs (2024/07/16, 2024/08/03)  Sample #4: PBMCs (2024/08/20)  Sample #5: combined PBMCs (2024/10/10, 2024/11/21, 2024/12/13)",
+          "peptide_id": "JLF-100-038.MT.67.MYO15B",
+          "pool": "L1",
+          "result": "Negative",
+          "summary": "Various peptide pools; CD8 T cells co-cultured with irradiated EBV-LCLs. ELISPOT and 10x single cell TCR sequencing"
+        },
+        {
+          "additional_testing": "",
+          "date": "2023-09-22",
+          "experiment": "UNC Immune Monitoring (Spring, 2024)",
+          "outcomes": "Observed reactivity to MAP2 / TECPR1; no sequencing performed",
+          "pbmcs_label": "(2023/09/22, 2023/11/28)",
+          "peptide_id": "JLF-100-038R.MT.67.MYO15B.1",
+          "pool": "NA",
+          "result": "Negative",
+          "summary": "Whole PBMCs stimulated with 9 pooled CSBio long peptides. ELISPOT performed with individual peptide stimulation."
+        },
+        {
+          "additional_testing": "",
+          "date": "2024-05-15",
+          "experiment": "UNC Immune Monitoring (Summer, 2024)",
+          "outcomes": "26 TCRs extracted; 4 reactive to CSBio peptides (1x DYNC1H1, 3x EXOC4) via Class-II stimulation",
+          "pbmcs_label": "Apheresis (2024/05/15), Whole PBMCs",
+          "peptide_id": "JLF-100-038R.MT.67.MYO15B.1",
+          "pool": "NA",
+          "result": "Positive (Weak)",
+          "summary": "Whole PBMCs individually stimulated with 15 CSBio long peptides. ELISPOT and 10x single cell TCR sequencing"
+        }
+      ],
+      "gene": "MYO15B",
+      "in_vaccines": [
+        "JLF V2",
+        "JLF V1"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": null,
+      "record_id": "MYO15B-chr17-75589953:vaccine-peptide-1",
+      "sequence": "AGRRAQAPTRVLGLAPP",
+      "source_url": "https://osteosarc.com/variant/MYO15B-chr17-75589953/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": true,
+        "elispot_response": "response",
+        "elispot_status": "positive"
+      },
+      "variant_id": "MYO15B-chr17-75589953"
+    },
+    {
+      "corrections": [],
+      "experiments": [
+        {
+          "additional_testing": "Sent to Celldom",
+          "date": "2023-09-22",
+          "experiment": "PFO Lab 14-day stim, PFO-S18 (Spring, 2025)",
+          "outcomes": "Identification of 2x TECPR1 SCT-binding TCR-Ts via Celldom",
+          "pbmcs_label": "Sample #1: pre-vaccine PBMCs (2023/09/22)  Sample #2: apheresis (2024/05/15)  Sample #3: combined PBMCs (2024/07/16, 2024/08/03)  Sample #4: PBMCs (2024/08/20)  Sample #5: combined PBMCs (2024/10/10, 2024/11/21, 2024/12/13)",
+          "peptide_id": "JLF-100-038R.MT.53.MYO9A",
+          "pool": "L3",
+          "result": "Positive",
+          "summary": "Various peptide pools; CD8 T cells co-cultured with irradiated EBV-LCLs. ELISPOT and 10x single cell TCR sequencing"
+        },
+        {
+          "additional_testing": "",
+          "date": "2024-05-15",
+          "experiment": "PFO Lab ex vivo ELISPOT, PFO-S45 (Fall, 2025)",
+          "outcomes": "ex vivo responses observed in pooled and invididual peptides (MAP2, DYNC1H1); classII blockade supports CD8 resposes",
+          "pbmcs_label": "Apheresis (2024/05/15)",
+          "peptide_id": "JLF-100-038R.MT.53.MYO9A.1",
+          "pool": "Pool 1",
+          "result": "Positive (Weak)",
+          "summary": "ex vivo ELISPOT optimizing detection of CD8 T cell responses"
+        },
+        {
+          "additional_testing": "",
+          "date": "2024-05-15",
+          "experiment": "PFO Lab ex vivo ELISPOT, PFO-S45 (Fall, 2025)",
+          "outcomes": "ex vivo responses observed in pooled and invididual peptides (MAP2, DYNC1H1); classII blockade supports CD8 resposes",
+          "pbmcs_label": "Apheresis (2024/05/15)",
+          "peptide_id": "JLF-100-038R.MT.53.MYO9A.1",
+          "pool": "",
+          "result": "Negative",
+          "summary": "ex vivo ELISPOT optimizing detection of CD8 T cell responses"
+        },
+        {
+          "additional_testing": "",
+          "date": "2024-05-15",
+          "experiment": "UNC Immune Monitoring (Summer, 2024)",
+          "outcomes": "26 TCRs extracted; 4 reactive to CSBio peptides (1x DYNC1H1, 3x EXOC4) via Class-II stimulation",
+          "pbmcs_label": "Apheresis (2024/05/15), Whole PBMCs",
+          "peptide_id": "JLF-100-038R.MT.53.MYO9A.1",
+          "pool": "NA",
+          "result": "Positive (Strong)",
+          "summary": "Whole PBMCs individually stimulated with 15 CSBio long peptides. ELISPOT and 10x single cell TCR sequencing"
+        }
+      ],
+      "gene": "MYO9A",
+      "in_vaccines": [
+        "JLF V2"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": null,
+      "record_id": "MYO9A-chr15-71994488:vaccine-peptide-1",
+      "sequence": "KKFDWIVFRINHALLNSKVLEHNTK",
+      "source_url": "https://osteosarc.com/variant/MYO9A-chr15-71994488/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": true,
+        "elispot_response": "very strong",
+        "elispot_status": "positive"
+      },
+      "variant_id": "MYO9A-chr15-71994488"
+    },
+    {
+      "corrections": [],
+      "experiments": [
+        {
+          "additional_testing": "",
+          "date": "2023-09-22",
+          "experiment": "PFO Lab 14-day stim, PFO-S18 (Spring, 2025)",
+          "outcomes": "Identification of 2x TECPR1 SCT-binding TCR-Ts via Celldom",
+          "pbmcs_label": "Sample #1: pre-vaccine PBMCs (2023/09/22)   Sample #2: apheresis (2024/05/15)",
+          "peptide_id": "P11-1.MYO9A",
+          "pool": "S3",
+          "result": "Negative",
+          "summary": "Various peptide pools; CD8 T cells co-cultured with irradiated EBV-LCLs. ELISPOT and 10x single cell TCR sequencing"
+        }
+      ],
+      "gene": "MYO9A",
+      "in_vaccines": [],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": null,
+      "record_id": "MYO9A-chr15-71994488:vaccine-peptide-2",
+      "sequence": "HALLNSKVL",
+      "source_url": "https://osteosarc.com/variant/MYO9A-chr15-71994488/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": true,
+        "elispot_response": "very strong",
+        "elispot_status": "positive"
+      },
+      "variant_id": "MYO9A-chr15-71994488"
+    },
+    {
+      "corrections": [],
+      "experiments": [],
+      "gene": "NME1",
+      "in_vaccines": [
+        "CeGaT"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": null,
+      "record_id": "NME1-chr17-51154443:vaccine-peptide-1",
+      "sequence": "PPISSCDTRTMAN",
+      "source_url": "https://osteosarc.com/variant/NME1-chr17-51154443/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": false,
+        "elispot_response": null,
+        "elispot_status": "not_tested"
+      },
+      "variant_id": "NME1-chr17-51154443"
+    },
+    {
+      "corrections": [],
+      "experiments": [
+        {
+          "additional_testing": "Sent to Celldom",
+          "date": "2023-09-22",
+          "experiment": "PFO Lab 14-day stim, PFO-S18 (Spring, 2025)",
+          "outcomes": "Identification of 2x TECPR1 SCT-binding TCR-Ts via Celldom",
+          "pbmcs_label": "Sample #1: pre-vaccine PBMCs (2023/09/22)  Sample #2: apheresis (2024/05/15)  Sample #3: combined PBMCs (2024/07/16, 2024/08/03)  Sample #4: PBMCs (2024/08/20)  Sample #5: combined PBMCs (2024/10/10, 2024/11/21, 2024/12/13)",
+          "peptide_id": "JLF-100-038R.MT.58.NR2F2",
+          "pool": "L3",
+          "result": "Positive",
+          "summary": "Various peptide pools; CD8 T cells co-cultured with irradiated EBV-LCLs. ELISPOT and 10x single cell TCR sequencing"
+        },
+        {
+          "additional_testing": "",
+          "date": "2024-05-15",
+          "experiment": "UNC Immune Monitoring (Summer, 2024)",
+          "outcomes": "26 TCRs extracted; 4 reactive to CSBio peptides (1x DYNC1H1, 3x EXOC4) via Class-II stimulation",
+          "pbmcs_label": "Apheresis (2024/05/15), Whole PBMCs",
+          "peptide_id": "JLF-100-038R.MT.58.NR2F2.2",
+          "pool": "NA",
+          "result": "Negative",
+          "summary": "Whole PBMCs individually stimulated with 15 CSBio long peptides. ELISPOT and 10x single cell TCR sequencing"
+        }
+      ],
+      "gene": "NR2F2",
+      "in_vaccines": [
+        "JLF V2"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": null,
+      "record_id": "NR2F2-chr15-96332299:vaccine-peptide-1",
+      "sequence": "AQTAAGGQGGPGVPGSDKQQQQQHIE",
+      "source_url": "https://osteosarc.com/variant/NR2F2-chr15-96332299/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": true,
+        "elispot_response": "No response",
+        "elispot_status": "negative"
+      },
+      "variant_id": "NR2F2-chr15-96332299"
+    },
+    {
+      "corrections": [],
+      "experiments": [],
+      "gene": "NR2F2",
+      "in_vaccines": [
+        "CeGaT"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": null,
+      "record_id": "NR2F2-chr15-96332299:vaccine-peptide-2",
+      "sequence": "AGGQGGPGVPGSDKQQQ",
+      "source_url": "https://osteosarc.com/variant/NR2F2-chr15-96332299/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": true,
+        "elispot_response": "No response",
+        "elispot_status": "negative"
+      },
+      "variant_id": "NR2F2-chr15-96332299"
+    },
+    {
+      "corrections": [],
+      "experiments": [
+        {
+          "additional_testing": "",
+          "date": "2023-09-22",
+          "experiment": "PFO Lab 14-day stim, PFO-S18 (Spring, 2025)",
+          "outcomes": "Identification of 2x TECPR1 SCT-binding TCR-Ts via Celldom",
+          "pbmcs_label": "Sample #1: pre-vaccine PBMCs (2023/09/22)   Sample #2: apheresis (2024/05/15)",
+          "peptide_id": "P12-1.NR2F2",
+          "pool": "S3",
+          "result": "Negative",
+          "summary": "Various peptide pools; CD8 T cells co-cultured with irradiated EBV-LCLs. ELISPOT and 10x single cell TCR sequencing"
+        }
+      ],
+      "gene": "NR2F2",
+      "in_vaccines": [],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": null,
+      "record_id": "NR2F2-chr15-96332299:vaccine-peptide-3",
+      "sequence": "AGGQGGPGVPG",
+      "source_url": "https://osteosarc.com/variant/NR2F2-chr15-96332299/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": true,
+        "elispot_response": "No response",
+        "elispot_status": "negative"
+      },
+      "variant_id": "NR2F2-chr15-96332299"
+    },
+    {
+      "corrections": [],
+      "experiments": [
+        {
+          "additional_testing": "",
+          "date": "2023-09-22",
+          "experiment": "PFO Lab 14-day stim, PFO-S18 (Spring, 2025)",
+          "outcomes": "Identification of 2x TECPR1 SCT-binding TCR-Ts via Celldom",
+          "pbmcs_label": "Sample #1: pre-vaccine PBMCs (2023/09/22)   Sample #2: apheresis (2024/05/15)",
+          "peptide_id": "P12-2.NR2F2",
+          "pool": "S3",
+          "result": "Negative",
+          "summary": "Various peptide pools; CD8 T cells co-cultured with irradiated EBV-LCLs. ELISPOT and 10x single cell TCR sequencing"
+        }
+      ],
+      "gene": "NR2F2",
+      "in_vaccines": [],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": null,
+      "record_id": "NR2F2-chr15-96332299:vaccine-peptide-4",
+      "sequence": "QGGPGVPGSDK",
+      "source_url": "https://osteosarc.com/variant/NR2F2-chr15-96332299/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": true,
+        "elispot_response": "No response",
+        "elispot_status": "negative"
+      },
+      "variant_id": "NR2F2-chr15-96332299"
+    },
+    {
+      "corrections": [
+        "pvac-2025-detection"
+      ],
+      "experiments": [],
+      "gene": "PIP5K1A",
+      "in_vaccines": [
+        "mRNA"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": 10,
+      "record_id": "PIP5K1A-chr1-151242178:vaccine-peptide-1",
+      "sequence": "FRSGSSFSRRAAPVATPALLTSHRSLGNTRHK",
+      "source_url": "https://osteosarc.com/variant/PIP5K1A-chr1-151242178/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": false,
+        "elispot_response": null,
+        "elispot_status": "not_tested"
+      },
+      "variant_id": "PIP5K1A-chr1-151242178"
+    },
+    {
+      "corrections": [
+        "pvac-2025-detection"
+      ],
+      "experiments": [],
+      "gene": "PIP5K1A",
+      "in_vaccines": [
+        "mRNA"
+      ],
+      "is_mrna_minimal_epitope": true,
+      "minimal_epitope_offset": null,
+      "record_id": "PIP5K1A-chr1-151242178:vaccine-peptide-2",
+      "sequence": "AAPVATPAL",
+      "source_url": "https://osteosarc.com/variant/PIP5K1A-chr1-151242178/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": false,
+        "elispot_response": null,
+        "elispot_status": "not_tested"
+      },
+      "variant_id": "PIP5K1A-chr1-151242178"
+    },
+    {
+      "corrections": [
+        "pvac-2025-detection"
+      ],
+      "experiments": [],
+      "gene": "PIP5K1A",
+      "in_vaccines": [
+        "JLF V3"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": 6,
+      "record_id": "PIP5K1A-chr1-151242178:vaccine-peptide-3",
+      "sequence": "SSFSRRAAPVATPALLTSHR",
+      "source_url": "https://osteosarc.com/variant/PIP5K1A-chr1-151242178/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": false,
+        "elispot_response": null,
+        "elispot_status": "not_tested"
+      },
+      "variant_id": "PIP5K1A-chr1-151242178"
+    },
+    {
+      "corrections": [],
+      "experiments": [],
+      "gene": "PPP1R3F",
+      "in_vaccines": [
+        "mRNA"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": 18,
+      "record_id": "PPP1R3F-chrX-49270761:vaccine-peptide-1",
+      "sequence": "RNYTVLLRIAPAPTPTDAERLPQQQQLPQLE",
+      "source_url": "https://osteosarc.com/variant/PPP1R3F-chrX-49270761/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": false,
+        "elispot_response": null,
+        "elispot_status": "not_tested"
+      },
+      "variant_id": "PPP1R3F-chrX-49270761"
+    },
+    {
+      "corrections": [],
+      "experiments": [],
+      "gene": "PPP1R3F",
+      "in_vaccines": [
+        "mRNA"
+      ],
+      "is_mrna_minimal_epitope": true,
+      "minimal_epitope_offset": null,
+      "record_id": "PPP1R3F-chrX-49270761:vaccine-peptide-2",
+      "sequence": "ERLPQQQQL",
+      "source_url": "https://osteosarc.com/variant/PPP1R3F-chrX-49270761/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": false,
+        "elispot_response": null,
+        "elispot_status": "not_tested"
+      },
+      "variant_id": "PPP1R3F-chrX-49270761"
+    },
+    {
+      "corrections": [],
+      "experiments": [],
+      "gene": "PRRC2C",
+      "in_vaccines": [
+        "mRNA"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": 15,
+      "record_id": "PRRC2C-chr1-171540477:vaccine-peptide-1",
+      "sequence": "YKSKSETRWGPRPSSNRMEEVNDRPVRR",
+      "source_url": "https://osteosarc.com/variant/PRRC2C-chr1-171540477/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": false,
+        "elispot_response": null,
+        "elispot_status": "not_tested"
+      },
+      "variant_id": "PRRC2C-chr1-171540477"
+    },
+    {
+      "corrections": [],
+      "experiments": [],
+      "gene": "PRRC2C",
+      "in_vaccines": [
+        "mRNA"
+      ],
+      "is_mrna_minimal_epitope": true,
+      "minimal_epitope_offset": null,
+      "record_id": "PRRC2C-chr1-171540477:vaccine-peptide-2",
+      "sequence": "NRMEEVNDR",
+      "source_url": "https://osteosarc.com/variant/PRRC2C-chr1-171540477/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": false,
+        "elispot_response": null,
+        "elispot_status": "not_tested"
+      },
+      "variant_id": "PRRC2C-chr1-171540477"
+    },
+    {
+      "corrections": [],
+      "experiments": [],
+      "gene": "PTH1R",
+      "in_vaccines": [
+        "JLF V3"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": null,
+      "record_id": "PTH1R-chr3-46898732:vaccine-peptide-1",
+      "sequence": "SFMLRAVSFFVKDAVLYSGAKKK",
+      "source_url": "https://osteosarc.com/variant/PTH1R-chr3-46898732/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": false,
+        "elispot_response": null,
+        "elispot_status": "not_tested"
+      },
+      "variant_id": "PTH1R-chr3-46898732"
+    },
+    {
+      "corrections": [],
+      "experiments": [],
+      "gene": "SLC25A12",
+      "in_vaccines": [
+        "mRNA"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": 14,
+      "record_id": "SLC25A12-chr2-171813470:vaccine-peptide-1",
+      "sequence": "AYRFTLGSVAGAVGATAVYPTDLVKTRMQNQ",
+      "source_url": "https://osteosarc.com/variant/SLC25A12-chr2-171813470/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": true,
+        "elispot_response": "minimal",
+        "elispot_status": "positive"
+      },
+      "variant_id": "SLC25A12-chr2-171813470"
+    },
+    {
+      "corrections": [],
+      "experiments": [
+        {
+          "additional_testing": "",
+          "date": "2023-09-22",
+          "experiment": "PFO Lab 14-day stim, PFO-S18 (Spring, 2025)",
+          "outcomes": "Identification of 2x TECPR1 SCT-binding TCR-Ts via Celldom",
+          "pbmcs_label": "Sample #1: pre-vaccine PBMCs (2023/09/22)   Sample #2: apheresis (2024/05/15)",
+          "peptide_id": "P6-2.SLC25A12",
+          "pool": "S2",
+          "result": "Negative",
+          "summary": "Various peptide pools; CD8 T cells co-cultured with irradiated EBV-LCLs. ELISPOT and 10x single cell TCR sequencing"
+        }
+      ],
+      "gene": "SLC25A12",
+      "in_vaccines": [
+        "mRNA"
+      ],
+      "is_mrna_minimal_epitope": true,
+      "minimal_epitope_offset": null,
+      "record_id": "SLC25A12-chr2-171813470:vaccine-peptide-2",
+      "sequence": "ATAVYPTDL",
+      "source_url": "https://osteosarc.com/variant/SLC25A12-chr2-171813470/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": true,
+        "elispot_response": "minimal",
+        "elispot_status": "positive"
+      },
+      "variant_id": "SLC25A12-chr2-171813470"
+    },
+    {
+      "corrections": [],
+      "experiments": [
+        {
+          "additional_testing": "Sent to Celldom",
+          "date": "2023-09-22",
+          "experiment": "PFO Lab 14-day stim, PFO-S18 (Spring, 2025)",
+          "outcomes": "Identification of 2x TECPR1 SCT-binding TCR-Ts via Celldom",
+          "pbmcs_label": "Sample #1: pre-vaccine PBMCs (2023/09/22)  Sample #2: apheresis (2024/05/15)  Sample #3: combined PBMCs (2024/07/16, 2024/08/03)  Sample #4: PBMCs (2024/08/20)  Sample #5: combined PBMCs (2024/10/10, 2024/11/21, 2024/12/13)",
+          "peptide_id": "JLF-100-038.MT.8.SLC25A12",
+          "pool": "L2",
+          "result": "Positive",
+          "summary": "Various peptide pools; CD8 T cells co-cultured with irradiated EBV-LCLs. ELISPOT and 10x single cell TCR sequencing"
+        },
+        {
+          "additional_testing": "",
+          "date": "2023-09-22",
+          "experiment": "UNC Immune Monitoring (Spring, 2024)",
+          "outcomes": "Observed reactivity to MAP2 / TECPR1; no sequencing performed",
+          "pbmcs_label": "(2023/09/22, 2023/11/28)",
+          "peptide_id": "JLF-100-038R.MT.8.SLC25A12.3",
+          "pool": "NA",
+          "result": "Negative",
+          "summary": "Whole PBMCs stimulated with 9 pooled CSBio long peptides. ELISPOT performed with individual peptide stimulation."
+        },
+        {
+          "additional_testing": "",
+          "date": "2024-05-15",
+          "experiment": "PFO Lab ex vivo ELISPOT, PFO-S45 (Fall, 2025)",
+          "outcomes": "ex vivo responses observed in pooled and invididual peptides (MAP2, DYNC1H1); classII blockade supports CD8 resposes",
+          "pbmcs_label": "Apheresis (2024/05/15)",
+          "peptide_id": "JLF-100-038R.MT.8.SLC25A12.3",
+          "pool": "Pool 1",
+          "result": "Positive (Weak)",
+          "summary": "ex vivo ELISPOT optimizing detection of CD8 T cell responses"
+        },
+        {
+          "additional_testing": "",
+          "date": "2024-05-15",
+          "experiment": "PFO Lab ex vivo ELISPOT, PFO-S45 (Fall, 2025)",
+          "outcomes": "ex vivo responses observed in pooled and invididual peptides (MAP2, DYNC1H1); classII blockade supports CD8 resposes",
+          "pbmcs_label": "Apheresis (2024/05/15)",
+          "peptide_id": "JLF-100-038R.MT.8.SLC25A12.3",
+          "pool": "",
+          "result": "Negative",
+          "summary": "ex vivo ELISPOT optimizing detection of CD8 T cell responses"
+        },
+        {
+          "additional_testing": "",
+          "date": "2024-05-15",
+          "experiment": "UNC Immune Monitoring (Summer, 2024)",
+          "outcomes": "26 TCRs extracted; 4 reactive to CSBio peptides (1x DYNC1H1, 3x EXOC4) via Class-II stimulation",
+          "pbmcs_label": "Apheresis (2024/05/15), Whole PBMCs",
+          "peptide_id": "JLF-100-038R.MT.8.SLC25A12.3",
+          "pool": "NA",
+          "result": "Negative",
+          "summary": "Whole PBMCs individually stimulated with 15 CSBio long peptides. ELISPOT and 10x single cell TCR sequencing"
+        }
+      ],
+      "gene": "SLC25A12",
+      "in_vaccines": [
+        "JLF V2",
+        "JLF V1"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": 8,
+      "record_id": "SLC25A12-chr2-171813470:vaccine-peptide-3",
+      "sequence": "GSVAGAVGATAVYPTDLVKTRMQNQR",
+      "source_url": "https://osteosarc.com/variant/SLC25A12-chr2-171813470/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": true,
+        "elispot_response": "minimal",
+        "elispot_status": "positive"
+      },
+      "variant_id": "SLC25A12-chr2-171813470"
+    },
+    {
+      "corrections": [],
+      "experiments": [],
+      "gene": "SLC25A12",
+      "in_vaccines": [
+        "CeGaT"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": 2,
+      "record_id": "SLC25A12-chr2-171813470:vaccine-peptide-4",
+      "sequence": "VGATAVYPTDLVKTRMQ",
+      "source_url": "https://osteosarc.com/variant/SLC25A12-chr2-171813470/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": true,
+        "elispot_response": "minimal",
+        "elispot_status": "positive"
+      },
+      "variant_id": "SLC25A12-chr2-171813470"
+    },
+    {
+      "corrections": [],
+      "experiments": [
+        {
+          "additional_testing": "",
+          "date": "2023-09-22",
+          "experiment": "PFO Lab 14-day stim, PFO-S18 (Spring, 2025)",
+          "outcomes": "Identification of 2x TECPR1 SCT-binding TCR-Ts via Celldom",
+          "pbmcs_label": "Sample #1: pre-vaccine PBMCs (2023/09/22)   Sample #2: apheresis (2024/05/15)",
+          "peptide_id": "P6-1.SLC25A12",
+          "pool": "S2",
+          "result": "Negative",
+          "summary": "Various peptide pools; CD8 T cells co-cultured with irradiated EBV-LCLs. ELISPOT and 10x single cell TCR sequencing"
+        }
+      ],
+      "gene": "SLC25A12",
+      "in_vaccines": [],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": null,
+      "record_id": "SLC25A12-chr2-171813470:vaccine-peptide-5",
+      "sequence": "VYPTDLVKT",
+      "source_url": "https://osteosarc.com/variant/SLC25A12-chr2-171813470/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": true,
+        "elispot_response": "minimal",
+        "elispot_status": "positive"
+      },
+      "variant_id": "SLC25A12-chr2-171813470"
+    },
+    {
+      "corrections": [
+        "pvac-2025-detection"
+      ],
+      "experiments": [],
+      "gene": "SMC5",
+      "in_vaccines": [
+        "mRNA"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": 16,
+      "record_id": "SMC5-chr9-70298024:vaccine-peptide-1",
+      "sequence": "EELQQALIVKQNEELDRQKRIGNTRKMIEDL",
+      "source_url": "https://osteosarc.com/variant/SMC5-chr9-70298024/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": false,
+        "elispot_response": null,
+        "elispot_status": "not_tested"
+      },
+      "variant_id": "SMC5-chr9-70298024"
+    },
+    {
+      "corrections": [
+        "pvac-2025-detection"
+      ],
+      "experiments": [],
+      "gene": "SMC5",
+      "in_vaccines": [
+        "mRNA"
+      ],
+      "is_mrna_minimal_epitope": true,
+      "minimal_epitope_offset": null,
+      "record_id": "SMC5-chr9-70298024:vaccine-peptide-2",
+      "sequence": "RQKRIGNTR",
+      "source_url": "https://osteosarc.com/variant/SMC5-chr9-70298024/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": false,
+        "elispot_response": null,
+        "elispot_status": "not_tested"
+      },
+      "variant_id": "SMC5-chr9-70298024"
+    },
+    {
+      "corrections": [
+        "pvac-2025-detection"
+      ],
+      "experiments": [],
+      "gene": "SMC5",
+      "in_vaccines": [
+        "JLF V3"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": 1,
+      "record_id": "SMC5-chr9-70298024:vaccine-peptide-3",
+      "sequence": "DRQKRIGNTRKMIEDLQNELK",
+      "source_url": "https://osteosarc.com/variant/SMC5-chr9-70298024/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": false,
+        "elispot_response": null,
+        "elispot_status": "not_tested"
+      },
+      "variant_id": "SMC5-chr9-70298024"
+    },
+    {
+      "corrections": [],
+      "experiments": [],
+      "gene": "SPG11",
+      "in_vaccines": [
+        "mRNA"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": 13,
+      "record_id": "SPG11-chr15-44660435:vaccine-peptide-1",
+      "sequence": "ATILYSCSREALQKLIDDQDVSISLLSLRIL",
+      "source_url": "https://osteosarc.com/variant/SPG11-chr15-44660435/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": false,
+        "elispot_response": null,
+        "elispot_status": "not_tested"
+      },
+      "variant_id": "SPG11-chr15-44660435"
+    },
+    {
+      "corrections": [],
+      "experiments": [],
+      "gene": "SPG11",
+      "in_vaccines": [
+        "mRNA"
+      ],
+      "is_mrna_minimal_epitope": true,
+      "minimal_epitope_offset": null,
+      "record_id": "SPG11-chr15-44660435:vaccine-peptide-2",
+      "sequence": "KLIDDQDVSI",
+      "source_url": "https://osteosarc.com/variant/SPG11-chr15-44660435/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": false,
+        "elispot_response": null,
+        "elispot_status": "not_tested"
+      },
+      "variant_id": "SPG11-chr15-44660435"
+    },
+    {
+      "corrections": [
+        "pvac-2025-detection"
+      ],
+      "experiments": [],
+      "gene": "TECPR1",
+      "in_vaccines": [
+        "mRNA"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": 75,
+      "record_id": "TECPR1-chr7-98241127:vaccine-peptide-1",
+      "sequence": "VQISCGPHDLLWAHSGRDRPWSGKESTGAIPKEVPGPSWSLLDLKTGSCTSRWESAWSGLSPRTGRCGSEEASTLTIPAAPVGLRWLVR",
+      "source_url": "https://osteosarc.com/variant/TECPR1-chr7-98241127/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": true,
+        "elispot_response": "response",
+        "elispot_status": "positive"
+      },
+      "variant_id": "TECPR1-chr7-98241127"
+    },
+    {
+      "corrections": [
+        "pvac-2025-detection"
+      ],
+      "experiments": [],
+      "gene": "TECPR1",
+      "in_vaccines": [
+        "mRNA"
+      ],
+      "is_mrna_minimal_epitope": true,
+      "minimal_epitope_offset": null,
+      "record_id": "TECPR1-chr7-98241127:vaccine-peptide-2",
+      "sequence": "TIPAAPVGL",
+      "source_url": "https://osteosarc.com/variant/TECPR1-chr7-98241127/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": true,
+        "elispot_response": "response",
+        "elispot_status": "positive"
+      },
+      "variant_id": "TECPR1-chr7-98241127"
+    },
+    {
+      "corrections": [
+        "pvac-2025-detection"
+      ],
+      "experiments": [
+        {
+          "additional_testing": "Sent to Celldom",
+          "date": "2023-09-22",
+          "experiment": "PFO Lab 14-day stim, PFO-S18 (Spring, 2025)",
+          "outcomes": "Identification of 2x TECPR1 SCT-binding TCR-Ts via Celldom",
+          "pbmcs_label": "Sample #1: pre-vaccine PBMCs (2023/09/22)  Sample #2: apheresis (2024/05/15)  Sample #3: combined PBMCs (2024/07/16, 2024/08/03)  Sample #4: PBMCs (2024/08/20)  Sample #5: combined PBMCs (2024/10/10, 2024/11/21, 2024/12/13)",
+          "peptide_id": "JLF-100-038.MT.38.TECPR1.1",
+          "pool": "L2",
+          "result": "Positive",
+          "summary": "Various peptide pools; CD8 T cells co-cultured with irradiated EBV-LCLs. ELISPOT and 10x single cell TCR sequencing"
+        },
+        {
+          "additional_testing": "",
+          "date": "2023-09-22",
+          "experiment": "UNC Immune Monitoring (Spring, 2024)",
+          "outcomes": "Observed reactivity to MAP2 / TECPR1; no sequencing performed",
+          "pbmcs_label": "(2023/09/22, 2023/11/28)",
+          "peptide_id": "JLF-100-038R.MT.38.TECPR1.1",
+          "pool": "NA",
+          "result": "Positive (Weak)",
+          "summary": "Whole PBMCs stimulated with 9 pooled CSBio long peptides. ELISPOT performed with individual peptide stimulation."
+        },
+        {
+          "additional_testing": "",
+          "date": "2024-05-15",
+          "experiment": "UNC Immune Monitoring (Summer, 2024)",
+          "outcomes": "26 TCRs extracted; 4 reactive to CSBio peptides (1x DYNC1H1, 3x EXOC4) via Class-II stimulation",
+          "pbmcs_label": "Apheresis (2024/05/15), Whole PBMCs",
+          "peptide_id": "JLF-100-038R.MT.38.TECPR1.1",
+          "pool": "NA",
+          "result": "Negative",
+          "summary": "Whole PBMCs individually stimulated with 15 CSBio long peptides. ELISPOT and 10x single cell TCR sequencing"
+        }
+      ],
+      "gene": "TECPR1",
+      "in_vaccines": [
+        "JLF V3",
+        "JLF V2",
+        "JLF V1"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": 8,
+      "record_id": "TECPR1-chr7-98241127:vaccine-peptide-3",
+      "sequence": "GSEEASTLTIPAAPVGLRWLVR",
+      "source_url": "https://osteosarc.com/variant/TECPR1-chr7-98241127/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": true,
+        "elispot_response": "response",
+        "elispot_status": "positive"
+      },
+      "variant_id": "TECPR1-chr7-98241127"
+    },
+    {
+      "corrections": [
+        "pvac-2025-detection"
+      ],
+      "experiments": [
+        {
+          "additional_testing": "Sent to Celldom",
+          "date": "2023-09-22",
+          "experiment": "PFO Lab 14-day stim, PFO-S18 (Spring, 2025)",
+          "outcomes": "Identification of 2x TECPR1 SCT-binding TCR-Ts via Celldom",
+          "pbmcs_label": "Sample #1: pre-vaccine PBMCs (2023/09/22)  Sample #2: apheresis (2024/05/15)  Sample #3: combined PBMCs (2024/07/16, 2024/08/03)  Sample #4: PBMCs (2024/08/20)  Sample #5: combined PBMCs (2024/10/10, 2024/11/21, 2024/12/13)",
+          "peptide_id": "JLF-100-038.MT.38.TECPR1.2",
+          "pool": "L2",
+          "result": "Positive",
+          "summary": "Various peptide pools; CD8 T cells co-cultured with irradiated EBV-LCLs. ELISPOT and 10x single cell TCR sequencing"
+        },
+        {
+          "additional_testing": "",
+          "date": "2023-09-22",
+          "experiment": "UNC Immune Monitoring (Spring, 2024)",
+          "outcomes": "Observed reactivity to MAP2 / TECPR1; no sequencing performed",
+          "pbmcs_label": "(2023/09/22, 2023/11/28)",
+          "peptide_id": "JLF-100-038.MT.38.TECPR1.2",
+          "pool": "NA",
+          "result": "Negative",
+          "summary": "Whole PBMCs stimulated with 9 pooled CSBio long peptides. ELISPOT performed with individual peptide stimulation."
+        },
+        {
+          "additional_testing": "",
+          "date": "2024-05-15",
+          "experiment": "UNC Immune Monitoring (Summer, 2024)",
+          "outcomes": "26 TCRs extracted; 4 reactive to CSBio peptides (1x DYNC1H1, 3x EXOC4) via Class-II stimulation",
+          "pbmcs_label": "Apheresis (2024/05/15), Whole PBMCs",
+          "peptide_id": "JLF-100-038.MT.38.TECPR1.2",
+          "pool": "NA",
+          "result": "Positive (Weak)",
+          "summary": "Whole PBMCs individually stimulated with 15 CSBio long peptides. ELISPOT and 10x single cell TCR sequencing"
+        }
+      ],
+      "gene": "TECPR1",
+      "in_vaccines": [
+        "JLF V2",
+        "JLF V1"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": null,
+      "record_id": "TECPR1-chr7-98241127:vaccine-peptide-4",
+      "sequence": "TSRWESAWSGLSPRTGR",
+      "source_url": "https://osteosarc.com/variant/TECPR1-chr7-98241127/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": true,
+        "elispot_response": "response",
+        "elispot_status": "positive"
+      },
+      "variant_id": "TECPR1-chr7-98241127"
+    },
+    {
+      "corrections": [
+        "pvac-2025-detection"
+      ],
+      "experiments": [],
+      "gene": "TECPR1",
+      "in_vaccines": [
+        "CeGaT"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": null,
+      "record_id": "TECPR1-chr7-98241127:vaccine-peptide-5",
+      "sequence": "LWAHSGRDRPWSGKES",
+      "source_url": "https://osteosarc.com/variant/TECPR1-chr7-98241127/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": true,
+        "elispot_response": "response",
+        "elispot_status": "positive"
+      },
+      "variant_id": "TECPR1-chr7-98241127"
+    },
+    {
+      "corrections": [],
+      "experiments": [],
+      "gene": "VPS13B",
+      "in_vaccines": [
+        "JLF V3"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": null,
+      "record_id": "VPS13B-chr8-99861923:vaccine-peptide-1",
+      "sequence": "RQLPESLGEGLRQGLFRLGIS",
+      "source_url": "https://osteosarc.com/variant/VPS13B-chr8-99861923/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": false,
+        "elispot_response": null,
+        "elispot_status": "not_tested"
+      },
+      "variant_id": "VPS13B-chr8-99861923"
+    },
+    {
+      "corrections": [],
+      "experiments": [],
+      "gene": "VPS13B",
+      "in_vaccines": [
+        "CeGaT"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": null,
+      "record_id": "VPS13B-chr8-99861923:vaccine-peptide-2",
+      "sequence": "GEGLRQGLFRLGISLLGAIA",
+      "source_url": "https://osteosarc.com/variant/VPS13B-chr8-99861923/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": false,
+        "elispot_response": null,
+        "elispot_status": "not_tested"
+      },
+      "variant_id": "VPS13B-chr8-99861923"
+    },
+    {
+      "corrections": [],
+      "experiments": [],
+      "gene": "VPS72",
+      "in_vaccines": [
+        "mRNA"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": 20,
+      "record_id": "VPS72-chr1-151185547:vaccine-peptide-1",
+      "sequence": "KSLRPRKVNTPAGSSQKAREERALLPLELQD",
+      "source_url": "https://osteosarc.com/variant/VPS72-chr1-151185547/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": false,
+        "elispot_response": null,
+        "elispot_status": "not_tested"
+      },
+      "variant_id": "VPS72-chr1-151185547"
+    },
+    {
+      "corrections": [],
+      "experiments": [],
+      "gene": "VPS72",
+      "in_vaccines": [
+        "mRNA"
+      ],
+      "is_mrna_minimal_epitope": true,
+      "minimal_epitope_offset": null,
+      "record_id": "VPS72-chr1-151185547:vaccine-peptide-2",
+      "sequence": "ERALLPLEL",
+      "source_url": "https://osteosarc.com/variant/VPS72-chr1-151185547/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": false,
+        "elispot_response": null,
+        "elispot_status": "not_tested"
+      },
+      "variant_id": "VPS72-chr1-151185547"
+    },
+    {
+      "corrections": [],
+      "experiments": [],
+      "gene": "VPS72",
+      "in_vaccines": [
+        "JLF V3"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": 8,
+      "record_id": "VPS72-chr1-151185547:vaccine-peptide-3",
+      "sequence": "GSSQKAREERALLPLELQDDGSDSRKS",
+      "source_url": "https://osteosarc.com/variant/VPS72-chr1-151185547/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": false,
+        "elispot_response": null,
+        "elispot_status": "not_tested"
+      },
+      "variant_id": "VPS72-chr1-151185547"
+    },
+    {
+      "corrections": [],
+      "experiments": [],
+      "gene": "WWC1",
+      "in_vaccines": [
+        "mRNA"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": 17,
+      "record_id": "WWC1-chr5-168399513:vaccine-peptide-1",
+      "sequence": "AEIATAKSRVNKLKREMGHLQHELQFKERGF",
+      "source_url": "https://osteosarc.com/variant/WWC1-chr5-168399513/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": false,
+        "elispot_response": null,
+        "elispot_status": "not_tested"
+      },
+      "variant_id": "WWC1-chr5-168399513"
+    },
+    {
+      "corrections": [],
+      "experiments": [],
+      "gene": "WWC1",
+      "in_vaccines": [
+        "mRNA"
+      ],
+      "is_mrna_minimal_epitope": true,
+      "minimal_epitope_offset": null,
+      "record_id": "WWC1-chr5-168399513:vaccine-peptide-2",
+      "sequence": "GHLQHELQF",
+      "source_url": "https://osteosarc.com/variant/WWC1-chr5-168399513/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": false,
+        "elispot_response": null,
+        "elispot_status": "not_tested"
+      },
+      "variant_id": "WWC1-chr5-168399513"
+    },
+    {
+      "corrections": [],
+      "experiments": [],
+      "gene": "WWC1",
+      "in_vaccines": [
+        "JLF V3"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": 7,
+      "record_id": "WWC1-chr5-168399513:vaccine-peptide-3",
+      "sequence": "NKLKREMGHLQHELQFKERG",
+      "source_url": "https://osteosarc.com/variant/WWC1-chr5-168399513/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": false,
+        "elispot_response": null,
+        "elispot_status": "not_tested"
+      },
+      "variant_id": "WWC1-chr5-168399513"
+    },
+    {
+      "corrections": [],
+      "experiments": [],
+      "gene": "ZNF436",
+      "in_vaccines": [
+        "mRNA"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": 15,
+      "record_id": "ZNF436-chr1-23362762:vaccine-peptide-1",
+      "sequence": "RTHTGERPYDCNECGKSFGRSCHLIQHQTIH",
+      "source_url": "https://osteosarc.com/variant/ZNF436-chr1-23362762/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": false,
+        "elispot_response": null,
+        "elispot_status": "not_tested"
+      },
+      "variant_id": "ZNF436-chr1-23362762"
+    },
+    {
+      "corrections": [],
+      "experiments": [],
+      "gene": "ZNF436",
+      "in_vaccines": [
+        "mRNA"
+      ],
+      "is_mrna_minimal_epitope": true,
+      "minimal_epitope_offset": null,
+      "record_id": "ZNF436-chr1-23362762:vaccine-peptide-2",
+      "sequence": "KSFGRSCHL",
+      "source_url": "https://osteosarc.com/variant/ZNF436-chr1-23362762/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": false,
+        "elispot_response": null,
+        "elispot_status": "not_tested"
+      },
+      "variant_id": "ZNF436-chr1-23362762"
+    },
+    {
+      "corrections": [],
+      "experiments": [],
+      "gene": "ZNF436",
+      "in_vaccines": [
+        "CeGaT"
+      ],
+      "is_mrna_minimal_epitope": false,
+      "minimal_epitope_offset": 1,
+      "record_id": "ZNF436-chr1-23362762:vaccine-peptide-3",
+      "sequence": "GKSFGRSCHLIQHQTI",
+      "source_url": "https://osteosarc.com/variant/ZNF436-chr1-23362762/",
+      "validation": {
+        "DAkkS": false,
+        "Elispot": false,
+        "elispot_response": null,
+        "elispot_status": "not_tested"
+      },
+      "variant_id": "ZNF436-chr1-23362762"
+    }
+  ],
+  "schema_version": 1,
+  "snapshot": {
+    "created_at": "2026-09-21T13:30:58.120500+00:00",
+    "id": "9c8938b30873f6dbaf3a712e806fd1b813ee94dac9364ddfa49bb494748e745d",
+    "name": "mhctools-vaccine-fixtures-2026-09-21",
+    "schema_version": 1,
+    "sources": {
+      "bam_metadata": {
+        "etag": "\"9d3027187ee444f2245af030f3a9d2f9\"",
+        "filename": "bam-metadata-consolidated.tsv",
+        "last_modified": null,
+        "md5": null,
+        "retrieved_at": "2026-09-21T13:30:49.843105+00:00",
+        "sha256": "1a1fd0d84a2027988aba0f996a5908329bbc33bc3671c96c4323f3e3c78c9c6a",
+        "size": 23005,
+        "url": "https://gitlab.com/slowkow/osteosarc.com/-/raw/main/scripts/data/bam-metadata-consolidated.tsv"
+      },
+      "bams": {
+        "etag": "\"dlkg83lpwa1az3a\"",
+        "filename": "bams.json",
+        "last_modified": "Sun, 20 Sep 2026 21:07:28 GMT",
+        "md5": null,
+        "retrieved_at": "2026-09-21T13:30:43.450282+00:00",
+        "sha256": "7d90c733a3cb157ff70e9302a7f7ea302cc5cac0cfd244b6d65a24d7b245e2e7",
+        "size": 45478,
+        "url": "https://osteosarc.com/bams/bams.json"
+      },
+      "bucket": {
+        "etag": "\"dlkg83onvj7iqj2ur\"",
+        "filename": "bucket_listing.json",
+        "last_modified": "Sun, 20 Sep 2026 21:07:29 GMT",
+        "md5": null,
+        "retrieved_at": "2026-09-21T13:30:45.841822+00:00",
+        "sha256": "05266e83e44334bf20bc3f50ed45ffa243d7296b66f80b0de657d57096e07dc5",
+        "size": 44560179,
+        "url": "https://osteosarc.com/bucket_listing.json"
+      },
+      "cytometry": {
+        "etag": "\"dlkg846ak6zx2931\"",
+        "filename": "cytometry.tsv",
+        "last_modified": "Sun, 20 Sep 2026 21:07:30 GMT",
+        "md5": null,
+        "retrieved_at": "2026-09-21T13:30:58.119784+00:00",
+        "sha256": "c1c20370ab67eddfdef60909e6fd7ca1ec47bdf4d17ddfb18f1064e69f90f055",
+        "size": 105085,
+        "url": "https://osteosarc.com/data/cytometry.tsv"
+      },
+      "data_page": {
+        "etag": null,
+        "filename": "data",
+        "last_modified": "Sun, 20 Sep 2026 21:07:37 GMT",
+        "md5": null,
+        "retrieved_at": "2026-09-21T13:30:50.331369+00:00",
+        "sha256": "4f49a156f9ba030a0c78d2dce27ffa8e3ebd951223e4be026db6d43616743cc8",
+        "size": 115042,
+        "url": "https://osteosarc.com/data/"
+      },
+      "events": {
+        "etag": "\"dlkg846ak6zx1iib\"",
+        "filename": "events.json",
+        "last_modified": "Sun, 20 Sep 2026 21:07:30 GMT",
+        "md5": null,
+        "retrieved_at": "2026-09-21T13:30:50.705883+00:00",
+        "sha256": "1fd312a432a6fd263e29c08cc62ebc647cbdb65f63a646fc96db1c4069aa1fb8",
+        "size": 70643,
+        "url": "https://osteosarc.com/data/events.json"
+      },
+      "events_sheet": {
+        "etag": "\"faafee6fff012879e06c4d5a1ed5036a\"",
+        "filename": "timeline.csv",
+        "last_modified": null,
+        "md5": null,
+        "retrieved_at": "2026-09-21T13:30:51.523114+00:00",
+        "sha256": "41313830f2b70549575fe1aab44df5cdf325970fd2332509a71b9f1dfef5d570",
+        "size": 25204,
+        "url": "https://gitlab.com/slowkow/osteosarc.com/-/raw/main/scripts/timeline/timeline.csv"
+      },
+      "fastqs": {
+        "etag": "\"34794b7fe02affb3c5495f6391145e6d\"",
+        "filename": "fastqs-consolidated.tsv",
+        "last_modified": null,
+        "md5": null,
+        "retrieved_at": "2026-09-21T13:30:54.606100+00:00",
+        "sha256": "d5ba79663f1af7fe6faa370698f82d70bbd883693cb7d5404c1d094856363cbf",
+        "size": 54606,
+        "url": "https://gitlab.com/slowkow/osteosarc.com/-/raw/main/scripts/data/fastqs-consolidated.tsv"
+      },
+      "flow": {
+        "etag": "\"dlkg846br28wahe\"",
+        "filename": "manifest.json",
+        "last_modified": "Sun, 20 Sep 2026 21:07:30 GMT",
+        "md5": null,
+        "retrieved_at": "2026-09-21T13:30:55.212053+00:00",
+        "sha256": "492a996c95f625a9490ff62e06d56079d741fdd10ce1232c79a7515a5a7a5b04",
+        "size": 13586,
+        "url": "https://osteosarc.com/data/flow/manifest.json"
+      },
+      "imaging": {
+        "etag": "\"995dff34f1ac47269e905f95e08f83d6\"",
+        "filename": "dicom-studies.json",
+        "last_modified": null,
+        "md5": null,
+        "retrieved_at": "2026-09-21T13:30:56.180360+00:00",
+        "sha256": "e9710af61cd4b062238e6de1d1a96543e67ce8c9ee50c89ac180152430eb6cfc",
+        "size": 732839,
+        "url": "https://gitlab.com/slowkow/osteosarc.com/-/raw/main/src/data/dicom-studies.json"
+      },
+      "labs": {
+        "etag": "\"dlkg84705uuqcgvj\"",
+        "filename": "lab_results.tsv",
+        "last_modified": "Sun, 20 Sep 2026 21:07:30 GMT",
+        "md5": null,
+        "retrieved_at": "2026-09-21T13:30:57.520071+00:00",
+        "sha256": "726ffae6b660e03f65ef16afc6bb43dbfcec73df243bf10069121396152b7173",
+        "size": 581743,
+        "url": "https://osteosarc.com/data/lab_results.tsv"
+      },
+      "mrd": {
+        "etag": "\"dlkg8475irh37rj\"",
+        "filename": "mrd.json",
+        "last_modified": "Sun, 20 Sep 2026 21:07:30 GMT",
+        "md5": null,
+        "retrieved_at": "2026-09-21T13:30:52.040605+00:00",
+        "sha256": "5d1e0f10dea83ae21af97256b168cec0ba10a70b3b44ecca2f1cc51ee4ffc9dd",
+        "size": 10063,
+        "url": "https://osteosarc.com/data/mrd.json"
+      },
+      "pathology": {
+        "etag": "\"6124c904f0138e7b5c0dbf0ee1691424\"",
+        "filename": "pathology-slides.json",
+        "last_modified": null,
+        "md5": null,
+        "retrieved_at": "2026-09-21T13:30:56.865352+00:00",
+        "sha256": "6270b51818a0783e47b7307cea8e042bcff15be3d0d2df4965671d15713758d3",
+        "size": 17243,
+        "url": "https://gitlab.com/slowkow/osteosarc.com/-/raw/main/src/data/pathology-slides.json"
+      },
+      "source_variants": {
+        "etag": "\"962ca90467b5ef7be6d56d980e1e0fb5\"",
+        "filename": "variants.json",
+        "last_modified": null,
+        "md5": null,
+        "retrieved_at": "2026-09-21T13:30:49.151990+00:00",
+        "sha256": "f90e2d8c896cb45a002610f233212ed1b28d0e56891365590947d31485947e16",
+        "size": 6411344,
+        "url": "https://gitlab.com/slowkow/osteosarc.com/-/raw/main/src/data/variants.json"
+      },
+      "specimens": {
+        "etag": "\"558a6f458a5050f97a38795fb55676d1\"",
+        "filename": "samples-consolidated.tsv",
+        "last_modified": null,
+        "md5": null,
+        "retrieved_at": "2026-09-21T13:30:52.791537+00:00",
+        "sha256": "c42c48b41e4b29a7c7feaa60d9401e8ccfb1faf30ac24ec5011945b32016ff56",
+        "size": 6990,
+        "url": "https://gitlab.com/slowkow/osteosarc.com/-/raw/main/scripts/data/samples-consolidated.tsv"
+      },
+      "timepoint_summary": {
+        "etag": "\"8cf5305b4b0202f37b7aedc1741b8af2\"",
+        "filename": "samples.json",
+        "last_modified": null,
+        "md5": null,
+        "retrieved_at": "2026-09-21T13:30:53.892276+00:00",
+        "sha256": "6025a4f843eb483758cec60c1c91a0b5f27c44d2a4ed7fc3147039e78cd141f0",
+        "size": 609,
+        "url": "https://gitlab.com/slowkow/osteosarc.com/-/raw/main/src/data/samples.json"
+      },
+      "vaccine_overlap": {
+        "etag": "\"dlkg8479osuhpos\"",
+        "filename": "vaccine_overlap.json",
+        "last_modified": "Sun, 20 Sep 2026 21:07:30 GMT",
+        "md5": null,
+        "retrieved_at": "2026-09-21T13:30:48.248458+00:00",
+        "sha256": "3572f7ded10bc10e4dae92805210e858a024449e037e7f47320a05c93991053f",
+        "size": 33292,
+        "url": "https://osteosarc.com/data/vaccine_overlap.json"
+      },
+      "vaf_columns": {
+        "etag": "\"dlkg85415l44156\"",
+        "filename": "variant_vafs_long.columns.tsv",
+        "last_modified": "Sun, 20 Sep 2026 21:07:32 GMT",
+        "md5": null,
+        "retrieved_at": "2026-09-21T13:30:47.674859+00:00",
+        "sha256": "935507a2cf33688243b92285e5107c6e814aee635c5ce5f8963f2b8f3ec0535f",
+        "size": 1482,
+        "url": "https://osteosarc.com/variants/variant_vafs_long.columns.tsv"
+      },
+      "vafs": {
+        "etag": "\"dlkg85444r8kyylh\"",
+        "filename": "variant_vafs_long.tsv",
+        "last_modified": "Sun, 20 Sep 2026 21:07:32 GMT",
+        "md5": null,
+        "retrieved_at": "2026-09-21T13:30:47.151502+00:00",
+        "sha256": "e5627735897ba62d19c207e40d7e8516c81bd0fc793a339c8aa5138ab63f3913",
+        "size": 1631141,
+        "url": "https://osteosarc.com/variants/variant_vafs_long.tsv"
+      },
+      "variant_index": {
+        "etag": null,
+        "filename": "variants",
+        "last_modified": "Sun, 20 Sep 2026 21:07:39 GMT",
+        "md5": null,
+        "retrieved_at": "2026-09-21T13:30:46.527360+00:00",
+        "sha256": "b687080306dffbaba1c2da91f22735a7315763aed1859da4b67f259a24c1bd10",
+        "size": 545438,
+        "url": "https://osteosarc.com/variants/"
+      }
+    }
+  },
+  "undisclosed_memberships": [
+    {
+      "vaccine": "Cure 2024",
+      "variant_id": "ABCF2-chr7-151218156"
+    },
+    {
+      "vaccine": "JLF V1",
+      "variant_id": "ADGRF5-chr6-46856758"
+    },
+    {
+      "vaccine": "Cure 2024",
+      "variant_id": "ATRX-chrX-77599465"
+    },
+    {
+      "vaccine": "Cure 2024",
+      "variant_id": "BMP1-chr8-22192067"
+    },
+    {
+      "vaccine": "Cure 2024",
+      "variant_id": "CDC40-chr6-110228838"
+    },
+    {
+      "vaccine": "JLF V1",
+      "variant_id": "CUL9-chr6-43186384"
+    },
+    {
+      "vaccine": "Cure 2024",
+      "variant_id": "DIAPH1-chr5-141526090"
+    },
+    {
+      "vaccine": "JLF V1",
+      "variant_id": "DYNC1H1-chr14-101980529"
+    },
+    {
+      "vaccine": "Cure 2024",
+      "variant_id": "DYNC1H1-chr14-101980529"
+    },
+    {
+      "vaccine": "JLF V3",
+      "variant_id": "DYNC1H1-chr14-102030200"
+    },
+    {
+      "vaccine": "JLF V1",
+      "variant_id": "EXOC4-chr7-133274996"
+    },
+    {
+      "vaccine": "Cure 2024",
+      "variant_id": "F8-chrX-154930861"
+    },
+    {
+      "vaccine": "JLF V3",
+      "variant_id": "FBXO33-chr14-39431722"
+    },
+    {
+      "vaccine": "Cure 2024",
+      "variant_id": "FBXO33-chr14-39431722"
+    },
+    {
+      "vaccine": "CeGaT",
+      "variant_id": "KIF1C-chr17-5007293"
+    },
+    {
+      "vaccine": "CeGaT",
+      "variant_id": "KRT18-chr12-52951767"
+    },
+    {
+      "vaccine": "JLF V1",
+      "variant_id": "MYO9A-chr15-71994488"
+    },
+    {
+      "vaccine": "Cure 2024",
+      "variant_id": "NAV2-chr11-20080142"
+    },
+    {
+      "vaccine": "JLF V1",
+      "variant_id": "NR2F2-chr15-96332299"
+    },
+    {
+      "vaccine": "Cure 2024",
+      "variant_id": "NTF3-chr12-5494381"
+    },
+    {
+      "vaccine": "JLF V2",
+      "variant_id": "PIP5K1A-chr1-151242178"
+    },
+    {
+      "vaccine": "Cure 2024",
+      "variant_id": "PIP5K1A-chr1-151242178"
+    },
+    {
+      "vaccine": "Cure 2024",
+      "variant_id": "PRICKLE2-chr3-64198863"
+    },
+    {
+      "vaccine": "Cure 2024",
+      "variant_id": "RNF213-chr17-80327830"
+    },
+    {
+      "vaccine": "Cure 2024",
+      "variant_id": "ROBO2-chr3-77607853"
+    },
+    {
+      "vaccine": "Cure 2024",
+      "variant_id": "SLC25A12-chr2-171813470"
+    },
+    {
+      "vaccine": "Cure 2024",
+      "variant_id": "TMRO-chr9-97910412"
+    },
+    {
+      "vaccine": "JLF V1",
+      "variant_id": "VPS13B-chr8-99861923"
+    },
+    {
+      "vaccine": "JLF V2",
+      "variant_id": "VPS13B-chr8-99861923"
+    },
+    {
+      "vaccine": "Cure 2024",
+      "variant_id": "VPS13B-chr8-99861923"
+    },
+    {
+      "vaccine": "Cure 2024",
+      "variant_id": "ZNF436-chr1-23362762"
+    },
+    {
+      "vaccine": "Cure 2024",
+      "variant_id": "ZNF674-chrX-46501045"
+    },
+    {
+      "vaccine": "Cure 2024",
+      "variant_id": "ZNF764-chr16-30557995"
+    }
+  ]
+}

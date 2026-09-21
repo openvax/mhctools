@@ -13,6 +13,20 @@ including module-level skips and parallel workers. Ordinary development runs
 can still use availability-based skips when optional predictors are absent.
 The public IEDB integration tests require internet access.
 
+## Recorded vaccine fixtures
+
+The [osteosarc fixtures](../tests/data/osteosarc/README.md) contain source-linked
+vaccine sequences and native output captures from seven real predictors.
+Their parser and wrapper regression tests run offline in all four public
+Python CI jobs, without downloading models or installing osteosarc:
+
+```sh
+python -m pytest tests/test_osteosarc_fixtures.py --require-all
+```
+
+The fixture README documents source provenance, experimental-label caveats,
+predictor versions, and the explicit regeneration commands.
+
 ## Optional model setup
 
 Install mhctools in editable mode with its development dependencies. The setup

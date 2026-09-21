@@ -1,1 +1,3 @@
 include LICENSE README.md
+include scripts/osteosarc_fixtures.py
+recursive-include tests/data/osteosarc *.json *.txt *.fasta *.stdout *.stderr *.tsv *.md

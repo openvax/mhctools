@@ -1,0 +1,6 @@
+[2026-09-21 09:38:44] Runing MixMHC2pred (v2.1-beta1) for peptide file: /Users/iskander/code/mhctools/tests/data/osteosarc/inputs/class_ii.txt
+[2026-09-21 09:38:45] Imported 55 peptides.
+[2026-09-21 09:38:45] Computing the PWM-based scores from each peptide.
+[2026-09-21 09:38:45] Computing now the full scores from each peptide.
+[2026-09-21 09:38:45] Saving the results in the output file.
+[2026-09-21 09:38:45] Finished the computations.
