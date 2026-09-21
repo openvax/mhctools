@@ -562,14 +562,17 @@ pred = Prediction(
 | `SMM` / `SMMPMBEC` | affinity | [Local IEDB standalone tools](docs/testing.md#local-smm-and-smm-pmbec) |
 | `RandomBindingPredictor` | affinity | (built-in) |
 
-Since 3.44.54, all predictors run locally. The historical Python names
+Since 3.44.55, all predictors run locally. The historical Python names
 `IedbNetMHCpan`, `IedbNetMHCcons`, `IedbNetMHCIIpan`, `IedbSMM`, and
-`IedbSMM_PMBEC` (and their `*-iedb` CLI names) remain as local aliases.
+`IedbSMM_PMBEC` (and their `*-iedb` CLI names) remain as local compatibility wrappers.
 They require installed NetMHCpan **4.1 BA**, NetMHCcons, NetMHCIIpan **4.3 BA**,
 SMM, or SMM-PMBEC respectively. The class-II alias now uses 4.3 rather than
 the hosted service's 4.1 default; local versions and percentile calibration
 can produce different values. Affinity remains IC50 in nM. Prefer explicit
-local predictor names when recording model provenance.
+local predictor names when recording model provenance. The class-I compatibility
+names retain their original default windows of 8–11 residues; canonical local
+classes retain their own defaults. `IedbNetMHCpan` emits affinity only, while
+`NetMHCpan41_BA.predict()` can emit both affinity and presentation.
 
 There is no HTTP fallback. The HTTP-only `url`, `request_timeout`, and
 `raise_on_error` constructor arguments and CLI `--do-not-raise-on-error`

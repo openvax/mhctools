@@ -163,12 +163,20 @@ def gfeller(root, python, config):
 def smm(root, python, config):
     """Install the official Python-only SMM runtime, without DTU executables."""
     archive = root / "IEDB_MHC_I-3.1.7.tar.gz"
+    candidate = archive
     if not archive.exists():
-        urllib.request.urlretrieve(
-            "https://downloads.iedb.org/tools/mhci/3.1.7/IEDB_MHC_I-3.1.7.tar.gz", archive)
-    digest = hashlib.sha256(archive.read_bytes()).hexdigest()
+        candidate = archive.with_name(archive.name + ".part")
+        # curl retries transient transfer failures (including connection
+        # timeouts), but not authorization errors such as HTTP 403.
+        run("curl", "--fail", "--location", "--retry", "3", "--retry-delay", "2",
+            "--retry-max-time", "300", "--connect-timeout", "20", "--max-time", "300",
+            "--output", candidate,
+            "https://downloads.iedb.org/tools/mhci/3.1.7/IEDB_MHC_I-3.1.7.tar.gz")
+    digest = hashlib.sha256(candidate.read_bytes()).hexdigest()
     if digest != "1cea64173886cc612d686313d4cb035c986c908e9042dab9cfa9a2bd492d2e31":
         raise SystemExit("Unexpected IEDB release checksum: %s" % digest)
+    if candidate != archive:
+        candidate.replace(archive)
     installation = root / "iedb-3.1.7"
     prefixes = ("mhc_i/src/", "mhc_i/data/", "mhc_i/method/allele-info/",
                 "mhc_i/method/iedbtools-utilities/")
