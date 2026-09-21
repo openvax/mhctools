@@ -53,7 +53,7 @@ jobs:
             tests/test_netchop_parse.py \
             tests/test_osteosarc_fixtures.py \
             tests/test_process_helpers.py \
-            tests/test_iedb_transport.py \
+            tests/test_smm.py tests/test_iedb_local.py \
             tests/test_require_all.py \
             tests/test_peptiverse.py \
             tests/test_plifepred2.py \
@@ -305,6 +305,8 @@ jobs:
         include:
           - group: half-life
             tests: tests/test_peptiverse.py tests/test_plifepred2.py
+          - group: smm
+            tests: tests/test_smm.py tests/test_smm_integration.py
           - group: gfeller
             tests: tests/test_mixmhcpred.py tests/test_mixmhc2pred2.py tests/test_prime.py
     steps:

@@ -75,7 +75,7 @@ def test_list_includes_native_and_packaged_artifacts(no_user_installs):
         "mixtcrpred",
         "netchop", "netcleave", "netmhc", "netmhccons", "netmhciipan",
         "netmhcpan", "netmhcstabpan", "nettcr", "pepsickle", "prime",
-        "tlimmuno2", "tulip"}
+        "smm", "tlimmuno2", "tulip"}
     assert statuses["calis"].manager == "mhctools package"
     assert statuses["calis"].status == "ready"
     assert statuses["calis"].fetchable is False

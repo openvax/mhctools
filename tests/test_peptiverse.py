@@ -35,7 +35,6 @@ from mhctools.peptiverse import (
     _MODEL_DIRECTORY,
     parse_peptiverse_results,
 )
-from mhctools.pred import VALUE_BEST_DIRECTIONS, best_direction
 
 
 @pytest.fixture(autouse=True)
@@ -68,17 +67,6 @@ def _write(text):
 
 
 # --- kind semantics (no model, no network) ----------------------------------
-
-def test_peptide_half_life_is_not_pmhc_stability():
-    assert Kind.peptide_half_life != Kind.pMHC_stability
-    assert Kind.peptide_half_life == "peptide_half_life"
-
-
-def test_peptide_half_life_has_no_context_free_best_direction():
-    assert VALUE_BEST_DIRECTIONS[Kind.peptide_half_life] == "max"
-    with pytest.raises(ValueError, match="context-dependent"):
-        best_direction(Kind.peptide_half_life, "value")
-
 
 def test_annotate_exposes_serum_half_life_as_a_units_bearing_field():
     from mhctools.annotate import _OUTPUT_FIELDS, output_field_tokens

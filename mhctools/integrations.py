@@ -61,6 +61,7 @@ class _ProbeResult:
 
 
 _EXECUTABLE_ARGS = {
+    "smm": ("method",),
     "mixmhc2pred": ("-h",),
     "mixmhcpred": ("--help",),
     "netmhc": ("-h",),

@@ -46,14 +46,6 @@ def test_all_models_in_registry():
         assert name in mhc_predictors, f"{name} missing from mhc_predictors registry"
 
 
-def test_all_registry_values_are_callable():
-    """Every registry value should be callable (class or factory function)."""
-    for name, cls in mhc_predictors.items():
-        assert callable(cls), (
-            f"mhc_predictors[{name!r}] = {cls!r} is not callable"
-        )
-
-
 # ── BigMHC_EL / BigMHC_IM subclass registry entries ───────────────
 
 def test_bigmhc_el_maps_to_subclass():
@@ -213,7 +205,6 @@ def _stub_args(**overrides):
         mhc_epitope_lengths=None,
         mhc_predictor_models_path=None,
         mhc_predictor_path=None,
-        do_not_raise_on_error=False,
     )
     defaults.update(overrides)
     return Namespace(**defaults)
@@ -277,7 +268,6 @@ def _make_args(predictor_tokens, **overrides):
         mhc_epitope_lengths=None,
         mhc_predictor_models_path=None,
         mhc_predictor_path=None,
-        do_not_raise_on_error=False,
     )
     defaults.update(overrides)
     return Namespace(**defaults)

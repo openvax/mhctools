@@ -248,15 +248,19 @@ def test_generic_half_life_annotation_rejects_mixed_contexts():
 
 
 def test_missing_allele_yields_nan():
+    # Populate the lookup for the same peptide and a supported allele. An
+    # unsupported allele must not inherit that other allele's prediction.
     df = pd.DataFrame({
-        "peptide": ["SIINFEKL"],
-        "hla": ["HLA-C*07:01"],  # not in the fixture
+        "peptide": ["SIINFEKL", "SIINFEKL"],
+        "hla": ["HLA-A*02:01", "HLA-C*07:01"],
     })
     out = annotate_table(
         df, [AnnotationSpec(_factory, "aff", field="affinity")],
         allele_column="hla")
-    assert math.isnan(out.iloc[0]["aff"])
-    assert out.iloc[0]["aff_best_allele"] is None
+    assert out.iloc[0]["aff"] == 100.0
+    assert out.iloc[0]["aff_best_allele"] == "HLA-A*02:01"
+    assert math.isnan(out.iloc[1]["aff"])
+    assert out.iloc[1]["aff_best_allele"] is None
 
 
 def test_unknown_peptide_yields_nan():
@@ -486,17 +490,6 @@ def test_allele_free_predictor_works_even_with_allele_column_present():
     assert out.iloc[0]["proc"] == 0.80
     # the winning prediction had no allele -> provenance is None
     assert out.iloc[0]["proc_best_allele"] is None
-
-
-def test_binding_predictor_unsupported_allele_still_nan():
-    # Regression guard: the by-peptide fallback must NOT rescue a binding
-    # predictor's unsupported-allele miss (it never populates by_peptide).
-    df = pd.DataFrame({"peptide": ["SIINFEKL"], "hla": ["HLA-C*07:01"]})
-    out = annotate_table(
-        df, [AnnotationSpec(_factory, "aff", field="affinity")],
-        allele_column="hla")
-    assert math.isnan(out.iloc[0]["aff"])
-    assert out.iloc[0]["aff_best_allele"] is None
 
 
 # --- spec parsing -----------------------------------------------------------
