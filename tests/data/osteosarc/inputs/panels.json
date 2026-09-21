@@ -1,0 +1,1706 @@
+{
+  "class_i": [
+    {
+      "id": "p000",
+      "sequence": "AAPVATPAL",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "PIP5K1A-chr1-151242178:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p001",
+      "sequence": "ATAVYPTDL",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "SLC25A12-chr2-171813470:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p002",
+      "sequence": "ERALLPLEL",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "VPS72-chr1-151185547:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p003",
+      "sequence": "ERLPQQQQL",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "PPP1R3F-chrX-49270761:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p004",
+      "sequence": "ERWKEVVRR",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "ANKRD17-chr4-73097139:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p005",
+      "sequence": "GHLQHELQF",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "WWC1-chr5-168399513:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p006",
+      "sequence": "GQRGDGPSL",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "EXD3-chr9-137373504:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p007",
+      "sequence": "GVVDGLHTV",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "BTD-chr3-15645183:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p008",
+      "sequence": "KIILNFTTL",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "BMP1-chr8-22192067:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p009",
+      "sequence": "KLIDDQDVSI",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "SPG11-chr15-44660435:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p010",
+      "sequence": "KRFHATISF",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "DYNC1H1-chr14-101980529:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p011",
+      "sequence": "KSFGRSCHL",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "ZNF436-chr1-23362762:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p012",
+      "sequence": "NRMEEVNDR",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "PRRC2C-chr1-171540477:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p013",
+      "sequence": "RQKRIGNTR",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "SMC5-chr9-70298024:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p014",
+      "sequence": "RRVRVRRTLR",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "ASPM-chr1-197102716:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p015",
+      "sequence": "RVVPFTKAL",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "MAP2-chr2-209694768:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p016",
+      "sequence": "TIPAAPVGL",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "TECPR1-chr7-98241127:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p017",
+      "sequence": "TLEQPMATL",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "ABI3BP-chr3-100850671:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p018",
+      "sequence": "TLSPNGKSL",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "CDC40-chr6-110228838:vaccine-peptide-2"
+        }
+      ]
+    }
+  ],
+  "class_ii": [
+    {
+      "id": "p000",
+      "sequence": "AAKAVKPKVVKPKKA",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "H1_2-chr6-26055824:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p001",
+      "sequence": "ALLSKFSLSRWSSQH",
+      "sources": [
+        {
+          "offset": 3,
+          "record_id": "ADGRF5-chr6-46856758:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p002",
+      "sequence": "ARNKLFFSTKWYPCP",
+      "sources": [
+        {
+          "offset": 32,
+          "record_id": "GLIS3-chr9-3856149:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p003",
+      "sequence": "ASPKRGQKREERWKE",
+      "sources": [
+        {
+          "offset": 7,
+          "record_id": "ANKRD17-chr4-73097139:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p004",
+      "sequence": "AVGATAVYPTDLVKT",
+      "sources": [
+        {
+          "offset": 5,
+          "record_id": "SLC25A12-chr2-171813470:vaccine-peptide-3"
+        }
+      ]
+    },
+    {
+      "id": "p005",
+      "sequence": "AVTLSPNGKSLACQS",
+      "sources": [
+        {
+          "offset": 8,
+          "record_id": "CDC40-chr6-110228838:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p006",
+      "sequence": "DSIPPKTSRTLEQPM",
+      "sources": [
+        {
+          "offset": 8,
+          "record_id": "ABI3BP-chr3-100850671:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p007",
+      "sequence": "EASTLTIPAAPVGLR",
+      "sources": [
+        {
+          "offset": 3,
+          "record_id": "TECPR1-chr7-98241127:vaccine-peptide-3"
+        }
+      ]
+    },
+    {
+      "id": "p008",
+      "sequence": "EDYFIGATHLQKRLE",
+      "sources": [
+        {
+          "offset": 4,
+          "record_id": "CENPL-chr1-173811223:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p009",
+      "sequence": "FSRRAAPVATPALLT",
+      "sources": [
+        {
+          "offset": 2,
+          "record_id": "PIP5K1A-chr1-151242178:vaccine-peptide-3"
+        }
+      ]
+    },
+    {
+      "id": "p010",
+      "sequence": "GATAVYPTDLVKTRM",
+      "sources": [
+        {
+          "offset": 1,
+          "record_id": "SLC25A12-chr2-171813470:vaccine-peptide-4"
+        }
+      ]
+    },
+    {
+      "id": "p011",
+      "sequence": "GGQGGPGVPGSDKQQ",
+      "sources": [
+        {
+          "offset": 5,
+          "record_id": "NR2F2-chr15-96332299:vaccine-peptide-1"
+        },
+        {
+          "offset": 1,
+          "record_id": "NR2F2-chr15-96332299:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p012",
+      "sequence": "GKSFGRSCHLIQHQT",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "ZNF436-chr1-23362762:vaccine-peptide-3"
+        }
+      ]
+    },
+    {
+      "id": "p013",
+      "sequence": "GLRQGLFRLGISLLG",
+      "sources": [
+        {
+          "offset": 2,
+          "record_id": "VPS13B-chr8-99861923:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p014",
+      "sequence": "GRRAQAPTRVLGLAP",
+      "sources": [
+        {
+          "offset": 1,
+          "record_id": "MYO15B-chr17-75589953:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p015",
+      "sequence": "HATISFDTDTGLKQA",
+      "sources": [
+        {
+          "offset": 4,
+          "record_id": "DYNC1H1-chr14-101980529:vaccine-peptide-3"
+        }
+      ]
+    },
+    {
+      "id": "p016",
+      "sequence": "HGKRFHATISFDTDT",
+      "sources": [
+        {
+          "offset": 1,
+          "record_id": "DYNC1H1-chr14-101980529:vaccine-peptide-4"
+        }
+      ]
+    },
+    {
+      "id": "p017",
+      "sequence": "IAPAPTPTDAERLPQ",
+      "sources": [
+        {
+          "offset": 8,
+          "record_id": "PPP1R3F-chrX-49270761:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p018",
+      "sequence": "IIAELNKTWEEKLRK",
+      "sources": [
+        {
+          "offset": 3,
+          "record_id": "KIF1C-chr17-5007293:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p019",
+      "sequence": "IRTLSTIDDVEDREN",
+      "sources": [
+        {
+          "offset": 4,
+          "record_id": "EPG5-chr18-45925851:vaccine-peptide-3"
+        },
+        {
+          "offset": 4,
+          "record_id": "EXOC4-chr7-133274996:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p020",
+      "sequence": "IVFRINHALLNSKVL",
+      "sources": [
+        {
+          "offset": 5,
+          "record_id": "MYO9A-chr15-71994488:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p021",
+      "sequence": "IYQGRVVPFTKALMI",
+      "sources": [
+        {
+          "offset": 4,
+          "record_id": "MAP2-chr2-209694768:vaccine-peptide-3"
+        },
+        {
+          "offset": 4,
+          "record_id": "MAP2-chr2-209694768:vaccine-peptide-4"
+        }
+      ]
+    },
+    {
+      "id": "p022",
+      "sequence": "KAVKVLQASFRRVRV",
+      "sources": [
+        {
+          "offset": 8,
+          "record_id": "ASPM-chr1-197102716:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p023",
+      "sequence": "KRIGNTRKMIEDLQN",
+      "sources": [
+        {
+          "offset": 3,
+          "record_id": "SMC5-chr9-70298024:vaccine-peptide-3"
+        }
+      ]
+    },
+    {
+      "id": "p024",
+      "sequence": "KTVRIYQGRVVPFTK",
+      "sources": [
+        {
+          "offset": 14,
+          "record_id": "MAP2-chr2-209694768:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p025",
+      "sequence": "LESCRGQRGDGPSLA",
+      "sources": [
+        {
+          "offset": 7,
+          "record_id": "EXD3-chr9-137373504:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p026",
+      "sequence": "LKHGKRFHATISFDT",
+      "sources": [
+        {
+          "offset": 7,
+          "record_id": "DYNC1H1-chr14-101980529:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p027",
+      "sequence": "LKREMGHLQHELQFK",
+      "sources": [
+        {
+          "offset": 2,
+          "record_id": "WWC1-chr5-168399513:vaccine-peptide-3"
+        }
+      ]
+    },
+    {
+      "id": "p028",
+      "sequence": "LLGLLLATAGKSAQL",
+      "sources": [
+        {
+          "offset": 1,
+          "record_id": "MT_ND5-chrM-12994:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p029",
+      "sequence": "LPLYLWQPSTSEIAV",
+      "sources": [
+        {
+          "offset": 2,
+          "record_id": "EPG5-chr18-45925851:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p030",
+      "sequence": "LQPPKLSREESSNPF",
+      "sources": [
+        {
+          "offset": 5,
+          "record_id": "KDM3B-chr5-138391529:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p031",
+      "sequence": "LSKELYALGVVDGLH",
+      "sources": [
+        {
+          "offset": 8,
+          "record_id": "BTD-chr3-15645183:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p032",
+      "sequence": "LWAHSGRDRPWSGKE",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "TECPR1-chr7-98241127:vaccine-peptide-5"
+        }
+      ]
+    },
+    {
+      "id": "p033",
+      "sequence": "LYLWQPSTSEIAVIR",
+      "sources": [
+        {
+          "offset": 4,
+          "record_id": "EPG5-chr18-45925851:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p034",
+      "sequence": "NTPAGSSQKAREERA",
+      "sources": [
+        {
+          "offset": 8,
+          "record_id": "VPS72-chr1-151185547:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p035",
+      "sequence": "PESLGEGLRQGLFRL",
+      "sources": [
+        {
+          "offset": 3,
+          "record_id": "VPS13B-chr8-99861923:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p036",
+      "sequence": "PGMSGMALMEVNLLS",
+      "sources": [
+        {
+          "offset": 4,
+          "record_id": "CD109-chr6-73818405:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p037",
+      "sequence": "PKLSREESSNPFLAF",
+      "sources": [
+        {
+          "offset": 1,
+          "record_id": "KDM3B-chr5-138391529:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p038",
+      "sequence": "RAVSFFVKDAVLYSG",
+      "sources": [
+        {
+          "offset": 4,
+          "record_id": "PTH1R-chr3-46898732:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p039",
+      "sequence": "REALQKLIDDQDVSI",
+      "sources": [
+        {
+          "offset": 8,
+          "record_id": "SPG11-chr15-44660435:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p040",
+      "sequence": "REERALLPLELQDDG",
+      "sources": [
+        {
+          "offset": 6,
+          "record_id": "VPS72-chr1-151185547:vaccine-peptide-3"
+        }
+      ]
+    },
+    {
+      "id": "p041",
+      "sequence": "RISVTPGEKIILNFT",
+      "sources": [
+        {
+          "offset": 9,
+          "record_id": "BMP1-chr8-22192067:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p042",
+      "sequence": "RRAAPVATPALLTSH",
+      "sources": [
+        {
+          "offset": 8,
+          "record_id": "PIP5K1A-chr1-151242178:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p043",
+      "sequence": "RVNKLKREMGHLQHE",
+      "sources": [
+        {
+          "offset": 8,
+          "record_id": "WWC1-chr5-168399513:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p044",
+      "sequence": "SKELYALGVVDGLHT",
+      "sources": [
+        {
+          "offset": 4,
+          "record_id": "BTD-chr3-15645183:vaccine-peptide-3"
+        }
+      ]
+    },
+    {
+      "id": "p045",
+      "sequence": "SRWESAWSGLSPRTG",
+      "sources": [
+        {
+          "offset": 1,
+          "record_id": "TECPR1-chr7-98241127:vaccine-peptide-4"
+        }
+      ]
+    },
+    {
+      "id": "p046",
+      "sequence": "SWSLLDLKTGSCTSR",
+      "sources": [
+        {
+          "offset": 37,
+          "record_id": "TECPR1-chr7-98241127:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p047",
+      "sequence": "TPGEKIILNFTTLDL",
+      "sources": [
+        {
+          "offset": 4,
+          "record_id": "BMP1-chr8-22192067:vaccine-peptide-3"
+        }
+      ]
+    },
+    {
+      "id": "p048",
+      "sequence": "TRWGPRPSSNRMEEV",
+      "sources": [
+        {
+          "offset": 6,
+          "record_id": "PRRC2C-chr1-171540477:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p049",
+      "sequence": "VAGAVGATAVYPTDL",
+      "sources": [
+        {
+          "offset": 8,
+          "record_id": "SLC25A12-chr2-171813470:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p050",
+      "sequence": "VIRTLSTIDDVEDRE",
+      "sources": [
+        {
+          "offset": 1,
+          "record_id": "EXOC4-chr7-133274996:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p051",
+      "sequence": "VKQNEELDRQKRIGN",
+      "sources": [
+        {
+          "offset": 8,
+          "record_id": "SMC5-chr9-70298024:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p052",
+      "sequence": "VTLSPNGKSLACQSM",
+      "sources": [
+        {
+          "offset": 5,
+          "record_id": "CDC40-chr6-110228838:vaccine-peptide-3"
+        }
+      ]
+    },
+    {
+      "id": "p053",
+      "sequence": "YDCNECGKSFGRSCH",
+      "sources": [
+        {
+          "offset": 8,
+          "record_id": "ZNF436-chr1-23362762:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p054",
+      "sequence": "YYEEISAGDEGEFRQ",
+      "sources": [
+        {
+          "offset": 4,
+          "record_id": "CUL9-chr6-43186384:vaccine-peptide-1"
+        }
+      ]
+    }
+  ],
+  "cleavage": [
+    {
+      "id": "p000",
+      "sequence": "AAKAVKPKVVKPKKAA",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "H1_2-chr6-26055824:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p001",
+      "sequence": "AAPVATPAL",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "PIP5K1A-chr1-151242178:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p002",
+      "sequence": "AEIATAKSRVNKLKREMGHLQHELQFKERGF",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "WWC1-chr5-168399513:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p003",
+      "sequence": "AGGQGGPGVPGSDKQQQ",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "NR2F2-chr15-96332299:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p004",
+      "sequence": "AGRRAQAPTRVLGLAPP",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "MYO15B-chr17-75589953:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p005",
+      "sequence": "AQTAAGGQGGPGVPGSDKQQQQQHIE",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "NR2F2-chr15-96332299:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p006",
+      "sequence": "ATAVYPTDL",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "SLC25A12-chr2-171813470:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p007",
+      "sequence": "ATILYSCSREALQKLIDDQDVSISLLSLRIL",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "SPG11-chr15-44660435:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p008",
+      "sequence": "AYRFTLGSVAGAVGATAVYPTDLVKTRMQNQ",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "SLC25A12-chr2-171813470:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p009",
+      "sequence": "DRQKRIGNTRKMIEDLQNELK",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "SMC5-chr9-70298024:vaccine-peptide-3"
+        }
+      ]
+    },
+    {
+      "id": "p010",
+      "sequence": "DSQLEDRAHCHHLFKTVRIYQGRVVPFTKALMIKFEEIWPQTFH",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "MAP2-chr2-209694768:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p011",
+      "sequence": "EELQQALIVKQNEELDRQKRIGNTRKMIEDL",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "SMC5-chr9-70298024:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p012",
+      "sequence": "EPSMHSMPAVTLSPNGKSLACQSMDNQILIF",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "CDC40-chr6-110228838:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p013",
+      "sequence": "ERALLPLEL",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "VPS72-chr1-151185547:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p014",
+      "sequence": "ERLPQQQQL",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "PPP1R3F-chrX-49270761:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p015",
+      "sequence": "ERWKEVVRR",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "ANKRD17-chr4-73097139:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p016",
+      "sequence": "FRSGSSFSRRAAPVATPALLTSHRSLGNTRHK",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "PIP5K1A-chr1-151242178:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p017",
+      "sequence": "GEGLRQGLFRLGISLLGAIA",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "VPS13B-chr8-99861923:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p018",
+      "sequence": "GHLQHELQF",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "WWC1-chr5-168399513:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p019",
+      "sequence": "GKRFHATISFDTDTGLKQALETKK",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "DYNC1H1-chr14-101980529:vaccine-peptide-3"
+        }
+      ]
+    },
+    {
+      "id": "p020",
+      "sequence": "GKSFGRSCHLIQHQTI",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "ZNF436-chr1-23362762:vaccine-peptide-3"
+        }
+      ]
+    },
+    {
+      "id": "p021",
+      "sequence": "GQRGDGPSL",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "EXD3-chr9-137373504:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p022",
+      "sequence": "GSEEASTLTIPAAPVGLRWLVR",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "TECPR1-chr7-98241127:vaccine-peptide-3"
+        }
+      ]
+    },
+    {
+      "id": "p023",
+      "sequence": "GSSQKAREERALLPLELQDDGSDSRKS",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "VPS72-chr1-151185547:vaccine-peptide-3"
+        }
+      ]
+    },
+    {
+      "id": "p024",
+      "sequence": "GSVAGAVGATAVYPTDLVKTRMQNQR",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "SLC25A12-chr2-171813470:vaccine-peptide-3"
+        }
+      ]
+    },
+    {
+      "id": "p025",
+      "sequence": "GVVDGLHTV",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "BTD-chr3-15645183:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p026",
+      "sequence": "HENLFLQPPKLSREESSNPFLAFVEK",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "KDM3B-chr5-138391529:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p027",
+      "sequence": "HSMPAVTLSPNGKSLACQSMDNQKK",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "CDC40-chr6-110228838:vaccine-peptide-3"
+        }
+      ]
+    },
+    {
+      "id": "p028",
+      "sequence": "KELPLYLWQPSTSEIAVIRD",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "EPG5-chr18-45925851:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p029",
+      "sequence": "KELPLYLWQPSTSEIAVIRDWKK",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "EPG5-chr18-45925851:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p030",
+      "sequence": "KHGKRFHATISFDTDTGL",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "DYNC1H1-chr14-101980529:vaccine-peptide-4"
+        }
+      ]
+    },
+    {
+      "id": "p031",
+      "sequence": "KIILNFTTL",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "BMP1-chr8-22192067:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p032",
+      "sequence": "KKFDWIVFRINHALLNSKVLEHNTK",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "MYO9A-chr15-71994488:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p033",
+      "sequence": "KKSVIRTLSTIDDVEDRENEKGR",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "EPG5-chr18-45925851:vaccine-peptide-3"
+        },
+        {
+          "offset": 0,
+          "record_id": "EXOC4-chr7-133274996:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p034",
+      "sequence": "KLIDDQDVSI",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "SPG11-chr15-44660435:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p035",
+      "sequence": "KRFHATISF",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "DYNC1H1-chr14-101980529:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p036",
+      "sequence": "KSFGRSCHL",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "ZNF436-chr1-23362762:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p037",
+      "sequence": "KSLRPRKVNTPAGSSQKAREERALLPLELQD",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "VPS72-chr1-151185547:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p038",
+      "sequence": "KTVRIYQGRVVPFTKALMIKFEE",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "MAP2-chr2-209694768:vaccine-peptide-3"
+        }
+      ]
+    },
+    {
+      "id": "p039",
+      "sequence": "KTVRIYQGRVVPFTKALMIKFEEI",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "MAP2-chr2-209694768:vaccine-peptide-4"
+        }
+      ]
+    },
+    {
+      "id": "p040",
+      "sequence": "LAGLLDMLESCRGQRGDGPSLAAWISHQLQ",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "EXD3-chr9-137373504:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p041",
+      "sequence": "LWAHSGRDRPWSGKES",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "TECPR1-chr7-98241127:vaccine-peptide-5"
+        }
+      ]
+    },
+    {
+      "id": "p042",
+      "sequence": "NKLKREMGHLQHELQFKERG",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "WWC1-chr5-168399513:vaccine-peptide-3"
+        }
+      ]
+    },
+    {
+      "id": "p043",
+      "sequence": "NRMEEVNDR",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "PRRC2C-chr1-171540477:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p044",
+      "sequence": "PLLGLLLATAGKSAQLG",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "MT_ND5-chrM-12994:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p045",
+      "sequence": "PNGKLTVASPKRGQKREERWKEVVRRSKKV",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "ANKRD17-chr4-73097139:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p046",
+      "sequence": "PPISSCDTRTMAN",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "NME1-chr17-51154443:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p047",
+      "sequence": "PPKLSREESSNPFLAFV",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "KDM3B-chr5-138391529:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p048",
+      "sequence": "QPPESSSSFFNTAKNTASLYPAAIRFTPEVLSARNKLFFSTKWYPCPWILWAAAEVLSPTLPRFPENCAACQLLQCGAFV",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "GLIS3-chr9-3856149:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p049",
+      "sequence": "REKYLTILKAVKVLQASFRRVRVRRTLRKMQ",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "ASPM-chr1-197102716:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p050",
+      "sequence": "RISVTPGEKIILNFTTLDLYRSR",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "BMP1-chr8-22192067:vaccine-peptide-3"
+        }
+      ]
+    },
+    {
+      "id": "p051",
+      "sequence": "RMLDYYEEISAGDEGEFRQSKKK",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "CUL9-chr6-43186384:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p052",
+      "sequence": "RNYTVLLRIAPAPTPTDAERLPQQQQLPQLE",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "PPP1R3F-chrX-49270761:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p053",
+      "sequence": "RPTLSKELYALGVVDGLHTVHGT",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "BTD-chr3-15645183:vaccine-peptide-3"
+        }
+      ]
+    },
+    {
+      "id": "p054",
+      "sequence": "RQKRIGNTR",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "SMC5-chr9-70298024:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p055",
+      "sequence": "RQLPESLGEGLRQGLFRLGIS",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "VPS13B-chr8-99861923:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p056",
+      "sequence": "RRVRVRRTLR",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "ASPM-chr1-197102716:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p057",
+      "sequence": "RTHTGERPYDCNECGKSFGRSCHLIQHQTIH",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "ZNF436-chr1-23362762:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p058",
+      "sequence": "RVVPFTKAL",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "MAP2-chr2-209694768:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p059",
+      "sequence": "SFMLRAVSFFVKDAVLYSGAKKK",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "PTH1R-chr3-46898732:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p060",
+      "sequence": "SFSGPGMSGMALMEVNLLSGKKK",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "CD109-chr6-73818405:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p061",
+      "sequence": "SSFSRRAAPVATPALLTSHR",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "PIP5K1A-chr1-151242178:vaccine-peptide-3"
+        }
+      ]
+    },
+    {
+      "id": "p062",
+      "sequence": "SSRPEDYFIGATHLQKRLESVRK",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "CENPL-chr1-173811223:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p063",
+      "sequence": "SVIRTLSTIDDVEDREN",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "EXOC4-chr7-133274996:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p064",
+      "sequence": "TATSDRILDSIPPKTSRTLEQPMATLAPSET",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "ABI3BP-chr3-100850671:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p065",
+      "sequence": "TEKIIAELNKTWEEKLRKTEA",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "KIF1C-chr17-5007293:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p066",
+      "sequence": "TIPAAPVGL",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "TECPR1-chr7-98241127:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p067",
+      "sequence": "TLEQPMATL",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "ABI3BP-chr3-100850671:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p068",
+      "sequence": "TLSPNGKSL",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "CDC40-chr6-110228838:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p069",
+      "sequence": "TSRWESAWSGLSPRTGR",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "TECPR1-chr7-98241127:vaccine-peptide-4"
+        }
+      ]
+    },
+    {
+      "id": "p070",
+      "sequence": "VGATAVYPTDLVKTRMQ",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "SLC25A12-chr2-171813470:vaccine-peptide-4"
+        }
+      ]
+    },
+    {
+      "id": "p071",
+      "sequence": "VLLTLDILKHGKRFHATISFDTDTGLKQAL",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "DYNC1H1-chr14-101980529:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p072",
+      "sequence": "VQEALLSKFSLSRWSSQHSKST",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "ADGRF5-chr6-46856758:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p073",
+      "sequence": "VQISCGPHDLLWAHSGRDRPWSGKESTGAIPKEVPGPSWSLLDLKTGSCTSRWESAWSGLSPRTGRCGSEEASTLTIPAAPVGLRWLVR",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "TECPR1-chr7-98241127:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p074",
+      "sequence": "YKSKSETRWGPRPSSNRMEEVNDRPVRR",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "PRRC2C-chr1-171540477:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p075",
+      "sequence": "YLLYERPTLSKELYALGVVDGLHTVHGTYYI",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "BTD-chr3-15645183:vaccine-peptide-1"
+        }
+      ]
+    },
+    {
+      "id": "p076",
+      "sequence": "YSAHMHCVWRISVTPGEKIILNFTTLDLYRSRL",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "BMP1-chr8-22192067:vaccine-peptide-1"
+        }
+      ]
+    }
+  ],
+  "cons_9mer": [
+    {
+      "id": "p000",
+      "sequence": "AAPVATPAL",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "PIP5K1A-chr1-151242178:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p001",
+      "sequence": "ATAVYPTDL",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "SLC25A12-chr2-171813470:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p002",
+      "sequence": "ERALLPLEL",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "VPS72-chr1-151185547:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p003",
+      "sequence": "ERLPQQQQL",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "PPP1R3F-chrX-49270761:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p004",
+      "sequence": "ERWKEVVRR",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "ANKRD17-chr4-73097139:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p005",
+      "sequence": "GHLQHELQF",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "WWC1-chr5-168399513:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p006",
+      "sequence": "GQRGDGPSL",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "EXD3-chr9-137373504:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p007",
+      "sequence": "GVVDGLHTV",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "BTD-chr3-15645183:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p008",
+      "sequence": "KIILNFTTL",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "BMP1-chr8-22192067:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p009",
+      "sequence": "KRFHATISF",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "DYNC1H1-chr14-101980529:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p010",
+      "sequence": "KSFGRSCHL",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "ZNF436-chr1-23362762:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p011",
+      "sequence": "NRMEEVNDR",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "PRRC2C-chr1-171540477:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p012",
+      "sequence": "RQKRIGNTR",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "SMC5-chr9-70298024:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p013",
+      "sequence": "RVVPFTKAL",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "MAP2-chr2-209694768:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p014",
+      "sequence": "TIPAAPVGL",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "TECPR1-chr7-98241127:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p015",
+      "sequence": "TLEQPMATL",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "ABI3BP-chr3-100850671:vaccine-peptide-2"
+        }
+      ]
+    },
+    {
+      "id": "p016",
+      "sequence": "TLSPNGKSL",
+      "sources": [
+        {
+          "offset": 0,
+          "record_id": "CDC40-chr6-110228838:vaccine-peptide-2"
+        }
+      ]
+    }
+  ]
+}

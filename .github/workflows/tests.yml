@@ -51,6 +51,7 @@ jobs:
             tests/test_cli_filters.py \
             tests/test_mhc_formats.py \
             tests/test_netchop_parse.py \
+            tests/test_osteosarc_fixtures.py \
             tests/test_process_helpers.py \
             tests/test_iedb_transport.py \
             tests/test_require_all.py \

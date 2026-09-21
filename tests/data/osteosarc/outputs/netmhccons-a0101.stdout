@@ -1,0 +1,41 @@
+# Method: NetMHCcons
+
+# Input is in FASTA format
+
+# Peptide length 9
+
+# Threshold for Strong binding peptides (IC50)	50.000 nM
+# Threshold for Weak binding peptides (IC50)	500.000 nM
+
+# Threshold for Strong binding peptides (%Rank)	0.5%
+# Threshold for Weak binding peptides (%Rank)	2%
+
+# Allele: HLA-A01:01
+
+# Distance to the nearest neighbour ( HLA-A01:01 ) in the training set: 0.000
+
+# NetMHCcons = NetMHC+NetMHCpan
+
+---------------------------------------------------------------------------------------
+   pos       Allele         peptide         Identity 1-log50k(aff) Affinity(nM)  %Rank   BindingLevel
+---------------------------------------------------------------------------------------
+     0   HLA-A01:01       AAPVATPAL             p000         0.060     26123.53  50.00  
+     0   HLA-A01:01       ATAVYPTDL             p001         0.119     13722.81   6.00  
+     0   HLA-A01:01       ERALLPLEL             p002         0.069     23828.16  32.00  
+     0   HLA-A01:01       ERLPQQQQL             p003         0.052     28485.48  50.00  
+     0   HLA-A01:01       ERWKEVVRR             p004         0.041     31912.64  50.00  
+     0   HLA-A01:01       GHLQHELQF             p005         0.054     27875.69  50.00  
+     0   HLA-A01:01       GQRGDGPSL             p006         0.046     30396.07  50.00  
+     0   HLA-A01:01       GVVDGLHTV             p007         0.069     23828.16  32.00  
+     0   HLA-A01:01       KIILNFTTL             p008         0.059     26407.71  50.00  
+     0   HLA-A01:01       KRFHATISF             p009         0.058     26550.96  50.00  
+     0   HLA-A01:01       KSFGRSCHL             p010         0.068     24087.38  32.00  
+     0   HLA-A01:01       NRMEEVNDR             p011         0.042     31569.21  50.00  
+     0   HLA-A01:01       RQKRIGNTR             p012         0.044     31060.99  50.00  
+     0   HLA-A01:01       RVVPFTKAL             p013         0.061     25702.97  50.00  
+     0   HLA-A01:01       TIPAAPVGL             p014         0.057     26839.80  50.00  
+     0   HLA-A01:01       TLEQPMATL             p015         0.083     20368.33  15.00  
+     0   HLA-A01:01       TLSPNGKSL             p016         0.056     27278.95  50.00  
+---------------------------------------------------------------------------------------
+Number of strong binders: 0 Number of weak binders: 0
+---------------------------------------------------------------------------------------
