@@ -475,7 +475,21 @@ def _pepsickle_status():
     )
 
 
+def _smm_status():
+    from .smm import resolve_smm_executable
+    try:
+        path = resolve_smm_executable()
+        detail = "Local SMM/SMM-PMBEC launcher located; models are checked during inference"
+    except FileNotFoundError as error:
+        path = ""
+        detail = str(error)
+    return ArtifactStatus(
+        name="smm", status="ready" if path else "missing", manager="manual",
+        version="unknown" if path else "", path=path, fetchable=False, detail=detail)
+
+
 _STATUS_FUNCTIONS = {
+    "smm": _smm_status,
     "calis": _calis_status,
     "mhcflurry": _mhcflurry_presentation_status,
     "mhcflurry-affinity": _mhcflurry_affinity_status,
@@ -483,6 +497,10 @@ _STATUS_FUNCTIONS = {
 }
 
 _ALIASES = {
+    "smm-iedb": "smm",
+    "smm-pmbec": "smm",
+    "smm-pmbec-iedb": "smm",
+
     "mhcflurry-presentation": "mhcflurry",
     "tulip-tcr": "tulip",
 }

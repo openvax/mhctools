@@ -11,7 +11,8 @@ TEST_SH_MAX=2 ./test.sh --require-all -ra
 `--require-all` fails on skips, expected failures, and unexpected passes,
 including module-level skips and parallel workers. Ordinary development runs
 can still use availability-based skips when optional predictors are absent.
-The public IEDB integration tests require internet access.
+Prediction tests do not call IEDB or other public prediction services.
+Internet access is needed only when installing model assets and runtimes.
 
 ## Recorded vaccine fixtures
 
@@ -43,7 +44,7 @@ On Linux a CPU-only torch wheel can be installed first from
 `https://download.pytorch.org/whl/cpu`.
 
 ```sh
-python scripts/setup_test_backends.py half-life recognition gfeller --accept-license
+python scripts/setup_test_backends.py half-life recognition gfeller smm --accept-license
 ```
 
 The recognition and Gfeller groups fetch separately licensed code and weights.
@@ -64,6 +65,35 @@ inference. Re-run individual groups to repair or update the local setup.
 For direct pytest commands, source it yourself. An alternate setup root is
 supported with `--root PATH`; point `MHCTOOLS_TEST_ENV` at its `activate.sh`.
 Set `MHCTOOLS_TEST_ENV=/dev/null` to run without this configuration.
+
+## Local SMM and SMM-PMBEC
+
+The `smm` setup group downloads the official [IEDB MHC-I 3.1.7 bundle](https://downloads.iedb.org/tools/mhci/3.1.7/README),
+verifies its pinned SHA-256, and installs its Python code, allele metadata,
+and model/percentile data. It does not install or execute the bundled DTU
+binaries. SMM 1.0 and SMM-PMBEC 1.0 run with the current Python interpreter,
+including on Apple Silicon; no extra Python dependencies are needed.
+Review the archive's `LIAI_license.txt` (Non-Profit Open Software License 3.0)
+before accepting the license. Upstream code and models stay outside the package.
+
+```sh
+python scripts/setup_test_backends.py smm --accept-license
+source env/test-backends/activate.sh
+python -m pytest tests/test_smm.py tests/test_smm_integration.py --require-all
+mhctools ls smm
+```
+
+For an existing configured standalone installation, set `IEDB_MHCI_EXECUTABLE`
+to an executable launcher that runs `python /absolute/path/mhc_i/src/predict_binding.py "$@"`.
+Alternatively put that launcher on PATH as `iedb-mhci`, or pass it with
+`SMM(program_name=...)` / `--mhc-predictor-path`.
+The official CLI runs locally; errors and incomplete output fail explicitly.
+`mhctools ls smm` locates the launcher, while the integration tests verify
+that its models actually reproduce the recorded vaccine predictions.
+
+The public Python jobs replay the [recorded SMM outputs](../tests/data/osteosarc/smm/README.md)
+offline. A dedicated integration job installs the pinned bundle and compares
+real inference for both methods against every recorded peptide/allele pair.
 
 ## Legacy NetMHC on Apple Silicon
 
@@ -86,7 +116,7 @@ installations with Python 2 can continue using their existing launchers.
 
 CI runs the public suite on Python 3.9–3.12, the licensed NetMHC integration
 suite, and separate real-model jobs for TULIP, CapHLA, MixTCRpred, the two
-half-life predictors, and the three Gfeller MHC predictors. Each focused model
+half-life predictors, the three Gfeller MHC predictors, and local SMM/SMM-PMBEC (11 CI jobs total). Each focused model
 job uses `--require-all`, so a missing installation cannot silently turn it green.
 The complete release run requires all installed backends and zero skips:
 

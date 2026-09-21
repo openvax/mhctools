@@ -43,6 +43,7 @@ from .integrations import (
     list_integrations,
 )
 from .peptide_input import PeptideContext, PeptideInput
+from .smm import SMM, SMMPMBEC
 from .iedb import (
     IedbNetMHCcons,
     IedbNetMHCpan,
@@ -143,7 +144,7 @@ def __getattr__(name):
     raise AttributeError(
         "module %r has no attribute %r" % (__name__, name))
 
-__version__ = "3.44.53"
+__version__ = "3.44.54"
 
 __all__ = [
     "mhcflurry_composite_version",
@@ -189,6 +190,8 @@ __all__ = [
     "set_log_level",
     "IedbNetMHCcons",
     "IedbNetMHCpan",
+    "SMM",
+    "SMMPMBEC",
     "IedbSMM",
     "IedbSMM_PMBEC",
     "IedbNetMHCIIpan",

@@ -11,6 +11,7 @@ import shlex
 import shutil
 import subprocess
 import sys
+import tarfile
 import urllib.request
 import zipfile
 
@@ -159,6 +160,42 @@ def gfeller(root, python, config):
     config["MIXMHC2PRED_EXECUTABLE"] = str(mix2 / binary)
 
 
+def smm(root, python, config):
+    """Install the official Python-only SMM runtime, without DTU executables."""
+    archive = root / "IEDB_MHC_I-3.1.7.tar.gz"
+    if not archive.exists():
+        urllib.request.urlretrieve(
+            "https://downloads.iedb.org/tools/mhci/3.1.7/IEDB_MHC_I-3.1.7.tar.gz", archive)
+    digest = hashlib.sha256(archive.read_bytes()).hexdigest()
+    if digest != "1cea64173886cc612d686313d4cb035c986c908e9042dab9cfa9a2bd492d2e31":
+        raise SystemExit("Unexpected IEDB release checksum: %s" % digest)
+    installation = root / "iedb-3.1.7"
+    prefixes = ("mhc_i/src/", "mhc_i/data/", "mhc_i/method/allele-info/",
+                "mhc_i/method/iedbtools-utilities/")
+    # Copy regular files only; compatible with Python 3.9 and no symlink or
+    # archive-path traversal. The archive is also pinned above by SHA-256.
+    with tarfile.open(archive) as release:
+        for member in release:
+            if not member.isfile() or not (
+                    member.name.startswith(prefixes)
+                    or member.name == "mhc_i/LIAI_license.txt"):
+                continue
+            destination = installation / member.name
+            if not destination.resolve().is_relative_to(installation.resolve()):
+                raise ValueError("Unsafe IEDB archive path: %s" % member.name)
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            with release.extractfile(member) as source, destination.open("wb") as target:
+                shutil.copyfileobj(source, target)
+    source = installation / "mhc_i"
+    # The upstream configure script only substitutes this installation path.
+    # Its other steps configure licensed DTU binaries that SMM does not use.
+    template = (source / "src/setupinfo.template").read_text()
+    (source / "src/setupinfo.py").write_text(template % str(source))
+    entry = root / "bin/iedb-mhci"
+    launcher(entry, [sys.executable, source / "src/predict_binding.py"])
+    config["IEDB_MHCI_EXECUTABLE"] = str(entry)
+
+
 def legacy(root, python, config):
     bundle = os.environ.get("NETMHC_BUNDLE_HOME")
     if not bundle or not (Path(bundle) / "bin/netMHCcons").is_file():
@@ -175,20 +212,20 @@ def legacy(root, python, config):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("groups", nargs="+", choices=["half-life", "recognition", "gfeller", "legacy"])
+    parser.add_argument("groups", nargs="+", choices=["half-life", "recognition", "gfeller", "legacy", "smm"])
     parser.add_argument("--python", default="python3.11", help="Python 3.11 interpreter for isolated runtimes")
     parser.add_argument("--root", type=Path, default=ROOT / "env/test-backends")
     parser.add_argument("--accept-license", action="store_true",
-                        help="Accept upstream academic/non-commercial terms (recognition/gfeller)")
+                        help="Accept upstream license terms (recognition/gfeller/smm)")
     args = parser.parse_args()
-    if set(args.groups) & {"recognition", "gfeller"} and not args.accept_license:
-        parser.error("recognition/gfeller require --accept-license; see docs/testing.md")
+    if set(args.groups) & {"recognition", "gfeller", "smm"} and not args.accept_license:
+        parser.error("recognition/gfeller/smm require --accept-license; see docs/testing.md")
     root = args.root.expanduser().resolve()
     root.mkdir(parents=True, exist_ok=True)
     state = root / "config.json"
     config = json.loads(state.read_text()) if state.exists() else {}
     functions = {"half-life": half_life, "recognition": recognition,
-                 "gfeller": gfeller, "legacy": legacy}
+                 "gfeller": gfeller, "legacy": legacy, "smm": smm}
     for group in args.groups:
         functions[group](root, args.python, config)
         state.write_text(json.dumps(config, indent=2) + "\n")

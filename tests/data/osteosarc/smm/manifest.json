@@ -1,0 +1,73 @@
+{
+  "archive_sha256": "1cea64173886cc612d686313d4cb035c986c908e9042dab9cfa9a2bd492d2e31",
+  "archive_url": "https://downloads.iedb.org/tools/mhci/3.1.7/IEDB_MHC_I-3.1.7.tar.gz",
+  "bundle_version": "3.1.7",
+  "captures": [
+    {
+      "command": [
+        "/Users/iskander/code/mhctools/env/test-backends/bin/iedb-mhci",
+        "smm",
+        "HLA-A*01:01,HLA-B*08:01",
+        "9,9",
+        "{outputs}/peptides-9.fasta"
+      ],
+      "length": 9,
+      "method": "smm"
+    },
+    {
+      "command": [
+        "/Users/iskander/code/mhctools/env/test-backends/bin/iedb-mhci",
+        "smmpmbec",
+        "HLA-A*01:01,HLA-B*08:01",
+        "9,9",
+        "{outputs}/peptides-9.fasta"
+      ],
+      "length": 9,
+      "method": "smmpmbec"
+    },
+    {
+      "command": [
+        "/Users/iskander/code/mhctools/env/test-backends/bin/iedb-mhci",
+        "smm",
+        "HLA-A*01:01,HLA-B*08:01",
+        "10,10",
+        "{outputs}/peptides-10.fasta"
+      ],
+      "length": 10,
+      "method": "smm"
+    },
+    {
+      "command": [
+        "/Users/iskander/code/mhctools/env/test-backends/bin/iedb-mhci",
+        "smmpmbec",
+        "HLA-A*01:01,HLA-B*08:01",
+        "10,10",
+        "{outputs}/peptides-10.fasta"
+      ],
+      "length": 10,
+      "method": "smmpmbec"
+    }
+  ],
+  "files": {
+    "peptides-10.fasta": "f64048da653202301cb7f1b256134151b0cffd1e67518a50a4107534568fc93a",
+    "peptides-9.fasta": "15724c9b02e6ec48d543096678592b63f6c1868c079233259e6e5e22c2462aa7",
+    "smm-10.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "smm-10.tsv": "2a7a3bca9e83fa70bc6eec532671a4a335e54c614e2c6debe46fa7ad34717a1b",
+    "smm-9.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "smm-9.tsv": "f48c1c1225b264ade70d844426964384a7f73a35081c4398e89421966b359c66",
+    "smmpmbec-10.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "smmpmbec-10.tsv": "b4bfd7fec1227e0fb39966582f03fec70f440a747cf6687cc9f0400e568d4739",
+    "smmpmbec-9.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "smmpmbec-9.tsv": "f70ed988c25294971badfc327dda4ef71e7436f0614c33f96628c13ffaba5c31"
+  },
+  "installation": {
+    "bytes": 203657306,
+    "files": 793,
+    "sha256": "29900af95e04f36920ec7d48cc004bc3a50423420f7250e4073814d02ca1476a"
+  },
+  "model_version": "1.0",
+  "platform": "macOS-26.5-arm64-arm-64bit",
+  "python": "3.12.6",
+  "recorded_at": "2026-09-21T19:17:57.542425+00:00",
+  "source_panel_sha256": "7533f21f70d01f91f4fe1cbedcffc35bbd70079a81aecf0b206fe21504243a9d"
+}

@@ -61,6 +61,8 @@ from .. import (
     RandomBindingPredictor,
     IedbNetMHCpan,
     IedbNetMHCcons,
+    SMM,
+    SMMPMBEC,
     IedbSMM,
     IedbSMM_PMBEC,
     IedbNetMHCIIpan,
@@ -171,15 +173,13 @@ mhc_predictors = {
     "netcleave-ii": NetCleave_II,
     "pepsickle": Pepsickle,
     "random": RandomBindingPredictor,
-    # use NetMHCpan via IEDB's web API
+    "smm": SMM,
+    "smm-pmbec": SMMPMBEC,
+    # Historical names, now using installed local predictors.
     "netmhcpan-iedb": IedbNetMHCpan,
-    # use NetMHCcons via IEDB's web API
     "netmhccons-iedb": IedbNetMHCcons,
-    # use SMM via IEDB's web API
     "smm-iedb": IedbSMM,
-    # use SMM-PMBEC via IEDB's web API
     "smm-pmbec-iedb": IedbSMM_PMBEC,
-    # Class II MHC binding prediction using NetMHCIIpan via IEDB
     "netmhciipan-iedb": IedbNetMHCIIpan,
     "mhcflurry": _MHCflurry,
     "mhcflurry-affinity": _MHCflurry_Affinity,
@@ -268,13 +268,6 @@ def add_mhc_args(arg_parser):
              "--mhc-alleles-file) for every allele-specific predictor; "
              "there is no default allele.")
 
-    mhc_options_arg_group.add_argument(
-        "--do-not-raise-on-error",
-        action="store_true", default=False,
-        help="Only applies to IEDB predictors: if this arg is present, will not crash on any "
-        "errors, which can result from connection issues or supplying unsupported MHC alleles. "
-        "In such cases, some predictions may get dropped from the returned result set.")
-
     return mhc_options_arg_group
 
 
@@ -325,12 +318,6 @@ def _build_predictor(cls, name, alleles, peptide_lengths, args):
             kwargs["caphla_path"] = args.mhc_predictor_path
         elif _cls_accepts(cls, "program_name"):
             kwargs["program_name"] = args.mhc_predictor_path
-    if getattr(args, "do_not_raise_on_error", False):
-        if _cls_accepts(cls, "raise_on_error"):
-            kwargs["raise_on_error"] = False
-        else:
-            logger.warning(
-                "--do-not-raise-on-error ignored for predictor %s", name)
     logger.info("Building predictor %s(%s)",
                 getattr(cls, "__name__", name), kwargs)
     return cls(**kwargs)

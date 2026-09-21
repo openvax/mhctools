@@ -559,8 +559,23 @@ pred = Prediction(
 | `CapHLA` / `CapHLA_EL` / `CapHLA_BA` | presentation + affinity (class I and II) | `pip install "mhctools[caphla]"` + `mhctools fetch caphla` |
 | `MixMHCpred` | presentation (class I) | [MixMHCpred](https://github.com/GfellerLab/MixMHCpred) |
 | `MixMHC2pred` | presentation (class II) | [MixMHC2pred](https://github.com/GfellerLab/MixMHC2pred) release (has `PWMdef/`) |
-| `IedbNetMHCpan` / `IedbSMM` / `IedbNetMHCIIpan` | affinity | IEDB web API |
+| `SMM` / `SMMPMBEC` | affinity | [Local IEDB standalone tools](docs/testing.md#local-smm-and-smm-pmbec) |
 | `RandomBindingPredictor` | affinity | (built-in) |
+
+Since 3.44.54, all predictors run locally. The historical Python names
+`IedbNetMHCpan`, `IedbNetMHCcons`, `IedbNetMHCIIpan`, `IedbSMM`, and
+`IedbSMM_PMBEC` (and their `*-iedb` CLI names) remain as local aliases.
+They require installed NetMHCpan **4.1 BA**, NetMHCcons, NetMHCIIpan **4.3 BA**,
+SMM, or SMM-PMBEC respectively. The class-II alias now uses 4.3 rather than
+the hosted service's 4.1 default; local versions and percentile calibration
+can produce different values. Affinity remains IC50 in nM. Prefer explicit
+local predictor names when recording model provenance.
+
+There is no HTTP fallback. The HTTP-only `url`, `request_timeout`, and
+`raise_on_error` constructor arguments and CLI `--do-not-raise-on-error`
+option have been removed. Missing installations and unsupported inputs raise
+errors; predictions are never silently dropped by an IEDB error policy.
+Use CLI names `smm` and `smm-pmbec` for the standalone matrix methods.
 
 `CapHLA` is a 2025 MIT-licensed PyTorch model family ([Chang & Wu,
 *Briefings in Bioinformatics*](https://doi.org/10.1093/bib/bbae595)) covering

@@ -1,3 +1,3 @@
 include LICENSE README.md
-include scripts/osteosarc_fixtures.py
+include scripts/osteosarc_fixtures.py scripts/record_smm_fixtures.py scripts/setup_test_backends.py
 recursive-include tests/data/osteosarc *.json *.txt *.fasta *.stdout *.stderr *.tsv *.md

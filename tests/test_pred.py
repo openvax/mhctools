@@ -651,6 +651,11 @@ def test_best_direction_value_kind_specific():
     assert best_direction(Kind.pMHC_stability, "value") == "max"  # half-life
 
 
+def test_peptide_half_life_has_no_context_free_best_direction():
+    with pytest.raises(ValueError, match="context-dependent"):
+        best_direction(Kind.peptide_half_life, "value")
+
+
 def test_best_direction_value_unregistered_raises():
     """`value` for a kind without a registered direction must raise —
     we refuse to guess the unit semantics."""

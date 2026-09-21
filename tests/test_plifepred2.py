@@ -35,7 +35,6 @@ from mhctools.plifepred2 import (
     half_life_hours,
     parse_plifepred2_results,
 )
-from mhctools.pred import VALUE_BEST_DIRECTIONS, best_direction
 
 
 _OUTPUT = (
@@ -89,17 +88,6 @@ def test_log2_and_ln_readings_give_implausible_durations():
 
 
 # --- kind semantics ---------------------------------------------------------
-
-def test_peptide_half_life_is_distinct_from_pmhc_stability():
-    assert Kind.peptide_half_life == "peptide_half_life"
-    assert Kind.peptide_half_life != Kind.pMHC_stability
-
-
-def test_peptide_half_life_has_no_context_free_best_direction():
-    assert VALUE_BEST_DIRECTIONS[Kind.peptide_half_life] == "max"
-    with pytest.raises(ValueError, match="context-dependent"):
-        best_direction(Kind.peptide_half_life, "value")
-
 
 def test_annotate_matrix_aliases_target_generic_peptide_half_life():
     from mhctools.annotate import _OUTPUT_FIELDS, output_field_tokens
