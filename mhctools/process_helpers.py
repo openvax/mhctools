@@ -14,6 +14,7 @@ import errno
 import logging
 import os
 import signal
+import subprocess
 from subprocess import Popen, CalledProcessError, STDOUT, TimeoutExpired
 import time
 from multiprocessing import cpu_count
@@ -125,6 +126,42 @@ class AsyncProcess(object):
         if ret_code:
             raise CalledProcessError(ret_code, self.cmd)
         return ret_code
+
+def legacy_keras_runtime_available(python_executable, timeout=120):
+    """
+    Whether `python_executable` can import the Keras 2 API.
+
+    DeepImmuno and TLimmuno2 ship weights that only load under Keras 2, reached
+    on TensorFlow >= 2.16 through the `tf-keras` shim and
+    `TF_USE_LEGACY_KERAS=1`. An interpreter whose TensorFlow and `tf-keras` are
+    mismatched imports `tensorflow` fine and then raises on
+    `tensorflow.keras`, so probe that import specifically.
+
+    Callers use this to skip when the runtime is absent or incompatible,
+    instead of letting the sidecar surface it as a prediction failure.
+
+    Parameters
+    ----------
+    python_executable : str
+        Interpreter to probe.
+
+    timeout : int
+        Seconds to allow; importing TensorFlow is slow on a cold cache.
+
+    Returns
+    -------
+    bool
+    """
+    env = dict(os.environ)
+    env.setdefault("TF_USE_LEGACY_KERAS", "1")
+    env.setdefault("TF_CPP_MIN_LOG_LEVEL", "3")
+    try:
+        return subprocess.run(
+            [python_executable, "-c", "import tensorflow.keras"],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            env=env, timeout=timeout).returncode == 0
+    except (OSError, subprocess.SubprocessError):
+        return False
 
 def run_command(args, timeout=None, terminate_grace_seconds=5, **kwargs):
     """

@@ -70,8 +70,9 @@ vaccine-report = [
 ]
 dev = [
   "build",
-  # Ruff 0.16 changed its default rule set; keep lint reproducible until #268.
-  "ruff==0.15.21",
+  # The enabled rule set is declared in [tool.ruff.lint] rather than inherited
+  # from the installed ruff's defaults, so this floor is only a floor.
+  "ruff>=0.15.21",
   "pytest",
   "pytest-cov",
   "twine",
@@ -94,3 +95,16 @@ packages = ["mhctools", "mhctools.cli", "mhctools.data"]
 "mhctools" = ["logging.conf"]
 "mhctools.cli" = ["logging.conf"]
 "mhctools.data" = ["*.json"]
+
+[tool.ruff]
+# Ruff's default rule selection changes between releases: 0.16 enabled a much
+# larger set than 0.15, which turned ~900 pre-existing findings into lint
+# failures on an unmodified tree and blocked commits (#268, #450). Declaring
+# the selection explicitly makes `./lint.sh` depend on this file rather than on
+# whichever ruff happens to be installed.
+target-version = "py39"
+
+[tool.ruff.lint]
+# E4/E7/E9 + F — ruff's default selection as of 0.15.x, pinned here verbatim so
+# that adopting further rules stays a deliberate, reviewable change.
+select = ["E4", "E7", "E9", "F"]

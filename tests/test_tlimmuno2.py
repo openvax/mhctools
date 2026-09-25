@@ -31,6 +31,7 @@ from mhctools.tlimmuno2 import (
     _find_tlimmuno2_home,
     _tlimmuno2_allele,
     parse_tlimmuno2_results,
+    tlimmuno2_runtime_available,
 )
 
 
@@ -148,11 +149,16 @@ try:
 except FileNotFoundError:
     TLIMMUNO2_HOME = None
 
+# The checkout alone is not enough: the sidecar defaults to the interpreter
+# running the tests, whose TensorFlow may be too new for TLimmuno2's Keras 2
+# SavedModels. Probe it so an unprovisioned runtime skips rather than failing.
+TLIMMUNO2_RUNTIME = bool(TLIMMUNO2_HOME) and tlimmuno2_runtime_available()
+
 requires_tlimmuno2 = pytest.mark.skipif(
-    not TLIMMUNO2_HOME,
-    reason="TLimmuno2 not installed (set TLIMMUNO2_HOME to a clone; optionally "
+    not TLIMMUNO2_RUNTIME,
+    reason="TLimmuno2 not runnable (set TLIMMUNO2_HOME to a clone and "
            "TLIMMUNO2_PYTHON to an interpreter with TensorFlow and Keras 2 / "
-           "tf-keras)")
+           "tf-keras; see docs/testing.md)")
 
 
 @requires_tlimmuno2

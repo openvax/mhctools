@@ -51,7 +51,7 @@ from .allele_normalization import normalize_allele_name
 from .cleanup_context import CleanupFiles
 from .optional_backend import common_checkout_paths
 from .pred import Kind, PeptideResult, Prediction
-from .process_helpers import run_command
+from .process_helpers import legacy_keras_runtime_available, run_command
 from .wrapper_base import NewModelPredictorMixin
 
 # DeepImmuno's peptide encoder only handles 9- and 10-mers: a 9mer is padded to
@@ -113,6 +113,25 @@ def _subprocess_env():
     return env
 
 
+def _resolve_python(deepimmuno_python=None):
+    """Interpreter the sidecar runs under: explicit argument, then
+    ``$DEEPIMMUNO_PYTHON``, then the current interpreter."""
+    return (deepimmuno_python
+            or os.environ.get("DEEPIMMUNO_PYTHON")
+            or sys.executable)
+
+
+def deepimmuno_runtime_available(deepimmuno_python=None, timeout=120):
+    """Whether that interpreter can load DeepImmuno's Keras 2 checkpoint.
+
+    Locating the checkout is not enough to know DeepImmuno will run: the
+    default interpreter is whichever one is running mhctools, and its
+    TensorFlow may be too new for the committed weights.
+    """
+    return legacy_keras_runtime_available(
+        _resolve_python(deepimmuno_python), timeout=timeout)
+
+
 class DeepImmuno(NewModelPredictorMixin):
     """Wrapper for the DeepImmuno-CNN immunogenicity predictor.
 
@@ -145,10 +164,7 @@ class DeepImmuno(NewModelPredictorMixin):
             raise ValueError("DeepImmuno requires at least one allele")
         self.alleles = [normalize_allele_name(a) for a in alleles]
         self.deepimmuno_home = _find_deepimmuno_home(deepimmuno_home)
-        self.deepimmuno_python = (
-            deepimmuno_python
-            or os.environ.get("DEEPIMMUNO_PYTHON")
-            or sys.executable)
+        self.deepimmuno_python = _resolve_python(deepimmuno_python)
 
     def __str__(self):
         return "DeepImmuno(alleles=%s, deepimmuno_home=%r)" % (

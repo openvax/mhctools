@@ -29,6 +29,7 @@ from mhctools import DeepImmuno, Kind
 from mhctools.deepimmuno import (
     _deepimmuno_allele,
     _find_deepimmuno_home,
+    deepimmuno_runtime_available,
     parse_deepimmuno_results,
 )
 
@@ -123,11 +124,16 @@ try:
 except FileNotFoundError:
     DEEPIMMUNO_HOME = None
 
+# The checkout alone is not enough: the sidecar defaults to the interpreter
+# running the tests, whose TensorFlow may be too new for DeepImmuno's Keras 2
+# weights. Probe it so an unprovisioned runtime skips rather than failing.
+DEEPIMMUNO_RUNTIME = bool(DEEPIMMUNO_HOME) and deepimmuno_runtime_available()
+
 requires_deepimmuno = pytest.mark.skipif(
-    not DEEPIMMUNO_HOME,
-    reason="DeepImmuno not installed (set DEEPIMMUNO_HOME to a clone; "
-           "optionally DEEPIMMUNO_PYTHON to an interpreter with TensorFlow "
-           "and Keras 2 / tf-keras)")
+    not DEEPIMMUNO_RUNTIME,
+    reason="DeepImmuno not runnable (set DEEPIMMUNO_HOME to a clone and "
+           "DEEPIMMUNO_PYTHON to an interpreter with TensorFlow and Keras 2 / "
+           "tf-keras; see docs/testing.md)")
 
 
 @requires_deepimmuno
