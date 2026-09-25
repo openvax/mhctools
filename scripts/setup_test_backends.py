@@ -112,6 +112,19 @@ def recognition(root, python, config):
     config["MIXTCRPRED_PYTHON"] = str(runtime)
 
 
+def keras(root, python, config):
+    # DeepImmuno and TLimmuno2 ship Keras 2 era weights. Modern TensorFlow
+    # reaches that API through the tf-keras shim, so one runtime serves both;
+    # pin the pair, because a mismatched tensorflow/tf-keras imports
+    # tensorflow fine and then raises on tensorflow.keras.
+    config["DEEPIMMUNO_HOME"] = fetch("deepimmuno")
+    config["TLIMMUNO2_HOME"] = fetch("tlimmuno2", "--accept-license")
+    runtime = make_env(root, "keras-env", python, [
+        "tensorflow==2.17.0", "tf-keras==2.17.0", "numpy<2", "pandas<3", "pyarrow",
+    ])
+    config.update(DEEPIMMUNO_PYTHON=str(runtime), TLIMMUNO2_PYTHON=str(runtime))
+
+
 def gfeller(root, python, config):
     runtime = make_env(root, "gfeller-env", python, [
         "numpy", "pandas<3", "scipy", "logomaker", "matplotlib"])
@@ -220,20 +233,21 @@ def legacy(root, python, config):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("groups", nargs="+", choices=["half-life", "recognition", "gfeller", "legacy", "smm"])
+    parser.add_argument("groups", nargs="+", choices=["half-life", "recognition", "gfeller", "keras", "legacy", "smm"])
     parser.add_argument("--python", default="python3.11", help="Python 3.11 interpreter for isolated runtimes")
     parser.add_argument("--root", type=Path, default=ROOT / "env/test-backends")
     parser.add_argument("--accept-license", action="store_true",
-                        help="Accept upstream license terms (recognition/gfeller/smm)")
+                        help="Accept upstream license terms (recognition/gfeller/keras/smm)")
     args = parser.parse_args()
-    if set(args.groups) & {"recognition", "gfeller", "smm"} and not args.accept_license:
-        parser.error("recognition/gfeller/smm require --accept-license; see docs/testing.md")
+    if set(args.groups) & {"recognition", "gfeller", "keras", "smm"} and not args.accept_license:
+        parser.error(
+            "recognition/gfeller/keras/smm require --accept-license; see docs/testing.md")
     root = args.root.expanduser().resolve()
     root.mkdir(parents=True, exist_ok=True)
     state = root / "config.json"
     config = json.loads(state.read_text()) if state.exists() else {}
     functions = {"half-life": half_life, "recognition": recognition,
-                 "gfeller": gfeller, "legacy": legacy, "smm": smm}
+                 "gfeller": gfeller, "keras": keras, "legacy": legacy, "smm": smm}
     for group in args.groups:
         functions[group](root, args.python, config)
         state.write_text(json.dumps(config, indent=2) + "\n")

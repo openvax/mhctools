@@ -54,7 +54,7 @@ import pandas as pd
 
 from .cleanup_context import CleanupFiles
 from .pred import Kind, PeptideResult, Prediction
-from .process_helpers import run_command
+from .process_helpers import legacy_keras_runtime_available, run_command
 from .wrapper_base import NewModelPredictorMixin
 
 logger = logging.getLogger(__name__)
@@ -147,6 +147,25 @@ def _subprocess_env():
     return env
 
 
+def _resolve_python(tlimmuno2_python=None):
+    """Interpreter the sidecar runs under: explicit argument, then
+    ``$TLIMMUNO2_PYTHON``, then the current interpreter."""
+    return (tlimmuno2_python
+            or os.environ.get("TLIMMUNO2_PYTHON")
+            or sys.executable)
+
+
+def tlimmuno2_runtime_available(tlimmuno2_python=None, timeout=120):
+    """Whether that interpreter can load TLimmuno2's Keras 2 SavedModels.
+
+    Locating the checkout is not enough to know TLimmuno2 will run: the
+    default interpreter is whichever one is running mhctools, and its
+    TensorFlow may be too new for the committed weights.
+    """
+    return legacy_keras_runtime_available(
+        _resolve_python(tlimmuno2_python), timeout=timeout)
+
+
 class TLimmuno2(NewModelPredictorMixin):
     """Wrapper for the TLimmuno2 class-II immunogenicity predictor.
 
@@ -190,10 +209,7 @@ class TLimmuno2(NewModelPredictorMixin):
             raise ValueError("TLimmuno2 requires at least one allele")
         self.alleles = list(alleles)
         self.tlimmuno2_home = _find_tlimmuno2_home(tlimmuno2_home)
-        self.tlimmuno2_python = (
-            tlimmuno2_python
-            or os.environ.get("TLIMMUNO2_PYTHON")
-            or sys.executable)
+        self.tlimmuno2_python = _resolve_python(tlimmuno2_python)
         self._valid_alleles = None
 
     def __str__(self):

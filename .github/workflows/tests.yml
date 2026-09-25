@@ -309,6 +309,8 @@ jobs:
             tests: tests/test_smm.py tests/test_smm_integration.py
           - group: gfeller
             tests: tests/test_mixmhcpred.py tests/test_mixmhc2pred2.py tests/test_prime.py
+          - group: keras
+            tests: tests/test_deepimmuno.py tests/test_tlimmuno2.py
     steps:
       - uses: actions/checkout@v4
 

@@ -32,9 +32,10 @@ predictor versions, and the explicit regeneration commands.
 
 Install mhctools in editable mode with its development dependencies. The setup
 below covers CapHLA, TULIP, MixTCRpred, PeptiVerse, PlifePred2/Pfeature,
-MixMHCpred 3, MixMHC2pred, and PRIME. It supplements the other predictors
-listed in the [predictor reference](predictors.md); `mhctools ls` reports their
-availability. This is several GB of downloads, including ESM2's 2.6 GB weights.
+MixMHCpred 3, MixMHC2pred, PRIME, DeepImmuno, and TLimmuno2. It supplements the
+other predictors listed in the [predictor reference](predictors.md);
+`mhctools ls` reports their availability. This is several GB of downloads,
+including ESM2's 2.6 GB weights.
 
 Prerequisites: Python 3.11, git, Perl, and MAFFT on macOS or Linux x86-64.
 The official macOS MixMHC2pred binary needs Rosetta on Apple Silicon.
@@ -44,16 +45,29 @@ On Linux a CPU-only torch wheel can be installed first from
 `https://download.pytorch.org/whl/cpu`.
 
 ```sh
-python scripts/setup_test_backends.py half-life recognition gfeller smm --accept-license
+python scripts/setup_test_backends.py half-life recognition gfeller keras smm --accept-license
 ```
 
-The recognition and Gfeller groups fetch separately licensed code and weights.
-`--accept-license` accepts the upstream academic/non-commercial terms: review
-[MixTCRpred](https://github.com/GfellerLab/MixTCRpred),
-[MixMHCpred](https://github.com/GfellerLab/MixMHCpred),
-[MixMHC2pred](https://github.com/GfellerLab/MixMHC2pred), and
-[PRIME](https://github.com/GfellerLab/PRIME) before using this option.
-Upstream sources and models are never bundled in mhctools distributions.
+The recognition, Gfeller, keras and SMM groups fetch separately licensed code
+and weights, so they require `--accept-license`. Review the terms before using
+that option, because they are not all the same kind of term:
+
+- academic / non-commercial —
+  [MixTCRpred](https://github.com/GfellerLab/MixTCRpred),
+  [MixMHCpred](https://github.com/GfellerLab/MixMHCpred),
+  [MixMHC2pred](https://github.com/GfellerLab/MixMHC2pred),
+  [PRIME](https://github.com/GfellerLab/PRIME);
+- Non-Profit Open Software License 3.0 — the IEDB MHC-I bundle used by `smm`
+  (see [below](#local-smm-and-smm-pmbec));
+- **no published license** —
+  [TLimmuno2](https://github.com/XSLiuLab/TLimmuno2), which is why the `keras`
+  group is gated at all. Here `--accept-license` records that you have
+  confirmed your own use is authorized; it cannot accept terms upstream never
+  stated, and it grants no rights mhctools does not have.
+
+DeepImmuno, the other half of the `keras` group, is MIT and needs no
+acceptance of its own. Upstream sources and models are never bundled in
+mhctools distributions.
 
 The script pins model/source revisions, installs the complete MixMHC2pred
 official release (including PWM assets), and installs incompatible Python
@@ -98,6 +112,28 @@ The public Python jobs replay the [recorded SMM outputs](../tests/data/osteosarc
 offline. A dedicated integration job installs the pinned bundle and compares
 real inference for both methods against every recorded peptide/allele pair.
 
+## DeepImmuno and TLimmuno2 (Keras 2 weights)
+
+Both ship weights from the Keras 2 era. Modern TensorFlow reaches that API
+through the `tf-keras` shim with `TF_USE_LEGACY_KERAS=1`, which the wrappers
+set for their subprocess, so one runtime serves both:
+
+```sh
+python scripts/setup_test_backends.py keras --accept-license
+source env/test-backends/activate.sh
+python -m pytest tests/test_deepimmuno.py tests/test_tlimmuno2.py --require-all
+```
+
+The group pins `tensorflow==2.17.0` with the matching `tf-keras==2.17.0` and
+sets `DEEPIMMUNO_PYTHON` and `TLIMMUNO2_PYTHON` to it. Pinning the pair
+matters: a mismatched pair imports `tensorflow` successfully and then raises
+`AttributeError` on `tensorflow.keras`.
+
+Without this group both wrappers fall back to the interpreter running the
+tests. The end-to-end tests probe that interpreter and skip when it cannot
+load Keras 2, so an unprovisioned checkout reports a skip rather than a
+failure.
+
 ## Legacy NetMHC on Apple Silicon
 
 NetMHC 3.4 and NetMHCcons need Python 2 and Linux x86 executables. With Docker
@@ -119,8 +155,9 @@ installations with Python 2 can continue using their existing launchers.
 
 CI runs the public suite on Python 3.9–3.12, the licensed NetMHC integration
 suite, and separate real-model jobs for TULIP, CapHLA, MixTCRpred, the two
-half-life predictors, the three Gfeller MHC predictors, and local SMM/SMM-PMBEC (11 CI jobs total). Each focused model
-job uses `--require-all`, so a missing installation cannot silently turn it green.
+half-life predictors, the three Gfeller MHC predictors, DeepImmuno/TLimmuno2,
+and local SMM/SMM-PMBEC (12 CI jobs total). Each focused model job uses
+`--require-all`, so a missing installation cannot silently turn it green.
 The complete release run requires all installed backends and zero skips:
 
 ```sh
