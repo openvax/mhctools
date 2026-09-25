@@ -50,7 +50,7 @@ import pandas as pd
 from .cleanup_context import CleanupFiles
 from .optional_backend import common_checkout_paths
 from .pred import Kind, PeptideResult, Prediction
-from .process_helpers import run_command
+from .process_helpers import python_imports_available, run_command
 from .wrapper_base import AlleleFreePredictor
 
 # DeepTAP one-hot encodes the 20 standard amino acids plus "X" (unknown /
@@ -89,6 +89,31 @@ def _find_deeptap_home(deeptap_home=None):
             "deeptap.py not found in %r — is this a DeepTAP checkout?"
             % candidate)
     return candidate
+
+
+# Third-party modules DeepTAP's own CLI imports. Everything else it needs is
+# in the checkout, so these decide whether the sidecar can run at all.
+DEEPTAP_SIDECAR_MODULES = ("torch", "pytorch_lightning", "numpy", "pandas")
+
+
+def _resolve_python(deeptap_python=None):
+    """Interpreter the sidecar runs under: explicit argument, then
+    ``$DEEPTAP_PYTHON``, then the current interpreter."""
+    return (deeptap_python
+            or os.environ.get("DEEPTAP_PYTHON")
+            or sys.executable)
+
+
+def deeptap_runtime_available(deeptap_python=None, timeout=120):
+    """Whether that interpreter can run DeepTAP.
+
+    Locating the checkout is not enough: the default interpreter is whichever
+    one is running mhctools, and DeepTAP pins an old ``pytorch-lightning`` that
+    it need not have at all.
+    """
+    return python_imports_available(
+        _resolve_python(deeptap_python), DEEPTAP_SIDECAR_MODULES,
+        timeout=timeout)
 
 
 class DeepTAP(AlleleFreePredictor):
@@ -135,10 +160,7 @@ class DeepTAP(AlleleFreePredictor):
                 % (DEEPTAP_MAX_PEPTIDE_LENGTH, max_peptide_length))
         self.task_type = task_type
         self.deeptap_home = _find_deeptap_home(deeptap_home)
-        self.deeptap_python = (
-            deeptap_python
-            or os.environ.get("DEEPTAP_PYTHON")
-            or sys.executable)
+        self.deeptap_python = _resolve_python(deeptap_python)
         self.max_peptide_length = max_peptide_length
 
     def __str__(self):

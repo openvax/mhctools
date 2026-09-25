@@ -25,6 +25,7 @@ import pytest
 from mhctools.process_helpers import (
     AsyncProcess,
     legacy_keras_runtime_available,
+    python_imports_available,
     run_multiple_commands_redirect_stdout,
 )
 
@@ -254,3 +255,33 @@ def test_legacy_keras_runtime_sets_legacy_keras_env():
     env = run.call_args.kwargs["env"]
     assert env["TF_USE_LEGACY_KERAS"] == "1"
     assert env["TF_CPP_MIN_LOG_LEVEL"] == "3"
+
+
+def test_python_imports_available_stdlib():
+    # sys and os import everywhere, so a True here exercises the happy path
+    # without depending on any optional scientific package.
+    assert python_imports_available(sys.executable, ["sys", "os"])
+
+
+def test_python_imports_available_missing_module():
+    assert not python_imports_available(
+        sys.executable, ["mhctools_definitely_not_a_real_module"])
+
+
+def test_python_imports_available_requires_every_module():
+    # One missing module fails the whole probe, so a partially provisioned
+    # interpreter is not reported as runnable.
+    assert not python_imports_available(
+        sys.executable, ["sys", "mhctools_definitely_not_a_real_module"])
+
+
+def test_python_imports_available_missing_interpreter():
+    assert not python_imports_available("/nonexistent/python", ["sys"])
+
+
+def test_python_imports_available_timeout():
+    assert not python_imports_available(sys.executable, ["sys"], timeout=0.001)
+
+
+def test_python_imports_available_empty_is_trivially_true():
+    assert python_imports_available(sys.executable, [])

@@ -36,6 +36,7 @@ from urllib.request import urlopen
 
 import pandas as pd
 
+from .process_helpers import python_imports_available
 from .allele_normalization import normalize_allele_name_or_raw
 from .pred import COLUMNS, Kind, PeptideResult, Prediction
 from .tcr import TCR
@@ -432,6 +433,31 @@ def _resolve_python(mixtcrpred_python=None):
             return executable
         raise FileNotFoundError("MixTCRpred Python does not exist: %s" % value)
     return sys.executable
+
+
+# Third-party modules reachable from the sidecar's own import chain
+# (src/dataloaders, src/models, src/utils). Deliberately not every import under
+# upstream's src/: natsort, for one, is only used by a V-gene helper that
+# inference never loads, and requiring it would skip a runtime that works.
+MIXTCRPRED_SIDECAR_MODULES = (
+    "torch", "torchvision", "pytorch_lightning",
+    "numpy", "pandas", "scipy", "sklearn",
+)
+
+
+def mixtcrpred_runtime_available(mixtcrpred_python=None, timeout=120):
+    """Whether that interpreter can run MixTCRpred inference.
+
+    A downloaded checkpoint reports ``ready`` once its files are located, which
+    says nothing about the interpreter: upstream's ``src/`` imports torchvision
+    and pytorch_lightning, which the interpreter running mhctools need not have.
+    """
+    try:
+        python_executable = _resolve_python(mixtcrpred_python)
+    except FileNotFoundError:
+        return False
+    return python_imports_available(
+        python_executable, MIXTCRPRED_SIDECAR_MODULES, timeout=timeout)
 
 
 def _validate_tcr(tcr):

@@ -21,12 +21,17 @@ pytorch-lightning).
 """
 
 import os
+from functools import lru_cache
 from tempfile import NamedTemporaryFile
 
 import pytest
 
 from mhctools import DeepTAP, Kind
-from mhctools.deeptap import _find_deeptap_home, parse_deeptap_results
+from mhctools.deeptap import (
+    _find_deeptap_home,
+    deeptap_runtime_available,
+    parse_deeptap_results,
+)
 from mhctools.pred import VALUE_BEST_DIRECTIONS, best_direction
 
 
@@ -152,10 +157,19 @@ try:
 except FileNotFoundError:
     DEEPTAP_HOME = None
 
+# The checkout alone is not enough: the sidecar defaults to the interpreter
+# running the tests, which need not have torch or DeepTAP's pinned
+# pytorch-lightning. Probed lazily and cached, so collecting the unit tests in
+# this module does not pay for a subprocess that imports torch.
+@lru_cache(maxsize=None)
+def _runtime_ready():
+    return bool(DEEPTAP_HOME) and deeptap_runtime_available()
+
 requires_deeptap = pytest.mark.skipif(
-    not DEEPTAP_HOME,
-    reason="DeepTAP not installed (set DEEPTAP_HOME to a clone; optionally "
-           "DEEPTAP_PYTHON to an interpreter with torch + pytorch-lightning)")
+    "not _runtime_ready()",
+    reason="DeepTAP not runnable (set DEEPTAP_HOME to a clone and "
+           "DEEPTAP_PYTHON to an interpreter with torch + pytorch-lightning; "
+           "see docs/testing.md)")
 
 
 @requires_deeptap
