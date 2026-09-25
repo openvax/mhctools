@@ -249,7 +249,9 @@ def add_mhc_args(arg_parser):
         "--mhc-peptide-lengths",
         type=parse_int_list,
         help="Peptide lengths to predict, e.g. '9' or '8-11' or '8,9,10'. "
-             "Defaults to each predictor's own supported lengths.")
+             "Defaults to each predictor's own default lengths, which are "
+             "narrower than the lengths it supports (the NetMHC family "
+             "defaults to 9 alone).")
 
     mhc_options_arg_group.add_argument(
         "--mhc-epitope-lengths",

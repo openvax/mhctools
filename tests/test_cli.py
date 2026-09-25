@@ -136,7 +136,24 @@ def test_main_treats_closed_pipe_as_success(monkeypatch):
 
 
 def test_format_predictions_when_empty():
-    assert format_predictions(pd.DataFrame({"peptide": []})) == "No predictions."
+    # The notice belongs on stderr, so the data stream stays empty: a caller
+    # doing `| awk 'NR > 1'` must not receive an English sentence as a row.
+    assert format_predictions(pd.DataFrame({"peptide": []})) == ""
+
+
+def test_empty_result_notice_goes_to_stderr(capsys):
+    # A sequence shorter than the requested window yields no peptides at all,
+    # which is a legitimate empty result rather than a usage error.
+    main([
+        "--mhc-predictor", "random",
+        "--mhc-alleles", "HLA-A*02:01",
+        "--sequence", "AAAA",
+        "--extract-subsequences",
+        "--mhc-peptide-lengths", "9",
+    ])
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert "No predictions." in captured.err
 
 
 @pytest.mark.parametrize("error", [
