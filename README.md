@@ -56,18 +56,26 @@ the same way and answers the same `predict()` call.
 
 ## Core concepts
 
-**`predict()` returns one `PeptideResult` per peptide**, in the order you
-passed them. Each one carries the peptide string and gives you accessors for
-each kind of prediction. An accessor returns `None` when the predictor doesn't
-produce that kind — so `r.stability` is `None` from an affinity-only model,
-rather than an error or a zero.
+**`predict()` returns a list of `PeptideResult`.** Each one carries the peptide
+string and gives you accessors for each kind of prediction. An accessor returns
+`None` when the predictor doesn't produce that kind — so `r.stability` is
+`None` from an affinity-only model, rather than an error or a zero.
+
+> **Match results to inputs on `r.peptide`, not by position.** How many results
+> you get back currently depends on the predictor. The NetMHC family and
+> `SMM`/`SMMPMBEC` return one result per *distinct*
+> `(peptide, offset, source_sequence_name)`, so a repeated peptide collapses
+> into a single result and a peptide with no predictions is absent, while
+> `MHCflurry` and `Calis` return one per input occurrence. `zip(peptides,
+> results)` is therefore not safe in general
+> ([#451](https://github.com/openvax/mhctools/issues/451)).
 
 ```python
 r = results[0]
 
 r.peptide                      # "SIINFEKL"
 r.offset                       # position in source protein (if scanned)
-r.kinds                        # {"pMHC_affinity", "pMHC_presentation"}
+r.kinds                        # {"pMHC_affinity", "pMHC_presentation", "antigen_processing"}
 r.alleles                      # {"HLA-A*02:01", "HLA-B*07:02"}
 
 # best prediction of each kind, or None when the kind is absent
