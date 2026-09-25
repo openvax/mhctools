@@ -35,6 +35,11 @@ The canonical strings live in `mhctools.pred.Kind`.
 | `cellular_uptake` | Quantitative uptake in a named cellular context | context-defined |
 | `tissue_concentration` | Concentration in a named tissue/compartment and timepoint | context-defined |
 
+Four older strings — `serum_half_life`, `plasma_half_life`, `blood_half_life`,
+and `systemic_elimination_half_life` — are still accepted as input and
+canonicalized to `peptide_half_life`, with the matrix preserved in
+[context](#measurement-context). `canonical_kind()` performs that mapping.
+
 Two kinds that share a unit can still be different measurements.
 `pMHC_stability` is the lifetime of a peptide-MHC complex; `peptide_half_life`
 is the lifetime of the parent peptide. Serum, plasma, whole blood, cellular,

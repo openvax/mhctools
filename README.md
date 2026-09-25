@@ -215,6 +215,7 @@ Start from what you want to know:
 | Binding affinity to an allele | `pMHC_affinity` | `NetMHCpan`, `NetMHC`, `NetMHCIIpan`, `NetMHCcons`, `MHCflurry`, `CapHLA`, `SMM`, `SMMPMBEC` |
 | Surface presentation | `pMHC_presentation` | `NetMHCpan41`/`42`, `NetMHCIIpan`, `MHCflurry`, `CapHLA`, `MixMHCpred` (I), `MixMHC2pred` (II), `BigMHC` |
 | How long the pMHC complex lasts | `pMHC_stability` | `NetMHCstabpan` |
+| Combined antigen processing | `antigen_processing` | `MHCflurry` |
 | Proteasomal cleavage | `proteasome_cleavage` | `Pepsickle`, `NetChop`, `NetCleave_I` |
 | Endolysosomal cleavage (class II) | `endolysosomal_cleavage` | `NetCleave_II` |
 | TAP transport into the ER | `tap_transport` | `DeepTAP` |
