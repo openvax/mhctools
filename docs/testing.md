@@ -112,6 +112,31 @@ The public Python jobs replay the [recorded SMM outputs](../tests/data/osteosarc
 offline. A dedicated integration job installs the pinned bundle and compares
 real inference for both methods against every recorded peptide/allele pair.
 
+## DeepTAP and MixTCRpred (torch sidecars)
+
+Both run out-of-process under an interpreter that defaults to the one running
+mhctools, which need not have their dependencies. The end-to-end tests probe
+that interpreter and skip when it cannot import them, so a skip here means the
+runtime is missing rather than the wrapper being broken.
+
+`MIXTCRPRED_PYTHON` is provisioned by the `recognition` group above. Its
+sidecar additionally runs with `PYTHONNOUSERSITE=1`, so packages installed with
+`pip install --user` are not visible to it — install into the interpreter
+itself.
+
+DeepTAP has no setup group; point `DEEPTAP_PYTHON` at any interpreter with
+`torch` and `pytorch-lightning`, and `DEEPTAP_HOME` at a checkout
+(`mhctools fetch deeptap`). The current interpreter is used when
+`DEEPTAP_PYTHON` is unset, which is enough when it already has torch.
+
+| Variable | Needs |
+|---|---|
+| `DEEPTAP_PYTHON` | `torch`, `pytorch_lightning`, `numpy`, `pandas` |
+| `MIXTCRPRED_PYTHON` | `torch`, `torchvision`, `pytorch_lightning`, `numpy`, `pandas`, `scipy`, `sklearn` |
+
+A `*_PYTHON` path that does not exist raises instead of skipping: that is a
+misconfiguration to fix, not a backend to step over.
+
 ## DeepImmuno and TLimmuno2 (Keras 2 weights)
 
 Both ship weights from the Keras 2 era. Modern TensorFlow reaches that API

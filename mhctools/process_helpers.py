@@ -170,9 +170,55 @@ def legacy_keras_runtime_available(python_executable, timeout=120):
     env = dict(os.environ)
     env.setdefault("TF_USE_LEGACY_KERAS", "1")
     env.setdefault("TF_CPP_MIN_LOG_LEVEL", "3")
+    return _probe_interpreter(
+        python_executable, _LEGACY_KERAS_PROBE, timeout=timeout, env=env)
+
+def python_imports_available(
+        python_executable, module_names, timeout=120, env=None):
+    """
+    Whether `python_executable` can import every module in `module_names`.
+
+    Sidecar wrappers run an out-of-process interpreter that defaults to the one
+    running mhctools, which need not have the sidecar's dependencies. Locating
+    a checkout or a model artifact says nothing about that: a missing
+    third-party import surfaces much later, as a failed prediction. Callers use
+    this to establish runnability up front and skip when it is absent.
+
+    Parameters
+    ----------
+    python_executable : str
+        Interpreter to probe.
+
+    module_names : sequence of str
+        Modules that must all import successfully.
+
+    timeout : int
+        Seconds to allow; these are heavy imports on a cold cache.
+
+    env : dict, optional
+        Environment for the probe. Pass whatever the caller's sidecar runs
+        with: a probe under a different environment can see modules the
+        sidecar cannot. `PYTHONNOUSERSITE=1` is the case that bites, since it
+        hides `pip install --user` packages from the sidecar but not from an
+        ambient probe. Defaults to inheriting this process's environment.
+
+    Returns
+    -------
+    bool
+    """
+    if isinstance(module_names, str):
+        raise TypeError(
+            "module_names must be a sequence of module names, not a string; "
+            "got %r" % (module_names,))
+    source = "".join("import %s\n" % name for name in module_names)
+    return _probe_interpreter(
+        python_executable, source, timeout=timeout, env=env)
+
+def _probe_interpreter(python_executable, source, timeout, env=None):
+    """Run `source` under `python_executable`; True when it exits cleanly."""
     try:
         return subprocess.run(
-            [python_executable, "-c", _LEGACY_KERAS_PROBE],
+            [python_executable, "-c", source],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
             env=env, timeout=timeout).returncode == 0
     except (OSError, subprocess.SubprocessError):

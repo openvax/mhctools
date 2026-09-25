@@ -6,6 +6,7 @@
 
 """Tests for the MixTCRpred catalog, downloads, and wrapper."""
 
+from functools import lru_cache
 from io import BytesIO
 import hashlib
 import json
@@ -17,6 +18,7 @@ import pytest
 
 from mhctools import Kind, MixTCRpred, TCR
 from mhctools import mixtcrpred
+from mhctools.mixtcrpred import mixtcrpred_runtime_available
 from mhctools.cli.script import main
 
 
@@ -393,6 +395,13 @@ def test_prediction_cli_output_write_failure_has_no_traceback(
     assert not output_path.exists()
 
 
+# Probed lazily and cached: it starts an interpreter and imports torch, which
+# the pure-unit tests in this module must not pay for.
+@lru_cache(maxsize=None)
+def _runtime_ready():
+    return mixtcrpred_runtime_available()
+
+
 def _integration_predictor():
     try:
         catalog = MixTCRpred.catalog()
@@ -401,6 +410,14 @@ def _integration_predictor():
     model = next((entry for entry in catalog if entry.name == MODEL), None)
     if model is None or model.status != "ready":
         pytest.skip("MixTCRpred GILGFVFTL checkpoint is not available")
+    # "ready" means the checkpoint files were located, not that inference can
+    # run: upstream's src/ imports torchvision and pytorch_lightning, which the
+    # interpreter running the tests need not have.
+    if not _runtime_ready():
+        pytest.skip(
+            "MixTCRpred runtime is not available (set MIXTCRPRED_PYTHON to an "
+            "interpreter with torch, torchvision and pytorch-lightning; "
+            "see docs/testing.md)")
     return MixTCRpred(MODEL, batch_size=3)
 
 
