@@ -173,7 +173,8 @@ def legacy_keras_runtime_available(python_executable, timeout=120):
     return _probe_interpreter(
         python_executable, _LEGACY_KERAS_PROBE, timeout=timeout, env=env)
 
-def python_imports_available(python_executable, module_names, timeout=120):
+def python_imports_available(
+        python_executable, module_names, timeout=120, env=None):
     """
     Whether `python_executable` can import every module in `module_names`.
 
@@ -194,12 +195,24 @@ def python_imports_available(python_executable, module_names, timeout=120):
     timeout : int
         Seconds to allow; these are heavy imports on a cold cache.
 
+    env : dict, optional
+        Environment for the probe. Pass whatever the caller's sidecar runs
+        with: a probe under a different environment can see modules the
+        sidecar cannot. `PYTHONNOUSERSITE=1` is the case that bites, since it
+        hides `pip install --user` packages from the sidecar but not from an
+        ambient probe. Defaults to inheriting this process's environment.
+
     Returns
     -------
     bool
     """
+    if isinstance(module_names, str):
+        raise TypeError(
+            "module_names must be a sequence of module names, not a string; "
+            "got %r" % (module_names,))
     source = "".join("import %s\n" % name for name in module_names)
-    return _probe_interpreter(python_executable, source, timeout=timeout)
+    return _probe_interpreter(
+        python_executable, source, timeout=timeout, env=env)
 
 def _probe_interpreter(python_executable, source, timeout, env=None):
     """Run `source` under `python_executable`; True when it exits cleanly."""

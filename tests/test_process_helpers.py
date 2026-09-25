@@ -285,3 +285,20 @@ def test_python_imports_available_timeout():
 
 def test_python_imports_available_empty_is_trivially_true():
     assert python_imports_available(sys.executable, [])
+
+
+def test_python_imports_available_rejects_a_bare_string():
+    # "torch" would otherwise become `import t / import o / ...` and quietly
+    # report False, turning a caller's mistake into a permanent skip.
+    with pytest.raises(TypeError):
+        python_imports_available(sys.executable, "sys")
+
+
+def test_python_imports_available_uses_the_supplied_environment():
+    # The probe must see what the sidecar sees; PYTHONNOUSERSITE is the case
+    # that matters, so check the env is passed through rather than dropped.
+    with patch("mhctools.process_helpers.subprocess.run") as run:
+        run.return_value = MagicMock(returncode=0)
+        python_imports_available(
+            "python", ["sys"], env={"PYTHONNOUSERSITE": "1"})
+    assert run.call_args.kwargs["env"] == {"PYTHONNOUSERSITE": "1"}

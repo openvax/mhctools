@@ -451,13 +451,20 @@ def mixtcrpred_runtime_available(mixtcrpred_python=None, timeout=120):
     A downloaded checkpoint reports ``ready`` once its files are located, which
     says nothing about the interpreter: upstream's ``src/`` imports torchvision
     and pytorch_lightning, which the interpreter running mhctools need not have.
+
+    Probes under the environment inference actually uses. `PYTHONNOUSERSITE=1`
+    hides `pip install --user` packages from the sidecar, so an ambient probe
+    would see a torch the run cannot.
+
+    A `MIXTCRPRED_PYTHON` that does not exist raises rather than reporting an
+    unavailable runtime: that is a misconfiguration to fix, not a backend to
+    skip over.
     """
-    try:
-        python_executable = _resolve_python(mixtcrpred_python)
-    except FileNotFoundError:
-        return False
+    environment = os.environ.copy()
+    environment["PYTHONNOUSERSITE"] = "1"
     return python_imports_available(
-        python_executable, MIXTCRPRED_SIDECAR_MODULES, timeout=timeout)
+        _resolve_python(mixtcrpred_python), MIXTCRPRED_SIDECAR_MODULES,
+        timeout=timeout, env=environment)
 
 
 def _validate_tcr(tcr):
