@@ -201,9 +201,13 @@ def write_predictions(df, stream):
     TSV preserves empty strings as actual fields and remains readable at a
     terminal.  Rows are written one at a time, so a proteome-wide result does
     not create a second, formatted copy of the whole table in memory.
+
+    An empty frame writes nothing. "No predictions." is a message for the
+    reader, not a row, and this stream is the machine-readable one: emitted
+    here it is consumed as data by ``mhctools ... | awk 'NR > 1 {print $3}'``.
+    The CLI reports the empty case on stderr instead.
     """
     if len(df) == 0:
-        stream.write("No predictions.\n")
         return
     writer = csv.writer(stream, delimiter="\t", lineterminator="\n")
     writer.writerow(df.columns)
@@ -224,8 +228,8 @@ def format_predictions(df):
     -------
     str
         Every row and column of ``df`` as tab-separated fields, with floats
-        trimmed to six significant digits, or a short notice when ``df`` is
-        empty. The CLI uses :func:`write_predictions` directly so it streams.
+        trimmed to six significant digits. An empty frame renders as the empty
+        string. The CLI uses :func:`write_predictions` directly so it streams.
     """
     stream = StringIO()
     write_predictions(df, stream)
@@ -307,6 +311,10 @@ def main(args_list=None):
             df.to_csv(args.output_csv, index=False, float_format="%.6g")
             print("Wrote: %s (%d rows, %d columns)" % (
                 args.output_csv, len(df), len(df.columns)))
+        elif len(df) == 0:
+            # Same reason the filter summary goes to stderr: stdout carries
+            # the table and nothing else, so an empty result leaves it empty.
+            print("No predictions.", file=sys.stderr)
         else:
             write_predictions(df, sys.stdout)
     except BrokenPipeError:
