@@ -33,7 +33,7 @@ predictor versions, and the explicit regeneration commands.
 Install mhctools in editable mode with its development dependencies. The setup
 below covers CapHLA, TULIP, MixTCRpred, PeptiVerse, PlifePred2/Pfeature,
 MixMHCpred 3, MixMHC2pred, and PRIME. It supplements the other predictors
-listed in the [installation guide](../README.md); `mhctools ls` reports their
+listed in the [predictor reference](predictors.md); `mhctools ls` reports their
 availability. This is several GB of downloads, including ESM2's 2.6 GB weights.
 
 Prerequisites: Python 3.11, git, Perl, and MAFFT on macOS or Linux x86-64.
