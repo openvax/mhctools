@@ -22,6 +22,7 @@ shim). They are slow: TLimmuno2 scores ~90k background peptides per allele.
 """
 
 import os
+from functools import lru_cache
 from tempfile import NamedTemporaryFile
 
 import pytest
@@ -151,11 +152,15 @@ except FileNotFoundError:
 
 # The checkout alone is not enough: the sidecar defaults to the interpreter
 # running the tests, whose TensorFlow may be too new for TLimmuno2's Keras 2
-# SavedModels. Probe it so an unprovisioned runtime skips rather than failing.
-TLIMMUNO2_RUNTIME = bool(TLIMMUNO2_HOME) and tlimmuno2_runtime_available()
+# SavedModels.
+# Probed lazily and cached: it starts an interpreter and imports TensorFlow, so
+# collecting the unit tests in this module must not pay for it.
+@lru_cache(maxsize=None)
+def _runtime_ready():
+    return bool(TLIMMUNO2_HOME) and tlimmuno2_runtime_available()
 
 requires_tlimmuno2 = pytest.mark.skipif(
-    not TLIMMUNO2_RUNTIME,
+    "not _runtime_ready()",
     reason="TLimmuno2 not runnable (set TLIMMUNO2_HOME to a clone and "
            "TLIMMUNO2_PYTHON to an interpreter with TensorFlow and Keras 2 / "
            "tf-keras; see docs/testing.md)")

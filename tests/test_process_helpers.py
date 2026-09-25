@@ -15,6 +15,7 @@
 import errno
 import os
 import signal
+import sys
 from subprocess import TimeoutExpired
 import tempfile
 from unittest.mock import patch, MagicMock
@@ -23,6 +24,7 @@ import pytest
 
 from mhctools.process_helpers import (
     AsyncProcess,
+    legacy_keras_runtime_available,
     run_multiple_commands_redirect_stdout,
 )
 
@@ -207,3 +209,48 @@ def test_run_multiple_with_eagain_and_low_limit():
         f.close()
         os.remove(f.name)
     os.rmdir(tmpdir)
+
+
+def _probe_script():
+    """The exact source legacy_keras_runtime_available sends to the interpreter."""
+    from mhctools.process_helpers import _LEGACY_KERAS_PROBE
+    return _LEGACY_KERAS_PROBE
+
+
+def test_legacy_keras_runtime_missing_interpreter():
+    assert not legacy_keras_runtime_available("/nonexistent/python")
+
+
+def test_legacy_keras_runtime_interpreter_is_a_directory():
+    assert not legacy_keras_runtime_available(tempfile.gettempdir())
+
+
+def test_legacy_keras_runtime_timeout():
+    # sys.executable is a real interpreter, so only the timeout can end this.
+    assert not legacy_keras_runtime_available(sys.executable, timeout=0.001)
+
+
+def test_legacy_keras_runtime_reports_probe_exit_status():
+    # Stand in for the interpreter so the outcome is decided by the exit
+    # status alone, with no TensorFlow installed anywhere in the test env.
+    for exit_status, expected in ((0, True), (1, False)):
+        with patch("mhctools.process_helpers.subprocess.run") as run:
+            run.return_value = MagicMock(returncode=exit_status)
+            assert legacy_keras_runtime_available("python") is expected
+
+
+def test_legacy_keras_probe_rejects_keras_3_fallback():
+    # TensorFlow >= 2.16 resolves `import tensorflow.keras` to Keras 3 when
+    # tf-keras is absent, so the probe must import tf_keras itself instead.
+    script = _probe_script()
+    assert "import tf_keras" in script
+    assert "(2, 16)" in script
+
+
+def test_legacy_keras_runtime_sets_legacy_keras_env():
+    with patch("mhctools.process_helpers.subprocess.run") as run:
+        run.return_value = MagicMock(returncode=0)
+        legacy_keras_runtime_available("python")
+    env = run.call_args.kwargs["env"]
+    assert env["TF_USE_LEGACY_KERAS"] == "1"
+    assert env["TF_CPP_MIN_LOG_LEVEL"] == "3"

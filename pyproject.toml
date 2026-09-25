@@ -70,9 +70,10 @@ vaccine-report = [
 ]
 dev = [
   "build",
-  # The enabled rule set is declared in [tool.ruff.lint] rather than inherited
-  # from the installed ruff's defaults, so this floor is only a floor.
-  "ruff>=0.15.21",
+  # [tool.ruff.lint] declares the rule set, so a newer ruff no longer changes
+  # which rules run. Cap the minor anyway: a release can still add codes under
+  # a selected prefix or change an existing check, and lint gates the hook.
+  "ruff>=0.15.21,<0.17",
   "pytest",
   "pytest-cov",
   "twine",

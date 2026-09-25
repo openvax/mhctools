@@ -120,7 +120,7 @@ def keras(root, python, config):
     config["DEEPIMMUNO_HOME"] = fetch("deepimmuno")
     config["TLIMMUNO2_HOME"] = fetch("tlimmuno2", "--accept-license")
     runtime = make_env(root, "keras-env", python, [
-        "tensorflow==2.17.0", "tf-keras==2.17.0", "numpy<2", "pandas", "pyarrow",
+        "tensorflow==2.17.0", "tf-keras==2.17.0", "numpy<2", "pandas<3", "pyarrow",
     ])
     config.update(DEEPIMMUNO_PYTHON=str(runtime), TLIMMUNO2_PYTHON=str(runtime))
 

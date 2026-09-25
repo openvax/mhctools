@@ -49,13 +49,25 @@ python scripts/setup_test_backends.py half-life recognition gfeller keras smm --
 ```
 
 The recognition, Gfeller, keras and SMM groups fetch separately licensed code
-and weights.
-`--accept-license` accepts the upstream academic/non-commercial terms: review
-[MixTCRpred](https://github.com/GfellerLab/MixTCRpred),
-[MixMHCpred](https://github.com/GfellerLab/MixMHCpred),
-[MixMHC2pred](https://github.com/GfellerLab/MixMHC2pred), and
-[PRIME](https://github.com/GfellerLab/PRIME) before using this option.
-Upstream sources and models are never bundled in mhctools distributions.
+and weights, so they require `--accept-license`. Review the terms before using
+that option, because they are not all the same kind of term:
+
+- academic / non-commercial —
+  [MixTCRpred](https://github.com/GfellerLab/MixTCRpred),
+  [MixMHCpred](https://github.com/GfellerLab/MixMHCpred),
+  [MixMHC2pred](https://github.com/GfellerLab/MixMHC2pred),
+  [PRIME](https://github.com/GfellerLab/PRIME);
+- Non-Profit Open Software License 3.0 — the IEDB MHC-I bundle used by `smm`
+  (see [below](#local-smm-and-smm-pmbec));
+- **no published license** —
+  [TLimmuno2](https://github.com/XSLiuLab/TLimmuno2), which is why the `keras`
+  group is gated at all. Here `--accept-license` records that you have
+  confirmed your own use is authorized; it cannot accept terms upstream never
+  stated, and it grants no rights mhctools does not have.
+
+DeepImmuno, the other half of the `keras` group, is MIT and needs no
+acceptance of its own. Upstream sources and models are never bundled in
+mhctools distributions.
 
 The script pins model/source revisions, installs the complete MixMHC2pred
 official release (including PWM assets), and installs incompatible Python
@@ -143,8 +155,9 @@ installations with Python 2 can continue using their existing launchers.
 
 CI runs the public suite on Python 3.9–3.12, the licensed NetMHC integration
 suite, and separate real-model jobs for TULIP, CapHLA, MixTCRpred, the two
-half-life predictors, the three Gfeller MHC predictors, and local SMM/SMM-PMBEC (11 CI jobs total). Each focused model
-job uses `--require-all`, so a missing installation cannot silently turn it green.
+half-life predictors, the three Gfeller MHC predictors, DeepImmuno/TLimmuno2,
+and local SMM/SMM-PMBEC (12 CI jobs total). Each focused model job uses
+`--require-all`, so a missing installation cannot silently turn it green.
 The complete release run requires all installed backends and zero skips:
 
 ```sh

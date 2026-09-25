@@ -127,15 +127,30 @@ class AsyncProcess(object):
             raise CalledProcessError(ret_code, self.cmd)
         return ret_code
 
+# TensorFlow 2.16 replaced the bundled Keras 2 with Keras 3. From that release
+# on, the Keras 2 API is only reachable through the separate `tf-keras` package.
+_LEGACY_KERAS_PROBE = """
+import tensorflow as tf
+if tuple(int(part) for part in tf.__version__.split(".")[:2]) < (2, 16):
+    import tensorflow.keras  # noqa: F401  -- still Keras 2 natively
+else:
+    import tf_keras  # noqa: F401  -- the Keras 2 shim that modern TF needs
+"""
+
 def legacy_keras_runtime_available(python_executable, timeout=120):
     """
-    Whether `python_executable` can import the Keras 2 API.
+    Whether `python_executable` can load Keras 2 era models.
 
-    DeepImmuno and TLimmuno2 ship weights that only load under Keras 2, reached
-    on TensorFlow >= 2.16 through the `tf-keras` shim and
-    `TF_USE_LEGACY_KERAS=1`. An interpreter whose TensorFlow and `tf-keras` are
-    mismatched imports `tensorflow` fine and then raises on
-    `tensorflow.keras`, so probe that import specifically.
+    DeepImmuno and TLimmuno2 ship weights that only load under Keras 2. On
+    TensorFlow >= 2.16 that API lives in the separate `tf-keras` package,
+    reached through `TF_USE_LEGACY_KERAS=1`.
+
+    Importing `tensorflow.keras` is not a sufficient probe: when `tf-keras` is
+    missing, modern TensorFlow resolves that name to Keras 3 and the import
+    succeeds, only for the weights to fail to load later. So probe `tf_keras`
+    itself, which separates all three states — present and compatible, present
+    but mismatched with TensorFlow (raises), and absent (raises) — while still
+    accepting a genuinely old TensorFlow that has Keras 2 built in.
 
     Callers use this to skip when the runtime is absent or incompatible,
     instead of letting the sidecar surface it as a prediction failure.
@@ -157,7 +172,7 @@ def legacy_keras_runtime_available(python_executable, timeout=120):
     env.setdefault("TF_CPP_MIN_LOG_LEVEL", "3")
     try:
         return subprocess.run(
-            [python_executable, "-c", "import tensorflow.keras"],
+            [python_executable, "-c", _LEGACY_KERAS_PROBE],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
             env=env, timeout=timeout).returncode == 0
     except (OSError, subprocess.SubprocessError):

@@ -21,6 +21,7 @@ with Keras 2, or newer TensorFlow plus the ``tf-keras`` shim).
 """
 
 import os
+from functools import lru_cache
 from tempfile import NamedTemporaryFile
 
 import pytest
@@ -126,11 +127,15 @@ except FileNotFoundError:
 
 # The checkout alone is not enough: the sidecar defaults to the interpreter
 # running the tests, whose TensorFlow may be too new for DeepImmuno's Keras 2
-# weights. Probe it so an unprovisioned runtime skips rather than failing.
-DEEPIMMUNO_RUNTIME = bool(DEEPIMMUNO_HOME) and deepimmuno_runtime_available()
+# weights.
+# Probed lazily and cached: it starts an interpreter and imports TensorFlow, so
+# collecting the unit tests in this module must not pay for it.
+@lru_cache(maxsize=None)
+def _runtime_ready():
+    return bool(DEEPIMMUNO_HOME) and deepimmuno_runtime_available()
 
 requires_deepimmuno = pytest.mark.skipif(
-    not DEEPIMMUNO_RUNTIME,
+    "not _runtime_ready()",
     reason="DeepImmuno not runnable (set DEEPIMMUNO_HOME to a clone and "
            "DEEPIMMUNO_PYTHON to an interpreter with TensorFlow and Keras 2 / "
            "tf-keras; see docs/testing.md)")
