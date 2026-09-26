@@ -30,11 +30,10 @@ pip install mhctools
 ```
 
 `Calis` works immediately with no download. Most predictors need model weights
-or an external tool first — see [getting models](#getting-models). For
-MHCflurry:
+or an external tool first — see [getting models](#getting-models). MHCflurry
+ships as a dependency, so it only needs its weights:
 
 ```sh
-pip install mhcflurry
 mhctools fetch mhcflurry
 ```
 
@@ -160,7 +159,8 @@ df = predictor.predict_dataframe(["SIINFEKL"], sample_name="pat001")
 df = predictor.predict_proteins_dataframe({"TP53": "MEEPQ..."}, sample_name="pat001")
 ```
 
-The columns are the same for every predictor:
+The columns are the same for every predictor, and are defined once as
+`mhctools.pred.COLUMNS`:
 
 | Column | |
 |---|---|
