@@ -64,6 +64,7 @@ jobs:
             tests/test_serum_cleavage.py \
             tests/test_eramer_cleavage.py \
             tests/test_pred.py \
+            tests/test_prediction_alignment.py \
             tests/test_annotate_table.py \
             tests/test_prime.py \
             tests/test_mixmhc2pred2.py \

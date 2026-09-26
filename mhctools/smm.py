@@ -89,6 +89,14 @@ class SMM(BasePredictor):
         self.program_name = resolve_smm_executable(program_name)
         self.timeout = timeout
 
+    def predict(self, peptides, n_flanks=None, c_flanks=None):
+        """Return one result per input, retaining its legacy sequence label."""
+        peptides, _, _ = self._check_flank_inputs(peptides, n_flanks, c_flanks)
+        # This adapter already restores input order and occurrences after
+        # scoring unique sequences, including each occurrence's seqN label.
+        return self.predict_peptides(peptides).to_peptide_preds(
+            kind=self._default_pred_kind(), predictor_version=self.predictor_version)
+
     def predict_peptides(self, peptides):
         peptides = list(peptides)
         if not self.alleles:
