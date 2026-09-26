@@ -202,13 +202,37 @@ class BasePredictor(object):
         Returns
         -------
         list of PeptideResult
+            One result per input occurrence, in input order. Repeated peptides
+            share predictions but have separate result containers.
+
+        Raises
+        ------
+        ValueError
+            If predictions are missing for a requested peptide/allele pair.
         """
         peptide_list, _, _ = _check_flank_inputs(
             peptides, n_flanks, c_flanks)
-        collection = self.predict_peptides(peptide_list)
-        return collection.to_peptide_preds(
+        # The legacy collection has no input-occurrence identity. Score each
+        # distinct peptide once, then expand against the original input list.
+        collection = self.predict_peptides(list(dict.fromkeys(peptide_list)))
+        predictions = collection.to_preds(
             kind=self._default_pred_kind(),
             predictor_version=getattr(self, "predictor_version", ""))
+        return self._peptide_results_in_input_order(
+            predictions, peptide_list, self.alleles)
+
+    def _peptide_results_in_input_order(self, predictions, peptides, alleles):
+        """Expand predictions for distinct peptides into input occurrences."""
+        self._check_results(predictions, peptides, alleles)
+        by_peptide = defaultdict(list)
+        for pred in predictions:
+            by_peptide[pred.peptide].append(pred)
+        results = []
+        for peptide in peptides:
+            if peptide not in by_peptide:
+                raise ValueError("Missing predictions, example peptide='%s'" % peptide)
+            results.append(PeptideResult(preds=tuple(by_peptide[peptide])))
+        return results
 
     def predict_with_flanks(self, peptides, n_flanks, c_flanks):
         """

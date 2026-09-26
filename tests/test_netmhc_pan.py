@@ -12,7 +12,9 @@
 
 from .common import eq_
 
-from mhctools import NetMHCpan
+import pytest
+
+from mhctools import NetMHCpan, NetMHCpan41
 
 
 DEFAULT_ALLELE = 'HLA-A*02:01'
@@ -92,6 +94,24 @@ def test_netmhc_pan_multiple_alleles():
     observed_alleles = {bp.allele for bp in binding_predictions}
     assert observed_alleles == {"HLA-A*02:01", "HLA-B*35:02"}, \
         "Expected both alleles, got %s" % (observed_alleles,)
+
+
+@pytest.mark.parametrize("predictor_class", [NetMHCpan, NetMHCpan41])
+def test_predict_preserves_duplicate_inputs_with_real_backend(predictor_class):
+    alleles = ["HLA-A*02:01", "HLA-B*07:02"]
+    peptides = ["GILGFVFTL", "SIINFEKL", "NLVPMVATV", "GILGFVFTL", "SIINFEKL"]
+    predictor = predictor_class(alleles=alleles, max_peptides_per_file=2)
+
+    results = predictor.predict(peptides)
+
+    assert [result.peptide for result in results] == peptides
+    for peptide, result in zip(peptides, results):
+        assert result.alleles == set(alleles)
+        assert all(pred.peptide == peptide for pred in result.preds)
+        keys = [(pred.allele, pred.kind) for pred in result.preds]
+        assert len(keys) == len(set(keys)) == len(alleles) * len(result.kinds)
+    assert results[0] == results[3]
+    assert results[1] == results[4]
 
 
 def test_netmhc_pan_exotic_unnormalizable_alleles():

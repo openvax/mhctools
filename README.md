@@ -60,14 +60,14 @@ string and gives you accessors for each kind of prediction. An accessor returns
 `None` when the predictor doesn't produce that kind — so `r.stability` is
 `None` from an affinity-only model, rather than an error or a zero.
 
-> **Match results to inputs on `r.peptide`, not by position.** How many results
-> you get back currently depends on the predictor. The NetMHC family and
-> `SMM`/`SMMPMBEC` return one result per *distinct*
-> `(peptide, offset, source_sequence_name)`, so a repeated peptide collapses
-> into a single result and a peptide with no predictions is absent, while
-> `MHCflurry` and `Calis` return one per input occurrence. `zip(peptides,
-> results)` is therefore not safe in general
-> ([#451](https://github.com/openvax/mhctools/issues/451)).
+**Results preserve input order and repeated peptides.** `results[i]` corresponds
+to `peptides[i]`, so you can use `zip(peptides, results)`. The NetMHC family and
+the legacy binding-prediction fallback score each distinct peptide once and
+expand its predictions into a separate `PeptideResult` for every occurrence.
+If those backends omit a requested peptide/allele pair, `predict()` raises
+`ValueError` instead of returning a shorter, misaligned list. The standalone
+`BindingPredictionCollection.to_peptide_preds()` conversion still groups by
+`(peptide, offset, source_sequence_name)` because it has no input list.
 
 ```python
 r = results[0]

@@ -649,12 +649,7 @@ class BaseCommandlinePredictor(BasePredictor):
                 "No parseable predictions from %s. Predictor output tail:\n%s"
                 % (self.program_name, _output_tail(outputs)))
 
-        # Group by (peptide, offset, source) into PeptideResult
-        groups = defaultdict(list)
-        for pred in all_preds:
-            key = (pred.peptide, pred.offset, pred.source_sequence_name)
-            groups[key].append(pred)
-        return [PeptideResult(preds=tuple(preds)) for preds in groups.values()]
+        return all_preds
 
     def _build_peptide_commands(
             self,
@@ -723,21 +718,25 @@ class BaseCommandlinePredictor(BasePredictor):
         return results
 
     def _predict_for_alleles(self, peptides, alleles, allele_cli_names=None):
+        if not peptides:
+            return []
+        unique_peptides = _unique_in_order(peptides)
         if self.parse_to_preds_fn is None:
             collection = self._predict_binding_predictions_for_alleles(
-                peptides=peptides,
+                peptides=unique_peptides,
                 alleles=alleles,
                 allele_cli_names=allele_cli_names)
-            return collection.to_peptide_preds(kind=self._default_pred_kind())
-
-        commands, input_filenames, dirs = self._build_peptide_commands(
-            peptides=peptides,
-            alleles=alleles,
-            allele_cli_names=allele_cli_names)
-        return self._run_commands_and_collect_preds(
-            commands=commands,
-            input_filenames=input_filenames,
-            temp_dir_list=dirs)
+            predictions = collection.to_preds(kind=self._default_pred_kind())
+        else:
+            commands, input_filenames, dirs = self._build_peptide_commands(
+                peptides=unique_peptides,
+                alleles=alleles,
+                allele_cli_names=allele_cli_names)
+            predictions = self._run_commands_and_collect_preds(
+                commands=commands,
+                input_filenames=input_filenames,
+                temp_dir_list=dirs)
+        return self._peptide_results_in_input_order(predictions, peptides, alleles)
 
     def _check_pair_inputs(self, peptides, alleles=None):
         if alleles is None:
@@ -891,9 +890,10 @@ class BaseCommandlinePredictor(BasePredictor):
         """
         Predict for a list of peptide sequences.
 
-        Returns list of PeptideResult. When a native parse_to_preds_fn is
-        available, parses directly to Pred objects. Otherwise falls back
-        to converting from BindingPrediction.
+        Returns one PeptideResult per input occurrence, in input order, with
+        all requested alleles and available kinds. Repeated peptides are
+        scored once and expanded back to their input positions. Missing
+        peptide/allele predictions raise ValueError.
         """
         self._require_alleles()
         peptides, _, _ = self._check_flank_inputs(
