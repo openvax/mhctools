@@ -46,6 +46,80 @@ def test_all_models_in_registry():
         assert name in mhc_predictors, f"{name} missing from mhc_predictors registry"
 
 
+# Predictor classes that are public but deliberately absent from the
+# --mhc-predictor registry, each with the interface that does serve them.
+_UNREGISTERED_BY_DESIGN = {
+    # Base classes, not concrete models.
+    "ProcessingPredictor",
+    "ProteasomePredictor",
+    # A result container that forwards predict(), not a model.
+    "MultiSample",
+    # pMHC:TCR predictors need a TCR argument --mhc-predictor cannot supply;
+    # they are served by the `mixtcrpred` subcommand.
+    "MixTCRpred",
+    "NetTCR",
+    "Tulip",
+    # Enzyme cleavage models, served by the `cleavage` subcommand via
+    # mhctools.peptidases.cleavage_models().
+    "DPP4qPISA",
+    "ERAMERCleavage",
+}
+
+
+def _registered_classes():
+    """(module, class name) for every registry entry, without resolving lazies."""
+    from mhctools.cli.args import _LazyPredictor
+    registered = set()
+    for value in mhc_predictors.values():
+        if isinstance(value, _LazyPredictor):
+            registered.add(("mhctools" + value._module_name, value._class_name))
+        else:
+            registered.add((value.__module__, value.__name__))
+    return registered
+
+
+def test_every_public_predictor_is_registered():
+    """Every public predictor class must be selectable by name.
+
+    topiary and other downstream callers resolve models through
+    mhc_predictors, so a wrapper that is exported but unregistered is
+    unreachable by name downstream (#319). The registry is a literal dict
+    maintained beside the exports, so without this test it silently drifts
+    every time a wrapper lands.
+    """
+    import inspect
+
+    import mhctools
+
+    registered = _registered_classes()
+    missing = []
+    for name in mhctools.__all__:
+        obj = getattr(mhctools, name, None)
+        if not inspect.isclass(obj):
+            continue
+        if not any(
+                callable(getattr(obj, method, None))
+                for method in ("predict", "predict_peptides")):
+            continue
+        if obj.__name__ in _UNREGISTERED_BY_DESIGN:
+            continue
+        if (obj.__module__, obj.__name__) not in registered:
+            missing.append(name)
+    assert not missing, (
+        "public predictor(s) missing from mhc_predictors: %s. Add a registry "
+        "key, or add the class to _UNREGISTERED_BY_DESIGN with the interface "
+        "that serves it." % ", ".join(sorted(missing)))
+
+
+def test_whole_peptide_predictors_registered():
+    """PeptiVerse and PlifePred2 resolve by name (#319)."""
+    from mhctools import PeptiVerse, PlifePred2
+    assert mhc_predictors["peptiverse"] == PeptiVerse
+    assert mhc_predictors["plifepred2"] == PlifePred2
+    eq = _parse_predictor_names("PeptiVerse,PlifePred2")
+    assert eq == ["peptiverse", "plifepred2"]
+
+
 # ── BigMHC_EL / BigMHC_IM subclass registry entries ───────────────
 
 def test_bigmhc_el_maps_to_subclass():
@@ -355,3 +429,13 @@ def test_legacy_cli_rejects_new_model_only_predictor():
 
     with pytest.raises(ValueError, match="predict-table"):
         _run_single_predictor(_NewModelOnly(), Namespace())
+
+
+def test_whole_peptide_predictor_directs_to_predict_table():
+    """PeptiVerse has no protein-scan path; the legacy CLI must say so (#319)."""
+    from mhctools.cli.script import _run_single_predictor
+    from mhctools import PeptiVerse
+
+    predictor = PeptiVerse.__new__(PeptiVerse)  # no artifacts needed for the guard
+    with pytest.raises(ValueError, match="predict-table"):
+        _run_single_predictor(predictor, Namespace())
