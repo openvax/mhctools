@@ -82,16 +82,53 @@ Set `MHCTOOLS_TEST_ENV=/dev/null` to run without this configuration.
 
 ## Local SMM and SMM-PMBEC
 
-The `smm` setup group downloads the official [IEDB MHC-I 3.1.7 bundle](https://downloads.iedb.org/tools/mhci/3.1.7/README),
-verifies its pinned SHA-256 (including cache hits), and installs its Python code, allele metadata,
-and model/percentile data. It does not install or execute the bundled DTU
-binaries. SMM 1.0 and SMM-PMBEC 1.0 run with the current Python interpreter,
-including on Apple Silicon; no extra Python dependencies are needed.
-Review the archive's `LIAI_license.txt` (Non-Profit Open Software License 3.0)
-before accepting the license. Upstream code and models stay outside the package.
+The `smm` setup group installs a 2.4 MB subset of the official
+[IEDB MHC-I 3.1.7 bundle](https://downloads.iedb.org/tools/mhci/3.1.7/README),
+verifies its pinned SHA-256, and installs its Python code, allele metadata, and
+model/percentile data. It does not install or execute the bundled DTU binaries.
+SMM 1.0 and SMM-PMBEC 1.0 run with the current Python interpreter, including on
+Apple Silicon; no extra Python dependencies are needed.
+Review `LIAI_license.txt` (Non-Profit Open Software License 3.0) before
+accepting the license. Upstream code and models stay outside the package.
 Setup requires `curl`; cold downloads use bounded transient-error retries and
-are promoted from a temporary file only after checksum verification. CI caches
-the immutable archive, while model inference needs no network access.
+are promoted from a temporary file only after checksum verification. Model
+inference needs no network access.
+
+The subset is served from this repo's
+[`iedb-smm-subset-3.1.7`](https://github.com/openvax/mhctools/releases/tag/iedb-smm-subset-3.1.7)
+release rather than fetched from `downloads.iedb.org`. That host became
+unreachable from GitHub runners on 2026-09-28 (`curl: (28) Connection timeout`,
+four attempts) with the Actions cache evicted, which blocked merges on PRs that
+had nothing to do with SMM. The release unpacks to 1031 MB across 38,236
+members, dominated by bundled DTU executables under `method/` (netmhc-4.0 is
+210 MB, netmhc-3.4 192 MB, netmhcpan-4.1 114 MB) plus 192 MB of per-method
+training data under `data/`. mhctools does not run those executables from this
+bundle; the netMHC family is wrapped through its own licensed distribution.
+The paths SMM needs come to 9.4 MB.
+
+The subset is a verbatim copy of `LIAI_license.txt`, `Copenhagen_license.txt`,
+the upstream `README`, `src/`, `method/allele-info/`,
+`method/iedbtools-utilities/` and the `smm/`, `smmpmbec/` and `consensus/`
+training data. `consensus/` is required despite
+the consensus method being unused: percentile ranks read
+`distribution_consensus_bin.cpickle` from it. `scripts/build_iedb_smm_subset.py`
+derives it from the official archive, verifying that archive's own SHA-256 and
+normalizing entry order and metadata. Rebuilding with the same compression
+runtime reproduces the checksum; different zlib versions may produce different
+compressed bytes even when the extracted files match upstream exactly:
+
+```sh
+curl -o env/test-backends/IEDB_MHC_I-3.1.7.tar.gz \
+    https://downloads.iedb.org/tools/mhci/3.1.7/IEDB_MHC_I-3.1.7.tar.gz
+python scripts/build_iedb_smm_subset.py \
+    --archive env/test-backends/IEDB_MHC_I-3.1.7.tar.gz \
+    --output dist/IEDB_MHC_I-3.1.7-smm-subset.tar.gz
+```
+
+Both paths are already git-ignored. The build exits with an error if the output
+digest differs from `EXPECTED_SUBSET_SHA256`; do not publish that output. It
+also fails if any allowlisted prefix contains no regular files or the archive
+grows a member type it does not copy.
 
 ```sh
 python scripts/setup_test_backends.py smm --accept-license

@@ -54,6 +54,7 @@ jobs:
             tests/test_osteosarc_fixtures.py \
             tests/test_process_helpers.py \
             tests/test_smm.py tests/test_iedb_local.py \
+            tests/test_smm_subset_provenance.py \
             tests/test_require_all.py \
             tests/test_peptiverse.py \
             tests/test_plifepred2.py \
@@ -334,13 +335,6 @@ jobs:
             ~/.cache/huggingface
             env/test-backends/PeptiVerse
           key: half-life-${{ runner.os }}-${{ hashFiles('mhctools/peptiverse.py') }}
-
-      - name: Cache checksum-pinned IEDB standalone archive
-        if: matrix.group == 'smm'
-        uses: actions/cache@v4
-        with:
-          path: env/test-backends/IEDB_MHC_I-3.1.7.tar.gz
-          key: iedb-mhci-3.1.7-1cea64173886cc612d686313d4cb035c986c908e9042dab9cfa9a2bd492d2e31
 
       - name: Provision upstream models and isolated runtimes
         run: python scripts/setup_test_backends.py ${{ matrix.group }} --python python --accept-license

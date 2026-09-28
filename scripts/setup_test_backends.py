@@ -173,9 +173,24 @@ def gfeller(root, python, config):
     config["MIXMHC2PRED_EXECUTABLE"] = str(mix2 / binary)
 
 
+# A verbatim subset of the official IEDB MHC-I 3.1.7 bundle, hosted on this
+# repo's releases. The upstream 341 MB archive became unreachable from GitHub
+# runners on 2026-09-28 (curl exit 28, connection timeout, four attempts) with
+# the Actions cache evicted, which blocked unrelated merges. The release
+# unpacks to 1031 MB, mostly bundled DTU executables SMM never runs, against
+# 9.4 MB it needs. scripts/build_iedb_smm_subset.py
+# derives this file reproducibly and documents exactly what it contains; the
+# upstream Non-Profit OSL 3.0 license ships inside it.
+SMM_SUBSET_URL = (
+    "https://github.com/openvax/mhctools/releases/download/"
+    "iedb-smm-subset-3.1.7/IEDB_MHC_I-3.1.7-smm-subset.tar.gz")
+SMM_SUBSET_SHA256 = (
+    "eef720a71991a76ceee64ce32fbb52e19684b91d9d44eb078c18c96f395e192e")
+
+
 def smm(root, python, config):
     """Install the official Python-only SMM runtime, without DTU executables."""
-    archive = root / "IEDB_MHC_I-3.1.7.tar.gz"
+    archive = root / "IEDB_MHC_I-3.1.7-smm-subset.tar.gz"
     candidate = archive
     if not archive.exists():
         candidate = archive.with_name(archive.name + ".part")
@@ -183,24 +198,37 @@ def smm(root, python, config):
         # timeouts), but not authorization errors such as HTTP 403.
         run("curl", "--fail", "--location", "--retry", "3", "--retry-delay", "2",
             "--retry-max-time", "300", "--connect-timeout", "20", "--max-time", "300",
-            "--output", candidate,
-            "https://downloads.iedb.org/tools/mhci/3.1.7/IEDB_MHC_I-3.1.7.tar.gz")
+            "--output", candidate, SMM_SUBSET_URL)
     digest = hashlib.sha256(candidate.read_bytes()).hexdigest()
-    if digest != "1cea64173886cc612d686313d4cb035c986c908e9042dab9cfa9a2bd492d2e31":
-        raise SystemExit("Unexpected IEDB release checksum: %s" % digest)
+    if digest != SMM_SUBSET_SHA256:
+        raise SystemExit("Unexpected IEDB SMM subset checksum: %s" % digest)
     if candidate != archive:
         candidate.replace(archive)
     installation = root / "iedb-3.1.7"
-    prefixes = ("mhc_i/src/", "mhc_i/data/", "mhc_i/method/allele-info/",
-                "mhc_i/method/iedbtools-utilities/")
+    # Machines provisioned from the full release still hold ~190 MB of method
+    # data this subset does not install. Leaving it in place wastes the disk
+    # and, worse, makes record_smm_fixtures.py hash a hybrid tree that no
+    # fresh install can reproduce, so the recorded provenance would be
+    # machine-specific. Start from an empty directory instead.
+    if installation.exists():
+        shutil.rmtree(installation)
     # Copy regular files only; compatible with Python 3.9 and no symlink or
-    # archive-path traversal. The archive is also pinned above by SHA-256.
+    # archive-path traversal. The subset holds only the allowlisted paths and
+    # is pinned above by SHA-256; the prefix check is a second constraint so
+    # that changing the checksum alone cannot change what lands on disk.
+    prefixes = ("mhc_i/src/", "mhc_i/method/allele-info/",
+                "mhc_i/method/iedbtools-utilities/",
+                "mhc_i/data/MHCI_mhcibinding20130222/")
+    permitted_files = ("mhc_i/LIAI_license.txt", "mhc_i/Copenhagen_license.txt",
+                       "mhc_i/README")
     with tarfile.open(archive) as release:
         for member in release:
-            if not member.isfile() or not (
-                    member.name.startswith(prefixes)
-                    or member.name == "mhc_i/LIAI_license.txt"):
+            if not member.isfile():
                 continue
+            if not (member.name.startswith(prefixes)
+                    or member.name in permitted_files):
+                raise SystemExit(
+                    "Unexpected path in the SMM subset: %s" % member.name)
             destination = installation / member.name
             if not destination.resolve().is_relative_to(installation.resolve()):
                 raise ValueError("Unsafe IEDB archive path: %s" % member.name)
