@@ -11,16 +11,16 @@ SMM and SMM-PMBEC actually need come to 9.4 MB.
 CI downloading the full archive from downloads.iedb.org made every merge
 depend on a third-party academic host being reachable, which it was not on
 2026-09-28 (curl exit 28, connection timeout, four attempts). This script
-produces a byte-reproducible subset that can be hosted where CI can always
-reach it, pinned by its own checksum.
+produces a small subset that can be hosted alongside CI, pinned by its own
+checksum.
 
 The subset is a verbatim copy of the allowlisted paths; nothing is rewritten.
 LIAI_license.txt is included because the bundle is Non-Profit Open Software
 License 3.0 and the terms travel with the material.
 
 Reproducibility: entries are sorted, and mtime, mode, uid/gid and uname/gname
-are normalized, so a rebuild from the same official archive yields the same
-SHA-256 and the hosted copy can be audited against upstream.
+are normalized. Rebuilding with the same compression runtime yields the same
+SHA-256; different zlib versions may produce different compressed bytes.
 
     python scripts/build_iedb_smm_subset.py \
         --archive env/test-backends/IEDB_MHC_I-3.1.7.tar.gz \
@@ -43,7 +43,7 @@ ARCHIVE_SHA256 = "1cea64173886cc612d686313d4cb035c986c908e9042dab9cfa9a2bd492d2e
 # These mirror the prefixes setup_test_backends.smm() already installs, with
 # data/ narrowed from every method's training data to the two SMM methods.
 # method/ as a whole is not included: in the archive it holds the bundled tool
-# implementations, which is most of the 341 MB.
+# implementations, which account for most of the unpacked release.
 INCLUDED_PREFIXES = (
     # The upstream licenses and release notes travel with the material.
     "LIAI_license.txt",
@@ -139,11 +139,11 @@ def main():
             prefix = _matched_prefix(member.name)
             if prefix is None:
                 continue
-            per_prefix[prefix] += 1
             arcname = member.name[member.name.find(MARKER):]
             if member.isdir():
                 entries.append((arcname, None, 0o755))
             elif member.isreg():
+                per_prefix[prefix] += 1
                 entries.append((
                     arcname,
                     source.extractfile(member).read(),
@@ -162,7 +162,7 @@ def main():
         # An upstream rename (the data directory carries a dataset date) would
         # otherwise produce a cheerful build with no model data at all.
         raise SystemExit(
-            "No archive member matched: %s" % ", ".join(sorted(empty)))
+            "No regular archive file matched: %s" % ", ".join(sorted(empty)))
 
     # Sort on the archive name itself so ordering does not depend on pathlib's
     # comparison semantics, which have been reworked across CPython releases.

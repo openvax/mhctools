@@ -113,8 +113,9 @@ training data. `consensus/` is required despite
 the consensus method being unused: percentile ranks read
 `distribution_consensus_bin.cpickle` from it. `scripts/build_iedb_smm_subset.py`
 derives it from the official archive, verifying that archive's own SHA-256 and
-normalizing entry order and metadata so a rebuild reproduces the same checksum
-and the hosted copy can be audited against upstream:
+normalizing entry order and metadata. Rebuilding with the same compression
+runtime reproduces the checksum; different zlib versions may produce different
+compressed bytes even when the extracted files match upstream exactly:
 
 ```sh
 curl -o env/test-backends/IEDB_MHC_I-3.1.7.tar.gz \
@@ -124,10 +125,10 @@ python scripts/build_iedb_smm_subset.py \
     --output dist/IEDB_MHC_I-3.1.7-smm-subset.tar.gz
 ```
 
-Both paths are already git-ignored. The build refuses to write a subset whose
-digest differs from `EXPECTED_SUBSET_SHA256`, and fails rather than shipping a
-partial tree if any allowlisted prefix matches nothing or the archive grows a
-member type it does not copy.
+Both paths are already git-ignored. The build exits with an error if the output
+digest differs from `EXPECTED_SUBSET_SHA256`; do not publish that output. It
+also fails if any allowlisted prefix contains no regular files or the archive
+grows a member type it does not copy.
 
 ```sh
 python scripts/setup_test_backends.py smm --accept-license

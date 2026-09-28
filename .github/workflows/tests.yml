@@ -54,6 +54,7 @@ jobs:
             tests/test_osteosarc_fixtures.py \
             tests/test_process_helpers.py \
             tests/test_smm.py tests/test_iedb_local.py \
+            tests/test_smm_subset_provenance.py \
             tests/test_require_all.py \
             tests/test_peptiverse.py \
             tests/test_plifepred2.py \
