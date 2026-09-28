@@ -12,7 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from argparse import RawDescriptionHelpFormatter
+from collections import namedtuple
 import csv
+from importlib import import_module
 from io import StringIO
 import math
 import os
@@ -28,9 +31,94 @@ from .args import (
 from .errors import CLI_ERROR_TYPES, cli_error_message
 
 
+class Subcommand(namedtuple(
+        "Subcommand", ["name", "help", "module", "entry_point", "aliases"])):
+    """One `mhctools <command>` entry.
+
+    The module is imported on dispatch, not at startup: several subcommands
+    pull heavy optional runtimes that a plain prediction run must not pay for.
+    """
+
+    def load(self):
+        module = import_module(self.module, package=__package__)
+        return getattr(module, self.entry_point)
+
+
+def _subcommand(name, help, module, entry_point, aliases=()):
+    return Subcommand(name, help, module, entry_point, aliases)
+
+
+# The single source of truth for `mhctools <command>`: dispatch reads it and
+# --help renders it, so a new subcommand cannot appear in one and not the
+# other (#352).
+#
+# These are dispatched before argparse rather than through add_subparsers for
+# two reasons. add_mhc_args declares --mhc-predictor required=True, so a
+# subparser on this parser makes every subcommand fail on the missing flag;
+# relaxing that is #444's decision and changes behavior for topiary, which
+# embeds add_mhc_args. And argparse's REMAINDER does not capture a
+# subcommand's own leading options, so `ls --all` would become "unrecognized
+# arguments: --all" unless every subcommand exposed its parser for
+# registration here.
+SUBCOMMANDS = (
+    _subcommand(
+        "ls", "List model weights and other predictor artifacts",
+        ".artifacts", "ls_main"),
+    _subcommand(
+        "fetch", "Fetch artifacts required by a predictor wrapper",
+        ".artifacts", "fetch_main"),
+    _subcommand(
+        "predictors",
+        "Report artifact location, launchability and reference reproduction",
+        ".integrations", "predictors_main", aliases=("integrations",)),
+    _subcommand(
+        "predict-table",
+        "Annotate a CSV of peptides (and optional alleles) with score columns",
+        ".annotate_table", "main"),
+    _subcommand(
+        "benchmark",
+        "Evaluate supplied measurements and predictions; writes a JSON report",
+        ".benchmark", "main"),
+    _subcommand(
+        "cleavage",
+        "Report peptidase motif evidence and native model scores per bond",
+        ".cleavage", "main"),
+    _subcommand(
+        "mixtcrpred",
+        "Score a paired alpha/beta TCR table with one MixTCRpred model",
+        ".mixtcrpred", "main"),
+    _subcommand(
+        "vaccine-report",
+        "Generate a route-aware peptide cleavage and MHC-window report",
+        ".vaccine_report", "main"),
+)
+
+
+def find_subcommand(name):
+    """Return the Subcommand invoked by `name`, or None for the legacy form."""
+    for subcommand in SUBCOMMANDS:
+        if name == subcommand.name or name in subcommand.aliases:
+            return subcommand
+    return None
+
+
+def _subcommand_epilog():
+    width = max(len(subcommand.name) for subcommand in SUBCOMMANDS)
+    lines = ["Subcommands:"]
+    for subcommand in SUBCOMMANDS:
+        lines.append("  %-*s  %s" % (width, subcommand.name, subcommand.help))
+    lines.append("")
+    lines.append(
+        "Run `mhctools <command> --help` for a subcommand's own options. "
+        "The flags above\nbelong to the bare prediction command.")
+    return "\n".join(lines)
+
+
 arg_parser = make_mhc_arg_parser(
     prog="mhctools",
-    description=("Predict MHC ligands from protein sequences."))
+    description=("Predict MHC ligands from protein sequences."),
+    epilog=_subcommand_epilog(),
+    formatter_class=RawDescriptionHelpFormatter)
 
 def add_input_args(arg_parser):
     input_group = arg_parser.add_argument_group("Inputs")
@@ -269,30 +357,18 @@ def main(args_list=None):
     """
     if args_list is None:
         args_list = sys.argv[1:]
-    if args_list and args_list[0] == "ls":
-        from .artifacts import ls_main
-        return ls_main(args_list[1:])
-    if args_list and args_list[0] == "fetch":
-        from .artifacts import fetch_main
-        return fetch_main(args_list[1:])
-    if args_list and args_list[0] in ("predictors", "integrations"):
-        from .integrations import predictors_main
-        return predictors_main(args_list[1:], command_name=args_list[0])
-    if args_list and args_list[0] == "benchmark":
-        from .benchmark import main as benchmark_main
-        return benchmark_main(args_list[1:])
-    if args_list and args_list[0] == "cleavage":
-        from .cleavage import main as cleavage_main
-        return cleavage_main(args_list[1:])
-    if args_list and args_list[0] == "predict-table":
-        from .annotate_table import main as annotate_table_main
-        return annotate_table_main(args_list[1:])
-    if args_list and args_list[0] == "mixtcrpred":
-        from .mixtcrpred import main as mixtcrpred_main
-        return mixtcrpred_main(args_list[1:])
-    if args_list and args_list[0] == "vaccine-report":
-        from .vaccine_report import main as vaccine_report_main
-        return vaccine_report_main(args_list[1:])
+    if not args_list:
+        # A bare `mhctools` is someone looking for the interface, not a
+        # malformed prediction run. Show it instead of an argparse error.
+        arg_parser.print_help()
+        return 0
+    subcommand = find_subcommand(args_list[0])
+    if subcommand is not None:
+        entry_point = subcommand.load()
+        if subcommand.aliases:
+            # Subcommands with an alias report the name they were invoked by.
+            return entry_point(args_list[1:], command_name=args_list[0])
+        return entry_point(args_list[1:])
 
     args = parse_args(args_list)
     try:
