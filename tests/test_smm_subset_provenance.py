@@ -12,10 +12,13 @@
 
 """The hosted SMM subset must stay traceable to one upstream IEDB release.
 
-Three files pin IEDB 3.1.7 independently: the subset builder, the fixture
-recorder, and the backend installer. If one is bumped to a new upstream
-release without the others, the recorded fixtures silently stop describing
-what CI installs.
+The subset builder and the fixture recorder each pin the official archive by
+SHA-256, and the builder also pins the digest of the subset it derives from
+it. The installer pins only that derived digest, which carries no upstream
+version of its own -- so the chain from "what CI installs" back to "which
+IEDB release" holds only if the installer's digest equals the one the builder
+declares. Assert that, or a rebuilt-and-reuploaded asset could change what CI
+installs while the recorded fixtures keep describing the old release.
 """
 
 import importlib.util
@@ -55,6 +58,26 @@ def test_installer_pins_a_subset_checksum():
     installer = _load("setup_test_backends")
 
     assert re.fullmatch(r"[0-9a-f]{64}", installer.SMM_SUBSET_SHA256)
+
+
+def test_installer_digest_is_the_one_the_builder_produces():
+    """Ties the installed artifact to a build from the pinned IEDB release.
+
+    Without this, uploading a modified asset and updating only
+    SMM_SUBSET_SHA256 passes every other check here.
+    """
+    builder = _load("build_iedb_smm_subset")
+    installer = _load("setup_test_backends")
+
+    assert installer.SMM_SUBSET_SHA256 == builder.EXPECTED_SUBSET_SHA256
+
+
+def test_subset_carries_the_upstream_licenses():
+    """NPOSL-3.0 material is redistributed, so its notices must travel."""
+    builder = _load("build_iedb_smm_subset")
+
+    for notice in ("LIAI_license.txt", "Copenhagen_license.txt", "README"):
+        assert notice in builder.INCLUDED_PREFIXES
 
 
 def test_installer_downloads_the_release_the_builder_produces():

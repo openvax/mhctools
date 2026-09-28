@@ -176,15 +176,16 @@ def gfeller(root, python, config):
 # A verbatim subset of the official IEDB MHC-I 3.1.7 bundle, hosted on this
 # repo's releases. The upstream 341 MB archive became unreachable from GitHub
 # runners on 2026-09-28 (curl exit 28, connection timeout, four attempts) with
-# the Actions cache evicted, which blocked unrelated merges. 96% of that
-# download is method data SMM does not use. scripts/build_iedb_smm_subset.py
+# the Actions cache evicted, which blocked unrelated merges. The release
+# unpacks to 1031 MB, mostly bundled DTU executables SMM never runs, against
+# 9.4 MB it needs. scripts/build_iedb_smm_subset.py
 # derives this file reproducibly and documents exactly what it contains; the
 # upstream Non-Profit OSL 3.0 license ships inside it.
 SMM_SUBSET_URL = (
     "https://github.com/openvax/mhctools/releases/download/"
     "iedb-smm-subset-3.1.7/IEDB_MHC_I-3.1.7-smm-subset.tar.gz")
 SMM_SUBSET_SHA256 = (
-    "7fd86fd1ecdfb58e4ab6a2f5cb4e3767f04dd35747d1bd948515cdffed5ca347")
+    "eef720a71991a76ceee64ce32fbb52e19684b91d9d44eb078c18c96f395e192e")
 
 
 def smm(root, python, config):
@@ -204,13 +205,30 @@ def smm(root, python, config):
     if candidate != archive:
         candidate.replace(archive)
     installation = root / "iedb-3.1.7"
+    # Machines provisioned from the full release still hold ~190 MB of method
+    # data this subset does not install. Leaving it in place wastes the disk
+    # and, worse, makes record_smm_fixtures.py hash a hybrid tree that no
+    # fresh install can reproduce, so the recorded provenance would be
+    # machine-specific. Start from an empty directory instead.
+    if installation.exists():
+        shutil.rmtree(installation)
     # Copy regular files only; compatible with Python 3.9 and no symlink or
     # archive-path traversal. The subset holds only the allowlisted paths and
-    # is pinned above by SHA-256.
+    # is pinned above by SHA-256; the prefix check is a second constraint so
+    # that changing the checksum alone cannot change what lands on disk.
+    prefixes = ("mhc_i/src/", "mhc_i/method/allele-info/",
+                "mhc_i/method/iedbtools-utilities/",
+                "mhc_i/data/MHCI_mhcibinding20130222/")
+    permitted_files = ("mhc_i/LIAI_license.txt", "mhc_i/Copenhagen_license.txt",
+                       "mhc_i/README")
     with tarfile.open(archive) as release:
         for member in release:
             if not member.isfile():
                 continue
+            if not (member.name.startswith(prefixes)
+                    or member.name in permitted_files):
+                raise SystemExit(
+                    "Unexpected path in the SMM subset: %s" % member.name)
             destination = installation / member.name
             if not destination.resolve().is_relative_to(installation.resolve()):
                 raise ValueError("Unsafe IEDB archive path: %s" % member.name)

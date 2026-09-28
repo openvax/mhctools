@@ -17,11 +17,16 @@ are empty on this capture. `manifest.json` records the release checksum,
 installed code/model tree hash, exact commands, runtime, input-panel checksum,
 and all captured file hashes. Upstream code and model files are not vendored.
 
-Regenerate explicitly into a new directory after installing the pinned runtime:
+Regenerate explicitly into a new directory after installing the pinned runtime.
+`record_smm_fixtures.py` checks the full official release, which the setup
+script no longer downloads (it installs a 2.4 MB subset of it, see
+[docs/testing.md](../../../../docs/testing.md)), so fetch the release too:
 
 ```sh
 python scripts/setup_test_backends.py smm --accept-license
 source env/test-backends/activate.sh
+curl -o env/test-backends/IEDB_MHC_I-3.1.7.tar.gz \
+  https://downloads.iedb.org/tools/mhci/3.1.7/IEDB_MHC_I-3.1.7.tar.gz
 python scripts/record_smm_fixtures.py \
   --archive env/test-backends/IEDB_MHC_I-3.1.7.tar.gz \
   --installation env/test-backends/iedb-3.1.7/mhc_i \

@@ -99,13 +99,17 @@ The subset is served from this repo's
 release rather than fetched from `downloads.iedb.org`. That host became
 unreachable from GitHub runners on 2026-09-28 (`curl: (28) Connection timeout`,
 four attempts) with the Actions cache evicted, which blocked merges on PRs that
-had nothing to do with SMM. 96% of the 341 MB release is method data SMM never
-reads — pickpocket, netmhccons, netmhcpan and netmhcstabpan alone are 177 MB,
-and the netMHC family is wrapped through its own licensed distribution.
+had nothing to do with SMM. The release unpacks to 1031 MB across 38,236
+members, dominated by bundled DTU executables under `method/` (netmhc-4.0 is
+210 MB, netmhc-3.4 192 MB, netmhcpan-4.1 114 MB) plus 192 MB of per-method
+training data under `data/`. mhctools does not run those executables from this
+bundle; the netMHC family is wrapped through its own licensed distribution.
+The paths SMM needs come to 9.4 MB.
 
-The subset is a verbatim copy of `LIAI_license.txt`, `src/`,
-`method/allele-info/`, `method/iedbtools-utilities/` and the `smm/`,
-`smmpmbec/` and `consensus/` training data. `consensus/` is required despite
+The subset is a verbatim copy of `LIAI_license.txt`, `Copenhagen_license.txt`,
+the upstream `README`, `src/`, `method/allele-info/`,
+`method/iedbtools-utilities/` and the `smm/`, `smmpmbec/` and `consensus/`
+training data. `consensus/` is required despite
 the consensus method being unused: percentile ranks read
 `distribution_consensus_bin.cpickle` from it. `scripts/build_iedb_smm_subset.py`
 derives it from the official archive, verifying that archive's own SHA-256 and
@@ -113,11 +117,17 @@ normalizing entry order and metadata so a rebuild reproduces the same checksum
 and the hosted copy can be audited against upstream:
 
 ```sh
-curl -O https://downloads.iedb.org/tools/mhci/3.1.7/IEDB_MHC_I-3.1.7.tar.gz
+curl -o env/test-backends/IEDB_MHC_I-3.1.7.tar.gz \
+    https://downloads.iedb.org/tools/mhci/3.1.7/IEDB_MHC_I-3.1.7.tar.gz
 python scripts/build_iedb_smm_subset.py \
-    --archive IEDB_MHC_I-3.1.7.tar.gz \
-    --output IEDB_MHC_I-3.1.7-smm-subset.tar.gz
+    --archive env/test-backends/IEDB_MHC_I-3.1.7.tar.gz \
+    --output dist/IEDB_MHC_I-3.1.7-smm-subset.tar.gz
 ```
+
+Both paths are already git-ignored. The build refuses to write a subset whose
+digest differs from `EXPECTED_SUBSET_SHA256`, and fails rather than shipping a
+partial tree if any allowlisted prefix matches nothing or the archive grows a
+member type it does not copy.
 
 ```sh
 python scripts/setup_test_backends.py smm --accept-license
