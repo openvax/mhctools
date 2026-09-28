@@ -52,3 +52,38 @@ def test_overlong_peptide_error_reports_maximum_bound():
         max_peptide_length=10)
     with pytest.raises(ValueError, match="must be at most 10"):
         predictor._check_peptide_inputs(["A" * 11])
+
+
+# ── default_peptide_lengths=None is the documented default (#458) ──
+
+def test_base_predictor_accepts_default_peptide_lengths_none():
+    """The documented optional default must not raise during construction."""
+    predictor = BasePredictor(alleles=["HLA-A*02:01"])
+    assert predictor.default_peptide_lengths is None
+
+
+def test_adapter_without_default_lengths_scores_supplied_peptides():
+    """A custom adapter that only scores explicit peptides needs no defaults."""
+    class _Adapter(BasePredictor):
+        def predict_peptides(self, peptides):
+            return list(peptides)
+
+    adapter = _Adapter(alleles=["HLA-A*02:01"])
+    eq_(adapter.predict_peptides(["SIINFEKL"]), ["SIINFEKL"])
+
+
+def test_protein_scan_without_any_lengths_still_raises():
+    """Dropping the constructor check must not weaken the protein-scan check."""
+    predictor = BasePredictor(alleles=["HLA-A*02:01"])
+    with pytest.raises(ValueError, match="peptide_lengths"):
+        predictor.predict_proteins({"seq": "SIINFEKLQQ"})
+
+
+def test_non_integer_default_peptide_lengths_still_rejected():
+    with pytest.raises(TypeError):
+        BasePredictor(alleles=["HLA-A*02:01"], default_peptide_lengths=["9"])
+
+
+def test_scalar_default_peptide_length_still_wrapped():
+    predictor = BasePredictor(alleles=["HLA-A*02:01"], default_peptide_lengths=9)
+    eq_(predictor.default_peptide_lengths, [9])

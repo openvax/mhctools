@@ -74,6 +74,8 @@ from .. import (
     ERAMER,
     DeepImmuno,
     TLimmuno2,
+    PeptiVerse,
+    PlifePred2,
 )
 
 
@@ -191,6 +193,8 @@ mhc_predictors = {
     "eramer": ERAMER,
     "deepimmuno": DeepImmuno,
     "tlimmuno2": TLimmuno2,
+    "peptiverse": PeptiVerse,
+    "plifepred2": PlifePred2,
 }
 
 
