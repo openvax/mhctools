@@ -47,6 +47,8 @@ jobs:
             tests/test_mhcflurry_provenance.py \
             tests/test_cli_parsing_helpers.py \
             tests/test_cli_registry.py \
+            tests/test_cli_subcommands.py \
+            tests/test_packaging.py \
             tests/test_class2_allele_formats.py \
             tests/test_cli_filters.py \
             tests/test_mhc_formats.py \

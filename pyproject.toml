@@ -26,7 +26,6 @@ dependencies = [
   "numpy>=1.26.0,<2.0.0; python_version < '3.10'",
   "numpy>=2.0.0,<3.0.0; python_version >= '3.10'",
   "pandas>=0.13.1",
-  "varcode>=0.5.9",
   "pyensembl>=2.3.0,<3.0.0",
   "sercol>=0.0.2",
   "mhcflurry>=2.0.0",
@@ -76,6 +75,7 @@ dev = [
   "ruff>=0.15.21,<0.17",
   "pytest",
   "pytest-cov",
+  "tomli; python_version < '3.11'",
   "twine",
   "wheel",
 ]
@@ -93,8 +93,6 @@ version = { attr = "mhctools.__version__" }
 packages = ["mhctools", "mhctools.cli", "mhctools.data"]
 
 [tool.setuptools.package-data]
-"mhctools" = ["logging.conf"]
-"mhctools.cli" = ["logging.conf"]
 "mhctools.data" = ["*.json"]
 
 [tool.ruff]
