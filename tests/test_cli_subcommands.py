@@ -16,12 +16,14 @@ Dispatch and --help both read SUBCOMMANDS, so these tests pin the property
 that made #352 possible: a subcommand that exists but is undiscoverable.
 """
 
+import subprocess
+import sys
+
 import pytest
 
 from mhctools.cli.script import (
     SUBCOMMANDS,
     arg_parser,
-    find_subcommand,
     main,
 )
 
@@ -54,29 +56,42 @@ def test_bare_invocation_prints_help_and_succeeds(capsys):
     assert "predict-table" in captured.out
 
 
-@pytest.mark.parametrize(
-    "subcommand", SUBCOMMANDS, ids=[s.name for s in SUBCOMMANDS])
-def test_subcommand_entry_point_resolves(subcommand):
-    """Dispatch imports by name, so a typo would only surface at runtime."""
-    entry_point = subcommand.load()
-
-    assert callable(entry_point)
-
-
-@pytest.mark.parametrize(
-    "subcommand", SUBCOMMANDS, ids=[s.name for s in SUBCOMMANDS])
-def test_find_subcommand_resolves_own_name(subcommand):
-    assert find_subcommand(subcommand.name) is subcommand
+@pytest.mark.parametrize("command", [
+    name for subcommand in SUBCOMMANDS
+    for name in (subcommand.name, *subcommand.aliases)])
+def test_subcommand_help_dispatches_to_its_parser(command, capsys):
+    """Exercise imports, routing, argument forwarding, and alias help names."""
+    with pytest.raises(SystemExit) as exit_info:
+        main([command, "--help"])
+    assert exit_info.value.code == 0
+    captured = capsys.readouterr()
+    assert "usage: mhctools %s " % command in captured.out
+    assert not captured.err
 
 
-def test_find_subcommand_resolves_aliases():
-    assert find_subcommand("integrations") is find_subcommand("predictors")
+def test_legacy_prediction_flags_still_produce_output(capsys):
+    main([
+        "--mhc-predictor", "random", "--mhc-alleles", "HLA-A*02:01",
+        "--sequence", "SIINFEKL"])
+    captured = capsys.readouterr()
+    assert "SIINFEKL" in captured.out
+    assert "peptide" in captured.out
+    assert not captured.err
 
 
-def test_find_subcommand_returns_none_for_legacy_flags():
-    """The bare prediction command must still fall through to argparse."""
-    assert find_subcommand("--mhc-predictor") is None
-    assert find_subcommand("--sequence") is None
+def test_bare_help_keeps_subcommand_modules_and_heavy_runtimes_lazy():
+    # Other tests load subcommands, so check startup in a fresh interpreter.
+    result = subprocess.run([
+        sys.executable, "-c", """
+import sys
+from mhctools.cli.script import SUBCOMMANDS, main
+assert main([]) == 0
+assert not {'torch', 'tensorflow'} & sys.modules.keys()
+for subcommand in SUBCOMMANDS:
+    assert 'mhctools.cli' + subcommand.module not in sys.modules
+"""], capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+    assert "Subcommands:" in result.stdout
 
 
 def test_subcommand_names_are_unique():

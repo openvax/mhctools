@@ -17,16 +17,16 @@ and logging.conf was shipped as package data in two locations, one of which
 did not exist. Neither is visible from the code, so pin both here.
 """
 
+import ast
 from pathlib import Path
 import re
-import subprocess
 
 import pytest
 
 try:
     import tomllib
 except ModuleNotFoundError:  # Python < 3.11
-    tomllib = pytest.importorskip("tomli", reason="no TOML parser available")
+    import tomli as tomllib
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PYPROJECT = REPO_ROOT / "pyproject.toml"
@@ -45,14 +45,17 @@ def _distribution_name(requirement):
 
 def test_every_runtime_dependency_is_imported(pyproject):
     """A dependency nothing imports is weight on every install."""
+    imported = set()
+    for path in (REPO_ROOT / "mhctools").rglob("*.py"):
+        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+            if isinstance(node, ast.Import):
+                imported.update(alias.name.split(".")[0] for alias in node.names)
+            elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
+                imported.add(node.module.split(".")[0])
     unused = []
     for requirement in pyproject["project"]["dependencies"]:
         name = _distribution_name(requirement)
-        pattern = r"^\s*(import|from)\s+%s\b" % re.escape(name)
-        found = subprocess.run(
-            ["grep", "-rEl", pattern, "mhctools"],
-            cwd=REPO_ROOT, capture_output=True, text=True).stdout.strip()
-        if not found:
+        if name not in imported:
             unused.append(name)
     assert not unused, (
         "dependency declared but never imported: %s" % ", ".join(unused))

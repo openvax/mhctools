@@ -75,6 +75,7 @@ dev = [
   "ruff>=0.15.21,<0.17",
   "pytest",
   "pytest-cov",
+  "tomli; python_version < '3.11'",
   "twine",
   "wheel",
 ]
