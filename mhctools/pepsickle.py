@@ -12,6 +12,7 @@
 
 import hashlib
 import importlib.metadata
+import importlib.util
 import json
 import logging
 from pathlib import Path
@@ -56,10 +57,14 @@ def _pepsickle_identity(human_only, model_type="epitope"):
     if cache_key in _identity_cache:
         return _identity_cache[cache_key]
 
-    import pepsickle.model_functions as model_functions
-    import pepsickle.sequence_featurization_tools as feature_functions
-
-    package_dir = Path(model_functions.__file__).resolve().parent
+    # Cataloging assets must not import torch/sklearn or initialize their
+    # runtimes. Inference can still be isolated in a separate process.
+    spec = importlib.util.find_spec("pepsickle")
+    if spec is None or spec.origin is None:
+        raise ImportError("pepsickle is not installed")
+    package_dir = Path(spec.origin).resolve().parent
+    inference_path = package_dir / "model_functions.py"
+    features_path = package_dir / "sequence_featurization_tools.py"
     weights_path = package_dir / (
         "model.joblib" if model_type == "in-vitro" else "trained_model_dict.pickle")
     if not weights_path.is_file():
@@ -70,10 +75,10 @@ def _pepsickle_identity(human_only, model_type="epitope"):
         "package_version": importlib.metadata.version("pepsickle"),
         "weights_path": str(weights_path),
         "weights_sha256": _sha256(weights_path),
-        "inference_path": str(Path(model_functions.__file__).resolve()),
-        "inference_sha256": _sha256(model_functions.__file__),
-        "features_path": str(Path(feature_functions.__file__).resolve()),
-        "features_sha256": _sha256(feature_functions.__file__),
+        "inference_path": str(inference_path),
+        "inference_sha256": _sha256(inference_path),
+        "features_path": str(features_path),
+        "features_sha256": _sha256(features_path),
         "model_key": "gradient_boosting" if model_type == "in-vitro" else "+".join(
             "%s_%s_%s_mod" % (
                 "human" if human_only else "all_mammal",

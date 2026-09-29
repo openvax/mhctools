@@ -2,6 +2,8 @@
 
 from copy import deepcopy
 import json
+import subprocess
+import sys
 
 import pytest
 
@@ -10,6 +12,20 @@ from mhctools import (
     normalize_cleavage_input, predict_cleavage_batch, write_cleavage_batch,
 )
 from mhctools.cli.script import main
+
+
+def test_catalog_and_motif_batch_do_not_import_optional_runtimes():
+    completed = subprocess.run([sys.executable, "-c", """
+import sys
+from mhctools import cleavage_models, predict_cleavage_batch
+assert any(m.name.startswith('pepsickle-') for m in cleavage_models(include_optional=True))
+report = predict_cleavage_batch(
+    [dict(id='vaccine', scope='construct', sequence='RPPGFSPFR', n_term='free', c_term='free')],
+    [dict(id='serum', context='extracellular', models=['cpn-basic'])])
+assert report['assessments'][0]['status'] == 'assessed'
+assert not {'torch', 'tensorflow', 'pepsickle.model_functions'} & sys.modules.keys()
+"""], capture_output=True, text=True)
+    assert completed.returncode == 0, completed.stderr
 
 
 def request():
