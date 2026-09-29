@@ -21,13 +21,25 @@ import sys
 from .cleavage import CleavageModel, CleavageResult, CleavageSite, coerce_peptide
 from .proteasome_predictor import ProteasomePredictor
 
-# Module-level cache for loaded pepsickle models. Keyed by human_only.
+# Models are cached by family/population; C/I is an inference input.
 _model_cache = {}
 _identity_cache = {}
 
 logger = logging.getLogger(__name__)
 
 PEPSICKLE_SUBPROCESS_TIMEOUT_SECONDS = 300
+
+PEPSICKLE_MODELS = {
+    "pepsickle-in-vivo-" + population: dict(human_only=human)
+    for population, human in (("human-only", True), ("all-mammal", False))
+}
+for _family in ("in-vitro", "in-vitro-2"):
+    for _population, _human in (("human-only", True), ("all-mammal", False)):
+        if _family == "in-vitro" and _human:
+            continue  # Upstream's gradient-boosted model ignores human_only.
+        for _label, _type in (("constitutive", "C"), ("immunoproteasome", "I")):
+            PEPSICKLE_MODELS["pepsickle-%s-%s-%s" % (_family, _population, _label)] = dict(
+                model_type=_family, human_only=_human, proteasome_type=_type)
 
 
 def _sha256(path):
@@ -38,9 +50,9 @@ def _sha256(path):
     return digest.hexdigest()
 
 
-def _pepsickle_identity(human_only):
+def _pepsickle_identity(human_only, model_type="epitope"):
     """Return verified code, feature, and weight identity for pepsickle."""
-    cache_key = bool(human_only)
+    cache_key = (bool(human_only), model_type)
     if cache_key in _identity_cache:
         return _identity_cache[cache_key]
 
@@ -48,10 +60,11 @@ def _pepsickle_identity(human_only):
     import pepsickle.sequence_featurization_tools as feature_functions
 
     package_dir = Path(model_functions.__file__).resolve().parent
-    weights_path = package_dir / "trained_model_dict.pickle"
+    weights_path = package_dir / (
+        "model.joblib" if model_type == "in-vitro" else "trained_model_dict.pickle")
     if not weights_path.is_file():
         raise RuntimeError(
-            "Installed pepsickle is missing trained_model_dict.pickle at %s"
+            "Installed pepsickle is missing model weights at %s"
             % weights_path)
     identity = {
         "package_version": importlib.metadata.version("pepsickle"),
@@ -61,11 +74,11 @@ def _pepsickle_identity(human_only):
         "inference_sha256": _sha256(model_functions.__file__),
         "features_path": str(Path(feature_functions.__file__).resolve()),
         "features_sha256": _sha256(feature_functions.__file__),
-        "model_key": (
-            "human_epitope_sequence_mod+human_epitope_motif_mod"
-            if human_only else
-            "all_mammal_epitope_sequence_mod+all_mammal_epitope_motif_mod"
-        ),
+        "model_key": "gradient_boosting" if model_type == "in-vitro" else "+".join(
+            "%s_%s_%s_mod" % (
+                "human" if human_only else "all_mammal",
+                "epitope" if model_type == "epitope" else "20S_digestion", component)
+            for component in ("sequence", "motif")),
     }
     _identity_cache[cache_key] = identity
     return identity
@@ -76,18 +89,23 @@ import sys
 
 from pepsickle.model_functions import (
     initialize_epitope_model,
+    initialize_digestion_model,
+    initialize_digestion_gb_model,
     predict_protein_cleavage_locations,
 )
 
 request = json.loads(sys.stdin.read())
-model = initialize_epitope_model(human_only=request["human_only"])
+initialize = {"epitope": initialize_epitope_model,
+              "in-vitro": initialize_digestion_gb_model,
+              "in-vitro-2": initialize_digestion_model}[request["model_type"]]
+model = initialize(human_only=request["human_only"])
 results = {}
 for sequence in request["sequences"]:
     preds_raw = predict_protein_cleavage_locations(
         sequence,
         model,
-        mod_type="epitope",
-        proteasome_type="C",
+        mod_type=request["model_type"],
+        proteasome_type=request["proteasome_type"] or "C",
         threshold=request["threshold"],
     )
     results[sequence] = [entry[2] for entry in preds_raw]
@@ -97,7 +115,7 @@ json.dump({"results": results}, sys.stdout)
 
 class Pepsickle(ProteasomePredictor):
     """
-    Proteasomal cleavage predictor using pepsickle's epitope model.
+    Proteasomal cleavage predictor using an explicit upstream model family.
 
     Uses the in-vivo epitope model from Weeder et al. (Bioinformatics
     2021), which the paper shows outperforms the in-vitro alternatives
@@ -127,6 +145,15 @@ class Pepsickle(ProteasomePredictor):
 
     subprocess_timeout : int
         Timeout in seconds for isolated pepsickle inference.
+
+    model_type : {"epitope", "in-vitro", "in-vitro-2"}
+        Epitope-trained neural ensemble (default), digestion-trained gradient
+        boosting, or digestion-trained neural ensemble. The gradient-boosted
+        artifact requires its compatible upstream scikit-learn runtime.
+
+    proteasome_type : {"C", "I"} or None
+        Constitutive or immunoproteasome; required for digestion models.
+        Must be None for the proteasome-type-agnostic epitope model.
     """
 
     def __init__(
@@ -136,7 +163,17 @@ class Pepsickle(ProteasomePredictor):
             threshold=0.5,
             human_only=False,
             isolate_subprocess=False,
-            subprocess_timeout=PEPSICKLE_SUBPROCESS_TIMEOUT_SECONDS):
+            subprocess_timeout=PEPSICKLE_SUBPROCESS_TIMEOUT_SECONDS,
+            model_type="epitope",
+            proteasome_type=None):
+        if model_type not in ("epitope", "in-vitro", "in-vitro-2"):
+            raise ValueError("Unknown Pepsickle model_type %r" % model_type)
+        if model_type == "epitope" and proteasome_type is not None:
+            raise ValueError("The epitope model is proteasome-type agnostic")
+        if model_type != "epitope" and proteasome_type not in ("C", "I"):
+            raise ValueError("Digestion models require proteasome_type C or I")
+        if model_type == "in-vitro" and human_only:
+            raise ValueError("The gradient-boosted model does not support human_only")
         ProteasomePredictor.__init__(
             self,
             default_peptide_lengths=default_peptide_lengths,
@@ -146,6 +183,8 @@ class Pepsickle(ProteasomePredictor):
         self.human_only = human_only
         self.isolate_subprocess = isolate_subprocess
         self.subprocess_timeout = subprocess_timeout
+        self.model_type = model_type
+        self.proteasome_type = proteasome_type
         self._model = None
 
     def __str__(self):
@@ -155,10 +194,14 @@ class Pepsickle(ProteasomePredictor):
             self.isolate_subprocess)
 
     def _predictor_name(self):
+        if self.model_type != "epitope":
+            return self._cleavage_model_from_identity(
+                self.human_only, None, self.model_type, self.proteasome_type).name
         return "pepsickle"
 
     @staticmethod
-    def _cleavage_model_from_identity(human_only, identity):
+    def _cleavage_model_from_identity(human_only, identity, model_type="epitope",
+                                      proteasome_type=None):
         population = "human-only" if human_only else "all-mammal"
         if identity is None:
             version = "unresolved: pepsickle package/assets not located"
@@ -174,10 +217,22 @@ class Pepsickle(ProteasomePredictor):
                     identity["features_sha256"],
                 )
             )
+        if model_type == "epitope":
+            name = "pepsickle-in-vivo-%s" % population
+            assay = "Neural ensemble trained from observed epitope C termini"
+            context = 8
+        else:
+            name = "pepsickle-%s-%s-%s" % (
+                model_type, population,
+                "constitutive" if proteasome_type == "C" else "immunoproteasome")
+            assay = ("20S in-vitro digestion-trained %s; proteasome input %s" % (
+                "gradient boosting" if model_type == "in-vitro" else "neural ensemble",
+                proteasome_type))
+            context = 3
         return CleavageModel(
-            name="pepsickle-in-vivo-%s" % population,
+            name=name,
             version=version,
-            enzyme="proteasome epitope proxy",
+            enzyme="proteasome epitope proxy" if model_type == "epitope" else "20S proteasome",
             uniprot="",
             species="Homo sapiens" if human_only else "Mammalia",
             compartments=("cytosol",),
@@ -186,37 +241,35 @@ class Pepsickle(ProteasomePredictor):
                 "https://doi.org/10.1093/bioinformatics/btab628",
                 "https://github.com/pdxgx/pepsickle",
             ),
-            assay=(
-                "Neural ensemble trained from observed epitope C termini; %s "
-                "training subset" % population
-            ),
+            assay=assay + "; %s training subset" % population,
             limitations=(
                 "Native dimensionless model output, not an empirical cleavage, "
                 "degradation, presentation, or vaccine efficacy probability. "
-                "Uses an eight-residue context on each side with terminal "
+                "Uses a %d-residue context before P1 and after P1 with terminal "
                 "padding. The upstream package deserializes a pickle model; "
                 "isolate_subprocess controls process isolation but does not make "
-                "an untrusted pickle safe."
+                "an untrusted pickle safe." % context
             ),
-            score_name="pepsickle_epitope_model_output",
+            score_name="pepsickle_%s_model_output" % model_type.replace("-", "_"),
             score_units="dimensionless native model output",
             scored_endpoint="site_cleavage",
         )
 
     @classmethod
-    def catalog_cleavage_model(cls, human_only):
+    def catalog_cleavage_model(cls, human_only=False, model_type="epitope", proteasome_type=None):
         """Describe a known optional model without claiming absent assets."""
         try:
-            identity = _pepsickle_identity(human_only)
+            identity = _pepsickle_identity(human_only, model_type)
         except (ImportError, OSError, RuntimeError,
                 importlib.metadata.PackageNotFoundError):
             identity = None
-        return cls._cleavage_model_from_identity(human_only, identity)
+        return cls._cleavage_model_from_identity(human_only, identity, model_type, proteasome_type)
 
     def cleavage_model(self):
         """Return canonical per-bond metadata tied to installed assets."""
         return self._cleavage_model_from_identity(
-            self.human_only, _pepsickle_identity(self.human_only))
+            self.human_only, _pepsickle_identity(self.human_only, self.model_type),
+            self.model_type, self.proteasome_type)
 
     def predict_cleavage(self, peptide):
         """Return every internal bond through the canonical cleavage contract.
@@ -226,8 +279,18 @@ class Pepsickle(ProteasomePredictor):
         This adapter maps array index ``i`` to bond ``i + 1`` and deliberately
         excludes that endpoint sentinel.
         """
-        peptide = coerce_peptide(peptide)
+        return self.predict_cleavage_many([peptide])[0]
+
+    def predict_cleavage_many(self, peptides):
+        """Assess canonical inputs with one model load and deduplicated inference."""
+        peptides = tuple(coerce_peptide(p) for p in peptides)
         model = self.cleavage_model()
+        eligible = {p.sequence for p in peptides if p.n_term == p.c_term == "free"}
+        scores = self.cleavage_probs_many(sorted(eligible))
+        return tuple(self._canonical_result(peptide, model, scores.get(peptide.sequence))
+                     for peptide in peptides)
+
+    def _canonical_result(self, peptide, model, scores):
         if peptide.n_term != "free" or peptide.c_term != "free":
             return CleavageResult(
                 peptide,
@@ -236,7 +299,6 @@ class Pepsickle(ProteasomePredictor):
                     "Pepsickle does not model modified terminal chemistry"
                 ),
             )
-        scores = self.cleavage_probs(peptide.sequence)
         if len(scores) != len(peptide.sequence):
             raise ValueError(
                 "Expected %d pepsickle scores for sequence, got %d"
@@ -245,15 +307,16 @@ class Pepsickle(ProteasomePredictor):
             CleavageSite(
                 bond,
                 "scored",
-                "Pepsickle epitope-model output after residue %d" % bond,
+                "Pepsickle %s model output after residue %d" % (self.model_type, bond),
                 float(score),
             )
             for bond, score in enumerate(scores[:-1], start=1)
         )
-        identity = _pepsickle_identity(self.human_only)
+        identity = _pepsickle_identity(self.human_only, self.model_type)
         conditions = (
             ("human_only", str(bool(self.human_only)).lower()),
-            ("model_mode", "epitope"),
+            ("model_mode", self.model_type),
+            ("proteasome_type", self.proteasome_type or "agnostic"),
             ("model_key", identity["model_key"]),
             ("threshold", "%.17g" % self.threshold),
             ("isolate_subprocess", str(bool(self.isolate_subprocess)).lower()),
@@ -263,10 +326,15 @@ class Pepsickle(ProteasomePredictor):
 
     def _load_model(self):
         if self._model is None:
-            cache_key = self.human_only
+            cache_key = (self.human_only, self.model_type)
             if cache_key not in _model_cache:
-                from pepsickle.model_functions import initialize_epitope_model
-                _model_cache[cache_key] = initialize_epitope_model(
+                from pepsickle import model_functions
+                initialize = {
+                    "epitope": model_functions.initialize_epitope_model,
+                    "in-vitro": model_functions.initialize_digestion_gb_model,
+                    "in-vitro-2": model_functions.initialize_digestion_model,
+                }[self.model_type]
+                _model_cache[cache_key] = initialize(
                     human_only=self.human_only)
             self._model = _model_cache[cache_key]
         return self._model
@@ -291,14 +359,16 @@ class Pepsickle(ProteasomePredictor):
         preds_raw = predict_protein_cleavage_locations(
             sequence,
             model,
-            mod_type="epitope",
-            proteasome_type="C",
+            mod_type=self.model_type,
+            proteasome_type=self.proteasome_type or "C",
             threshold=self.threshold,
         )
         return [entry[2] for entry in preds_raw]
 
     def _cleavage_probs_many_subprocess(self, sequences):
         payload = json.dumps({
+            "model_type": self.model_type,
+            "proteasome_type": self.proteasome_type,
             "human_only": bool(self.human_only),
             "threshold": float(self.threshold),
             "sequences": sequences,
@@ -330,6 +400,11 @@ class Pepsickle(ProteasomePredictor):
             logger.warning(
                 "pepsickle subprocess exited with code %d",
                 result.returncode)
+            if self.model_type == "in-vitro" and "sklearn.ensemble._gb_losses" in stderr_text:
+                raise RuntimeError(
+                    "Pepsickle's gradient-boosted artifact requires a compatible legacy "
+                    "scikit-learn runtime (mhctools #471); this installation cannot load it. "
+                    "No alternative model was substituted.")
             raise RuntimeError(
                 "pepsickle subprocess exited with code %d.\nstdout: %s\n"
                 "stderr: %s"
@@ -386,3 +461,7 @@ class PepsickleCleavage:
 
     def predict(self, peptide):
         return self.predictor.predict_cleavage(peptide)
+
+    def predict_many(self, peptides):
+        """Return canonical results with one isolated inference call per batch."""
+        return self.predictor.predict_cleavage_many(peptides)

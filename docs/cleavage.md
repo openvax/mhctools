@@ -1,5 +1,10 @@
 # Peptidase cleavage evidence
 
+For named epitope occurrences with flanks, complete vaccine constructs and
+separate tumor/APC/extracellular scenarios, use the
+[batch API and CLI](cleavage-batch.md). It preserves categorical and numerical
+evidence through overlays and save/reload.
+
 ```python
 from mhctools import CleavageInput, DPP4qPISA
 

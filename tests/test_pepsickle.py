@@ -126,6 +126,8 @@ def test_isolated_cleavage_probs_batches_unique_sequences(monkeypatch):
     assert result["AC"] == [0.25, 0.25]
     assert len(calls) == 1
     assert calls[0]["request"] == {
+        "model_type": "epitope",
+        "proteasome_type": None,
         "human_only": True,
         "threshold": 0.25,
         "sequences": [PROTEIN, "AC"],
@@ -235,8 +237,8 @@ def test_canonical_bond_result_excludes_endpoint_sentinel(monkeypatch):
     predictor = Pepsickle(human_only=True, threshold=0.37)
     monkeypatch.setattr(
         predictor,
-        "cleavage_probs",
-        lambda sequence: [0.11, 0.22, 0.33, 0.0],
+        "cleavage_probs_many",
+        lambda sequences: {sequence: [0.11, 0.22, 0.33, 0.0] for sequence in sequences},
     )
     result = predictor.predict_cleavage(
         CleavageInput("SIIN", source_id="construct", source_start=20)
@@ -276,6 +278,56 @@ def test_legacy_peptide_level_predict_api_is_unchanged(predictor):
     result = predictor.predict(["SIINFEKL"])
     assert len(result) == 1
     assert result[0].preds[0].peptide == "SIINFEKL"
+
+
+@pytest.mark.parametrize("human_only", [False, True])
+def test_digestion_variants_match_upstream_and_change_profile(human_only):
+    from pepsickle.model_functions import (
+        initialize_digestion_model, predict_protein_cleavage_locations)
+
+    model = initialize_digestion_model(human_only=human_only)
+    profiles = []
+    for proteasome_type in ("C", "I"):
+        expected = predict_protein_cleavage_locations(
+            PROTEIN, model, mod_type="in-vitro-2", proteasome_type=proteasome_type)
+        predictor = Pepsickle(
+            model_type="in-vitro-2", proteasome_type=proteasome_type,
+            human_only=human_only, isolate_subprocess=True)
+        result = predictor.predict_cleavage(CleavageInput(PROTEIN, source_start=7))
+        scores = [site.score for site in result.sites]
+        assert scores == pytest.approx([row[2] for row in expected[:-1]])
+        assert len(scores) == len(PROTEIN) - 1
+        assert dict(result.conditions)["proteasome_type"] == proteasome_type
+        assert result.to_dict()["sites"][0]["source_bond"] == 8
+        assert "digestion" in result.model.assay
+        profiles.append(scores)
+    assert profiles[0] != profiles[1]
+
+
+@pytest.mark.parametrize("options, message", [
+    ({"proteasome_type": "I"}, "agnostic"),
+    ({"model_type": "in-vitro-2"}, "require proteasome_type"),
+    ({"model_type": "in-vitro", "proteasome_type": "C", "human_only": True}, "human_only"),
+    ({"model_type": "unknown"}, "Unknown"),
+])
+def test_inapplicable_model_settings_raise(options, message):
+    with pytest.raises(ValueError, match=message):
+        Pepsickle(**options)
+
+
+def test_native_context_batch_uses_flanks_and_preserves_unknown_termini():
+    from mhctools import predict_cleavage_batch
+
+    inputs = [dict(id=name, peptide="SIINFEKL", n_flank=n, c_flank=c)
+              for name, n, c in (("a", "AAAA", "GGGG"), ("b", "LLLL", "RRRR"))]
+    report = predict_cleavage_batch(inputs, [dict(
+        id="tumor", context="tumor", models=["pepsickle-in-vivo-human-only"])],
+        raise_on_error=True)
+    results = report["assessments"]
+    assert all(r["status"] == "assessed" for r in results)
+    assert all(r["result"]["peptide"]["n_term"] == "unknown" for r in results)
+    assert all("sequence_context_only" in dict(r["result"]["conditions"])["input_scope"] for r in results)
+    assert results[0]["overlays"][0]["c_boundary"]["score"] != results[1]["overlays"][0]["c_boundary"]["score"]
 
 
 # -- scoring --

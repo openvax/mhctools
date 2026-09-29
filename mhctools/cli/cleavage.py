@@ -101,7 +101,33 @@ def main(argv=None):
                              "'CPB2=active'; STATE is active, zymogen, "
                              "inactive or unknown. Repeat per enzyme.")
     parser.add_argument("--out", help="Write JSON to this path instead of stdout")
+    parser.add_argument("--input", help="Batch JSON with named inputs and explicit scenarios")
+    parser.add_argument("--html", help="Also write a self-contained batch evidence report")
     args = parser.parse_args(argv)
+    if args.input:
+        if (args.sequence or args.model or args.compartment or args.list_models or args.json or
+                args.n_term is not None or args.c_term is not None or args.source_id is not None or
+                args.source_start is not None or args.enzyme_state):
+            parser.error("--input defines all batch inputs/scenarios and cannot be combined with scalar options")
+        if args.html and not args.out:
+            parser.error("--html requires --out to retain the machine-readable evidence")
+        try:
+            from mhctools.cleavage_batch import predict_cleavage_batch, write_cleavage_batch
+            request = json.loads(Path(args.input).read_text(encoding="utf-8"))
+            if request.get("schema_version") != 1:
+                raise ValueError("Batch input requires schema_version 1")
+            result = predict_cleavage_batch(
+                request["inputs"], request["scenarios"],
+                reference_panels=request.get("reference_panels", ()))
+            if args.out:
+                write_cleavage_batch(result, args.out, html_path=args.html)
+            else:
+                print(json.dumps(result, indent=2, allow_nan=False))
+        except (OSError, ValueError, TypeError, KeyError) as error:
+            parser.error(str(error))
+        return
+    if args.html:
+        parser.error("--html requires --input batch mode")
     if args.list_models:
         if (args.sequence or args.model or args.compartment or
                 args.n_term is not None or args.c_term is not None or

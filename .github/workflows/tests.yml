@@ -31,7 +31,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -e ".[dev,pepsickle]"
+          python -m pip install -e ".[dev,pepsickle,vaccine-report]"
 
       - name: Run lint checks
         run: ./lint.sh
@@ -61,6 +61,8 @@ jobs:
             tests/test_peptiverse.py \
             tests/test_plifepred2.py \
             tests/test_cleavage.py \
+            tests/test_cleavage_batch.py \
+            tests/test_vaccine_report.py \
             tests/test_dpp4.py \
             tests/test_peptidases.py \
             tests/test_benchmark.py \

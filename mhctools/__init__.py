@@ -66,6 +66,10 @@ from .deepimmuno import DeepImmuno
 from .peptiverse import PeptiVerse
 from .plifepred2 import PlifePred2
 from .cleavage import CleavageInput, CleavageModel, CleavageSite, CleavageResult
+from .cleavage_batch import (
+    cleavage_overlays, load_cleavage_batch, normalize_cleavage_input,
+    predict_cleavage_batch, write_cleavage_batch,
+)
 from .dpp4 import DPP4qPISA
 from .peptidases import cleavage_models, get_cleavage_model, predict_cleavage
 from .eramer_cleavage import ERAMERCleavage
@@ -144,7 +148,7 @@ def __getattr__(name):
     raise AttributeError(
         "module %r has no attribute %r" % (__name__, name))
 
-__version__ = "3.45.0"
+__version__ = "3.46.0"
 
 __all__ = [
     "mhcflurry_composite_version",
@@ -215,6 +219,11 @@ __all__ = [
     "cleavage_models",
     "get_cleavage_model",
     "predict_cleavage",
+    "predict_cleavage_batch",
+    "normalize_cleavage_input",
+    "cleavage_overlays",
+    "load_cleavage_batch",
+    "write_cleavage_batch",
     "ERAMERCleavage",
     "TLimmuno2",
     "MHCflurry",

@@ -260,11 +260,9 @@ def cleavage_models(include_optional=False):
         # Unlike ERAMER, pepsickle's exact model metadata depends on installed
         # package code, feature implementation, and weight bytes. Include it
         # only when those files can be located and hashed truthfully.
-        from .pepsickle import Pepsickle
-        models += (
-            Pepsickle.catalog_cleavage_model(human_only=True),
-            Pepsickle.catalog_cleavage_model(human_only=False),
-        )
+        from .pepsickle import PEPSICKLE_MODELS, Pepsickle
+        models += tuple(Pepsickle.catalog_cleavage_model(**settings)
+                        for settings in PEPSICKLE_MODELS.values())
     names = [m.name for m in models]
     if len(set(names)) != len(names):
         raise ValueError("Duplicate cleavage model name in the built-in panel: %r" % (
@@ -288,11 +286,11 @@ def get_cleavage_model(name, *, enzyme_state=None):
     matches += [reference for reference in substrate_references() if reference.model.name == name]
     is_dpp4 = name == "dpp4-qpisa"
     is_eramer = name == "eramer-step"
-    pepsickle_human = name == "pepsickle-in-vivo-human-only"
-    pepsickle_mammal = name == "pepsickle-in-vivo-all-mammal"
-    if len(matches) + is_dpp4 + is_eramer + pepsickle_human + pepsickle_mammal > 1:
+    from .pepsickle import PEPSICKLE_MODELS
+    is_pepsickle = name in PEPSICKLE_MODELS
+    if len(matches) + is_dpp4 + is_eramer + is_pepsickle > 1:
         raise ValueError("Duplicate cleavage model name %r in the built-in panel" % name)
-    if is_dpp4 or is_eramer or pepsickle_human or pepsickle_mammal:
+    if is_dpp4 or is_eramer or is_pepsickle:
         if enzyme_state is not None:
             raise ValueError("Explicit enzyme state is not supported for %s" % name)
         if is_dpp4:
@@ -301,7 +299,7 @@ def get_cleavage_model(name, *, enzyme_state=None):
             from .eramer_cleavage import ERAMERCleavage
             return ERAMERCleavage()
         from .pepsickle import PepsickleCleavage
-        return PepsickleCleavage(human_only=pepsickle_human)
+        return PepsickleCleavage(**PEPSICKLE_MODELS[name])
     if matches:
         [candidate] = matches
         if isinstance(candidate, PeptidaseMotif):

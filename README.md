@@ -347,6 +347,14 @@ in memory. A downstream closed pipe (`| head`, say) exits cleanly.
 
 ## Beyond peptide-MHC
 
+**[Contextual cleavage batches](docs/cleavage-batch.md).**
+`predict_cleavage_batch` and `mhctools cleavage --input` accept native peptide
+occurrences with flanks and complete vaccine constructs. Explicit tumor, APC
+and extracellular scenarios retain per-model bond evidence, conditional
+trimming fragments and epitope overlays through JSON save/reload and HTML
+reporting. [Coverage and validation limits](docs/cleavage-validation.md)
+remain visible, including missing cathepsin/AEP prediction coverage.
+
 Three features that don't fit the peptide-in, score-out shape:
 
 **[Per-bond peptidase evidence](docs/cleavage.md).** `DPP4qPISA` evaluates the
