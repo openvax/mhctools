@@ -32,8 +32,8 @@ predictor versions, and the explicit regeneration commands.
 
 Install mhctools in editable mode with its development dependencies. The setup
 below covers CapHLA, TULIP, MixTCRpred, PeptiVerse, PlifePred2/Pfeature,
-MixMHCpred 3, MixMHC2pred, PRIME, DeepImmuno, and TLimmuno2. It supplements the
-other predictors listed in the [predictor reference](predictors.md);
+MixMHCpred 3, MixMHC2pred, PRIME, DeepImmuno, TLimmuno2, NetCleave, and NetTCR.
+It supplements the other predictors listed in the [predictor reference](predictors.md);
 `mhctools ls` reports their availability. This is several GB of downloads,
 including ESM2's 2.6 GB weights.
 
@@ -41,14 +41,18 @@ Prerequisites: Python 3.11, git, Perl, and MAFFT on macOS or Linux x86-64.
 The official macOS MixMHC2pred binary needs Rosetta on Apple Silicon.
 Linux also needs g++ to build PRIME's supplied C++ source.
 CapHLA runs in the main interpreter and requires `pip install -e '.[caphla]'`.
+NetTCR also runs in the main interpreter and requires `pip install -e '.[nettcr]'`
+for LiteRT. Neither extra requires TensorFlow; the `keras` group below keeps
+TensorFlow in a separate environment for the predictors that use it.
 On Linux a CPU-only torch wheel can be installed first from
 `https://download.pytorch.org/whl/cpu`.
 
 ```sh
-python scripts/setup_test_backends.py half-life recognition gfeller keras smm --accept-license
+python -m pip install -e '.[dev,caphla,nettcr]'
+python scripts/setup_test_backends.py half-life recognition gfeller keras nettcr smm --accept-license
 ```
 
-The recognition, Gfeller, keras and SMM groups fetch separately licensed code
+The recognition, Gfeller, keras, NetTCR and SMM groups fetch separately licensed code
 and weights, so they require `--accept-license`. Review the terms before using
 that option, because they are not all the same kind of term:
 
@@ -57,15 +61,18 @@ that option, because they are not all the same kind of term:
   [MixMHCpred](https://github.com/GfellerLab/MixMHCpred),
   [MixMHC2pred](https://github.com/GfellerLab/MixMHC2pred),
   [PRIME](https://github.com/GfellerLab/PRIME);
+- [NetTCR academic software license](https://github.com/mnielLab/NetTCR-2.2/blob/7cead3fe6dcb539ff8e2d9121586dafca1e059c2/academic_software_license_agreement.pdf)
+  for the `nettcr` group;
 - Non-Profit Open Software License 3.0 — the IEDB MHC-I bundle used by `smm`
   (see [below](#local-smm-and-smm-pmbec));
 - **no published license** —
-  [TLimmuno2](https://github.com/XSLiuLab/TLimmuno2), which is why the `keras`
-  group is gated at all. Here `--accept-license` records that you have
+  [TLimmuno2](https://github.com/XSLiuLab/TLimmuno2) and
+  [NetCleave](https://github.com/BSC-CNS-EAPM/NetCleave), which is why the `keras`
+  group is gated. Here `--accept-license` records that you have
   confirmed your own use is authorized; it cannot accept terms upstream never
   stated, and it grants no rights mhctools does not have.
 
-DeepImmuno, the other half of the `keras` group, is MIT and needs no
+DeepImmuno, also in the `keras` group, is MIT and needs no
 acceptance of its own. Upstream sources and models are never bundled in
 mhctools distributions.
 
@@ -193,27 +200,52 @@ DeepTAP has no setup group; point `DEEPTAP_PYTHON` at any interpreter with
 A `*_PYTHON` path that does not exist raises instead of skipping: that is a
 misconfiguration to fix, not a backend to step over.
 
-## DeepImmuno and TLimmuno2 (Keras 2 weights)
+## NetTCR with LiteRT
 
-Both ship weights from the Keras 2 era. Modern TensorFlow reaches that API
-through the `tf-keras` shim with `TF_USE_LEGACY_KERAS=1`, which the wrappers
-set for their subprocess, so one runtime serves both:
+NetTCR's bundled inference models run under LiteRT without TensorFlow:
+
+```sh
+python -m pip install -e '.[dev,nettcr]'
+python scripts/setup_test_backends.py nettcr --accept-license
+source env/test-backends/activate.sh
+python -m pytest tests/test_nettcr.py --require-all -W error
+```
+
+The setup group fetches the pinned pan-model weights and sets `NETTCR_DIR`.
+The existing `nettcr` extra supplies `ai-edge-litert` in the host interpreter.
+The adapter prefers it over its compatibility TensorFlow Lite fallback, whose
+deprecated interpreter emitted the warning in [#479](https://github.com/openvax/mhctools/issues/479).
+Installing TensorFlow to
+run another predictor is not needed to enable NetTCR. CI checks that TensorFlow
+is absent from the host and runs the real prediction regressions without skips
+or warnings.
+
+## DeepImmuno, TLimmuno2, and NetCleave (isolated TensorFlow)
+
+DeepImmuno and TLimmuno2 ship weights from the Keras 2 era. Modern TensorFlow
+reaches that API through the `tf-keras` shim with `TF_USE_LEGACY_KERAS=1`, which the wrappers
+set for their subprocess. NetCleave uses modern Keras in the same isolated
+runtime, without that per-process setting:
 
 ```sh
 python scripts/setup_test_backends.py keras --accept-license
 source env/test-backends/activate.sh
-python -m pytest tests/test_deepimmuno.py tests/test_tlimmuno2.py --require-all
+python -m pytest tests/test_deepimmuno.py tests/test_tlimmuno2.py tests/test_netcleave.py --require-all -W error
 ```
 
 The group pins `tensorflow==2.17.0` with the matching `tf-keras==2.17.0` and
-sets `DEEPIMMUNO_PYTHON` and `TLIMMUNO2_PYTHON` to it. Pinning the pair
-matters: a mismatched pair imports `tensorflow` successfully and then raises
+sets `DEEPIMMUNO_PYTHON`, `TLIMMUNO2_PYTHON`, and `NETCLEAVE_PYTHON` to it.
+It also installs NetCleave's scikit-learn, Biopython, and matplotlib dependencies. Pinning
+the pair matters: a mismatched pair imports `tensorflow` successfully and then raises
 `AttributeError` on `tensorflow.keras`.
 
-Without this group both wrappers fall back to the interpreter running the
-tests. The end-to-end tests probe that interpreter and skip when it cannot
-load Keras 2, so an unprovisioned checkout reports a skip rather than a
-failure.
+An explicit NetCleave `python_executable` argument overrides `NETCLEAVE_PYTHON`;
+without either it uses the current interpreter. The same precedence applies to
+the other two wrappers with their respective environment variables. DeepImmuno
+and TLimmuno2 tests probe Keras-2 availability; NetCleave tests require its
+runtime whenever its model assets are installed. Use the setup group to make
+both models and runtimes available. CI checks that the host has no TensorFlow
+and executes all three predictors' regressions through the isolated interpreter.
 
 ## Legacy NetMHC on Apple Silicon
 
@@ -236,9 +268,9 @@ installations with Python 2 can continue using their existing launchers.
 
 CI runs the public suite on Python 3.9–3.12, the licensed NetMHC integration
 suite, and separate real-model jobs for TULIP, CapHLA, MixTCRpred, the two
-half-life predictors, the three Gfeller MHC predictors, DeepImmuno/TLimmuno2,
-and local SMM/SMM-PMBEC (12 CI jobs total). Each focused model job uses
-`--require-all`, so a missing installation cannot silently turn it green.
+half-life predictors, the three Gfeller MHC predictors,
+DeepImmuno/TLimmuno2/NetCleave, NetTCR, and local SMM/SMM-PMBEC. Each focused
+model job uses `--require-all`, so a missing installation cannot silently turn it green.
 The complete release run requires all installed backends and zero skips:
 
 ```sh

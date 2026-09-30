@@ -10,6 +10,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import sys
+
 import pytest
 
 from mhctools.netcleave import (
@@ -33,6 +35,28 @@ def test_init_invalid_class():
 def test_init_missing_path_raises():
     with pytest.raises(FileNotFoundError, match="does not exist"):
         NetCleave(netcleave_path="/nonexistent/netcleave")
+
+
+@pytest.mark.parametrize("constructor", [NetCleave, NetCleave_I, NetCleave_II])
+@pytest.mark.parametrize("argument,environment,expected", [
+    ("/explicit/python", "/configured/python", "/explicit/python"),
+    (None, "/configured/python", "/configured/python"),
+    (None, None, sys.executable),
+])
+def test_runtime_selection(constructor, argument, environment, expected, tmp_path, monkeypatch):
+    """The explicit override, configured isolated runtime and default all work."""
+    (tmp_path / "NetCleave.py").touch()
+    model = tmp_path / "model"
+    model.mkdir()
+    (model / "model_model.h5").touch()
+    if environment is None:
+        monkeypatch.delenv("NETCLEAVE_PYTHON", raising=False)
+    else:
+        monkeypatch.setenv("NETCLEAVE_PYTHON", environment)
+    predictor = constructor(
+        netcleave_path=str(tmp_path), model_path=str(model),
+        python_executable=argument)
+    assert predictor.python_executable == expected
 
 
 # ---------------------------------------------------------------------------

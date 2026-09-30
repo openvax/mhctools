@@ -119,10 +119,21 @@ def keras(root, python, config):
     # tensorflow fine and then raises on tensorflow.keras.
     config["DEEPIMMUNO_HOME"] = fetch("deepimmuno")
     config["TLIMMUNO2_HOME"] = fetch("tlimmuno2", "--accept-license")
+    config["NETCLEAVE_DIR"] = fetch("netcleave", "--accept-license")
     runtime = make_env(root, "keras-env", python, [
         "tensorflow==2.17.0", "tf-keras==2.17.0", "numpy<2", "pandas<3", "pyarrow",
+        "scikit-learn", "biopython", "matplotlib",
     ])
-    config.update(DEEPIMMUNO_PYTHON=str(runtime), TLIMMUNO2_PYTHON=str(runtime))
+    # NetCleave uses modern Keras in the same environment; only the two legacy
+    # wrappers set TF_USE_LEGACY_KERAS for their individual subprocesses.
+    config.update(DEEPIMMUNO_PYTHON=str(runtime), TLIMMUNO2_PYTHON=str(runtime),
+                  NETCLEAVE_PYTHON=str(runtime))
+
+
+def nettcr(root, python, config):
+    # NetTCR runs in-process. Install mhctools[nettcr] in the caller's env;
+    # its LiteRT interpreter needs no TensorFlow or Keras environment.
+    config["NETTCR_DIR"] = fetch("nettcr", "--accept-license")
 
 
 def gfeller(root, python, config):
@@ -276,22 +287,29 @@ def pepsickle(root, python, config):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("groups", nargs="+", choices=["half-life", "recognition", "gfeller", "keras", "legacy", "smm", "pepsickle"])
+    parser.add_argument(
+        "groups",
+        nargs="+",
+        choices=[
+            "half-life", "recognition", "gfeller", "keras", "nettcr",
+            "legacy", "smm", "pepsickle",
+        ],
+    )
     parser.add_argument("--python", default="python3.11", help="Python 3.11 interpreter for isolated runtimes")
     parser.add_argument("--root", type=Path, default=ROOT / "env/test-backends")
     parser.add_argument("--accept-license", action="store_true",
-                        help="Accept upstream license terms (recognition/gfeller/keras/smm)")
+                        help="Accept upstream license terms (recognition/gfeller/keras/nettcr/smm)")
     args = parser.parse_args()
-    if set(args.groups) & {"recognition", "gfeller", "keras", "smm"} and not args.accept_license:
+    if set(args.groups) & {"recognition", "gfeller", "keras", "nettcr", "smm"} and not args.accept_license:
         parser.error(
-            "recognition/gfeller/keras/smm require --accept-license; see docs/testing.md")
+            "recognition/gfeller/keras/nettcr/smm require --accept-license; see docs/testing.md")
     root = args.root.expanduser().resolve()
     root.mkdir(parents=True, exist_ok=True)
     state = root / "config.json"
     config = json.loads(state.read_text()) if state.exists() else {}
     functions = {"half-life": half_life, "recognition": recognition,
-                 "gfeller": gfeller, "keras": keras, "legacy": legacy, "smm": smm,
-                 "pepsickle": pepsickle}
+                 "gfeller": gfeller, "keras": keras, "nettcr": nettcr,
+                 "legacy": legacy, "smm": smm, "pepsickle": pepsickle}
     for group in args.groups:
         functions[group](root, args.python, config)
         state.write_text(json.dumps(config, indent=2) + "\n")
