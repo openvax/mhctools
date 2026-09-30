@@ -97,4 +97,6 @@ def test_source_distribution_includes_backend_runtime_assets(tmp_path):
         "scripts/evaluate_wada_cleavage.py",
         "tests/data/wada2018/figure2ac.json",
         "tests/data/wada2018/README.md",
+        "tests/data/tusar2023/catl-protected-peptides.json",
+        "tests/data/tusar2023/README.md",
     } <= names

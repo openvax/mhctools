@@ -93,8 +93,8 @@ chemistry-dependent peptidases unsupported and known modifications rejected.
 2. Merge current master into this feature branch, preserving its fixes and
    the 3.46.0 feature version. Reconcile runtime, packaging and validation
    documentation with the final code and issue acceptance criteria.
-3. Recheck primary cathepsin/AEP sources and available model artifacts.
-   Integrate verifiable assay-scoped evidence and defensible adapters where
+3. Recheck primary cathepsin/AEP sources and available openly licensed model artifacts.
+   Integrate verifiable assay-scoped evidence and defensible open-model adapters where
    available; document concrete external blockers with source provenance.
 4. Review the complete diff for evidence fidelity, coordinate/chemistry
    handling, runtime isolation, save/reload and packaging. Fix findings with

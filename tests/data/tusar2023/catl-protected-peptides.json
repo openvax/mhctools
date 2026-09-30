@@ -1,0 +1,225 @@
+{
+  "schema_version": 1,
+  "inputs": [
+    {
+      "id": "p3",
+      "scope": "construct",
+      "sequence": "KDLLHPSP",
+      "n_term": "acetylated",
+      "c_term": "amidated",
+      "source_id": "Tusar2023-p3",
+      "observed_products": [
+        {
+          "id": "Tusar2023-SuppData4-p1-CatL-p3-HPSP",
+          "start": 4,
+          "end": 8,
+          "sequence": "HPSP"
+        },
+        {
+          "id": "Tusar2023-SuppData4-p1-CatL-p3-LHPSP",
+          "start": 3,
+          "end": 8,
+          "sequence": "LHPSP"
+        },
+        {
+          "id": "Tusar2023-SuppData4-p1-CatL-p3-KDL",
+          "start": 0,
+          "end": 3,
+          "sequence": "KDL"
+        },
+        {
+          "id": "Tusar2023-SuppData4-p1-CatL-p3-KDLL",
+          "start": 0,
+          "end": 4,
+          "sequence": "KDLL"
+        }
+      ],
+      "epitopes": [
+        {
+          "id": "example-product-p3",
+          "start": 4,
+          "end": 8,
+          "annotation": "Reported product interval for overlay demonstration; not an asserted MHC epitope"
+        }
+      ]
+    },
+    {
+      "id": "p4",
+      "scope": "construct",
+      "sequence": "EIDLRNPKGN",
+      "n_term": "acetylated",
+      "c_term": "amidated",
+      "source_id": "Tusar2023-p4",
+      "observed_products": [
+        {
+          "id": "Tusar2023-SuppData4-p1-CatL-p4-NPK",
+          "start": 5,
+          "end": 8,
+          "sequence": "NPK"
+        },
+        {
+          "id": "Tusar2023-SuppData4-p1-CatL-p4-RNPK",
+          "start": 4,
+          "end": 8,
+          "sequence": "RNPK"
+        },
+        {
+          "id": "Tusar2023-SuppData4-p1-CatL-p4-EIDLR",
+          "start": 0,
+          "end": 5,
+          "sequence": "EIDLR"
+        }
+      ],
+      "epitopes": [
+        {
+          "id": "example-product-p4",
+          "start": 5,
+          "end": 8,
+          "annotation": "Reported product interval for overlay demonstration; not an asserted MHC epitope"
+        }
+      ]
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "catl-source-assay",
+      "context": "apc",
+      "compartments": [
+        "endosome"
+      ],
+      "models": [
+        "tusar2023-catl-ph5.5-observed"
+      ]
+    }
+  ],
+  "reference_panels": [
+    {
+      "model": {
+        "name": "tusar2023-catl-ph5.5-observed",
+        "version": "2026-09-30-source-curation",
+        "enzyme": "CTSL",
+        "uniprot": "P07711",
+        "species": "Homo sapiens",
+        "compartments": [
+          "endosome"
+        ],
+        "evidence": "substrate_reference",
+        "references": [
+          "https://doi.org/10.1038/s42003-023-04772-8",
+          "https://media.springernature.com/original/springer-static/esm/art%3A10.1038%2Fs42003-023-04772-8/MediaObjects/42003_2023_4772_MOESM5_ESM.pdf"
+        ],
+        "assay": "Purified cathepsin L, protected synthetic peptides, pH 5.5, 37 C, 2 h",
+        "limitations": "Two selected source substrates (p3/p4) only. Exact sequence/terminal-chemistry lookup; no novel-sequence inference, negative site labels, pH transfer, peptide survival or APC presentation calibration."
+      },
+      "cases": [
+        {
+          "sequence": "KDLLHPSP",
+          "n_term": "acetylated",
+          "c_term": "amidated",
+          "conditions": {
+            "pH": "5.5",
+            "temperature_celsius": "37",
+            "incubation_hours": "2",
+            "enzyme_micromolar": "1",
+            "buffer": "30 mM NaOAc, 30 mM NaCl, 5 mM DTT",
+            "substrate_concentration": "Empirically chosen per peptide; numeric concentrations not reported",
+            "enzyme_preparation": "Purified active cathepsin L; no activation protocol specified for this peptide assay",
+            "readout": "RP-HPLC separation followed by MALDI-TOF product identification",
+            "inhibitors": "No inhibitor reported for the peptide cleavage assay",
+            "accessibility": "Soluble synthetic peptide with N-acetylated and C-amidated termini",
+            "detection_limit": "Not reported; unreported bonds are unknown"
+          },
+          "source": "https://doi.org/10.1038/s42003-023-04772-8",
+          "source_measurement_id": "Supplementary Data 4 page 1, CatL p3; Supplementary Tables 3 and 17",
+          "bonds": [
+            3,
+            4
+          ],
+          "interpretation": "Internal boundaries of experimentally identified products; retained parent termini are not cleavage events",
+          "substrate_observation": "cleavage_reported",
+          "observed_products": [
+            {
+              "id": "Tusar2023-SuppData4-p1-CatL-p3-HPSP",
+              "start": 4,
+              "end": 8,
+              "sequence": "HPSP"
+            },
+            {
+              "id": "Tusar2023-SuppData4-p1-CatL-p3-LHPSP",
+              "start": 3,
+              "end": 8,
+              "sequence": "LHPSP"
+            },
+            {
+              "id": "Tusar2023-SuppData4-p1-CatL-p3-KDL",
+              "start": 0,
+              "end": 3,
+              "sequence": "KDL"
+            },
+            {
+              "id": "Tusar2023-SuppData4-p1-CatL-p3-KDLL",
+              "start": 0,
+              "end": 4,
+              "sequence": "KDLL"
+            }
+          ]
+        },
+        {
+          "sequence": "EIDLRNPKGN",
+          "n_term": "acetylated",
+          "c_term": "amidated",
+          "conditions": {
+            "pH": "5.5",
+            "temperature_celsius": "37",
+            "incubation_hours": "2",
+            "enzyme_micromolar": "1",
+            "buffer": "30 mM NaOAc, 30 mM NaCl, 5 mM DTT",
+            "substrate_concentration": "Empirically chosen per peptide; numeric concentrations not reported",
+            "enzyme_preparation": "Purified active cathepsin L; no activation protocol specified for this peptide assay",
+            "readout": "RP-HPLC separation followed by MALDI-TOF product identification",
+            "inhibitors": "No inhibitor reported for the peptide cleavage assay",
+            "accessibility": "Soluble synthetic peptide with N-acetylated and C-amidated termini",
+            "detection_limit": "Not reported; unreported bonds are unknown"
+          },
+          "source": "https://doi.org/10.1038/s42003-023-04772-8",
+          "source_measurement_id": "Supplementary Data 4 page 1, CatL p4; Supplementary Tables 3 and 17",
+          "bonds": [
+            4,
+            5,
+            8
+          ],
+          "interpretation": "Internal boundaries of experimentally identified products; retained parent termini are not cleavage events",
+          "substrate_observation": "cleavage_reported",
+          "observed_products": [
+            {
+              "id": "Tusar2023-SuppData4-p1-CatL-p4-NPK",
+              "start": 5,
+              "end": 8,
+              "sequence": "NPK"
+            },
+            {
+              "id": "Tusar2023-SuppData4-p1-CatL-p4-RNPK",
+              "start": 4,
+              "end": 8,
+              "sequence": "RNPK"
+            },
+            {
+              "id": "Tusar2023-SuppData4-p1-CatL-p4-EIDLR",
+              "start": 0,
+              "end": 5,
+              "sequence": "EIDLR"
+            }
+          ]
+        }
+      ],
+      "source": {
+        "citation": "Tusar et al. (2023), Communications Biology 6:450",
+        "article": "https://doi.org/10.1038/s42003-023-04772-8",
+        "license": "CC-BY-4.0",
+        "license_url": "https://creativecommons.org/licenses/by/4.0/",
+        "curation": "All labeled CatL products for p3 and p4 on Supplementary Data 4 page 1; a selected two-substrate panel, not all study data",
+        "supplement_sha256": "184e09a5ed527ae4a35d1123bac43c1a8ed853a7bc4600d0c37987115cc27c2d"
+      }
+    }
+  ]
+}

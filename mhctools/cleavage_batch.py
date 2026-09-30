@@ -233,11 +233,7 @@ def predict_cleavage_batch(inputs, scenarios, *, predictors=None, reference_pane
                     n_term=fragment["n_term"], c_term=fragment["c_term"])
                 for name in scenario["models"]:
                     state = scenario["enzyme_states"].get(catalog[name].enzyme)
-                    sequence_only = (fragment is None and name.startswith("pepsickle-")
-                                     and peptide.n_term == peptide.c_term == "unknown")
                     model_input = replace(peptide, source_id=None, source_start=0)
-                    if sequence_only:
-                        model_input = replace(model_input, n_term="free", c_term="free")
                     model_key = (name, state)
                     groups.setdefault(model_key, {}).setdefault(model_input, None)
                     row = dict(input_id=value["id"], scenario_id=scenario["id"],
@@ -246,7 +242,7 @@ def predict_cleavage_batch(inputs, scenarios, *, predictors=None, reference_pane
                                overlays=[], error=None,
                                context_application="Compartments filter locations; scenario labels and "
                                "extra annotations do not change model parameters or establish assay calibration")
-                    tasks.append((row, value, peptide, sequence_only, model_key, model_input))
+                    tasks.append((row, value, peptide, model_key, model_input))
     for (name, state), pending in groups.items():
         try:
             if name in predictors:
@@ -273,7 +269,7 @@ def predict_cleavage_batch(inputs, scenarios, *, predictors=None, reference_pane
             if raise_on_error:
                 raise
             pending.update({p: error for p in pending})
-    for row, value, peptide, sequence_only, model_key, model_input in tasks:
+    for row, value, peptide, model_key, model_input in tasks:
         try:
             prediction = groups[model_key][model_input]
             if isinstance(prediction, Exception):
@@ -281,9 +277,6 @@ def predict_cleavage_batch(inputs, scenarios, *, predictors=None, reference_pane
             if prediction.peptide != model_input or prediction.model.name != row["model"]:
                 raise ValueError("Predictor changed input or model identity")
             result = replace(prediction, peptide=peptide)
-            if sequence_only:
-                result = replace(result, conditions=result.conditions + (
-                    ("input_scope", "sequence_context_only; molecular termini unestablished"),))
             row.update(status="unsupported" if result.unsupported_reason else "assessed",
                        result=result.to_dict(),
                        overlays=cleavage_overlays(value, result, fragment=row["fragment"]))

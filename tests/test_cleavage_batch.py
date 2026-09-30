@@ -219,3 +219,22 @@ def test_batch_predictor_deduplicates_and_rejects_truncated_results():
     result = predict_cleavage_batch(inputs, scenarios, predictors={"cpn-basic": predictor})
     assert all(r["status"] == "failed" and "number of results" in r["error"]
                for r in result["assessments"])
+
+
+def test_reference_panel_name_does_not_change_chemical_form():
+    from mhctools._resources import load_json_resource
+
+    panel = deepcopy(load_json_resource("intracellular_substrate_evidence.json")["models"][0])
+    panel["model"]["name"] = "pepsickle-source-control"
+    case = panel["cases"][0]
+    case["n_term"] = case["c_term"] = "unknown"
+    panel["cases"] = [case]
+    report = predict_cleavage_batch(
+        [dict(id="source", sequence=case["sequence"])],
+        [dict(id="assay", context="tumor", models=[panel["model"]["name"]])],
+        reference_panels=[panel], raise_on_error=True)
+    row = report["assessments"][0]
+    assert row["status"] == "assessed"
+    assert row["result"]["substrate_observation"] == case["substrate_observation"]
+    assert row["result"]["peptide"]["n_term"] == "unknown"
+    assert "input_scope" not in dict(row["result"]["conditions"])

@@ -3,3 +3,4 @@ include scripts/osteosarc_fixtures.py scripts/record_smm_fixtures.py scripts/set
 recursive-include scripts/test-backends Dockerfile.* *.py
 recursive-include tests/data/osteosarc *.json *.txt *.fasta *.stdout *.stderr *.tsv *.md
 recursive-include tests/data/wada2018 *.json *.md
+recursive-include tests/data/tusar2023 *.json *.md

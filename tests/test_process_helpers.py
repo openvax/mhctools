@@ -248,13 +248,26 @@ def test_legacy_keras_probe_rejects_keras_3_fallback():
     assert "(2, 16)" in script
 
 
-def test_legacy_keras_runtime_sets_legacy_keras_env():
+def test_legacy_keras_runtime_sets_legacy_keras_env(monkeypatch):
+    monkeypatch.delenv("TF_USE_LEGACY_KERAS", raising=False)
+    monkeypatch.delenv("TF_CPP_MIN_LOG_LEVEL", raising=False)
     with patch("mhctools.process_helpers.subprocess.run") as run:
         run.return_value = MagicMock(returncode=0)
         legacy_keras_runtime_available("python")
     env = run.call_args.kwargs["env"]
     assert env["TF_USE_LEGACY_KERAS"] == "1"
     assert env["TF_CPP_MIN_LOG_LEVEL"] == "3"
+
+
+def test_legacy_keras_runtime_preserves_explicit_environment(monkeypatch):
+    monkeypatch.setenv("TF_USE_LEGACY_KERAS", "0")
+    monkeypatch.setenv("TF_CPP_MIN_LOG_LEVEL", "1")
+    with patch("mhctools.process_helpers.subprocess.run") as run:
+        run.return_value = MagicMock(returncode=0)
+        legacy_keras_runtime_available("python")
+    env = run.call_args.kwargs["env"]
+    assert env["TF_USE_LEGACY_KERAS"] == "0"
+    assert env["TF_CPP_MIN_LOG_LEVEL"] == "1"
 
 
 def test_python_imports_available_stdlib():

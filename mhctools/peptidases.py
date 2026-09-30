@@ -257,9 +257,9 @@ def cleavage_models(include_optional=False):
         # external PWM asset; only constructing ERAMERCleavage() does that.
         from .eramer_cleavage import ERAMERCleavage
         models += (ERAMERCleavage.model,)
-        # Unlike ERAMER, pepsickle's exact model metadata depends on installed
-        # package code, feature implementation, and weight bytes. Include it
-        # only when those files can be located and hashed truthfully.
+        # Exact Pepsickle provenance depends on installed code and weights.
+        # Keep unavailable models discoverable with unresolved metadata;
+        # selecting a model resolves its actual runtime before inference.
         from .pepsickle import PEPSICKLE_MODELS, Pepsickle
         models += tuple(Pepsickle.catalog_cleavage_model(**settings)
                         for settings in PEPSICKLE_MODELS.values())

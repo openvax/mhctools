@@ -19,9 +19,11 @@ expects held-out inputs under `data/validation_data/digestion_data/raw/` and
 processed, overlap-filtered validation FASTAs. Those paths are absent from
 the inspected repository tree at `c448c4db81925afad78477e74a7d25e0209d3bce`. Its available `data/raw/digestion_map_files`
 instead feed the training-data extraction path. Reusing those maps and
-calling them held-out would be incorrect. Reconstructing the paper's
-held-out data and verifying study/sequence overlap remains [#469](https://github.com/openvax/mhctools/issues/469)
-with the existing assay-aware evaluation machinery in [#291](https://github.com/openvax/mhctools/issues/291).
+calling them held-out would be incorrect. The Wada case study below recovers
+source products from one of the paper's held-out studies and audits the raw
+training maps. Reconstructing the full processed validation partition and
+establishing family-level independence remain [#291](https://github.com/openvax/mhctools/issues/291);
+the case study does not claim to reproduce the paper's overall metrics.
 
 The gradient-boosted artifact records scikit-learn **0.23.2**. It fails under
 current scikit-learn (`sklearn.ensemble._gb_losses` is missing). The isolated
@@ -54,12 +56,47 @@ PXD035641**. Its workflow uses quadruplicates and significance/fold-change
 criteria for detected products. Missing products are not automatically
 non-cleaved bonds. The available source supports assay-aware curation; it
 does not supply an already validated predictor of long-vaccine processing.
-No unverified cathepsin sequence/product rows have been transcribed into this PR.
+The [CatL example](../tests/data/tusar2023/README.md) now includes seven
+experimentally identified products from two protected synthetic peptides in
+[Tusar et al. 2023](https://doi.org/10.1038/s42003-023-04772-8), Supplementary
+Data 4 page 1. The five observed internal substrate/bond pairs agree with
+Supplementary Table 17. Each original product, terminal modification, source
+measurement ID and assay condition survives batch save/reload. The assay is
+purified CatL at pH 5.5, 37 C for 2 hours; changing sequence or chemical form
+causes abstention. This is a selected source panel, not a transferable model
+or validation of whole-cell processing.
 
 The batch `reference_panels` input can preserve curated experiments from
 these studies now, with each condition in its own named panel. Actual
 novel-sequence inference needs a separately verified adapter/data model.
-ProsperousPlus availability and runtime/licensing review remains #281.
+The model audit below records why novel-sequence coverage remains open.
+
+### Open-model availability audit (2026-09-30)
+
+Only openly licensed models are eligible for this work. Publicly downloadable
+files without a project license do not satisfy that constraint.
+
+| Candidate | Verified artifact availability | Remaining requirement |
+|---|---|---|
+| [Tusar et al. cathepsin S/L/B SVMs](https://doi.org/10.1038/s42003-023-04772-8) | CC BY 4.0 Supplementary Data 3 supplies six SVM-light files; B/L/S each declare 192 input features | Reproduce the original sequence/structure features and independent reference scores before adapting them to vaccine inputs |
+| [PCSS backend](https://github.com/salilab/pcss/tree/ea4c3ec81ef30b7a30f3c03508ee2bf1dd78ce34) | LGPL-2.1 code at `ea4c3ec81ef30b7a30f3c03508ee2bf1dd78ce34` | Author README explicitly reports that hard-coded databases/programs prevent operation outside the Sali lab; weights alone do not supply this pipeline |
+| [ProsperousPlus](https://github.com/lifuyi774/ProsperousPlus/tree/66a9d08cd5a44febf64950caf9684c81aa0e8807) | Directories C01.060 (CatB), C01.032 (CatL), C01.034 (CatS), C13.004 (animal legumain) are present | GitHub license metadata is null and the root has no project license; excluded under the open-model requirement (#281) |
+| [panCleave](https://gitlab.com/machine-biology-group-public/pancleave) | Author describes a pooled, protease-agnostic random forest | Its output cannot supply enzyme-specific CatS/L/B/AEP coverage |
+| [DIPPS legumain study](https://doi.org/10.15252/embj.201796750) | Experimental pH-dependent specificity evidence | It is not a published fitted AEP predictor; an unconditional cut-after-Asn rule would discard the reported context |
+
+The CatB/L/S files were extracted from the Europe PMC open-access supplement
+archive for PMC10124925 and inspected. Their SHA-256 digests are:
+
+- `SuppData3_CatB_SVMmodel.txt`: `3acfa1cf903657694a6f5d68ba5151e6ea1ca191b2d7c212d0723d9fa1b5caac`
+- `SuppData3_CatL_SVMmodel.txt`: `dc013a06685c727384ec64cf9e0dc6166cf514fb5e849f66e0a07872cfba5951`
+- `SuppData3_CatS_SVMmodel.txt`: `6c2c857c37f56d916c8706f43d008cefe6b47ee2feea43a35d66225fca6df60b`
+
+The article describes protein secondary-structure and solvent-exposure inputs.
+No unverified feature values, replacement model, or independent accuracy claim
+are supplied here. Completing this open-model runtime and obtaining an openly
+licensed, verified AEP predictor remain concrete blockers in #470. Requests
+for novel-sequence cathepsin/AEP predictions must continue to report unsupported
+coverage. Experimental source imports remain available now.
 
 ## Source-backed long-peptide case study
 

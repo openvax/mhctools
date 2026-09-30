@@ -263,16 +263,22 @@ class Pepsickle(ProteasomePredictor):
         return self.predict_cleavage_many([peptide])[0]
 
     def predict_cleavage_many(self, peptides):
-        """Assess canonical inputs with one model load and deduplicated inference."""
+        """Assess sequence context, preserving free or unknown terminal states.
+
+        Unknown termini imply only a sequence-context assessment and are
+        recorded explicitly. Known terminal modifications remain unsupported.
+        Inference is deduplicated by sequence with one model load per batch.
+        """
         peptides = tuple(coerce_peptide(p) for p in peptides)
         model = self.cleavage_model()
-        eligible = {p.sequence for p in peptides if p.n_term == p.c_term == "free"}
+        eligible = {p.sequence for p in peptides
+                    if p.n_term in ("free", "unknown") and p.c_term in ("free", "unknown")}
         scores = self.cleavage_probs_many(sorted(eligible))
         return tuple(self._canonical_result(peptide, model, scores.get(peptide.sequence))
                      for peptide in peptides)
 
     def _canonical_result(self, peptide, model, scores):
-        if peptide.n_term != "free" or peptide.c_term != "free":
+        if peptide.n_term not in ("free", "unknown") or peptide.c_term not in ("free", "unknown"):
             return CleavageResult(
                 peptide,
                 model,
@@ -304,6 +310,8 @@ class Pepsickle(ProteasomePredictor):
             ("subprocess_timeout_seconds", str(self.subprocess_timeout)),
             ("runtime", json.dumps(identity, sort_keys=True)),
         )
+        if "unknown" in (peptide.n_term, peptide.c_term):
+            conditions += (("input_scope", "sequence_context_only; molecular termini unestablished"),)
         return CleavageResult(peptide, model, sites, conditions=conditions)
 
     def _identity(self):
