@@ -413,6 +413,9 @@ def annotate_table(
 
         df[spec.output_column] = values
         if spec.add_best_allele and allele_column is not None:
-            df[spec.resolved_best_allele_column()] = best_alleles
+            # pandas 3 infers a string dtype and converts None to NaN unless
+            # the documented object/None provenance contract is explicit.
+            df[spec.resolved_best_allele_column()] = pd.Series(
+                best_alleles, index=df.index, dtype=object)
 
     return df

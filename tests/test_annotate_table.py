@@ -263,6 +263,18 @@ def test_missing_allele_yields_nan():
     assert out.iloc[1]["aff_best_allele"] is None
 
 
+def test_best_allele_provenance_preserves_duplicate_nondefault_index():
+    table = pd.DataFrame({
+        "peptide": ["SIINFEKL", "SIINFEKL"],
+        "hla": ["HLA-A*02:01", None],
+    }, index=[17, 17])
+    out = annotate_table(table, [AnnotationSpec(_factory, "aff")], allele_column="hla")
+    assert list(out.index) == [17, 17]
+    assert out["aff_best_allele"].dtype == object
+    assert out.iloc[0]["aff_best_allele"] == "HLA-A*02:01"
+    assert out.iloc[1]["aff_best_allele"] is None
+
+
 def test_unknown_peptide_yields_nan():
     df = pd.DataFrame({
         "peptide": ["WWWWWWWWW"],  # not in the fixture
