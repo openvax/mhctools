@@ -233,8 +233,7 @@ def predict_cleavage_batch(inputs, scenarios, *, predictors=None, reference_pane
                     n_term=fragment["n_term"], c_term=fragment["c_term"])
                 for name in scenario["models"]:
                     state = scenario["enzyme_states"].get(catalog[name].enzyme)
-                    sequence_only = (fragment is None and value["scope"] in ("native_window", "protein")
-                                     and name.startswith("pepsickle-")
+                    sequence_only = (fragment is None and name.startswith("pepsickle-")
                                      and peptide.n_term == peptide.c_term == "unknown")
                     model_input = replace(peptide, source_id=None, source_start=0)
                     if sequence_only:
@@ -394,6 +393,10 @@ def write_cleavage_batch(report, path, *, html_path=None):
                 parts.append("</table>")
             parts.append("<details><summary>Full evidence, conditions and provenance</summary><pre>%s</pre>"
                          "</details>" % escape(json.dumps(row, indent=2)))
-    parts.append("<h2>Original inputs and imported evidence</h2><pre>%s</pre></html>" %
+    parts.append("<h2>Original inputs and imported evidence</h2><pre>%s</pre>" %
                  escape(json.dumps(report["inputs"], indent=2)))
+    additional = {key: value for key, value in report.items()
+                  if key not in ("inputs", "scenarios", "assessments", "coverage_gaps")}
+    parts.append("<details><summary>Additional assay and validation evidence</summary><pre>%s</pre>"
+                 "</details></html>" % escape(json.dumps(additional, indent=2)))
     Path(html_path).write_text("\n".join(parts), encoding="utf-8")

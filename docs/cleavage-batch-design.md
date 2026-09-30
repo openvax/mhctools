@@ -67,3 +67,37 @@ runtime errors without substituting another model. Provision pinned packages,
 disable network access during prediction, and validate both C/I profiles
 against direct upstream inference in that runtime. This establishes runtime
 compatibility, not independent biological accuracy.
+
+## Source-backed long-peptide validation follow-up
+
+Curate all products in Wada et al. 2018 Figure 2A and 2C, not just epitope hits,
+for two reordered RR-linked vaccine constructs. Preserve figure/row IDs,
+first-detection times, exact source sequences and assay conditions. Derive
+only internal product-boundary bonds; parent termini are not cleavage events.
+Keep unobserved bonds unknown and avoid binary accuracy/AUC claims.
+
+Pepsickle's paper labels this study held out. Audit the pinned author's raw
+training maps for study, full-sequence and seven-residue context overlap,
+reporting any residual limitations rather than manufacturing complete lineage.
+Run the real immunoproteasome model on complete constructs, retain source
+products alongside epitope overlays, and verify JSON reload. Terminal chemistry
+is not explicitly reported by this source: allow Pepsickle's documented
+sequence-context-only assumption for unknown construct ends, while leaving
+chemistry-dependent peptidases unsupported and known modifications rejected.
+
+## PR reconciliation and review plan (2026-09-30)
+
+1. Verify and finish the pending Wada source fixture, real-model replay and
+   training-overlap audit. Preserve experimental uncertainty and avoid
+   converting unreported products into negatives.
+2. Merge current master into this feature branch, preserving its fixes and
+   the 3.46.0 feature version. Reconcile runtime, packaging and validation
+   documentation with the final code and issue acceptance criteria.
+3. Recheck primary cathepsin/AEP sources and available model artifacts.
+   Integrate verifiable assay-scoped evidence and defensible adapters where
+   available; document concrete external blockers with source provenance.
+4. Review the complete diff for evidence fidelity, coordinate/chemistry
+   handling, runtime isolation, save/reload and packaging. Fix findings with
+   regression coverage, then run lint, the full suite and GitHub CI.
+5. Refresh the PR with final scope and evidence. Merge and deploy only after
+   the review and release gates pass; verify the published PyPI version.

@@ -52,7 +52,7 @@ uses one-based inclusive epitope windows; convert explicitly when using it.
 reconstruction window must retain unknown molecular termini. A construct
 can declare `n_term` and `c_term`; both default to `unknown`. Do not turn
 native-window edges into exposed substrate ends to obtain peptidase scores.
-Pepsickle can assess native/protein sequence context with unknown termini;
+Pepsickle can assess native, protein or construct sequence context with unknown termini;
 the result explicitly records that sequence-only assumption. Known chemical
 modifications still cause abstention in sequence-only models.
 

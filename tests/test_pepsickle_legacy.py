@@ -3,6 +3,8 @@
 import json
 import os
 import subprocess
+import sys
+from pathlib import Path
 
 import pytest
 
@@ -56,3 +58,29 @@ def test_legacy_runtime_needs_no_host_pepsickle_install(monkeypatch):
     result = Pepsickle(model_type="in-vitro", proteasome_type="C").predict_cleavage(SEQUENCE)
     assert len(result.sites) == len(SEQUENCE) - 1
     assert all(0 <= site.score <= 1 for site in result.sites)
+
+
+def test_wada_observed_products_survive_real_batch_overlay_and_reload(tmp_path):
+    root = Path(__file__).resolve().parents[1]
+    path, html = tmp_path / "wada.json", tmp_path / "wada.html"
+    subprocess.run([sys.executable, "-m", "scripts.evaluate_wada_cleavage",
+                    "--out", str(path), "--html", str(html)],
+                   cwd=root, capture_output=True, text=True, check=True, timeout=180)
+    report = load_cleavage_batch(path)
+    assert report["experimental_assay"]["species"] == "Mus musculus"
+    assert sum(len(v["observed_products"]) for v in report["inputs"]) == 47
+    assert all(row["status"] == "assessed" for row in report["assessments"])
+    assert all(item["prediction"]["score"] is not None
+               for row in report["experimental_product_overlays"] for item in row["observed_bonds"])
+    assert all(r["result"]["peptide"]["n_term"] == "unknown" for r in report["assessments"])
+    # Preserve endpoint semantics even when an experimentally observed product
+    # retains a construct terminus: there is no bond to score at that endpoint.
+    a, c = report["assessments"]
+    assert c["overlays"][0]["n_boundary"]["status"] == "sequence_endpoint"
+    assert a["overlays"][1]["c_boundary"]["status"] == "scored"
+    recorded = load_cleavage_batch(root / "tests/data/wada2018/pepsickle-gb-evaluation.json")
+    for actual, reference in zip(report["assessments"], recorded["assessments"]):
+        assert [s["score"] for s in actual["result"]["sites"]] == pytest.approx(
+            [s["score"] for s in reference["result"]["sites"]])
+    text = html.read_text()
+    assert "37" in text and "first_detected_hours" in text and "Mus musculus" in text

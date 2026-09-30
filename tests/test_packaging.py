@@ -94,4 +94,7 @@ def test_source_distribution_includes_backend_runtime_assets(tmp_path):
         "scripts/test-backends/run_netmhc.py",
         "scripts/test-backends/Dockerfile.pepsickle-legacy",
         "mhctools/pepsickle_runtime.py",
+        "scripts/evaluate_wada_cleavage.py",
+        "tests/data/wada2018/figure2ac.json",
+        "tests/data/wada2018/README.md",
     } <= names

@@ -1,0 +1,2264 @@
+{
+  "schema_version": 1,
+  "inputs": [
+    {
+      "id": "W-S3-S2",
+      "scope": "construct",
+      "sequence": "ASLDSDPWVRRLLQAEAPRLRRDYSARWNEI",
+      "n_term": "unknown",
+      "c_term": "unknown",
+      "source_id": "Wada2018-Fig2A",
+      "epitopes": [
+        {
+          "id": "WHSC2_103_111",
+          "sequence": "ASLDSDPWV",
+          "start": 0,
+          "end": 9
+        },
+        {
+          "id": "SART3_302_310",
+          "sequence": "LLQAEAPRL",
+          "start": 11,
+          "end": 20
+        },
+        {
+          "id": "SART2_93_101",
+          "sequence": "DYSARWNEI",
+          "start": 22,
+          "end": 31
+        }
+      ],
+      "observed_products": [
+        {
+          "id": "Wada2018-Fig2A-fragment1",
+          "sequence": "ASLDSDPWVRR",
+          "start": 0,
+          "end": 11,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment2",
+          "sequence": "DSDPWVRR",
+          "start": 3,
+          "end": 11,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment3",
+          "sequence": "ASLDSDPWVRRL",
+          "start": 0,
+          "end": 12,
+          "first_detected_hours": 2
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment4",
+          "sequence": "DSDPWVRRL",
+          "start": 3,
+          "end": 12,
+          "first_detected_hours": 4
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment5",
+          "sequence": "ASLDSDPWVRRLLQAEAPRL",
+          "start": 0,
+          "end": 20,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment6",
+          "sequence": "RLLQAEAPRL",
+          "start": 10,
+          "end": 20,
+          "first_detected_hours": 4
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment7",
+          "sequence": "LLQAEAPRL",
+          "start": 11,
+          "end": 20,
+          "first_detected_hours": 4
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment8",
+          "sequence": "ASLDSDPWVRRLLQAEAPRLR",
+          "start": 0,
+          "end": 21,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment9",
+          "sequence": "LLQAEAPRLR",
+          "start": 11,
+          "end": 21,
+          "first_detected_hours": 2
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment10",
+          "sequence": "LQAEAPRLR",
+          "start": 12,
+          "end": 21,
+          "first_detected_hours": 2
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment11",
+          "sequence": "ASLDSDPWVRRLLQAEAPRLRR",
+          "start": 0,
+          "end": 22,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment12",
+          "sequence": "DSDPWVRRLLQAEAPRLRR",
+          "start": 3,
+          "end": 22,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment13",
+          "sequence": "LLQAEAPRLRR",
+          "start": 11,
+          "end": 22,
+          "first_detected_hours": 4
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment14",
+          "sequence": "ASLDSDPWVRRLLQAEAPRLRRDY",
+          "start": 0,
+          "end": 24,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment15",
+          "sequence": "DSDPWVRRLLQAEAPRLRRDY",
+          "start": 3,
+          "end": 24,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment16",
+          "sequence": "ASLDSDPWVRRLLQAEAPRLRRDYS",
+          "start": 0,
+          "end": 25,
+          "first_detected_hours": 4
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment17",
+          "sequence": "DSDPWVRRLLQAEAPRLRRDYS",
+          "start": 3,
+          "end": 25,
+          "first_detected_hours": 4
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment18",
+          "sequence": "DSDPWVRRLLQAEAPRLRRDYSAR",
+          "start": 3,
+          "end": 27,
+          "first_detected_hours": 4
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment19",
+          "sequence": "RLLQAEAPRLRRDYSARWNEI",
+          "start": 10,
+          "end": 31,
+          "first_detected_hours": 4
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment20",
+          "sequence": "LLQAEAPRLRRDYSARWNEI",
+          "start": 11,
+          "end": 31,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment21",
+          "sequence": "LQAEAPRLRRDYSARWNEI",
+          "start": 12,
+          "end": 31,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment22",
+          "sequence": "QAEAPRLRRDYSARWNEI",
+          "start": 13,
+          "end": 31,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment23",
+          "sequence": "EAPRLRRDYSARWNEI",
+          "start": 15,
+          "end": 31,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment24",
+          "sequence": "RRDYSARWNEI",
+          "start": 20,
+          "end": 31,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment25",
+          "sequence": "RDYSARWNEI",
+          "start": 21,
+          "end": 31,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment26",
+          "sequence": "DYSARWNEI",
+          "start": 22,
+          "end": 31,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment27",
+          "sequence": "SARWNEI",
+          "start": 24,
+          "end": 31,
+          "first_detected_hours": 2
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment28",
+          "sequence": "ARWNEI",
+          "start": 25,
+          "end": 31,
+          "first_detected_hours": 4
+        }
+      ],
+      "source_figure": "2A",
+      "chemistry_note": "Canonical sequence; terminal chemical states not explicitly reported. Prediction is sequence-context-only.",
+      "source_start": 0,
+      "fragments": []
+    },
+    {
+      "id": "S2-W-S3",
+      "scope": "construct",
+      "sequence": "DYSARWNEIRRASLDSDPWVRRLLQAEAPRL",
+      "n_term": "unknown",
+      "c_term": "unknown",
+      "source_id": "Wada2018-Fig2C",
+      "epitopes": [
+        {
+          "id": "SART2_93_101",
+          "sequence": "DYSARWNEI",
+          "start": 0,
+          "end": 9
+        },
+        {
+          "id": "WHSC2_103_111",
+          "sequence": "ASLDSDPWV",
+          "start": 11,
+          "end": 20
+        },
+        {
+          "id": "SART3_302_310",
+          "sequence": "LLQAEAPRL",
+          "start": 22,
+          "end": 31
+        }
+      ],
+      "observed_products": [
+        {
+          "id": "Wada2018-Fig2C-fragment1",
+          "sequence": "DYSARWNEI",
+          "start": 0,
+          "end": 9,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2C-fragment2",
+          "sequence": "DYSARWNEIRR",
+          "start": 0,
+          "end": 11,
+          "first_detected_hours": 2
+        },
+        {
+          "id": "Wada2018-Fig2C-fragment3",
+          "sequence": "DYSARWNEIRRA",
+          "start": 0,
+          "end": 12,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2C-fragment4",
+          "sequence": "DYSARWNEIRRASL",
+          "start": 0,
+          "end": 14,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2C-fragment5",
+          "sequence": "DYSARWNEIRRASLDSDPWVR",
+          "start": 0,
+          "end": 21,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2C-fragment6",
+          "sequence": "RRASLDSDPWVR",
+          "start": 9,
+          "end": 21,
+          "first_detected_hours": 2
+        },
+        {
+          "id": "Wada2018-Fig2C-fragment7",
+          "sequence": "DYSARWNEIRRASLDSDPWVRR",
+          "start": 0,
+          "end": 22,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2C-fragment8",
+          "sequence": "RASLDSDPWVRR",
+          "start": 10,
+          "end": 22,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2C-fragment9",
+          "sequence": "SLDSDPWVRR",
+          "start": 12,
+          "end": 22,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2C-fragment10",
+          "sequence": "DSDPWVRR",
+          "start": 14,
+          "end": 22,
+          "first_detected_hours": 2
+        },
+        {
+          "id": "Wada2018-Fig2C-fragment11",
+          "sequence": "DYSARWNEIRRASLDSDPWVRRL",
+          "start": 0,
+          "end": 23,
+          "first_detected_hours": 2
+        },
+        {
+          "id": "Wada2018-Fig2C-fragment12",
+          "sequence": "RRASLDSDPWVRRL",
+          "start": 9,
+          "end": 23,
+          "first_detected_hours": 2
+        },
+        {
+          "id": "Wada2018-Fig2C-fragment13",
+          "sequence": "RRASLDSDPWVRRLLQ",
+          "start": 9,
+          "end": 25,
+          "first_detected_hours": 2
+        },
+        {
+          "id": "Wada2018-Fig2C-fragment14",
+          "sequence": "RRASLDSDPWVRRLLQA",
+          "start": 9,
+          "end": 26,
+          "first_detected_hours": 2
+        },
+        {
+          "id": "Wada2018-Fig2C-fragment15",
+          "sequence": "RLLQAEAPRL",
+          "start": 21,
+          "end": 31,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2C-fragment16",
+          "sequence": "LLQAEAPRL",
+          "start": 22,
+          "end": 31,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2C-fragment17",
+          "sequence": "LQAEAPRL",
+          "start": 23,
+          "end": 31,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2C-fragment18",
+          "sequence": "QAEAPRL",
+          "start": 24,
+          "end": 31,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2C-fragment19",
+          "sequence": "PRL",
+          "start": 28,
+          "end": 31,
+          "first_detected_hours": 4
+        }
+      ],
+      "source_figure": "2C",
+      "chemistry_note": "Canonical sequence; terminal chemical states not explicitly reported. Prediction is sequence-context-only.",
+      "source_start": 0,
+      "fragments": []
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "murine-i20s-assay",
+      "context": "apc",
+      "compartments": [
+        "cytosol"
+      ],
+      "models": [
+        "pepsickle-in-vitro-all-mammal-immunoproteasome"
+      ],
+      "note": "Purified murine i20S sequence-specificity assessment, not whole-APC presentation or time-dependent yield.",
+      "enzyme_states": {}
+    }
+  ],
+  "reference_panels": [],
+  "assessments": [
+    {
+      "input_id": "W-S3-S2",
+      "scenario_id": "murine-i20s-assay",
+      "model": "pepsickle-in-vitro-all-mammal-immunoproteasome",
+      "fragment": null,
+      "result": {
+        "peptide": {
+          "sequence": "ASLDSDPWVRRLLQAEAPRLRRDYSARWNEI",
+          "n_term": "unknown",
+          "c_term": "unknown",
+          "source_id": "Wada2018-Fig2A",
+          "source_start": 0
+        },
+        "model": {
+          "name": "pepsickle-in-vitro-all-mammal-immunoproteasome",
+          "version": "package:0.1.3;model:gradient_boosting;weights-sha256:e6dc67532f7e781cdf830b04f85eebb34483ba945011e221624707e7d6b79577;inference-sha256:a12d58665c8b62775be90a899fb841cdf107c09c3709a2d013b1ca8982fafd4c;features-sha256:4c5474441c668141691ca07ebbff38c965d64fe416e63ebf147e7112e8c66dd3;runtime-sha256:463e77eb453ec9b152b805a405a0864fd736e34672fa5ba1ef9a20d4cef0d97f",
+          "enzyme": "20S proteasome",
+          "uniprot": "",
+          "species": "Mammalia",
+          "compartments": [
+            "cytosol"
+          ],
+          "evidence": "quantitative_model",
+          "references": [
+            "https://doi.org/10.1093/bioinformatics/btab628",
+            "https://github.com/pdxgx/pepsickle"
+          ],
+          "assay": "20S in-vitro digestion-trained gradient boosting; proteasome input I; all-mammal training subset",
+          "limitations": "Native dimensionless model output, not an empirical cleavage, degradation, presentation, or vaccine efficacy probability. Uses a 3-residue context before P1 and after P1 with terminal padding. The upstream package deserializes a pickle model; isolate_subprocess controls process isolation but does not make an untrusted pickle safe.",
+          "score_name": "pepsickle_in_vitro_model_output",
+          "score_units": "dimensionless native model output",
+          "scored_endpoint": "site_cleavage",
+          "motif_strictness": null,
+          "strictness_basis": null
+        },
+        "sites": [
+          {
+            "bond": 1,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 1",
+            "score": 0.1189,
+            "source_bond": 1
+          },
+          {
+            "bond": 2,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 2",
+            "score": 0.0552,
+            "source_bond": 2
+          },
+          {
+            "bond": 3,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 3",
+            "score": 0.6438,
+            "source_bond": 3
+          },
+          {
+            "bond": 4,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 4",
+            "score": 0.4801,
+            "source_bond": 4
+          },
+          {
+            "bond": 5,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 5",
+            "score": 0.0992,
+            "source_bond": 5
+          },
+          {
+            "bond": 6,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 6",
+            "score": 0.1673,
+            "source_bond": 6
+          },
+          {
+            "bond": 7,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 7",
+            "score": 0.007,
+            "source_bond": 7
+          },
+          {
+            "bond": 8,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 8",
+            "score": 0.054,
+            "source_bond": 8
+          },
+          {
+            "bond": 9,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 9",
+            "score": 0.0799,
+            "source_bond": 9
+          },
+          {
+            "bond": 10,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 10",
+            "score": 0.8645,
+            "source_bond": 10
+          },
+          {
+            "bond": 11,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 11",
+            "score": 0.5592,
+            "source_bond": 11
+          },
+          {
+            "bond": 12,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 12",
+            "score": 0.809,
+            "source_bond": 12
+          },
+          {
+            "bond": 13,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 13",
+            "score": 0.8989,
+            "source_bond": 13
+          },
+          {
+            "bond": 14,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 14",
+            "score": 0.6403,
+            "source_bond": 14
+          },
+          {
+            "bond": 15,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 15",
+            "score": 0.544,
+            "source_bond": 15
+          },
+          {
+            "bond": 16,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 16",
+            "score": 0.4156,
+            "source_bond": 16
+          },
+          {
+            "bond": 17,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 17",
+            "score": 0.2162,
+            "source_bond": 17
+          },
+          {
+            "bond": 18,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 18",
+            "score": 0.1196,
+            "source_bond": 18
+          },
+          {
+            "bond": 19,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 19",
+            "score": 0.0305,
+            "source_bond": 19
+          },
+          {
+            "bond": 20,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 20",
+            "score": 0.5913,
+            "source_bond": 20
+          },
+          {
+            "bond": 21,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 21",
+            "score": 0.8735,
+            "source_bond": 21
+          },
+          {
+            "bond": 22,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 22",
+            "score": 0.638,
+            "source_bond": 22
+          },
+          {
+            "bond": 23,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 23",
+            "score": 0.3886,
+            "source_bond": 23
+          },
+          {
+            "bond": 24,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 24",
+            "score": 0.6544,
+            "source_bond": 24
+          },
+          {
+            "bond": 25,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 25",
+            "score": 0.1384,
+            "source_bond": 25
+          },
+          {
+            "bond": 26,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 26",
+            "score": 0.3351,
+            "source_bond": 26
+          },
+          {
+            "bond": 27,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 27",
+            "score": 0.2956,
+            "source_bond": 27
+          },
+          {
+            "bond": 28,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 28",
+            "score": 0.6378,
+            "source_bond": 28
+          },
+          {
+            "bond": 29,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 29",
+            "score": 0.081,
+            "source_bond": 29
+          },
+          {
+            "bond": 30,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 30",
+            "score": 0.4059,
+            "source_bond": 30
+          }
+        ],
+        "unsupported_reason": null,
+        "conditions": [
+          [
+            "human_only",
+            "false"
+          ],
+          [
+            "model_mode",
+            "in-vitro"
+          ],
+          [
+            "proteasome_type",
+            "I"
+          ],
+          [
+            "model_key",
+            "gradient_boosting"
+          ],
+          [
+            "threshold",
+            "0.5"
+          ],
+          [
+            "isolate_subprocess",
+            "true"
+          ],
+          [
+            "subprocess_timeout_seconds",
+            "300"
+          ],
+          [
+            "runtime",
+            "{\"executable\": \"/usr/local/bin/python\", \"features_path\": \"/usr/local/lib/python3.8/site-packages/pepsickle/sequence_featurization_tools.py\", \"features_sha256\": \"4c5474441c668141691ca07ebbff38c965d64fe416e63ebf147e7112e8c66dd3\", \"inference_path\": \"/usr/local/lib/python3.8/site-packages/pepsickle/model_functions.py\", \"inference_sha256\": \"a12d58665c8b62775be90a899fb841cdf107c09c3709a2d013b1ca8982fafd4c\", \"machine\": \"x86_64\", \"model_key\": \"gradient_boosting\", \"package_version\": \"0.1.3\", \"packages\": {\"biopython\": \"1.79\", \"joblib\": \"0.17.0\", \"numpy\": \"1.19.5\", \"pepsickle\": \"0.1.3\", \"scikit-learn\": \"0.23.2\", \"scipy\": \"1.5.4\", \"torch\": \"1.13.1+cpu\"}, \"platform\": \"Linux\", \"python\": \"3.8.20\", \"weights_path\": \"/usr/local/lib/python3.8/site-packages/pepsickle/model.joblib\", \"weights_sha256\": \"e6dc67532f7e781cdf830b04f85eebb34483ba945011e221624707e7d6b79577\"}"
+          ],
+          [
+            "input_scope",
+            "sequence_context_only; molecular termini unestablished"
+          ]
+        ],
+        "substrate_observation": null
+      },
+      "requested_model": {
+        "name": "pepsickle-in-vitro-all-mammal-immunoproteasome",
+        "version": "unresolved: pepsickle runtime assets not inspected or not available",
+        "enzyme": "20S proteasome",
+        "uniprot": "",
+        "species": "Mammalia",
+        "compartments": [
+          "cytosol"
+        ],
+        "evidence": "quantitative_model",
+        "references": [
+          "https://doi.org/10.1093/bioinformatics/btab628",
+          "https://github.com/pdxgx/pepsickle"
+        ],
+        "assay": "20S in-vitro digestion-trained gradient boosting; proteasome input I; all-mammal training subset",
+        "limitations": "Native dimensionless model output, not an empirical cleavage, degradation, presentation, or vaccine efficacy probability. Uses a 3-residue context before P1 and after P1 with terminal padding. The upstream package deserializes a pickle model; isolate_subprocess controls process isolation but does not make an untrusted pickle safe.",
+        "score_name": "pepsickle_in_vitro_model_output",
+        "score_units": "dimensionless native model output",
+        "scored_endpoint": "site_cleavage",
+        "motif_strictness": null,
+        "strictness_basis": null
+      },
+      "overlays": [
+        {
+          "epitope": {
+            "id": "WHSC2_103_111",
+            "sequence": "ASLDSDPWV",
+            "start": 0,
+            "end": 9
+          },
+          "conditional_on": null,
+          "substrate_observation": null,
+          "n_boundary": {
+            "bond": 0,
+            "source_bond": 0,
+            "status": "sequence_endpoint"
+          },
+          "c_boundary": {
+            "bond": 9,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 9",
+            "score": 0.0799,
+            "source_bond": 9
+          },
+          "internal": [
+            {
+              "bond": 1,
+              "status": "scored",
+              "reason": "Pepsickle in-vitro model output after residue 1",
+              "score": 0.1189,
+              "source_bond": 1
+            },
+            {
+              "bond": 2,
+              "status": "scored",
+              "reason": "Pepsickle in-vitro model output after residue 2",
+              "score": 0.0552,
+              "source_bond": 2
+            },
+            {
+              "bond": 3,
+              "status": "scored",
+              "reason": "Pepsickle in-vitro model output after residue 3",
+              "score": 0.6438,
+              "source_bond": 3
+            },
+            {
+              "bond": 4,
+              "status": "scored",
+              "reason": "Pepsickle in-vitro model output after residue 4",
+              "score": 0.4801,
+              "source_bond": 4
+            },
+            {
+              "bond": 5,
+              "status": "scored",
+              "reason": "Pepsickle in-vitro model output after residue 5",
+              "score": 0.0992,
+              "source_bond": 5
+            },
+            {
+              "bond": 6,
+              "status": "scored",
+              "reason": "Pepsickle in-vitro model output after residue 6",
+              "score": 0.1673,
+              "source_bond": 6
+            },
+            {
+              "bond": 7,
+              "status": "scored",
+              "reason": "Pepsickle in-vitro model output after residue 7",
+              "score": 0.007,
+              "source_bond": 7
+            },
+            {
+              "bond": 8,
+              "status": "scored",
+              "reason": "Pepsickle in-vitro model output after residue 8",
+              "score": 0.054,
+              "source_bond": 8
+            }
+          ]
+        },
+        {
+          "epitope": {
+            "id": "SART3_302_310",
+            "sequence": "LLQAEAPRL",
+            "start": 11,
+            "end": 20
+          },
+          "conditional_on": null,
+          "substrate_observation": null,
+          "n_boundary": {
+            "bond": 11,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 11",
+            "score": 0.5592,
+            "source_bond": 11
+          },
+          "c_boundary": {
+            "bond": 20,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 20",
+            "score": 0.5913,
+            "source_bond": 20
+          },
+          "internal": [
+            {
+              "bond": 12,
+              "status": "scored",
+              "reason": "Pepsickle in-vitro model output after residue 12",
+              "score": 0.809,
+              "source_bond": 12
+            },
+            {
+              "bond": 13,
+              "status": "scored",
+              "reason": "Pepsickle in-vitro model output after residue 13",
+              "score": 0.8989,
+              "source_bond": 13
+            },
+            {
+              "bond": 14,
+              "status": "scored",
+              "reason": "Pepsickle in-vitro model output after residue 14",
+              "score": 0.6403,
+              "source_bond": 14
+            },
+            {
+              "bond": 15,
+              "status": "scored",
+              "reason": "Pepsickle in-vitro model output after residue 15",
+              "score": 0.544,
+              "source_bond": 15
+            },
+            {
+              "bond": 16,
+              "status": "scored",
+              "reason": "Pepsickle in-vitro model output after residue 16",
+              "score": 0.4156,
+              "source_bond": 16
+            },
+            {
+              "bond": 17,
+              "status": "scored",
+              "reason": "Pepsickle in-vitro model output after residue 17",
+              "score": 0.2162,
+              "source_bond": 17
+            },
+            {
+              "bond": 18,
+              "status": "scored",
+              "reason": "Pepsickle in-vitro model output after residue 18",
+              "score": 0.1196,
+              "source_bond": 18
+            },
+            {
+              "bond": 19,
+              "status": "scored",
+              "reason": "Pepsickle in-vitro model output after residue 19",
+              "score": 0.0305,
+              "source_bond": 19
+            }
+          ]
+        },
+        {
+          "epitope": {
+            "id": "SART2_93_101",
+            "sequence": "DYSARWNEI",
+            "start": 22,
+            "end": 31
+          },
+          "conditional_on": null,
+          "substrate_observation": null,
+          "n_boundary": {
+            "bond": 22,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 22",
+            "score": 0.638,
+            "source_bond": 22
+          },
+          "c_boundary": {
+            "bond": 31,
+            "source_bond": 31,
+            "status": "sequence_endpoint"
+          },
+          "internal": [
+            {
+              "bond": 23,
+              "status": "scored",
+              "reason": "Pepsickle in-vitro model output after residue 23",
+              "score": 0.3886,
+              "source_bond": 23
+            },
+            {
+              "bond": 24,
+              "status": "scored",
+              "reason": "Pepsickle in-vitro model output after residue 24",
+              "score": 0.6544,
+              "source_bond": 24
+            },
+            {
+              "bond": 25,
+              "status": "scored",
+              "reason": "Pepsickle in-vitro model output after residue 25",
+              "score": 0.1384,
+              "source_bond": 25
+            },
+            {
+              "bond": 26,
+              "status": "scored",
+              "reason": "Pepsickle in-vitro model output after residue 26",
+              "score": 0.3351,
+              "source_bond": 26
+            },
+            {
+              "bond": 27,
+              "status": "scored",
+              "reason": "Pepsickle in-vitro model output after residue 27",
+              "score": 0.2956,
+              "source_bond": 27
+            },
+            {
+              "bond": 28,
+              "status": "scored",
+              "reason": "Pepsickle in-vitro model output after residue 28",
+              "score": 0.6378,
+              "source_bond": 28
+            },
+            {
+              "bond": 29,
+              "status": "scored",
+              "reason": "Pepsickle in-vitro model output after residue 29",
+              "score": 0.081,
+              "source_bond": 29
+            },
+            {
+              "bond": 30,
+              "status": "scored",
+              "reason": "Pepsickle in-vitro model output after residue 30",
+              "score": 0.4059,
+              "source_bond": 30
+            }
+          ]
+        }
+      ],
+      "error": null,
+      "context_application": "Compartments filter locations; scenario labels and extra annotations do not change model parameters or establish assay calibration",
+      "status": "assessed"
+    },
+    {
+      "input_id": "S2-W-S3",
+      "scenario_id": "murine-i20s-assay",
+      "model": "pepsickle-in-vitro-all-mammal-immunoproteasome",
+      "fragment": null,
+      "result": {
+        "peptide": {
+          "sequence": "DYSARWNEIRRASLDSDPWVRRLLQAEAPRL",
+          "n_term": "unknown",
+          "c_term": "unknown",
+          "source_id": "Wada2018-Fig2C",
+          "source_start": 0
+        },
+        "model": {
+          "name": "pepsickle-in-vitro-all-mammal-immunoproteasome",
+          "version": "package:0.1.3;model:gradient_boosting;weights-sha256:e6dc67532f7e781cdf830b04f85eebb34483ba945011e221624707e7d6b79577;inference-sha256:a12d58665c8b62775be90a899fb841cdf107c09c3709a2d013b1ca8982fafd4c;features-sha256:4c5474441c668141691ca07ebbff38c965d64fe416e63ebf147e7112e8c66dd3;runtime-sha256:463e77eb453ec9b152b805a405a0864fd736e34672fa5ba1ef9a20d4cef0d97f",
+          "enzyme": "20S proteasome",
+          "uniprot": "",
+          "species": "Mammalia",
+          "compartments": [
+            "cytosol"
+          ],
+          "evidence": "quantitative_model",
+          "references": [
+            "https://doi.org/10.1093/bioinformatics/btab628",
+            "https://github.com/pdxgx/pepsickle"
+          ],
+          "assay": "20S in-vitro digestion-trained gradient boosting; proteasome input I; all-mammal training subset",
+          "limitations": "Native dimensionless model output, not an empirical cleavage, degradation, presentation, or vaccine efficacy probability. Uses a 3-residue context before P1 and after P1 with terminal padding. The upstream package deserializes a pickle model; isolate_subprocess controls process isolation but does not make an untrusted pickle safe.",
+          "score_name": "pepsickle_in_vitro_model_output",
+          "score_units": "dimensionless native model output",
+          "scored_endpoint": "site_cleavage",
+          "motif_strictness": null,
+          "strictness_basis": null
+        },
+        "sites": [
+          {
+            "bond": 1,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 1",
+            "score": 0.033,
+            "source_bond": 1
+          },
+          {
+            "bond": 2,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 2",
+            "score": 0.0404,
+            "source_bond": 2
+          },
+          {
+            "bond": 3,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 3",
+            "score": 0.1271,
+            "source_bond": 3
+          },
+          {
+            "bond": 4,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 4",
+            "score": 0.3351,
+            "source_bond": 4
+          },
+          {
+            "bond": 5,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 5",
+            "score": 0.2956,
+            "source_bond": 5
+          },
+          {
+            "bond": 6,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 6",
+            "score": 0.6378,
+            "source_bond": 6
+          },
+          {
+            "bond": 7,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 7",
+            "score": 0.0733,
+            "source_bond": 7
+          },
+          {
+            "bond": 8,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 8",
+            "score": 0.057,
+            "source_bond": 8
+          },
+          {
+            "bond": 9,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 9",
+            "score": 0.4807,
+            "source_bond": 9
+          },
+          {
+            "bond": 10,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 10",
+            "score": 0.6703,
+            "source_bond": 10
+          },
+          {
+            "bond": 11,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 11",
+            "score": 0.746,
+            "source_bond": 11
+          },
+          {
+            "bond": 12,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 12",
+            "score": 0.9098,
+            "source_bond": 12
+          },
+          {
+            "bond": 13,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 13",
+            "score": 0.6324,
+            "source_bond": 13
+          },
+          {
+            "bond": 14,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 14",
+            "score": 0.7531,
+            "source_bond": 14
+          },
+          {
+            "bond": 15,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 15",
+            "score": 0.4801,
+            "source_bond": 15
+          },
+          {
+            "bond": 16,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 16",
+            "score": 0.0992,
+            "source_bond": 16
+          },
+          {
+            "bond": 17,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 17",
+            "score": 0.1673,
+            "source_bond": 17
+          },
+          {
+            "bond": 18,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 18",
+            "score": 0.007,
+            "source_bond": 18
+          },
+          {
+            "bond": 19,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 19",
+            "score": 0.054,
+            "source_bond": 19
+          },
+          {
+            "bond": 20,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 20",
+            "score": 0.0799,
+            "source_bond": 20
+          },
+          {
+            "bond": 21,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 21",
+            "score": 0.8645,
+            "source_bond": 21
+          },
+          {
+            "bond": 22,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 22",
+            "score": 0.5592,
+            "source_bond": 22
+          },
+          {
+            "bond": 23,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 23",
+            "score": 0.809,
+            "source_bond": 23
+          },
+          {
+            "bond": 24,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 24",
+            "score": 0.8989,
+            "source_bond": 24
+          },
+          {
+            "bond": 25,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 25",
+            "score": 0.6403,
+            "source_bond": 25
+          },
+          {
+            "bond": 26,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 26",
+            "score": 0.544,
+            "source_bond": 26
+          },
+          {
+            "bond": 27,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 27",
+            "score": 0.4156,
+            "source_bond": 27
+          },
+          {
+            "bond": 28,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 28",
+            "score": 0.2162,
+            "source_bond": 28
+          },
+          {
+            "bond": 29,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 29",
+            "score": 0.2279,
+            "source_bond": 29
+          },
+          {
+            "bond": 30,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 30",
+            "score": 0.3046,
+            "source_bond": 30
+          }
+        ],
+        "unsupported_reason": null,
+        "conditions": [
+          [
+            "human_only",
+            "false"
+          ],
+          [
+            "model_mode",
+            "in-vitro"
+          ],
+          [
+            "proteasome_type",
+            "I"
+          ],
+          [
+            "model_key",
+            "gradient_boosting"
+          ],
+          [
+            "threshold",
+            "0.5"
+          ],
+          [
+            "isolate_subprocess",
+            "true"
+          ],
+          [
+            "subprocess_timeout_seconds",
+            "300"
+          ],
+          [
+            "runtime",
+            "{\"executable\": \"/usr/local/bin/python\", \"features_path\": \"/usr/local/lib/python3.8/site-packages/pepsickle/sequence_featurization_tools.py\", \"features_sha256\": \"4c5474441c668141691ca07ebbff38c965d64fe416e63ebf147e7112e8c66dd3\", \"inference_path\": \"/usr/local/lib/python3.8/site-packages/pepsickle/model_functions.py\", \"inference_sha256\": \"a12d58665c8b62775be90a899fb841cdf107c09c3709a2d013b1ca8982fafd4c\", \"machine\": \"x86_64\", \"model_key\": \"gradient_boosting\", \"package_version\": \"0.1.3\", \"packages\": {\"biopython\": \"1.79\", \"joblib\": \"0.17.0\", \"numpy\": \"1.19.5\", \"pepsickle\": \"0.1.3\", \"scikit-learn\": \"0.23.2\", \"scipy\": \"1.5.4\", \"torch\": \"1.13.1+cpu\"}, \"platform\": \"Linux\", \"python\": \"3.8.20\", \"weights_path\": \"/usr/local/lib/python3.8/site-packages/pepsickle/model.joblib\", \"weights_sha256\": \"e6dc67532f7e781cdf830b04f85eebb34483ba945011e221624707e7d6b79577\"}"
+          ],
+          [
+            "input_scope",
+            "sequence_context_only; molecular termini unestablished"
+          ]
+        ],
+        "substrate_observation": null
+      },
+      "requested_model": {
+        "name": "pepsickle-in-vitro-all-mammal-immunoproteasome",
+        "version": "unresolved: pepsickle runtime assets not inspected or not available",
+        "enzyme": "20S proteasome",
+        "uniprot": "",
+        "species": "Mammalia",
+        "compartments": [
+          "cytosol"
+        ],
+        "evidence": "quantitative_model",
+        "references": [
+          "https://doi.org/10.1093/bioinformatics/btab628",
+          "https://github.com/pdxgx/pepsickle"
+        ],
+        "assay": "20S in-vitro digestion-trained gradient boosting; proteasome input I; all-mammal training subset",
+        "limitations": "Native dimensionless model output, not an empirical cleavage, degradation, presentation, or vaccine efficacy probability. Uses a 3-residue context before P1 and after P1 with terminal padding. The upstream package deserializes a pickle model; isolate_subprocess controls process isolation but does not make an untrusted pickle safe.",
+        "score_name": "pepsickle_in_vitro_model_output",
+        "score_units": "dimensionless native model output",
+        "scored_endpoint": "site_cleavage",
+        "motif_strictness": null,
+        "strictness_basis": null
+      },
+      "overlays": [
+        {
+          "epitope": {
+            "id": "SART2_93_101",
+            "sequence": "DYSARWNEI",
+            "start": 0,
+            "end": 9
+          },
+          "conditional_on": null,
+          "substrate_observation": null,
+          "n_boundary": {
+            "bond": 0,
+            "source_bond": 0,
+            "status": "sequence_endpoint"
+          },
+          "c_boundary": {
+            "bond": 9,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 9",
+            "score": 0.4807,
+            "source_bond": 9
+          },
+          "internal": [
+            {
+              "bond": 1,
+              "status": "scored",
+              "reason": "Pepsickle in-vitro model output after residue 1",
+              "score": 0.033,
+              "source_bond": 1
+            },
+            {
+              "bond": 2,
+              "status": "scored",
+              "reason": "Pepsickle in-vitro model output after residue 2",
+              "score": 0.0404,
+              "source_bond": 2
+            },
+            {
+              "bond": 3,
+              "status": "scored",
+              "reason": "Pepsickle in-vitro model output after residue 3",
+              "score": 0.1271,
+              "source_bond": 3
+            },
+            {
+              "bond": 4,
+              "status": "scored",
+              "reason": "Pepsickle in-vitro model output after residue 4",
+              "score": 0.3351,
+              "source_bond": 4
+            },
+            {
+              "bond": 5,
+              "status": "scored",
+              "reason": "Pepsickle in-vitro model output after residue 5",
+              "score": 0.2956,
+              "source_bond": 5
+            },
+            {
+              "bond": 6,
+              "status": "scored",
+              "reason": "Pepsickle in-vitro model output after residue 6",
+              "score": 0.6378,
+              "source_bond": 6
+            },
+            {
+              "bond": 7,
+              "status": "scored",
+              "reason": "Pepsickle in-vitro model output after residue 7",
+              "score": 0.0733,
+              "source_bond": 7
+            },
+            {
+              "bond": 8,
+              "status": "scored",
+              "reason": "Pepsickle in-vitro model output after residue 8",
+              "score": 0.057,
+              "source_bond": 8
+            }
+          ]
+        },
+        {
+          "epitope": {
+            "id": "WHSC2_103_111",
+            "sequence": "ASLDSDPWV",
+            "start": 11,
+            "end": 20
+          },
+          "conditional_on": null,
+          "substrate_observation": null,
+          "n_boundary": {
+            "bond": 11,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 11",
+            "score": 0.746,
+            "source_bond": 11
+          },
+          "c_boundary": {
+            "bond": 20,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 20",
+            "score": 0.0799,
+            "source_bond": 20
+          },
+          "internal": [
+            {
+              "bond": 12,
+              "status": "scored",
+              "reason": "Pepsickle in-vitro model output after residue 12",
+              "score": 0.9098,
+              "source_bond": 12
+            },
+            {
+              "bond": 13,
+              "status": "scored",
+              "reason": "Pepsickle in-vitro model output after residue 13",
+              "score": 0.6324,
+              "source_bond": 13
+            },
+            {
+              "bond": 14,
+              "status": "scored",
+              "reason": "Pepsickle in-vitro model output after residue 14",
+              "score": 0.7531,
+              "source_bond": 14
+            },
+            {
+              "bond": 15,
+              "status": "scored",
+              "reason": "Pepsickle in-vitro model output after residue 15",
+              "score": 0.4801,
+              "source_bond": 15
+            },
+            {
+              "bond": 16,
+              "status": "scored",
+              "reason": "Pepsickle in-vitro model output after residue 16",
+              "score": 0.0992,
+              "source_bond": 16
+            },
+            {
+              "bond": 17,
+              "status": "scored",
+              "reason": "Pepsickle in-vitro model output after residue 17",
+              "score": 0.1673,
+              "source_bond": 17
+            },
+            {
+              "bond": 18,
+              "status": "scored",
+              "reason": "Pepsickle in-vitro model output after residue 18",
+              "score": 0.007,
+              "source_bond": 18
+            },
+            {
+              "bond": 19,
+              "status": "scored",
+              "reason": "Pepsickle in-vitro model output after residue 19",
+              "score": 0.054,
+              "source_bond": 19
+            }
+          ]
+        },
+        {
+          "epitope": {
+            "id": "SART3_302_310",
+            "sequence": "LLQAEAPRL",
+            "start": 22,
+            "end": 31
+          },
+          "conditional_on": null,
+          "substrate_observation": null,
+          "n_boundary": {
+            "bond": 22,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 22",
+            "score": 0.5592,
+            "source_bond": 22
+          },
+          "c_boundary": {
+            "bond": 31,
+            "source_bond": 31,
+            "status": "sequence_endpoint"
+          },
+          "internal": [
+            {
+              "bond": 23,
+              "status": "scored",
+              "reason": "Pepsickle in-vitro model output after residue 23",
+              "score": 0.809,
+              "source_bond": 23
+            },
+            {
+              "bond": 24,
+              "status": "scored",
+              "reason": "Pepsickle in-vitro model output after residue 24",
+              "score": 0.8989,
+              "source_bond": 24
+            },
+            {
+              "bond": 25,
+              "status": "scored",
+              "reason": "Pepsickle in-vitro model output after residue 25",
+              "score": 0.6403,
+              "source_bond": 25
+            },
+            {
+              "bond": 26,
+              "status": "scored",
+              "reason": "Pepsickle in-vitro model output after residue 26",
+              "score": 0.544,
+              "source_bond": 26
+            },
+            {
+              "bond": 27,
+              "status": "scored",
+              "reason": "Pepsickle in-vitro model output after residue 27",
+              "score": 0.4156,
+              "source_bond": 27
+            },
+            {
+              "bond": 28,
+              "status": "scored",
+              "reason": "Pepsickle in-vitro model output after residue 28",
+              "score": 0.2162,
+              "source_bond": 28
+            },
+            {
+              "bond": 29,
+              "status": "scored",
+              "reason": "Pepsickle in-vitro model output after residue 29",
+              "score": 0.2279,
+              "source_bond": 29
+            },
+            {
+              "bond": 30,
+              "status": "scored",
+              "reason": "Pepsickle in-vitro model output after residue 30",
+              "score": 0.3046,
+              "source_bond": 30
+            }
+          ]
+        }
+      ],
+      "error": null,
+      "context_application": "Compartments filter locations; scenario labels and extra annotations do not change model parameters or establish assay calibration",
+      "status": "assessed"
+    }
+  ],
+  "coverage_gaps": {
+    "murine-i20s-assay": [
+      "No transferable cathepsin S/L/B or legumain/AEP model in the built-in panel (#470).",
+      "IRAP is an exact-substrate reference, not prediction on new vaccine sequences.",
+      "No uptake, endosomal escape, pH/activation or primary-DC presentation calibration."
+    ]
+  },
+  "experimental_source": {
+    "citation": "Wada H et al. (2018), PLoS ONE 13(7):e0199249",
+    "article": "https://doi.org/10.1371/journal.pone.0199249",
+    "correction": "https://doi.org/10.1371/journal.pone.0205567",
+    "figure": "https://journals.plos.org/plosone/article/figure/image?size=large&id=10.1371/journal.pone.0199249.g002",
+    "figure_sha256": "d25edda70e009b68d2b9139c3292962fef4e55a356b95a8d9f4ae6266e3a6801",
+    "license": "CC-BY-4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "curation": "All 28 rows of Figure 2A and all 19 rows of Figure 2C, manually transcribed and visually checked; not the entire study.",
+    "held_out_basis": "Pepsickle paper Table 1 assigns Wada 2018 to validation; processed author validation windows are not available.",
+    "held_out_source": "https://doi.org/10.1093/bioinformatics/btab628"
+  },
+  "experimental_assay": {
+    "enzyme": "purified 20S immunoproteasome",
+    "species": "Mus musculus",
+    "supplier": "Boston Biochem",
+    "pH": 7.8,
+    "temperature_celsius": 37,
+    "substrate_micrograms": 20,
+    "enzyme_micrograms": 2,
+    "reaction_microliters": 300,
+    "buffer": "20 mM HEPES-KOH, 2 mM MgAc2, 2 mM dithiothreitol",
+    "sampling_hours": [
+      0,
+      1,
+      2,
+      4
+    ],
+    "readout": "LC-MS/MS product identification",
+    "product_abundance": "not reported",
+    "detection_limit": "not reported",
+    "evidence_scope": "Observed products only. Missing products/bonds are not experimental negatives."
+  },
+  "evaluation_provenance": {
+    "mhctools_version": "3.46.0",
+    "script_sha256": "ac4abd2ecad44302992b7fd818365b42bbe644ed300724da326c9e76c75f6973",
+    "request_sha256": "98ae828b062c307302019e54fc288b6f8ae3a1a75d952f5531a1892917871261"
+  },
+  "experimental_product_overlays": [
+    {
+      "input_id": "W-S3-S2",
+      "model": "pepsickle-in-vitro-all-mammal-immunoproteasome",
+      "observed_bonds": [
+        {
+          "bond": 3,
+          "products": [
+            {
+              "product_id": "Wada2018-Fig2A-fragment2",
+              "boundary": "N",
+              "first_detected_hours": 1
+            },
+            {
+              "product_id": "Wada2018-Fig2A-fragment4",
+              "boundary": "N",
+              "first_detected_hours": 4
+            },
+            {
+              "product_id": "Wada2018-Fig2A-fragment12",
+              "boundary": "N",
+              "first_detected_hours": 1
+            },
+            {
+              "product_id": "Wada2018-Fig2A-fragment15",
+              "boundary": "N",
+              "first_detected_hours": 1
+            },
+            {
+              "product_id": "Wada2018-Fig2A-fragment17",
+              "boundary": "N",
+              "first_detected_hours": 4
+            },
+            {
+              "product_id": "Wada2018-Fig2A-fragment18",
+              "boundary": "N",
+              "first_detected_hours": 4
+            }
+          ],
+          "prediction": {
+            "bond": 3,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 3",
+            "score": 0.6438,
+            "source_bond": 3
+          }
+        },
+        {
+          "bond": 10,
+          "products": [
+            {
+              "product_id": "Wada2018-Fig2A-fragment6",
+              "boundary": "N",
+              "first_detected_hours": 4
+            },
+            {
+              "product_id": "Wada2018-Fig2A-fragment19",
+              "boundary": "N",
+              "first_detected_hours": 4
+            }
+          ],
+          "prediction": {
+            "bond": 10,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 10",
+            "score": 0.8645,
+            "source_bond": 10
+          }
+        },
+        {
+          "bond": 11,
+          "products": [
+            {
+              "product_id": "Wada2018-Fig2A-fragment1",
+              "boundary": "C",
+              "first_detected_hours": 1
+            },
+            {
+              "product_id": "Wada2018-Fig2A-fragment2",
+              "boundary": "C",
+              "first_detected_hours": 1
+            },
+            {
+              "product_id": "Wada2018-Fig2A-fragment7",
+              "boundary": "N",
+              "first_detected_hours": 4
+            },
+            {
+              "product_id": "Wada2018-Fig2A-fragment9",
+              "boundary": "N",
+              "first_detected_hours": 2
+            },
+            {
+              "product_id": "Wada2018-Fig2A-fragment13",
+              "boundary": "N",
+              "first_detected_hours": 4
+            },
+            {
+              "product_id": "Wada2018-Fig2A-fragment20",
+              "boundary": "N",
+              "first_detected_hours": 1
+            }
+          ],
+          "prediction": {
+            "bond": 11,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 11",
+            "score": 0.5592,
+            "source_bond": 11
+          }
+        },
+        {
+          "bond": 12,
+          "products": [
+            {
+              "product_id": "Wada2018-Fig2A-fragment3",
+              "boundary": "C",
+              "first_detected_hours": 2
+            },
+            {
+              "product_id": "Wada2018-Fig2A-fragment4",
+              "boundary": "C",
+              "first_detected_hours": 4
+            },
+            {
+              "product_id": "Wada2018-Fig2A-fragment10",
+              "boundary": "N",
+              "first_detected_hours": 2
+            },
+            {
+              "product_id": "Wada2018-Fig2A-fragment21",
+              "boundary": "N",
+              "first_detected_hours": 1
+            }
+          ],
+          "prediction": {
+            "bond": 12,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 12",
+            "score": 0.809,
+            "source_bond": 12
+          }
+        },
+        {
+          "bond": 13,
+          "products": [
+            {
+              "product_id": "Wada2018-Fig2A-fragment22",
+              "boundary": "N",
+              "first_detected_hours": 1
+            }
+          ],
+          "prediction": {
+            "bond": 13,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 13",
+            "score": 0.8989,
+            "source_bond": 13
+          }
+        },
+        {
+          "bond": 15,
+          "products": [
+            {
+              "product_id": "Wada2018-Fig2A-fragment23",
+              "boundary": "N",
+              "first_detected_hours": 1
+            }
+          ],
+          "prediction": {
+            "bond": 15,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 15",
+            "score": 0.544,
+            "source_bond": 15
+          }
+        },
+        {
+          "bond": 20,
+          "products": [
+            {
+              "product_id": "Wada2018-Fig2A-fragment5",
+              "boundary": "C",
+              "first_detected_hours": 1
+            },
+            {
+              "product_id": "Wada2018-Fig2A-fragment6",
+              "boundary": "C",
+              "first_detected_hours": 4
+            },
+            {
+              "product_id": "Wada2018-Fig2A-fragment7",
+              "boundary": "C",
+              "first_detected_hours": 4
+            },
+            {
+              "product_id": "Wada2018-Fig2A-fragment24",
+              "boundary": "N",
+              "first_detected_hours": 1
+            }
+          ],
+          "prediction": {
+            "bond": 20,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 20",
+            "score": 0.5913,
+            "source_bond": 20
+          }
+        },
+        {
+          "bond": 21,
+          "products": [
+            {
+              "product_id": "Wada2018-Fig2A-fragment8",
+              "boundary": "C",
+              "first_detected_hours": 1
+            },
+            {
+              "product_id": "Wada2018-Fig2A-fragment9",
+              "boundary": "C",
+              "first_detected_hours": 2
+            },
+            {
+              "product_id": "Wada2018-Fig2A-fragment10",
+              "boundary": "C",
+              "first_detected_hours": 2
+            },
+            {
+              "product_id": "Wada2018-Fig2A-fragment25",
+              "boundary": "N",
+              "first_detected_hours": 1
+            }
+          ],
+          "prediction": {
+            "bond": 21,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 21",
+            "score": 0.8735,
+            "source_bond": 21
+          }
+        },
+        {
+          "bond": 22,
+          "products": [
+            {
+              "product_id": "Wada2018-Fig2A-fragment11",
+              "boundary": "C",
+              "first_detected_hours": 1
+            },
+            {
+              "product_id": "Wada2018-Fig2A-fragment12",
+              "boundary": "C",
+              "first_detected_hours": 1
+            },
+            {
+              "product_id": "Wada2018-Fig2A-fragment13",
+              "boundary": "C",
+              "first_detected_hours": 4
+            },
+            {
+              "product_id": "Wada2018-Fig2A-fragment26",
+              "boundary": "N",
+              "first_detected_hours": 1
+            }
+          ],
+          "prediction": {
+            "bond": 22,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 22",
+            "score": 0.638,
+            "source_bond": 22
+          }
+        },
+        {
+          "bond": 24,
+          "products": [
+            {
+              "product_id": "Wada2018-Fig2A-fragment14",
+              "boundary": "C",
+              "first_detected_hours": 1
+            },
+            {
+              "product_id": "Wada2018-Fig2A-fragment15",
+              "boundary": "C",
+              "first_detected_hours": 1
+            },
+            {
+              "product_id": "Wada2018-Fig2A-fragment27",
+              "boundary": "N",
+              "first_detected_hours": 2
+            }
+          ],
+          "prediction": {
+            "bond": 24,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 24",
+            "score": 0.6544,
+            "source_bond": 24
+          }
+        },
+        {
+          "bond": 25,
+          "products": [
+            {
+              "product_id": "Wada2018-Fig2A-fragment16",
+              "boundary": "C",
+              "first_detected_hours": 4
+            },
+            {
+              "product_id": "Wada2018-Fig2A-fragment17",
+              "boundary": "C",
+              "first_detected_hours": 4
+            },
+            {
+              "product_id": "Wada2018-Fig2A-fragment28",
+              "boundary": "N",
+              "first_detected_hours": 4
+            }
+          ],
+          "prediction": {
+            "bond": 25,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 25",
+            "score": 0.1384,
+            "source_bond": 25
+          }
+        },
+        {
+          "bond": 27,
+          "products": [
+            {
+              "product_id": "Wada2018-Fig2A-fragment18",
+              "boundary": "C",
+              "first_detected_hours": 4
+            }
+          ],
+          "prediction": {
+            "bond": 27,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 27",
+            "score": 0.2956,
+            "source_bond": 27
+          }
+        }
+      ]
+    },
+    {
+      "input_id": "S2-W-S3",
+      "model": "pepsickle-in-vitro-all-mammal-immunoproteasome",
+      "observed_bonds": [
+        {
+          "bond": 9,
+          "products": [
+            {
+              "product_id": "Wada2018-Fig2C-fragment1",
+              "boundary": "C",
+              "first_detected_hours": 1
+            },
+            {
+              "product_id": "Wada2018-Fig2C-fragment6",
+              "boundary": "N",
+              "first_detected_hours": 2
+            },
+            {
+              "product_id": "Wada2018-Fig2C-fragment12",
+              "boundary": "N",
+              "first_detected_hours": 2
+            },
+            {
+              "product_id": "Wada2018-Fig2C-fragment13",
+              "boundary": "N",
+              "first_detected_hours": 2
+            },
+            {
+              "product_id": "Wada2018-Fig2C-fragment14",
+              "boundary": "N",
+              "first_detected_hours": 2
+            }
+          ],
+          "prediction": {
+            "bond": 9,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 9",
+            "score": 0.4807,
+            "source_bond": 9
+          }
+        },
+        {
+          "bond": 10,
+          "products": [
+            {
+              "product_id": "Wada2018-Fig2C-fragment8",
+              "boundary": "N",
+              "first_detected_hours": 1
+            }
+          ],
+          "prediction": {
+            "bond": 10,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 10",
+            "score": 0.6703,
+            "source_bond": 10
+          }
+        },
+        {
+          "bond": 11,
+          "products": [
+            {
+              "product_id": "Wada2018-Fig2C-fragment2",
+              "boundary": "C",
+              "first_detected_hours": 2
+            }
+          ],
+          "prediction": {
+            "bond": 11,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 11",
+            "score": 0.746,
+            "source_bond": 11
+          }
+        },
+        {
+          "bond": 12,
+          "products": [
+            {
+              "product_id": "Wada2018-Fig2C-fragment3",
+              "boundary": "C",
+              "first_detected_hours": 1
+            },
+            {
+              "product_id": "Wada2018-Fig2C-fragment9",
+              "boundary": "N",
+              "first_detected_hours": 1
+            }
+          ],
+          "prediction": {
+            "bond": 12,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 12",
+            "score": 0.9098,
+            "source_bond": 12
+          }
+        },
+        {
+          "bond": 14,
+          "products": [
+            {
+              "product_id": "Wada2018-Fig2C-fragment4",
+              "boundary": "C",
+              "first_detected_hours": 1
+            },
+            {
+              "product_id": "Wada2018-Fig2C-fragment10",
+              "boundary": "N",
+              "first_detected_hours": 2
+            }
+          ],
+          "prediction": {
+            "bond": 14,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 14",
+            "score": 0.7531,
+            "source_bond": 14
+          }
+        },
+        {
+          "bond": 21,
+          "products": [
+            {
+              "product_id": "Wada2018-Fig2C-fragment5",
+              "boundary": "C",
+              "first_detected_hours": 1
+            },
+            {
+              "product_id": "Wada2018-Fig2C-fragment6",
+              "boundary": "C",
+              "first_detected_hours": 2
+            },
+            {
+              "product_id": "Wada2018-Fig2C-fragment15",
+              "boundary": "N",
+              "first_detected_hours": 1
+            }
+          ],
+          "prediction": {
+            "bond": 21,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 21",
+            "score": 0.8645,
+            "source_bond": 21
+          }
+        },
+        {
+          "bond": 22,
+          "products": [
+            {
+              "product_id": "Wada2018-Fig2C-fragment7",
+              "boundary": "C",
+              "first_detected_hours": 1
+            },
+            {
+              "product_id": "Wada2018-Fig2C-fragment8",
+              "boundary": "C",
+              "first_detected_hours": 1
+            },
+            {
+              "product_id": "Wada2018-Fig2C-fragment9",
+              "boundary": "C",
+              "first_detected_hours": 1
+            },
+            {
+              "product_id": "Wada2018-Fig2C-fragment10",
+              "boundary": "C",
+              "first_detected_hours": 2
+            },
+            {
+              "product_id": "Wada2018-Fig2C-fragment16",
+              "boundary": "N",
+              "first_detected_hours": 1
+            }
+          ],
+          "prediction": {
+            "bond": 22,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 22",
+            "score": 0.5592,
+            "source_bond": 22
+          }
+        },
+        {
+          "bond": 23,
+          "products": [
+            {
+              "product_id": "Wada2018-Fig2C-fragment11",
+              "boundary": "C",
+              "first_detected_hours": 2
+            },
+            {
+              "product_id": "Wada2018-Fig2C-fragment12",
+              "boundary": "C",
+              "first_detected_hours": 2
+            },
+            {
+              "product_id": "Wada2018-Fig2C-fragment17",
+              "boundary": "N",
+              "first_detected_hours": 1
+            }
+          ],
+          "prediction": {
+            "bond": 23,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 23",
+            "score": 0.809,
+            "source_bond": 23
+          }
+        },
+        {
+          "bond": 24,
+          "products": [
+            {
+              "product_id": "Wada2018-Fig2C-fragment18",
+              "boundary": "N",
+              "first_detected_hours": 1
+            }
+          ],
+          "prediction": {
+            "bond": 24,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 24",
+            "score": 0.8989,
+            "source_bond": 24
+          }
+        },
+        {
+          "bond": 25,
+          "products": [
+            {
+              "product_id": "Wada2018-Fig2C-fragment13",
+              "boundary": "C",
+              "first_detected_hours": 2
+            }
+          ],
+          "prediction": {
+            "bond": 25,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 25",
+            "score": 0.6403,
+            "source_bond": 25
+          }
+        },
+        {
+          "bond": 26,
+          "products": [
+            {
+              "product_id": "Wada2018-Fig2C-fragment14",
+              "boundary": "C",
+              "first_detected_hours": 2
+            }
+          ],
+          "prediction": {
+            "bond": 26,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 26",
+            "score": 0.544,
+            "source_bond": 26
+          }
+        },
+        {
+          "bond": 28,
+          "products": [
+            {
+              "product_id": "Wada2018-Fig2C-fragment19",
+              "boundary": "N",
+              "first_detected_hours": 4
+            }
+          ],
+          "prediction": {
+            "bond": 28,
+            "status": "scored",
+            "reason": "Pepsickle in-vitro model output after residue 28",
+            "score": 0.2162,
+            "source_bond": 28
+          }
+        }
+      ]
+    }
+  ],
+  "validation_scope": "Two complete figure panels, 47 detected products from two reordered constructs. Native site scores are compared with observed internal product boundaries. No negative labels, cleavage kinetics, product yields, AUC, survival, or presentation accuracy are inferred. First detection of a product does not date each cleavage event.",
+  "training_audit": {
+    "source": "https://github.com/pdxgx/pepsickle-paper/tree/c448c4db81925afad78477e74a7d25e0209d3bce",
+    "inventory_sha256": "0c63172f5b877d6a06bcafa5027ef51d04c5947b6374966371d6e90564090543",
+    "files": 79,
+    "source_sequences": 58,
+    "studies": [
+      "10.1016/1074-7613(95)90053-5",
+      "10.1016/S1074-7613(00)80163-6",
+      "10.1016/j.bbamcr.2013.11.018",
+      "10.1016/j.molcel.2012.08.029",
+      "10.1016/s0092-8674(00)80097-5",
+      "10.1073/pnas.0508621102",
+      "10.1073/pnas.1232228100",
+      "10.1073/pnas.93.16.8572",
+      "10.1074/jbc.M000740200",
+      "10.1074/jbc.M308816200",
+      "10.1074/mcp.M111.011486",
+      "10.1084/jem.188.6.1017",
+      "10.1084/jem.191.2.239",
+      "10.1084/jem.193.1.73",
+      "10.1084/jem.194.1.1",
+      "10.1093/intimm/dxh352",
+      "10.1099/0022-1317-82-9-2131",
+      "10.1111/j.1365-2567.2007.02624.x",
+      "10.1111/j.1432-1033.1996.00404.x",
+      "10.1126/science.1095522",
+      "10.1128/JVI.79.8.4870\u20134876.2005",
+      "10.1158/1078-0432.CCR-06-1337",
+      "10.1182/blood-2010-12-325035",
+      "10.1681/ASN.2007111233",
+      "10.2337/diabetes.54.7.2053",
+      "10.4049/jimmunol.1103213",
+      "10.4049/jimmunol.1302032",
+      "10.4049/jimmunol.164.1.329",
+      "10.4049/jimmunol.172.2.1083",
+      "10.4049/jimmunol.176.2.1053",
+      "?"
+    ],
+    "wada_study_present": false,
+    "unresolved_study_files": [
+      "tyrosinase.txt"
+    ],
+    "inputs": [
+      {
+        "id": "W-S3-S2",
+        "full_sequence_overlap": false,
+        "observed_bond_context_overlaps": []
+      },
+      {
+        "id": "S2-W-S3",
+        "full_sequence_overlap": false,
+        "observed_bond_context_overlaps": []
+      }
+    ],
+    "limitations": "Raw-map study/exact-sequence/7-residue-context audit only; no homology-family audit or reconstruction of the original fitted/validation partitions. The publication labels Wada held out; this does not certify complete training independence."
+  }
+}

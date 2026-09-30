@@ -54,12 +54,41 @@ PXD035641**. Its workflow uses quadruplicates and significance/fold-change
 criteria for detected products. Missing products are not automatically
 non-cleaved bonds. The available source supports assay-aware curation; it
 does not supply an already validated predictor of long-vaccine processing.
-No unverified sequence/product rows have been transcribed into this PR.
+No unverified cathepsin sequence/product rows have been transcribed into this PR.
 
 The batch `reference_panels` input can preserve curated experiments from
 these studies now, with each condition in its own named panel. Actual
 novel-sequence inference needs a separately verified adapter/data model.
 ProsperousPlus availability and runtime/licensing review remains #281.
+
+## Source-backed long-peptide case study
+
+[Wada et al. 2018](https://doi.org/10.1371/journal.pone.0199249) is explicitly
+assigned to validation in Pepsickle's Table 1. This PR now curates all 47
+detected products from Figure 2A and 2C: two 31-residue vaccine constructs
+containing the same epitopes in different orders, joined by RR linkers.
+The dataset retains first-detection times, figure row IDs, parent endpoints
+and the purified murine-i20S assay conditions. The correction was checked.
+
+The real gradient-boosted immunoproteasome model scores the complete constructs.
+Its native scores are paired with 24 observed internal construct/bond pairs;
+parent sequence ends never become cleavage labels. The pinned raw training-map
+audit covers 79 files and 58 distinct source sequences. It finds no exact
+construct or observed seven-residue cleavage-context overlap. Wada's DOI is
+absent from the reported training DOI fields; unresolved source identifiers,
+homology-family overlap and the original fitted partition remain explicit
+limitations. This is a small study-held-out case study, not a new calibrated
+performance estimate or a reconstruction of all 225 author validation windows.
+
+The [fixture README](../tests/data/wada2018/README.md) gives the primary source,
+license, curation scope and reproducible command. The report preserves observed
+products through batch save/reload, with endpoint/boundary/internal overlays.
+No missing product is relabeled as a negative, and no product detection time is
+converted into a predicted cleavage rate or presentation outcome.
+
+Additional extracellular coverage is tracked in [#476](https://github.com/openvax/mhctools/issues/476):
+CleaveNet's MMP substrate scores need their own native endpoint and assay
+validation rather than conversion to per-bond probabilities.
 
 ## Required validation before biological ranking
 
