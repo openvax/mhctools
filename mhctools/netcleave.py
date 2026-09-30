@@ -118,16 +118,17 @@ class NetCleave(object):
         Full path to a specific model directory, overriding
         ``mhc_class`` / ``mhc_allele`` selection.
     python_executable : str, optional
-        Interpreter used to run ``NetCleave.py``. Defaults to the current
-        interpreter; override if NetCleave's dependencies live in a separate
-        environment.
+        Interpreter used to run ``NetCleave.py``. Resolved from this argument,
+        then ``NETCLEAVE_PYTHON``, then the current interpreter. This keeps
+        TensorFlow and NetCleave's other dependencies in a separate environment.
     subprocess_timeout : int
         Timeout (seconds) for a single NetCleave invocation.
 
     Notes
     -----
-    NetCleave is distributed under GPL-v2; this wrapper only *runs* a
-    user-provided installation and vendors none of it.
+    The pinned upstream NetCleave snapshot has no published software license.
+    This wrapper runs a separately installed copy and vendors none of it;
+    see ``docs/testing.md`` for the fetch authorization requirements.
 
     A ``NetCleave`` instance is not safe to call from multiple threads
     concurrently (each call shells out via a per-call temp file); use one
@@ -161,7 +162,8 @@ class NetCleave(object):
         self.mhc_class = mhc_class
         self.mhc_allele = mhc_allele
         self.netcleave_dir = _find_netcleave_dir(netcleave_path)
-        self.python_executable = python_executable or sys.executable
+        self.python_executable = (
+            python_executable or os.environ.get("NETCLEAVE_PYTHON") or sys.executable)
         self.subprocess_timeout = subprocess_timeout
 
         self._script = os.path.join(self.netcleave_dir, "NetCleave.py")
