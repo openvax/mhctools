@@ -1,0 +1,444 @@
+{
+  "schema_version": 1,
+  "source": {
+    "citation": "Wada H et al. (2018), PLoS ONE 13(7):e0199249",
+    "article": "https://doi.org/10.1371/journal.pone.0199249",
+    "correction": "https://doi.org/10.1371/journal.pone.0205567",
+    "figure": "https://journals.plos.org/plosone/article/figure/image?size=large&id=10.1371/journal.pone.0199249.g002",
+    "figure_sha256": "d25edda70e009b68d2b9139c3292962fef4e55a356b95a8d9f4ae6266e3a6801",
+    "license": "CC-BY-4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "curation": "All 28 rows of Figure 2A and all 19 rows of Figure 2C, manually transcribed and visually checked; not the entire study.",
+    "held_out_basis": "Pepsickle paper Table 1 assigns Wada 2018 to validation; processed author validation windows are not available.",
+    "held_out_source": "https://doi.org/10.1093/bioinformatics/btab628"
+  },
+  "assay": {
+    "enzyme": "purified 20S immunoproteasome",
+    "species": "Mus musculus",
+    "supplier": "Boston Biochem",
+    "pH": 7.8,
+    "temperature_celsius": 37,
+    "substrate_micrograms": 20,
+    "enzyme_micrograms": 2,
+    "reaction_microliters": 300,
+    "buffer": "20 mM HEPES-KOH, 2 mM MgAc2, 2 mM dithiothreitol",
+    "sampling_hours": [
+      0,
+      1,
+      2,
+      4
+    ],
+    "readout": "LC-MS/MS product identification",
+    "product_abundance": "not reported",
+    "detection_limit": "not reported",
+    "evidence_scope": "Observed products only. Missing products/bonds are not experimental negatives."
+  },
+  "inputs": [
+    {
+      "id": "W-S3-S2",
+      "scope": "construct",
+      "sequence": "ASLDSDPWVRRLLQAEAPRLRRDYSARWNEI",
+      "n_term": "unknown",
+      "c_term": "unknown",
+      "source_id": "Wada2018-Fig2A",
+      "epitopes": [
+        {
+          "id": "WHSC2_103_111",
+          "sequence": "ASLDSDPWV",
+          "start": 0,
+          "end": 9
+        },
+        {
+          "id": "SART3_302_310",
+          "sequence": "LLQAEAPRL",
+          "start": 11,
+          "end": 20
+        },
+        {
+          "id": "SART2_93_101",
+          "sequence": "DYSARWNEI",
+          "start": 22,
+          "end": 31
+        }
+      ],
+      "observed_products": [
+        {
+          "id": "Wada2018-Fig2A-fragment1",
+          "sequence": "ASLDSDPWVRR",
+          "start": 0,
+          "end": 11,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment2",
+          "sequence": "DSDPWVRR",
+          "start": 3,
+          "end": 11,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment3",
+          "sequence": "ASLDSDPWVRRL",
+          "start": 0,
+          "end": 12,
+          "first_detected_hours": 2
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment4",
+          "sequence": "DSDPWVRRL",
+          "start": 3,
+          "end": 12,
+          "first_detected_hours": 4
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment5",
+          "sequence": "ASLDSDPWVRRLLQAEAPRL",
+          "start": 0,
+          "end": 20,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment6",
+          "sequence": "RLLQAEAPRL",
+          "start": 10,
+          "end": 20,
+          "first_detected_hours": 4
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment7",
+          "sequence": "LLQAEAPRL",
+          "start": 11,
+          "end": 20,
+          "first_detected_hours": 4
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment8",
+          "sequence": "ASLDSDPWVRRLLQAEAPRLR",
+          "start": 0,
+          "end": 21,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment9",
+          "sequence": "LLQAEAPRLR",
+          "start": 11,
+          "end": 21,
+          "first_detected_hours": 2
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment10",
+          "sequence": "LQAEAPRLR",
+          "start": 12,
+          "end": 21,
+          "first_detected_hours": 2
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment11",
+          "sequence": "ASLDSDPWVRRLLQAEAPRLRR",
+          "start": 0,
+          "end": 22,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment12",
+          "sequence": "DSDPWVRRLLQAEAPRLRR",
+          "start": 3,
+          "end": 22,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment13",
+          "sequence": "LLQAEAPRLRR",
+          "start": 11,
+          "end": 22,
+          "first_detected_hours": 4
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment14",
+          "sequence": "ASLDSDPWVRRLLQAEAPRLRRDY",
+          "start": 0,
+          "end": 24,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment15",
+          "sequence": "DSDPWVRRLLQAEAPRLRRDY",
+          "start": 3,
+          "end": 24,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment16",
+          "sequence": "ASLDSDPWVRRLLQAEAPRLRRDYS",
+          "start": 0,
+          "end": 25,
+          "first_detected_hours": 4
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment17",
+          "sequence": "DSDPWVRRLLQAEAPRLRRDYS",
+          "start": 3,
+          "end": 25,
+          "first_detected_hours": 4
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment18",
+          "sequence": "DSDPWVRRLLQAEAPRLRRDYSAR",
+          "start": 3,
+          "end": 27,
+          "first_detected_hours": 4
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment19",
+          "sequence": "RLLQAEAPRLRRDYSARWNEI",
+          "start": 10,
+          "end": 31,
+          "first_detected_hours": 4
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment20",
+          "sequence": "LLQAEAPRLRRDYSARWNEI",
+          "start": 11,
+          "end": 31,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment21",
+          "sequence": "LQAEAPRLRRDYSARWNEI",
+          "start": 12,
+          "end": 31,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment22",
+          "sequence": "QAEAPRLRRDYSARWNEI",
+          "start": 13,
+          "end": 31,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment23",
+          "sequence": "EAPRLRRDYSARWNEI",
+          "start": 15,
+          "end": 31,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment24",
+          "sequence": "RRDYSARWNEI",
+          "start": 20,
+          "end": 31,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment25",
+          "sequence": "RDYSARWNEI",
+          "start": 21,
+          "end": 31,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment26",
+          "sequence": "DYSARWNEI",
+          "start": 22,
+          "end": 31,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment27",
+          "sequence": "SARWNEI",
+          "start": 24,
+          "end": 31,
+          "first_detected_hours": 2
+        },
+        {
+          "id": "Wada2018-Fig2A-fragment28",
+          "sequence": "ARWNEI",
+          "start": 25,
+          "end": 31,
+          "first_detected_hours": 4
+        }
+      ],
+      "source_figure": "2A",
+      "chemistry_note": "Canonical sequence; terminal chemical states not explicitly reported. Prediction is sequence-context-only."
+    },
+    {
+      "id": "S2-W-S3",
+      "scope": "construct",
+      "sequence": "DYSARWNEIRRASLDSDPWVRRLLQAEAPRL",
+      "n_term": "unknown",
+      "c_term": "unknown",
+      "source_id": "Wada2018-Fig2C",
+      "epitopes": [
+        {
+          "id": "SART2_93_101",
+          "sequence": "DYSARWNEI",
+          "start": 0,
+          "end": 9
+        },
+        {
+          "id": "WHSC2_103_111",
+          "sequence": "ASLDSDPWV",
+          "start": 11,
+          "end": 20
+        },
+        {
+          "id": "SART3_302_310",
+          "sequence": "LLQAEAPRL",
+          "start": 22,
+          "end": 31
+        }
+      ],
+      "observed_products": [
+        {
+          "id": "Wada2018-Fig2C-fragment1",
+          "sequence": "DYSARWNEI",
+          "start": 0,
+          "end": 9,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2C-fragment2",
+          "sequence": "DYSARWNEIRR",
+          "start": 0,
+          "end": 11,
+          "first_detected_hours": 2
+        },
+        {
+          "id": "Wada2018-Fig2C-fragment3",
+          "sequence": "DYSARWNEIRRA",
+          "start": 0,
+          "end": 12,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2C-fragment4",
+          "sequence": "DYSARWNEIRRASL",
+          "start": 0,
+          "end": 14,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2C-fragment5",
+          "sequence": "DYSARWNEIRRASLDSDPWVR",
+          "start": 0,
+          "end": 21,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2C-fragment6",
+          "sequence": "RRASLDSDPWVR",
+          "start": 9,
+          "end": 21,
+          "first_detected_hours": 2
+        },
+        {
+          "id": "Wada2018-Fig2C-fragment7",
+          "sequence": "DYSARWNEIRRASLDSDPWVRR",
+          "start": 0,
+          "end": 22,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2C-fragment8",
+          "sequence": "RASLDSDPWVRR",
+          "start": 10,
+          "end": 22,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2C-fragment9",
+          "sequence": "SLDSDPWVRR",
+          "start": 12,
+          "end": 22,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2C-fragment10",
+          "sequence": "DSDPWVRR",
+          "start": 14,
+          "end": 22,
+          "first_detected_hours": 2
+        },
+        {
+          "id": "Wada2018-Fig2C-fragment11",
+          "sequence": "DYSARWNEIRRASLDSDPWVRRL",
+          "start": 0,
+          "end": 23,
+          "first_detected_hours": 2
+        },
+        {
+          "id": "Wada2018-Fig2C-fragment12",
+          "sequence": "RRASLDSDPWVRRL",
+          "start": 9,
+          "end": 23,
+          "first_detected_hours": 2
+        },
+        {
+          "id": "Wada2018-Fig2C-fragment13",
+          "sequence": "RRASLDSDPWVRRLLQ",
+          "start": 9,
+          "end": 25,
+          "first_detected_hours": 2
+        },
+        {
+          "id": "Wada2018-Fig2C-fragment14",
+          "sequence": "RRASLDSDPWVRRLLQA",
+          "start": 9,
+          "end": 26,
+          "first_detected_hours": 2
+        },
+        {
+          "id": "Wada2018-Fig2C-fragment15",
+          "sequence": "RLLQAEAPRL",
+          "start": 21,
+          "end": 31,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2C-fragment16",
+          "sequence": "LLQAEAPRL",
+          "start": 22,
+          "end": 31,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2C-fragment17",
+          "sequence": "LQAEAPRL",
+          "start": 23,
+          "end": 31,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2C-fragment18",
+          "sequence": "QAEAPRL",
+          "start": 24,
+          "end": 31,
+          "first_detected_hours": 1
+        },
+        {
+          "id": "Wada2018-Fig2C-fragment19",
+          "sequence": "PRL",
+          "start": 28,
+          "end": 31,
+          "first_detected_hours": 4
+        }
+      ],
+      "source_figure": "2C",
+      "chemistry_note": "Canonical sequence; terminal chemical states not explicitly reported. Prediction is sequence-context-only."
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "murine-i20s-assay",
+      "context": "apc",
+      "compartments": [
+        "cytosol"
+      ],
+      "models": [
+        "pepsickle-in-vitro-all-mammal-immunoproteasome"
+      ],
+      "note": "Purified murine i20S sequence-specificity assessment, not whole-APC presentation or time-dependent yield."
+    }
+  ]
+}

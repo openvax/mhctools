@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "inputs": [
+    {
+      "id": "native-a",
+      "peptide": "RPPGFSPFR",
+      "n_flank": "AA",
+      "c_flank": "GG",
+      "source_id": "protein-A",
+      "source_start": 12,
+      "evidence": [
+        {
+          "source": "imported-table",
+          "kind": "binding_affinity",
+          "value": 12.3,
+          "units": "nM"
+        }
+      ]
+    },
+    {
+      "id": "vaccine",
+      "scope": "construct",
+      "sequence": "AARPPGFSPFRGG",
+      "n_term": "free",
+      "c_term": "free",
+      "epitopes": [
+        {
+          "id": "target",
+          "start": 2,
+          "end": 11,
+          "sequence": "RPPGFSPFR"
+        }
+      ],
+      "fragments": [
+        {
+          "id": "trimmed",
+          "start": 2,
+          "end": 11,
+          "n_term": "free",
+          "c_term": "free",
+          "assumption": "Only if boundary cuts release the target"
+        }
+      ]
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "tumor-processing",
+      "context": "tumor",
+      "models": [
+        "app1-xp"
+      ]
+    },
+    {
+      "id": "apc-processing",
+      "context": "apc",
+      "compartments": [
+        "endosome"
+      ],
+      "models": [
+        "lnpep-observed"
+      ]
+    },
+    {
+      "id": "serum-incubation",
+      "context": "extracellular",
+      "compartments": [
+        "serum"
+      ],
+      "models": [
+        "dpp4-qpisa",
+        "cpn-basic",
+        "cpb2-basic"
+      ]
+    }
+  ]
+}

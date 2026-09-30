@@ -76,9 +76,62 @@ class CleavageTrack:
     threshold: float = None
     units: str = "native model output"
     provenance: str = ""
+    evidence: object = None
+    start: int = 0
+    conditional_on: str = None
 
     @classmethod
-    def from_dict(cls, value):
+    def from_result(cls, result, context, sequence, *, start=0, name=None,
+                    conditional_on=None, threshold=None):
+        """Overlay canonical evidence without encoding motif decisions as scores.
+
+        ``start`` locates the assessed peptide in the displayed sequence.
+        A fragment assessment requires its explicit production assumption.
+        The complete original result, including chemistry and provenance, is
+        retained in the report manifest.
+        """
+        from .cleavage import CleavageResult
+        if not isinstance(result, CleavageResult):
+            raise TypeError("Expected CleavageResult")
+        if (type(start) is not int or start < 0 or
+                sequence[start:start + len(result.peptide.sequence)] != result.peptide.sequence):
+            raise ValueError("Cleavage result does not match the displayed sequence interval")
+        is_fragment = start != 0 or len(result.peptide.sequence) != len(sequence)
+        if is_fragment and not conditional_on:
+            raise ValueError("Fragment tracks require a production assumption")
+        if result.model.evidence != "quantitative_model" and threshold is not None:
+            raise ValueError("Categorical evidence cannot have a numerical threshold")
+        scores = [None] * max(0, len(sequence) - 1)
+        for site in result.sites:
+            scores[start + site.bond - 1] = site.score
+        return cls(name or result.model.name, context, result.model.evidence,
+                   tuple(scores), threshold, result.model.score_units or "categorical evidence",
+                   result.model.version, result, start, conditional_on)
+
+    @property
+    def categorical_sites(self):
+        if self.evidence is None:
+            return {}
+        return {self.start + site.bond: site.status for site in self.evidence.sites
+                if site.status != "scored"}
+
+    @classmethod
+    def from_dict(cls, value, sequence=None):
+        if value.get("evidence") is not None:
+            from .cleavage import CleavageResult
+            # asdict() omits the redundant derived source_bond, accepted by
+            # CleavageResult.from_dict alongside its public to_dict format.
+            result = CleavageResult.from_dict(value["evidence"])
+            track = cls.from_result(
+                result, value["context"], sequence,
+                start=value.get("start", 0), name=value.get("name"),
+                conditional_on=value.get("conditional_on"), threshold=value.get("threshold"))
+            if "scores" in value and tuple(value["scores"]) != track.scores:
+                raise ValueError("Track scores contradict canonical evidence")
+            for field in ("evidence_type", "units", "provenance"):
+                if field in value and value[field] != getattr(track, field):
+                    raise ValueError("Track %s contradicts canonical evidence" % field)
+            return track
         scores = tuple(
             None if item is None else float(item) for item in value["scores"]
         )
@@ -127,7 +180,7 @@ class VaccineConstruct:
                 MHCWindow.from_dict(item) for item in value.get("mhc_windows", ())
             ),
             cleavage_tracks=tuple(
-                CleavageTrack.from_dict(item)
+                CleavageTrack.from_dict(item, str(value["sequence"]))
                 for item in value.get("cleavage_tracks", ())
             ),
         )
@@ -168,6 +221,12 @@ class VaccineConstruct:
         if len(names) != len(set(names)):
             raise ValueError("Cleavage track names must be unique within a construct")
         for track in self.cleavage_tracks:
+            if track.evidence is not None:
+                expected = CleavageTrack.from_result(
+                    track.evidence, track.context, self.sequence, start=track.start,
+                    name=track.name, conditional_on=track.conditional_on, threshold=track.threshold)
+                if track != expected:
+                    raise ValueError("Track fields contradict canonical cleavage evidence")
             if track.context not in TRACK_CONTEXTS:
                 raise ValueError("Unknown cleavage context %r" % track.context)
             if len(track.scores) != max(0, length - 1):
@@ -393,6 +452,7 @@ def placement_assessments(construct):
 
             internal = observed(internal_bonds)
             boundary = observed(boundary_bonds)
+            categories = track.categorical_sites
             rows.append({
                 "construct_id": construct.identifier,
                 "delivery": construct.delivery,
@@ -404,11 +464,19 @@ def placement_assessments(construct):
                 "context": track.context,
                 "route_relevance": policy[track.context].relevance,
                 "threshold": track.threshold,
-                "internal_assessed_bonds": [bond for bond, score in internal],
-                "internal_supported_bonds": supported(internal),
-                "boundary_assessed_bonds": [bond for bond, score in boundary],
-                "boundary_supported_bonds": supported(boundary),
+                "internal_assessed_bonds": sorted(set(b for b, _ in internal) |
+                                                  (set(internal_bonds) & set(categories))),
+                "internal_supported_bonds": sorted(supported(internal) + [
+                    b for b in internal_bonds if categories.get(b) in ("matched", "reported")]),
+                "boundary_assessed_bonds": sorted(set(b for b, _ in boundary) |
+                                                  (set(boundary_bonds) & set(categories))),
+                "boundary_supported_bonds": sorted(supported(boundary) + [
+                    b for b in boundary_bonds if categories.get(b) in ("matched", "reported")]),
                 "score_units": track.units,
+                "evidence_type": track.evidence_type,
+                "categorical_sites": categories,
+                "conditional_on": track.conditional_on,
+                "canonical_evidence": track.evidence.to_dict() if track.evidence else None,
             })
     return rows
 
@@ -597,6 +665,19 @@ def _render_report_pdf(report, path, maximum_mhc_windows):
                             ]
                             ax.scatter(hit_x, hit_y, color=color, s=30,
                                        edgecolor="white", linewidth=0.5)
+                    for bond, status in track.categorical_sites.items():
+                        ax.scatter([bond + 0.5], [y], marker={
+                            "matched": "o", "not_matched": "x", "reported": "s"}[status],
+                            color=color, s=32)
+                    evidence_note = ""
+                    if track.evidence:
+                        evidence_note = (track.evidence.unsupported_reason or
+                                         track.evidence.substrate_observation or "")
+                    if track.conditional_on:
+                        evidence_note = "Conditional: " + track.conditional_on
+                    if evidence_note:
+                        ax.text(0.55, y + direction * 0.18, evidence_note,
+                                fontsize=7, color=color, wrap=True)
                     ax.text(0.35, y, "%s [%s]" % (
                         track.name, policy[track.context].relevance),
                         ha="right", va="center", fontsize=9, color=color)
@@ -611,7 +692,8 @@ def _render_report_pdf(report, path, maximum_mhc_windows):
             fig.text(
                 0.5, 0.025,
                 "Each enzyme/model has its own native-scale track. Filled points meet that "
-                "track's declared threshold; they are not comparable probabilities.",
+                "track's declared threshold. Categorical: circle = motif match, x = non-match, "
+                "square = reported. These are not comparable probabilities.",
                 ha="center", va="bottom", fontsize=8.5, color="#4e5963",
             )
             pages.savefig(fig, bbox_inches="tight")

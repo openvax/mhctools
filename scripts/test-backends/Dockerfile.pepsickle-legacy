@@ -1,0 +1,8 @@
+# Pepsickle's bundled GB estimator records scikit-learn 0.23.2. Keep this
+# legacy runtime separate from mhctools and use upstream inference unchanged.
+FROM python:3.8.20-slim-bookworm@sha256:1d52838af602b4b5a831beb13a0e4d073280665ea7be7f69ce2382f29c5a613f
+RUN python -m pip install --no-cache-dir pip==25.0.1 setuptools==75.3.2 wheel==0.45.1 typing-extensions==4.4.0
+RUN python -m pip install --no-cache-dir --no-deps torch==1.13.1+cpu --index-url https://download.pytorch.org/whl/cpu \
+    && python -m pip install --no-cache-dir numpy==1.19.5 scipy==1.5.4 scikit-learn==0.23.2 joblib==0.17.0 threadpoolctl==2.1.0 biopython==1.79 pepsickle==0.1.3
+ENV OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 PYTHONDONTWRITEBYTECODE=1
+RUN python -c "from pepsickle.model_functions import initialize_digestion_gb_model; initialize_digestion_gb_model()"

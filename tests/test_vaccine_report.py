@@ -119,3 +119,45 @@ def test_figure_lanes_keep_every_selected_window_and_its_audit_rank():
     # The rank drawn on each bar is the row's display_rank in the audit CSV.
     for rank, window, _ in assigned:
         assert selected[rank - 1] is window
+def test_canonical_categorical_tracks_survive_report_round_trip(tmp_path):
+    from mhctools import CleavageInput, get_cleavage_model
+    from mhctools.vaccine_report import (
+        CleavageTrack, VaccineConstruct, VaccineReportInput, placement_assessments,
+    )
+    from dataclasses import asdict
+
+    result = get_cleavage_model("cpn-basic").predict(CleavageInput("RPPGFSPFR"))
+    track = CleavageTrack.from_result(result, "circulation", "AARPPGFSPFRGG", start=2,
+                                     conditional_on="If boundary cleavage releases bradykinin")
+    value = dict(id="peptide", sequence="AARPPGFSPFRGG", delivery="synthetic_long_peptide",
+                 exposures=["circulation"], intended_epitopes=[dict(label="target", start=3, end=11)],
+                 cleavage_tracks=[asdict(track)])
+    construct = VaccineConstruct.from_dict(value)
+    assert construct.cleavage_tracks[0].evidence == result
+    row = placement_assessments(construct)[0]
+    assert row["internal_supported_bonds"] == [10]
+    assert row["canonical_evidence"]["sites"][0]["score"] is None
+    assert row["conditional_on"]
+    assert not any(score is not None for score in track.scores)
+    report = VaccineReportInput.from_dict(dict(schema_version=1, constructs=[value]))
+    restored = VaccineReportInput.from_dict(report.to_dict())
+    assert restored.constructs[0].cleavage_tracks[0] == track
+    output = generate_vaccine_report(report, tmp_path / "canonical-report")
+    assert (output / "vaccine-processing-report.pdf").stat().st_size > 0
+    saved = json.loads((output / "normalized-input.json").read_text())
+    assert VaccineReportInput.from_dict(saved).constructs[0].cleavage_tracks[0] == track
+
+
+def test_canonical_track_keeps_unsupported_and_substrate_only_observations():
+    import pytest
+    from mhctools import get_cleavage_model
+    from mhctools.vaccine_report import CleavageTrack
+
+    source = get_cleavage_model("nln-observed").predict("YGGFLRRIR")
+    track = CleavageTrack.from_result(source, "cytosolic_proteasome", "YGGFLRRIR")
+    assert track.evidence.substrate_observation == "cleavage_reported"
+    assert track.scores == (None,) * 8 and track.categorical_sites == {}
+    unsupported = get_cleavage_model("lnpep-observed").predict("AAAAAAAAA")
+    assert CleavageTrack.from_result(unsupported, "endolysosomal", "AAAAAAAAA").evidence.unsupported_reason
+    with pytest.raises(ValueError, match="threshold"):
+        CleavageTrack.from_result(source, "cytosolic_proteasome", "YGGFLRRIR", threshold=0.5)

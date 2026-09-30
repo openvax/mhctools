@@ -1,5 +1,10 @@
 # Peptidase cleavage evidence
 
+For named epitope occurrences with flanks, complete vaccine constructs and
+separate tumor/APC/extracellular scenarios, use the
+[batch API and CLI](cleavage-batch.md). It preserves categorical and numerical
+evidence through overlays and save/reload.
+
 ```python
 from mhctools import CleavageInput, DPP4qPISA
 
@@ -133,9 +138,11 @@ results = predict_cleavage("TSGPNQ", models=["fap-endo-gp", "prep-pro"])
 The default panel evaluates all 20 built-in models and returns separate
 results. `--model` and `--sequence` can be repeated. `--list-models` prints a
 compact discovery table; add `--json` for its full machine-readable catalog.
-The two optional Pepsickle epitope models are listed as unresolved when the
-package/assets are absent. When present, their catalog and prediction results
-carry SHA-256 identities for weights, inference code, and feature code.
+The eight optional Pepsickle models cover epitope and C/I digestion families;
+see [batch model selection](cleavage-batch.md#proteasome-model-selection).
+Missing assets and uninspected external runtimes are listed as unresolved.
+Predictions carry SHA-256 identities for the actual runtime's weights,
+inference code, feature code and dependency metadata.
 Prediction JSON uses schema version 2: its top-level `models` object stores each
 full provenance record once, keyed by model name, and each item in `results`
 references that name in its `model` field. The output retains unmatched and

@@ -200,6 +200,9 @@ class CleavageResult:
 
     def __post_init__(self):
         object.__setattr__(self, "sites", tuple(self.sites))
+        if self.unsupported_reason is not None and (
+                not isinstance(self.unsupported_reason, str) or not self.unsupported_reason.strip()):
+            raise ValueError("Unsupported results require a nonempty reason")
         conditions = tuple(tuple(pair) for pair in self.conditions)
         if (any(len(pair) != 2 or not all(isinstance(v, str) for v in pair)
                 for pair in conditions) or len(dict(conditions)) != len(conditions)):
@@ -231,3 +234,18 @@ class CleavageResult:
             dict(asdict(site), source_bond=self.peptide.source_start + site.bond)
             for site in self.sites]
         return result
+
+    @classmethod
+    def from_dict(cls, value):
+        """Restore serialized evidence, rejecting contradictory source bonds."""
+        value = dict(value)
+        peptide = CleavageInput(**value.pop("peptide"))
+        model = CleavageModel(**value.pop("model"))
+        sites = []
+        for record in value.pop("sites", ()):
+            record = dict(record)
+            expected = peptide.source_start + record["bond"]
+            if record.pop("source_bond", expected) != expected:
+                raise ValueError("Serialized source_bond contradicts peptide offset")
+            sites.append(CleavageSite(**record))
+        return cls(peptide, model, tuple(sites), **value)
