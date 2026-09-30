@@ -83,6 +83,7 @@ jobs:
             tests/test_caphla.py \
             tests/test_unparseable_alleles.py \
             tests/test_nettcr.py \
+            tests/test_netcleave.py \
             tests/test_mixtcrpred.py \
             tests/test_tulip.py \
             tests/test_random.py
@@ -314,7 +315,9 @@ jobs:
           - group: gfeller
             tests: tests/test_mixmhcpred.py tests/test_mixmhc2pred2.py tests/test_prime.py
           - group: keras
-            tests: tests/test_deepimmuno.py tests/test_tlimmuno2.py
+            tests: tests/test_deepimmuno.py tests/test_tlimmuno2.py tests/test_netcleave.py tests/test_artifacts.py
+          - group: nettcr
+            tests: tests/test_nettcr.py
     steps:
       - uses: actions/checkout@v4
 
@@ -338,10 +341,19 @@ jobs:
             env/test-backends/PeptiVerse
           key: half-life-${{ runner.os }}-${{ hashFiles('mhctools/peptiverse.py') }}
 
+      - name: Install the NetTCR LiteRT interpreter
+        if: matrix.group == 'nettcr'
+        run: python -m pip install -e ".[nettcr]"
+
       - name: Provision upstream models and isolated runtimes
         run: python scripts/setup_test_backends.py ${{ matrix.group }} --python python --accept-license
 
       - name: Run real-model regressions without skips
         run: |
           source env/test-backends/activate.sh
-          python -m pytest ${{ matrix.tests }} --require-all -ra
+          flags=()
+          if [[ '${{ matrix.group }}' == 'nettcr' || '${{ matrix.group }}' == 'keras' ]]; then
+            python -c "import importlib.util; assert importlib.util.find_spec('tensorflow') is None, 'TensorFlow leaked into the mhctools host'"
+            flags=(-W error)
+          fi
+          python -m pytest ${{ matrix.tests }} --require-all -ra "${flags[@]}"
