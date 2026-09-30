@@ -12,15 +12,17 @@
 
 import hashlib
 import importlib.metadata
-import importlib.util
 import json
 import logging
+import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 
 from .cleavage import CleavageModel, CleavageResult, CleavageSite, coerce_peptide
 from .proteasome_predictor import ProteasomePredictor
+from .pepsickle_runtime import runtime_identity
 
 # Models are cached by family/population; C/I is an inference input.
 _model_cache = {}
@@ -43,79 +45,42 @@ for _family in ("in-vitro", "in-vitro-2"):
                 model_type=_family, human_only=_human, proteasome_type=_type)
 
 
-def _sha256(path):
-    digest = hashlib.sha256()
-    with Path(path).open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
+def _runtime_executable(model_type, python_executable=None):
+    value = python_executable
+    if value is None and model_type == "in-vitro":
+        value = os.environ.get("PEPSICKLE_GB_PYTHON")
+    value = value or os.environ.get("PEPSICKLE_PYTHON")
+    if not value:
+        return None
+    resolved = shutil.which(os.path.expanduser(str(value)))
+    if resolved is None:
+        raise RuntimeError("Pepsickle Python executable is not runnable: %s" % value)
+    return os.path.abspath(resolved)
 
 
-def _pepsickle_identity(human_only, model_type="epitope"):
-    """Return verified code, feature, and weight identity for pepsickle."""
-    cache_key = (bool(human_only), model_type)
-    if cache_key in _identity_cache:
-        return _identity_cache[cache_key]
+def _pepsickle_identity(human_only, model_type="epitope", python_executable=None,
+                       timeout=PEPSICKLE_SUBPROCESS_TIMEOUT_SECONDS):
+    """Return provenance from the interpreter that will actually predict."""
+    cache_key = (bool(human_only), model_type, python_executable)
+    if cache_key not in _identity_cache:
+        if python_executable is None:
+            identity = runtime_identity(human_only, model_type)
+        else:
+            request = dict(operation="identity", human_only=bool(human_only), model_type=model_type)
+            try:
+                completed = subprocess.run(
+                    [python_executable, "-c", _PEPSICKLE_SUBPROCESS_SCRIPT],
+                    input=json.dumps(request), text=True, capture_output=True, timeout=timeout)
+                if completed.returncode:
+                    raise RuntimeError("Pepsickle runtime inspection failed: %s" % completed.stderr.strip())
+                identity = json.loads(completed.stdout)["identity"]
+            except (OSError, subprocess.TimeoutExpired, ValueError, KeyError) as error:
+                raise RuntimeError("Could not inspect Pepsickle runtime: %s" % error) from error
+        _identity_cache[cache_key] = identity
+    return _identity_cache[cache_key]
 
-    # Cataloging assets must not import torch/sklearn or initialize their
-    # runtimes. Inference can still be isolated in a separate process.
-    spec = importlib.util.find_spec("pepsickle")
-    if spec is None or spec.origin is None:
-        raise ImportError("pepsickle is not installed")
-    package_dir = Path(spec.origin).resolve().parent
-    inference_path = package_dir / "model_functions.py"
-    features_path = package_dir / "sequence_featurization_tools.py"
-    weights_path = package_dir / (
-        "model.joblib" if model_type == "in-vitro" else "trained_model_dict.pickle")
-    if not weights_path.is_file():
-        raise RuntimeError(
-            "Installed pepsickle is missing model weights at %s"
-            % weights_path)
-    identity = {
-        "package_version": importlib.metadata.version("pepsickle"),
-        "weights_path": str(weights_path),
-        "weights_sha256": _sha256(weights_path),
-        "inference_path": str(inference_path),
-        "inference_sha256": _sha256(inference_path),
-        "features_path": str(features_path),
-        "features_sha256": _sha256(features_path),
-        "model_key": "gradient_boosting" if model_type == "in-vitro" else "+".join(
-            "%s_%s_%s_mod" % (
-                "human" if human_only else "all_mammal",
-                "epitope" if model_type == "epitope" else "20S_digestion", component)
-            for component in ("sequence", "motif")),
-    }
-    _identity_cache[cache_key] = identity
-    return identity
 
-_PEPSICKLE_SUBPROCESS_SCRIPT = r"""
-import json
-import sys
-
-from pepsickle.model_functions import (
-    initialize_epitope_model,
-    initialize_digestion_model,
-    initialize_digestion_gb_model,
-    predict_protein_cleavage_locations,
-)
-
-request = json.loads(sys.stdin.read())
-initialize = {"epitope": initialize_epitope_model,
-              "in-vitro": initialize_digestion_gb_model,
-              "in-vitro-2": initialize_digestion_model}[request["model_type"]]
-model = initialize(human_only=request["human_only"])
-results = {}
-for sequence in request["sequences"]:
-    preds_raw = predict_protein_cleavage_locations(
-        sequence,
-        model,
-        mod_type=request["model_type"],
-        proteasome_type=request["proteasome_type"] or "C",
-        threshold=request["threshold"],
-    )
-    results[sequence] = [entry[2] for entry in preds_raw]
-json.dump({"results": results}, sys.stdout)
-"""
+_PEPSICKLE_SUBPROCESS_SCRIPT = Path(__file__).with_name("pepsickle_runtime.py").read_text(encoding="utf-8")
 
 
 class Pepsickle(ProteasomePredictor):
@@ -156,6 +121,11 @@ class Pepsickle(ProteasomePredictor):
         boosting, or digestion-trained neural ensemble. The gradient-boosted
         artifact requires its compatible upstream scikit-learn runtime.
 
+    python_executable : str or None
+        Separate prediction interpreter or Python-compatible launcher. Implies
+        subprocess isolation. Defaults to PEPSICKLE_GB_PYTHON for gradient
+        boosting, then PEPSICKLE_PYTHON, then the current interpreter.
+
     proteasome_type : {"C", "I"} or None
         Constitutive or immunoproteasome; required for digestion models.
         Must be None for the proteasome-type-agnostic epitope model.
@@ -170,7 +140,8 @@ class Pepsickle(ProteasomePredictor):
             isolate_subprocess=False,
             subprocess_timeout=PEPSICKLE_SUBPROCESS_TIMEOUT_SECONDS,
             model_type="epitope",
-            proteasome_type=None):
+            proteasome_type=None,
+            python_executable=None):
         if model_type not in ("epitope", "in-vitro", "in-vitro-2"):
             raise ValueError("Unknown Pepsickle model_type %r" % model_type)
         if model_type == "epitope" and proteasome_type is not None:
@@ -186,7 +157,8 @@ class Pepsickle(ProteasomePredictor):
         )
         self.threshold = threshold
         self.human_only = human_only
-        self.isolate_subprocess = isolate_subprocess
+        self.python_executable = _runtime_executable(model_type, python_executable)
+        self.isolate_subprocess = bool(isolate_subprocess or self.python_executable)
         self.subprocess_timeout = subprocess_timeout
         self.model_type = model_type
         self.proteasome_type = proteasome_type
@@ -209,17 +181,18 @@ class Pepsickle(ProteasomePredictor):
                                       proteasome_type=None):
         population = "human-only" if human_only else "all-mammal"
         if identity is None:
-            version = "unresolved: pepsickle package/assets not located"
+            version = "unresolved: pepsickle runtime assets not inspected or not available"
         else:
             version = (
                 "package:%s;model:%s;weights-sha256:%s;inference-sha256:%s;"
-                "features-sha256:%s"
+                "features-sha256:%s;runtime-sha256:%s"
                 % (
                     identity["package_version"],
                     identity["model_key"],
                     identity["weights_sha256"],
                     identity["inference_sha256"],
                     identity["features_sha256"],
+                    hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest(),
                 )
             )
         if model_type == "epitope":
@@ -264,7 +237,10 @@ class Pepsickle(ProteasomePredictor):
     def catalog_cleavage_model(cls, human_only=False, model_type="epitope", proteasome_type=None):
         """Describe a known optional model without claiming absent assets."""
         try:
-            identity = _pepsickle_identity(human_only, model_type)
+            # A catalog/motif-only batch must not boot configured containers.
+            # Selected predictors resolve their real identity before inference.
+            identity = (None if _runtime_executable(model_type) else
+                        _pepsickle_identity(human_only, model_type))
         except (ImportError, OSError, RuntimeError,
                 importlib.metadata.PackageNotFoundError):
             identity = None
@@ -273,7 +249,7 @@ class Pepsickle(ProteasomePredictor):
     def cleavage_model(self):
         """Return canonical per-bond metadata tied to installed assets."""
         return self._cleavage_model_from_identity(
-            self.human_only, _pepsickle_identity(self.human_only, self.model_type),
+            self.human_only, self._identity(),
             self.model_type, self.proteasome_type)
 
     def predict_cleavage(self, peptide):
@@ -317,7 +293,7 @@ class Pepsickle(ProteasomePredictor):
             )
             for bond, score in enumerate(scores[:-1], start=1)
         )
-        identity = _pepsickle_identity(self.human_only, self.model_type)
+        identity = self._identity()
         conditions = (
             ("human_only", str(bool(self.human_only)).lower()),
             ("model_mode", self.model_type),
@@ -326,8 +302,13 @@ class Pepsickle(ProteasomePredictor):
             ("threshold", "%.17g" % self.threshold),
             ("isolate_subprocess", str(bool(self.isolate_subprocess)).lower()),
             ("subprocess_timeout_seconds", str(self.subprocess_timeout)),
+            ("runtime", json.dumps(identity, sort_keys=True)),
         )
         return CleavageResult(peptide, model, sites, conditions=conditions)
+
+    def _identity(self):
+        return _pepsickle_identity(
+            self.human_only, self.model_type, self.python_executable, self.subprocess_timeout)
 
     def _load_model(self):
         if self._model is None:
@@ -371,6 +352,7 @@ class Pepsickle(ProteasomePredictor):
         return [entry[2] for entry in preds_raw]
 
     def _cleavage_probs_many_subprocess(self, sequences):
+        expected_identity = self._identity()
         payload = json.dumps({
             "model_type": self.model_type,
             "proteasome_type": self.proteasome_type,
@@ -380,7 +362,7 @@ class Pepsickle(ProteasomePredictor):
         })
         try:
             result = subprocess.run(
-                [sys.executable, "-c", _PEPSICKLE_SUBPROCESS_SCRIPT],
+                [self.python_executable or sys.executable, "-c", _PEPSICKLE_SUBPROCESS_SCRIPT],
                 input=payload,
                 text=True,
                 capture_output=True,
@@ -408,7 +390,7 @@ class Pepsickle(ProteasomePredictor):
             if self.model_type == "in-vitro" and "sklearn.ensemble._gb_losses" in stderr_text:
                 raise RuntimeError(
                     "Pepsickle's gradient-boosted artifact requires a compatible legacy "
-                    "scikit-learn runtime (mhctools #471); this installation cannot load it. "
+                    "scikit-learn runtime; configure PEPSICKLE_GB_PYTHON (mhctools #471). "
                     "No alternative model was substituted.")
             raise RuntimeError(
                 "pepsickle subprocess exited with code %d.\nstdout: %s\n"
@@ -423,6 +405,8 @@ class Pepsickle(ProteasomePredictor):
                 "Could not parse pepsickle subprocess JSON output: %s"
                 % result.stdout.strip()) from e
 
+        if parsed.get("identity") != expected_identity:
+            raise RuntimeError("Pepsickle runtime/assets changed between inspection and inference")
         results = parsed.get("results")
         if not isinstance(results, dict):
             logger.warning(

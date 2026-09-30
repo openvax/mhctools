@@ -50,3 +50,20 @@ belong to Topiary (#365-370, #288). Vaxrank consumes those public APIs for
 construct selection (#497) and exposes existing audit machinery in its CLI
 (#445). This PR links those dependencies and does not duplicate their scoring
 or antigen-source logic.
+
+## Compatible legacy runtime follow-up (#471)
+
+The bundled gradient-boosted artifact records scikit-learn 0.23.2. Provision
+that version in a separate Python 3.8 runtime, leaving host dependencies
+unchanged. A configurable Python executable (including a Docker launcher)
+runs the existing upstream inference code through a small JSON sidecar.
+Select the legacy interpreter explicitly for gradient boosting; retain the
+host interpreter for neural models unless explicitly configured otherwise.
+
+Query package, interpreter, code and weight identities inside the selected
+runtime. Return the same identity with predictions and reject changes between
+metadata resolution and inference. Keep catalog lookup lazy and retain
+runtime errors without substituting another model. Provision pinned packages,
+disable network access during prediction, and validate both C/I profiles
+against direct upstream inference in that runtime. This establishes runtime
+compatibility, not independent biological accuracy.

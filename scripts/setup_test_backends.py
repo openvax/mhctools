@@ -259,9 +259,24 @@ def legacy(root, python, config):
                  [sys.executable, ROOT / "scripts/test-backends/run_netmhc.py", name])
 
 
+def pepsickle(root, python, config):
+    image = "mhctools-pepsickle-legacy:0.23.2"
+    run("docker", "build", "--platform", "linux/amd64", "-t", image, "-f",
+        ROOT / "scripts/test-backends/Dockerfile.pepsickle-legacy",
+        ROOT / "scripts/test-backends")
+    # Bind the launcher to the built image, not a mutable tag. Inference needs
+    # no host mounts, network, or installation of mhctools inside the container.
+    image_id = capture("docker", "image", "inspect", image, "--format", "{{.Id}}")
+    path = root / "bin" / "pepsickle-gb-python"
+    launcher(path, ["docker", "run", "--rm", "--platform", "linux/amd64",
+                    "--network", "none", "--read-only", "--tmpfs", "/tmp",
+                    "-i", image_id, "python"])
+    config["PEPSICKLE_GB_PYTHON"] = str(path)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("groups", nargs="+", choices=["half-life", "recognition", "gfeller", "keras", "legacy", "smm"])
+    parser.add_argument("groups", nargs="+", choices=["half-life", "recognition", "gfeller", "keras", "legacy", "smm", "pepsickle"])
     parser.add_argument("--python", default="python3.11", help="Python 3.11 interpreter for isolated runtimes")
     parser.add_argument("--root", type=Path, default=ROOT / "env/test-backends")
     parser.add_argument("--accept-license", action="store_true",
@@ -275,7 +290,8 @@ def main():
     state = root / "config.json"
     config = json.loads(state.read_text()) if state.exists() else {}
     functions = {"half-life": half_life, "recognition": recognition,
-                 "gfeller": gfeller, "keras": keras, "legacy": legacy, "smm": smm}
+                 "gfeller": gfeller, "keras": keras, "legacy": legacy, "smm": smm,
+                 "pepsickle": pepsickle}
     for group in args.groups:
         functions[group](root, args.python, config)
         state.write_text(json.dumps(config, indent=2) + "\n")

@@ -23,10 +23,14 @@ calling them held-out would be incorrect. Reconstructing the paper's
 held-out data and verifying study/sequence overlap remains [#469](https://github.com/openvax/mhctools/issues/469)
 with the existing assay-aware evaluation machinery in [#291](https://github.com/openvax/mhctools/issues/291).
 
-The gradient-boosted artifact also fails under the current scikit-learn
-runtime (`sklearn.ensemble._gb_losses` is missing). A compatible isolated
-runtime is tracked in [#471](https://github.com/openvax/mhctools/issues/471).
-Neural and gradient-boosted predictions are not silently substituted.
+The gradient-boosted artifact records scikit-learn **0.23.2**. It fails under
+current scikit-learn (`sklearn.ensemble._gb_losses` is missing). The isolated
+Python 3.8.20/0.23.2 runtime added for [#471](https://github.com/openvax/mhctools/issues/471)
+executes both C/I routes and matches direct upstream inference with networking
+disabled. It records the actual subprocess's package, code and weight identity.
+The MAGE-A3 sequence in this conformance test occurs in upstream training data;
+it is explicitly **not** held-out validation. Neural and gradient-boosted
+predictions are not silently substituted.
 
 ## APC endolysosomal enzymes
 

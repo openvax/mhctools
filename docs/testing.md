@@ -80,6 +80,25 @@ For direct pytest commands, source it yourself. An alternate setup root is
 supported with `--root PATH`; point `MHCTOOLS_TEST_ENV` at its `activate.sh`.
 Set `MHCTOOLS_TEST_ENV=/dev/null` to run without this configuration.
 
+## Pepsickle gradient-boosted digestion models
+
+The upstream artifact was trained with scikit-learn 0.23.2 and cannot be loaded
+by current scikit-learn. Provision its pinned Python 3.8.20/Linux x86-64 runtime
+with Docker (emulation is used on Apple Silicon):
+
+```sh
+python scripts/setup_test_backends.py pepsickle
+source env/test-backends/activate.sh
+pytest tests/test_pepsickle_legacy.py tests/test_pepsickle_runtime.py --require-all
+```
+
+The generated launcher binds to the built image ID, disables networking, and
+does not mount host files. The new CI job runs both constitutive and
+immunoproteasome profiles against direct upstream inference, checks runtime
+provenance and exercises batch save/reload. Host neural Pepsickle dependencies
+are unchanged. This is implementation conformance, not held-out biological
+validation; see [cleavage validation](cleavage-validation.md).
+
 ## Local SMM and SMM-PMBEC
 
 The `smm` setup group installs a 2.4 MB subset of the official

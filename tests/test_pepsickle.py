@@ -108,7 +108,8 @@ def test_isolated_cleavage_probs_batches_unique_sequences(monkeypatch):
         return subprocess.CompletedProcess(
             args=args,
             returncode=0,
-            stdout=json.dumps({"results": results}),
+            stdout=json.dumps({"results": results,
+                               "identity": Pepsickle(human_only=True)._identity()}),
             stderr="",
         )
 

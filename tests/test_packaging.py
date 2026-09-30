@@ -20,6 +20,9 @@ did not exist. Neither is visible from the code, so pin both here.
 import ast
 from pathlib import Path
 import re
+import subprocess
+import sys
+import tarfile
 
 import pytest
 
@@ -77,3 +80,18 @@ def test_declared_package_data_exists(pyproject):
 def test_no_unreferenced_requirements_file():
     """requirements.txt was read by nothing and had drifted from pyproject."""
     assert not (REPO_ROOT / "requirements.txt").exists()
+
+
+def test_source_distribution_includes_backend_runtime_assets(tmp_path):
+    subprocess.run([sys.executable, "-m", "build", "--sdist", "--no-isolation",
+                    "--outdir", str(tmp_path)], cwd=REPO_ROOT, check=True,
+                   capture_output=True, text=True)
+    with tarfile.open(next(tmp_path.glob("*.tar.gz"))) as archive:
+        names = {name.split("/", 1)[-1] for name in archive.getnames()}
+    assert {
+        "scripts/setup_test_backends.py",
+        "scripts/test-backends/Dockerfile.netmhc-legacy",
+        "scripts/test-backends/run_netmhc.py",
+        "scripts/test-backends/Dockerfile.pepsickle-legacy",
+        "mhctools/pepsickle_runtime.py",
+    } <= names

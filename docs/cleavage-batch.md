@@ -122,14 +122,35 @@ See [the biological coverage review](cleavage-validation.md).
 - `pepsickle-in-vitro-2-{human-only,all-mammal}-{constitutive,immunoproteasome}`:
   digestion-trained neural ensemble; three residues before and after P1.
 - `pepsickle-in-vitro-all-mammal-{constitutive,immunoproteasome}`:
-  gradient-boosted digestion model. Its legacy scikit-learn artifact does not
-  load in the current tested runtime; see [#471](https://github.com/openvax/mhctools/issues/471).
+  gradient-boosted digestion model. Its artifact requires the isolated
+  scikit-learn 0.23.2 runtime; see setup below.
 
 The Python `Pepsickle` wrapper takes `model_type` and `proteasome_type` (`C`
 or `I`) for digestion models. It rejects a proteasome type for the epitope
 model and `human_only=True` for gradient boosting, which upstream ignores.
 Model metadata identifies actual weights, code, population and model family.
 The upstream endpoint sentinel is excluded from canonical bond results.
+
+Provision the legacy runtime with Docker:
+
+```sh
+python scripts/setup_test_backends.py pepsickle
+source env/test-backends/activate.sh
+pytest tests/test_pepsickle_legacy.py --require-all
+```
+
+This pins Python 3.8.20, scikit-learn 0.23.2 and its companion packages in a
+separate container. Its generated `PEPSICKLE_GB_PYTHON` launcher selects that
+runtime only for gradient boosting and runs inference with networking
+disabled. Neural models keep their existing runtime. A separately managed
+interpreter can be selected with `Pepsickle(python_executable=...)` or
+`PEPSICKLE_PYTHON` for every model family.
+
+Prediction provenance comes from the selected interpreter, including package
+versions and actual code/weight hashes. A changed identity between inspection
+and inference causes failure. Catalog listing does not start external
+runtimes; their identities remain unresolved until the predictor is selected.
+No model is silently substituted when a runtime is missing or incompatible.
 
 Adapter agreement with upstream inference establishes implementation
 conformance, not accuracy for tumor/APC processing or vaccine-peptide survival.
