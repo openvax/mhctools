@@ -343,7 +343,7 @@ def test_unlicensed_snapshot_is_gated_without_claiming_a_license(tmp_path):
     assert "distributed under" not in message
 
 
-def test_unlicensed_snapshot_records_absent_license_in_inventory():
+def test_unlicensed_snapshot_records_absent_license_in_inventory(no_user_installs):
     from mhctools.artifacts import artifact_status
 
     status = artifact_status("netcleave")
