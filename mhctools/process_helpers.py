@@ -301,8 +301,11 @@ def run_multiple_commands_redirect_stdout(
             handler = logging.FileHandler(p.redirect_stdout_file.name)
             handler.setLevel(logging.DEBUG)
             logger.addHandler(handler)
-            logger.debug(" ".join(p.args))
-            logger.removeHandler(handler)
+            try:
+                logger.debug(" ".join(p.args))
+            finally:
+                logger.removeHandler(handler)
+                handler.close()
         active.append(p)
 
     # Wait for remaining processes
