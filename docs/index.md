@@ -7,20 +7,20 @@ change, and comparing them gives you a DataFrame.
 
 ## Available predictors
 
-| I want to predict… | Predictors |
+| Predict | Predictors |
 |---|---|
-| Binding affinity to an allele | [`NetMHCpan`](predictors/binding.md#netmhcpan), [`NetMHC`](predictors/binding.md#netmhc), [`NetMHCIIpan`](predictors/binding.md#netmhciipan), [`NetMHCcons`](predictors/binding.md#netmhccons), [`MHCflurry`](predictors/binding.md#mhcflurry), [`CapHLA`](predictors/binding.md#caphla), [`SMM`](predictors/binding.md#smm-and-smm-pmbec), [`SMMPMBEC`](predictors/binding.md#smm-and-smm-pmbec) |
-| Surface presentation | [`NetMHCpan41`/`42`](predictors/binding.md#netmhcpan), [`NetMHCIIpan`](predictors/binding.md#netmhciipan), [`MHCflurry`](predictors/binding.md#mhcflurry), [`CapHLA`](predictors/binding.md#caphla), [`MixMHCpred`](predictors/binding.md#mixmhcpred) (I), [`MixMHC2pred`](predictors/binding.md#mixmhc2pred) (II), [`BigMHC`](predictors/binding.md#bigmhc) |
-| How long the pMHC complex lasts | [`NetMHCstabpan`](predictors/binding.md#netmhcstabpan) |
-| Combined antigen processing | [`MHCflurry`](predictors/binding.md#mhcflurry) |
+| Binding affinity | [`NetMHCpan`](predictors/binding.md#netmhcpan), [`NetMHC`](predictors/binding.md#netmhc), [`NetMHCIIpan`](predictors/binding.md#netmhciipan), [`NetMHCcons`](predictors/binding.md#netmhccons), [`MHCflurry`](predictors/binding.md#mhcflurry), [`CapHLA`](predictors/binding.md#caphla), [`SMM`](predictors/binding.md#smm-and-smm-pmbec), [`SMMPMBEC`](predictors/binding.md#smm-and-smm-pmbec) |
+| Presentation | [`NetMHCpan41`/`42`](predictors/binding.md#netmhcpan), [`NetMHCIIpan`](predictors/binding.md#netmhciipan), [`MHCflurry`](predictors/binding.md#mhcflurry), [`CapHLA`](predictors/binding.md#caphla), [`MixMHCpred`](predictors/binding.md#mixmhcpred) (I), [`MixMHC2pred`](predictors/binding.md#mixmhc2pred) (II), [`BigMHC`](predictors/binding.md#bigmhc) |
+| Binding stability | [`NetMHCstabpan`](predictors/binding.md#netmhcstabpan) |
+| Antigen processing | [`MHCflurry`](predictors/binding.md#mhcflurry) |
 | Proteasomal cleavage | [`Pepsickle`](predictors/processing.md#pepsickle), [`NetChop`](predictors/processing.md#netchop), [`NetCleave_I`](predictors/processing.md#netcleave) |
-| Endolysosomal cleavage (class II) | [`NetCleave_II`](predictors/processing.md#netcleave) |
-| TAP transport into the ER | [`DeepTAP`](predictors/processing.md#deeptap) |
-| ERAP1 N-terminal trimming | [`ERAMER`](predictors/processing.md#eramer) |
-| Whether a T cell responds | [`Calis`](predictors/immunogenicity.md#calis), [`PRIME`](predictors/immunogenicity.md#prime), [`BigMHC_IM`](predictors/binding.md#bigmhc), [`DeepImmuno`](predictors/immunogenicity.md#deepimmuno), [`TLimmuno2`](predictors/immunogenicity.md#tlimmuno2) (II) |
-| Whether a specific TCR recognises it | [`NetTCR`](predictors/tcr.md#nettcr), [`Tulip`](predictors/tcr.md#tulip), [`MixTCRpred`](predictors/tcr.md#mixtcrpred) |
-| How long the free peptide survives | [`PeptiVerse`](predictors/peptide-pk.md#peptiverse), [`PlifePred2`](predictors/peptide-pk.md#plifepred2) |
-| Which peptidase cuts which bond | [cleavage API](cleavage/index.md) |
+| Endolysosomal cleavage | [`NetCleave_II`](predictors/processing.md#netcleave) |
+| TAP transport | [`DeepTAP`](predictors/processing.md#deeptap) |
+| ERAP1 trimming | [`ERAMER`](predictors/processing.md#eramer) |
+| Immunogenicity | [`Calis`](predictors/immunogenicity.md#calis), [`PRIME`](predictors/immunogenicity.md#prime), [`BigMHC_IM`](predictors/binding.md#bigmhc), [`DeepImmuno`](predictors/immunogenicity.md#deepimmuno), [`TLimmuno2`](predictors/immunogenicity.md#tlimmuno2) (II) |
+| TCR recognition | [`NetTCR`](predictors/tcr.md#nettcr), [`Tulip`](predictors/tcr.md#tulip), [`MixTCRpred`](predictors/tcr.md#mixtcrpred) |
+| Peptide half-life | [`PeptiVerse`](predictors/peptide-pk.md#peptiverse), [`PlifePred2`](predictors/peptide-pk.md#plifepred2) |
+| Per-bond cleavage | [cleavage API](cleavage/index.md) |
 
 - [Predictor matrix](predictor-matrix.md): every predictor, class, command-line name, input, install route and license on one page.
 - [Choosing a predictor](choosing.md) and [known limits](limitations.md). Several of these models are weaker than their own papers suggest; read the limits before you trust a score.
