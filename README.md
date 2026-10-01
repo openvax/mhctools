@@ -15,20 +15,20 @@ change, and comparing them gives you a DataFrame.
 
 ## Available predictors
 
-| I want to predict… | Predictors |
+| Predict | Predictors |
 |---|---|
-| Binding affinity to an allele | [`NetMHCpan`](https://openvax.github.io/mhctools/predictors/binding/#netmhcpan), [`NetMHC`](https://openvax.github.io/mhctools/predictors/binding/#netmhc), [`NetMHCIIpan`](https://openvax.github.io/mhctools/predictors/binding/#netmhciipan), [`NetMHCcons`](https://openvax.github.io/mhctools/predictors/binding/#netmhccons), [`MHCflurry`](https://openvax.github.io/mhctools/predictors/binding/#mhcflurry), [`CapHLA`](https://openvax.github.io/mhctools/predictors/binding/#caphla), [`SMM`](https://openvax.github.io/mhctools/predictors/binding/#smm-and-smm-pmbec), [`SMMPMBEC`](https://openvax.github.io/mhctools/predictors/binding/#smm-and-smm-pmbec) |
-| Surface presentation | [`NetMHCpan41`/`42`](https://openvax.github.io/mhctools/predictors/binding/#netmhcpan), [`NetMHCIIpan`](https://openvax.github.io/mhctools/predictors/binding/#netmhciipan), [`MHCflurry`](https://openvax.github.io/mhctools/predictors/binding/#mhcflurry), [`CapHLA`](https://openvax.github.io/mhctools/predictors/binding/#caphla), [`MixMHCpred`](https://openvax.github.io/mhctools/predictors/binding/#mixmhcpred) (I), [`MixMHC2pred`](https://openvax.github.io/mhctools/predictors/binding/#mixmhc2pred) (II), [`BigMHC`](https://openvax.github.io/mhctools/predictors/binding/#bigmhc) |
-| How long the pMHC complex lasts | [`NetMHCstabpan`](https://openvax.github.io/mhctools/predictors/binding/#netmhcstabpan) |
-| Combined antigen processing | [`MHCflurry`](https://openvax.github.io/mhctools/predictors/binding/#mhcflurry) |
+| Binding affinity | [`NetMHCpan`](https://openvax.github.io/mhctools/predictors/binding/#netmhcpan), [`NetMHC`](https://openvax.github.io/mhctools/predictors/binding/#netmhc), [`NetMHCIIpan`](https://openvax.github.io/mhctools/predictors/binding/#netmhciipan), [`NetMHCcons`](https://openvax.github.io/mhctools/predictors/binding/#netmhccons), [`MHCflurry`](https://openvax.github.io/mhctools/predictors/binding/#mhcflurry), [`CapHLA`](https://openvax.github.io/mhctools/predictors/binding/#caphla), [`SMM`](https://openvax.github.io/mhctools/predictors/binding/#smm-and-smm-pmbec), [`SMMPMBEC`](https://openvax.github.io/mhctools/predictors/binding/#smm-and-smm-pmbec) |
+| Presentation | [`NetMHCpan41`/`42`](https://openvax.github.io/mhctools/predictors/binding/#netmhcpan), [`NetMHCIIpan`](https://openvax.github.io/mhctools/predictors/binding/#netmhciipan), [`MHCflurry`](https://openvax.github.io/mhctools/predictors/binding/#mhcflurry), [`CapHLA`](https://openvax.github.io/mhctools/predictors/binding/#caphla), [`MixMHCpred`](https://openvax.github.io/mhctools/predictors/binding/#mixmhcpred) (I), [`MixMHC2pred`](https://openvax.github.io/mhctools/predictors/binding/#mixmhc2pred) (II), [`BigMHC`](https://openvax.github.io/mhctools/predictors/binding/#bigmhc) |
+| Binding stability | [`NetMHCstabpan`](https://openvax.github.io/mhctools/predictors/binding/#netmhcstabpan) |
+| Antigen processing | [`MHCflurry`](https://openvax.github.io/mhctools/predictors/binding/#mhcflurry) |
 | Proteasomal cleavage | [`Pepsickle`](https://openvax.github.io/mhctools/predictors/processing/#pepsickle), [`NetChop`](https://openvax.github.io/mhctools/predictors/processing/#netchop), [`NetCleave_I`](https://openvax.github.io/mhctools/predictors/processing/#netcleave) |
-| Endolysosomal cleavage (class II) | [`NetCleave_II`](https://openvax.github.io/mhctools/predictors/processing/#netcleave) |
-| TAP transport into the ER | [`DeepTAP`](https://openvax.github.io/mhctools/predictors/processing/#deeptap) |
-| ERAP1 N-terminal trimming | [`ERAMER`](https://openvax.github.io/mhctools/predictors/processing/#eramer) |
-| Whether a T cell responds | [`Calis`](https://openvax.github.io/mhctools/predictors/immunogenicity/#calis), [`PRIME`](https://openvax.github.io/mhctools/predictors/immunogenicity/#prime), [`BigMHC_IM`](https://openvax.github.io/mhctools/predictors/binding/#bigmhc), [`DeepImmuno`](https://openvax.github.io/mhctools/predictors/immunogenicity/#deepimmuno), [`TLimmuno2`](https://openvax.github.io/mhctools/predictors/immunogenicity/#tlimmuno2) (II) |
-| Whether a specific TCR recognises it | [`NetTCR`](https://openvax.github.io/mhctools/predictors/tcr/#nettcr), [`Tulip`](https://openvax.github.io/mhctools/predictors/tcr/#tulip), [`MixTCRpred`](https://openvax.github.io/mhctools/predictors/tcr/#mixtcrpred) |
-| How long the free peptide survives | [`PeptiVerse`](https://openvax.github.io/mhctools/predictors/peptide-pk/#peptiverse), [`PlifePred2`](https://openvax.github.io/mhctools/predictors/peptide-pk/#plifepred2) |
-| Which peptidase cuts which bond | [cleavage API](https://openvax.github.io/mhctools/cleavage/) |
+| Endolysosomal cleavage | [`NetCleave_II`](https://openvax.github.io/mhctools/predictors/processing/#netcleave) |
+| TAP transport | [`DeepTAP`](https://openvax.github.io/mhctools/predictors/processing/#deeptap) |
+| ERAP1 trimming | [`ERAMER`](https://openvax.github.io/mhctools/predictors/processing/#eramer) |
+| Immunogenicity | [`Calis`](https://openvax.github.io/mhctools/predictors/immunogenicity/#calis), [`PRIME`](https://openvax.github.io/mhctools/predictors/immunogenicity/#prime), [`BigMHC_IM`](https://openvax.github.io/mhctools/predictors/binding/#bigmhc), [`DeepImmuno`](https://openvax.github.io/mhctools/predictors/immunogenicity/#deepimmuno), [`TLimmuno2`](https://openvax.github.io/mhctools/predictors/immunogenicity/#tlimmuno2) (II) |
+| TCR recognition | [`NetTCR`](https://openvax.github.io/mhctools/predictors/tcr/#nettcr), [`Tulip`](https://openvax.github.io/mhctools/predictors/tcr/#tulip), [`MixTCRpred`](https://openvax.github.io/mhctools/predictors/tcr/#mixtcrpred) |
+| Peptide half-life | [`PeptiVerse`](https://openvax.github.io/mhctools/predictors/peptide-pk/#peptiverse), [`PlifePred2`](https://openvax.github.io/mhctools/predictors/peptide-pk/#plifepred2) |
+| Per-bond cleavage | [cleavage API](https://openvax.github.io/mhctools/cleavage/) |
 
 - [Predictor matrix](https://openvax.github.io/mhctools/predictor-matrix/): every predictor, class, command-line name, input, install route and license on one page.
 - [Choosing a predictor](https://openvax.github.io/mhctools/choosing/) and [known limits](https://openvax.github.io/mhctools/limitations/). Several of these models are weaker than their own papers suggest; read the limits before you trust a score.
