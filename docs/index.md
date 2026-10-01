@@ -3,24 +3,24 @@
 mhctools runs MHC binding, presentation, immunogenicity and antigen-processing
 predictors through a single `predict()` call and returns the same result
 objects whichever one you use. Swapping NetMHCpan for MHCflurry is a one-line
-change, and comparing them gives you a DataFrame. Everything runs locally.
+change, and comparing them gives you a DataFrame.
 
 ## Available predictors
 
-| I want to predict… | Kind | Predictors |
-|---|---|---|
-| Binding affinity to an allele | `pMHC_affinity` | `NetMHCpan`, `NetMHC`, `NetMHCIIpan`, `NetMHCcons`, `MHCflurry`, `CapHLA`, `SMM`, `SMMPMBEC` |
-| Surface presentation | `pMHC_presentation` | `NetMHCpan41`/`42`, `NetMHCIIpan`, `MHCflurry`, `CapHLA`, `MixMHCpred` (I), `MixMHC2pred` (II), `BigMHC` |
-| How long the pMHC complex lasts | `pMHC_stability` | `NetMHCstabpan` |
-| Combined antigen processing | `antigen_processing` | `MHCflurry` |
-| Proteasomal cleavage | `proteasome_cleavage` | `Pepsickle`, `NetChop`, `NetCleave_I` |
-| Endolysosomal cleavage (class II) | `endolysosomal_cleavage` | `NetCleave_II` |
-| TAP transport into the ER | `tap_transport` | `DeepTAP` |
-| ERAP1 N-terminal trimming | `erap_trimming` | `ERAMER` |
-| Whether a T cell responds | `immunogenicity` | `Calis`, `PRIME`, `BigMHC_IM`, `DeepImmuno`, `TLimmuno2` (II) |
-| Whether a specific TCR recognises it | `pMHC_TCR_binding` | `NetTCR`, `Tulip`, `MixTCRpred` |
-| How long the free peptide survives | `peptide_half_life` | `PeptiVerse`, `PlifePred2` |
-| Which peptidase cuts which bond | none | [cleavage API](cleavage/index.md) |
+| I want to predict… | Predictors |
+|---|---|
+| Binding affinity to an allele | [`NetMHCpan`](predictors/binding.md#netmhcpan), [`NetMHC`](predictors/binding.md#netmhc), [`NetMHCIIpan`](predictors/binding.md#netmhciipan), [`NetMHCcons`](predictors/binding.md#netmhccons), [`MHCflurry`](predictors/binding.md#mhcflurry), [`CapHLA`](predictors/binding.md#caphla), [`SMM`](predictors/binding.md#smm-and-smm-pmbec), [`SMMPMBEC`](predictors/binding.md#smm-and-smm-pmbec) |
+| Surface presentation | [`NetMHCpan41`/`42`](predictors/binding.md#netmhcpan), [`NetMHCIIpan`](predictors/binding.md#netmhciipan), [`MHCflurry`](predictors/binding.md#mhcflurry), [`CapHLA`](predictors/binding.md#caphla), [`MixMHCpred`](predictors/binding.md#mixmhcpred) (I), [`MixMHC2pred`](predictors/binding.md#mixmhc2pred) (II), [`BigMHC`](predictors/binding.md#bigmhc) |
+| How long the pMHC complex lasts | [`NetMHCstabpan`](predictors/binding.md#netmhcstabpan) |
+| Combined antigen processing | [`MHCflurry`](predictors/binding.md#mhcflurry) |
+| Proteasomal cleavage | [`Pepsickle`](predictors/processing.md#pepsickle), [`NetChop`](predictors/processing.md#netchop), [`NetCleave_I`](predictors/processing.md#netcleave) |
+| Endolysosomal cleavage (class II) | [`NetCleave_II`](predictors/processing.md#netcleave) |
+| TAP transport into the ER | [`DeepTAP`](predictors/processing.md#deeptap) |
+| ERAP1 N-terminal trimming | [`ERAMER`](predictors/processing.md#eramer) |
+| Whether a T cell responds | [`Calis`](predictors/immunogenicity.md#calis), [`PRIME`](predictors/immunogenicity.md#prime), [`BigMHC_IM`](predictors/binding.md#bigmhc), [`DeepImmuno`](predictors/immunogenicity.md#deepimmuno), [`TLimmuno2`](predictors/immunogenicity.md#tlimmuno2) (II) |
+| Whether a specific TCR recognises it | [`NetTCR`](predictors/tcr.md#nettcr), [`Tulip`](predictors/tcr.md#tulip), [`MixTCRpred`](predictors/tcr.md#mixtcrpred) |
+| How long the free peptide survives | [`PeptiVerse`](predictors/peptide-pk.md#peptiverse), [`PlifePred2`](predictors/peptide-pk.md#plifepred2) |
+| Which peptidase cuts which bond | [cleavage API](cleavage/index.md) |
 
 - [Predictor matrix](predictor-matrix.md): every predictor, class, command-line name, input, install route and license on one page.
 - [Choosing a predictor](choosing.md) and [known limits](limitations.md). Several of these models are weaker than their own papers suggest; read the limits before you trust a score.
@@ -46,7 +46,11 @@ for r in results:
         print(f"{r.peptide} -> {r.affinity.allele} IC50={r.affinity.value:.1f}nM")
 ```
 
-Every predictor is built the same way and answers `predict()`, though what you
+`predict()` returns one `PeptideResult` per peptide, in input order, with an
+accessor for each [kind of prediction](kinds.md) (`r.affinity`, `r.presentation`,
+`r.immunogenicity`, ...) that is `None` when the predictor does not produce it.
+
+Every predictor answers `predict()`, though what you
 pass differs by family (alleles, flanks, TCRs); see [input
 shapes](predictors/index.md#input-shapes). `Calis` needs no download at all.
 
