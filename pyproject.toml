@@ -20,6 +20,11 @@ classifiers = [
   "Operating System :: OS Independent",
   "Intended Audience :: Science/Research",
   "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
   "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
 dependencies = [
@@ -67,6 +72,11 @@ mixtcrpred = [
 vaccine-report = [
   "matplotlib",
 ]
+docs = [
+  "mkdocs>=1.6,<2",
+  "mkdocs-material>=9.5",
+  "mkdocstrings[python]>=0.26",
+]
 dev = [
   "build",
   # [tool.ruff.lint] declares the rule set, so a newer ruff no longer changes
@@ -85,6 +95,9 @@ mhctools = "mhctools.cli.script:main"
 
 [project.urls]
 Homepage = "https://github.com/openvax/mhctools"
+Documentation = "https://openvax.github.io/mhctools/"
+Source = "https://github.com/openvax/mhctools"
+Issues = "https://github.com/openvax/mhctools/issues"
 
 [tool.setuptools.dynamic]
 version = { attr = "mhctools.__version__" }

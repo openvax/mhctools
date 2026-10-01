@@ -70,7 +70,7 @@ physical quantity on a **linear** scale in that unit — never a log, never a
 rescaling, never whatever the upstream tool happened to print. A kind having a
 unit does not oblige every predictor to fill it: a wrapper whose transform to
 that unit is unresolved leaves `value` empty rather than guessing (see
-[`PlifePred2`](predictors.md#plifepred2)).
+[`PlifePred2`](predictors/peptide-pk.md#plifepred2)).
 
 **`percentile_rank`** appears when the predictor scores against a background
 distribution, and is always lower-is-better.
@@ -146,20 +146,29 @@ The allowed metadata values are defined in `mhctools.pred` as
 
 ## What each predictor emits
 
+Every predictor, with its class, command-line name, inputs and install route, is
+in the [predictor matrix](predictor-matrix.md). This table adds the MHC context
+that `kind_support()` reports for each kind, which can differ by mode.
+
 | Predictor | Kind | `mhc_dependence` | `mhc_class` |
 |---|---|---|---|
-| `NetMHCpan41` | `pMHC_affinity` | `single_allele` | `I` |
-| `NetMHCpan41` | `pMHC_presentation` | `single_allele` | `I` |
-| `NetMHCIIpan4_EL` | `pMHC_presentation` | `single_allele` | `II` |
-| `CapHLA` | `pMHC_affinity` | `single_allele` | `both` |
-| `CapHLA` | `pMHC_presentation` | `single_allele` | `both` |
-| `MixMHC2pred` | `pMHC_presentation` | `single_allele` | `II` |
+| `NetMHCpan41`, `NetMHCpan42` | `pMHC_affinity`, `pMHC_presentation` | `single_allele` | `I` |
+| `NetMHCpan41_EL`, `NetMHCpan42_EL`, `NetMHCpan4_EL` | `pMHC_presentation` | `single_allele` | `I` |
+| `NetMHCpan4_BA`, `NetMHCpan3`, `NetMHCpan28`, `NetMHC3`, `NetMHC4`, `NetMHCcons` | `pMHC_affinity` | `single_allele` | `I` |
+| `NetMHCIIpan43`, `NetMHCIIpan4`, `NetMHCIIpan4_EL` | `pMHC_presentation` | `single_allele` | `II` |
+| `NetMHCIIpan43_BA`, `NetMHCIIpan4_BA`, `NetMHCIIpan3` | `pMHC_affinity` | `single_allele` | `II` |
 | `NetMHCstabpan` | `pMHC_stability` | `single_allele` | `I` |
-| `MHCflurry` | `pMHC_affinity` | `single_allele` | `I` |
+| `SMM`, `SMMPMBEC`, `RandomBindingPredictor` | `pMHC_affinity` | `single_allele` | `I` |
+| `MHCflurry`, `MHCflurry_Affinity` | `pMHC_affinity` | `single_allele` | `I` |
 | `MHCflurry` haplotype mode | `pMHC_presentation` | `haplotype` | `I` |
 | `MHCflurry` per-allele panel mode | `pMHC_presentation` | `single_allele` | `I` |
 | `MHCflurry` | `antigen_processing` | `none` | `none` |
-| `Pepsickle` | `proteasome_cleavage` | `none` | `none` |
+| `BigMHC_EL` | `pMHC_presentation` | `single_allele` | `I` |
+| `BigMHC_IM` | `immunogenicity` | `single_allele` | `I` |
+| `CapHLA` | `pMHC_affinity`, `pMHC_presentation` | `single_allele` | `both` |
+| `MixMHCpred` | `pMHC_presentation` | `single_allele` | `I` |
+| `MixMHC2pred` | `pMHC_presentation` | `single_allele` | `II` |
+| `Pepsickle`, `NetChop` | `proteasome_cleavage` | `none` | `none` |
 | `NetCleave_I` | `proteasome_cleavage` | `none` | `I` |
 | `NetCleave_II` | `endolysosomal_cleavage` | `none` | `II` |
 | `DeepTAP` | `tap_transport` | `none` | `none` |
@@ -167,10 +176,7 @@ The allowed metadata values are defined in `mhctools.pred` as
 | `NetTCR` | `pMHC_TCR_binding` | `none` | `I` |
 | `Tulip` | `pMHC_TCR_binding` | `single_allele` | `I` |
 | `MixTCRpred` | `pMHC_TCR_binding` | `single_allele` | model-specific |
-| `BigMHC_IM` | `immunogenicity` | `single_allele` | `I` |
-| `PRIME` | `immunogenicity` | `single_allele` | `I` |
-| `DeepImmuno` | `immunogenicity` | `single_allele` | `I` |
+| `PRIME`, `DeepImmuno` | `immunogenicity` | `single_allele` | `I` |
 | `TLimmuno2` | `immunogenicity` | `single_allele` | `II` |
 | `Calis` | `immunogenicity` | `none` | `I` |
-| `PeptiVerse` | `peptide_half_life` | `none` | `none` |
-| `PlifePred2` | `peptide_half_life` | `none` | `none` |
+| `PeptiVerse`, `PlifePred2` | `peptide_half_life` | `none` | `none` |

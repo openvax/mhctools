@@ -1,6 +1,6 @@
 # Cleavage coverage and validation status
 
-This review accompanies the contextual batch API. Software conformance,
+This page accompanies the [batch API](batch.md). Software conformance,
 source-observation reproduction and independent prediction validation are
 different claims. No new held-out biological performance number is claimed.
 
@@ -22,12 +22,12 @@ instead feed the training-data extraction path. Reusing those maps and
 calling them held-out would be incorrect. The Wada case study below recovers
 source products from one of the paper's held-out studies and audits the raw
 training maps. Reconstructing the full processed validation partition and
-establishing family-level independence remain [#291](https://github.com/openvax/mhctools/issues/291);
+establishing family-level independence are open work ([known gaps](../known-gaps.md#benchmarks-and-validation));
 the case study does not claim to reproduce the paper's overall metrics.
 
 The gradient-boosted artifact records scikit-learn **0.23.2**. It fails under
 current scikit-learn (`sklearn.ensemble._gb_losses` is missing). The isolated
-Python 3.8.20/0.23.2 runtime added for [#471](https://github.com/openvax/mhctools/issues/471)
+Python 3.8.20/0.23.2 runtime for the gradient-boosted models
 executes both C/I routes and matches direct upstream inference with networking
 disabled. It records the actual subprocess's package, code and weight identity.
 The MAGE-A3 sequence in this conformance test occurs in upstream training data;
@@ -40,7 +40,7 @@ The current built-in panel has no transferable cathepsin S/L/B or AEP model.
 IRAP is an exact-substrate source catalog, and NetCleave-II is a class-II
 C-terminal processing proxy, not an enzyme-specific cathepsin predictor.
 The absence is explicit in batch coverage reports and tracked in
-[#470](https://github.com/openvax/mhctools/issues/470), a focused child of #334.
+[known gaps](../known-gaps.md#cleavage-validation-and-coverage).
 
 Primary sources for the next validation block:
 
@@ -56,7 +56,7 @@ PXD035641**. Its workflow uses quadruplicates and significance/fold-change
 criteria for detected products. Missing products are not automatically
 non-cleaved bonds. The available source supports assay-aware curation; it
 does not supply an already validated predictor of long-vaccine processing.
-The [CatL example](../tests/data/tusar2023/README.md) now includes seven
+The [CatL example](https://github.com/openvax/mhctools/blob/master/tests/data/tusar2023/README.md) now includes seven
 experimentally identified products from two protected synthetic peptides in
 [Tusar et al. 2023](https://doi.org/10.1038/s42003-023-04772-8), Supplementary
 Data 4 page 1. The five observed internal substrate/bond pairs agree with
@@ -71,7 +71,7 @@ these studies now, with each condition in its own named panel. Actual
 novel-sequence inference needs a separately verified adapter/data model.
 The model audit below records why novel-sequence coverage remains open.
 
-### Open-model availability audit (2026-09-30)
+### Open-model availability audit (as of 2026-09-30)
 
 Only openly licensed models are eligible for this work. Publicly downloadable
 files without a project license do not satisfy that constraint.
@@ -80,7 +80,7 @@ files without a project license do not satisfy that constraint.
 |---|---|---|
 | [Tusar et al. cathepsin S/L/B SVMs](https://doi.org/10.1038/s42003-023-04772-8) | CC BY 4.0 Supplementary Data 3 supplies six SVM-light files; B/L/S each declare 192 input features | Reproduce the original sequence/structure features and independent reference scores before adapting them to vaccine inputs |
 | [PCSS backend](https://github.com/salilab/pcss/tree/ea4c3ec81ef30b7a30f3c03508ee2bf1dd78ce34) | LGPL-2.1 code at `ea4c3ec81ef30b7a30f3c03508ee2bf1dd78ce34` | Author README explicitly reports that hard-coded databases/programs prevent operation outside the Sali lab; weights alone do not supply this pipeline |
-| [ProsperousPlus](https://github.com/lifuyi774/ProsperousPlus/tree/66a9d08cd5a44febf64950caf9684c81aa0e8807) | Directories C01.060 (CatB), C01.032 (CatL), C01.034 (CatS), C13.004 (animal legumain) are present | GitHub license metadata is null and the root has no project license; excluded under the open-model requirement (#281) |
+| [ProsperousPlus](https://github.com/lifuyi774/ProsperousPlus/tree/66a9d08cd5a44febf64950caf9684c81aa0e8807) | Directories C01.060 (CatB), C01.032 (CatL), C01.034 (CatS), C13.004 (animal legumain) are present | GitHub license metadata is null and the root has no project license; excluded under the open-model requirement ([known gaps](../known-gaps.md#cleavage-validation-and-coverage)) |
 | [panCleave](https://gitlab.com/machine-biology-group-public/pancleave) | Author describes a pooled, protease-agnostic random forest | Its output cannot supply enzyme-specific CatS/L/B/AEP coverage |
 | [DIPPS legumain study](https://doi.org/10.15252/embj.201796750) | Experimental pH-dependent specificity evidence | It is not a published fitted AEP predictor; an unconditional cut-after-Asn rule would discard the reported context |
 
@@ -94,18 +94,18 @@ archive for PMC10124925 and inspected. Their SHA-256 digests are:
 The article describes protein secondary-structure and solvent-exposure inputs.
 No unverified feature values, replacement model, or independent accuracy claim
 are supplied here. Completing this open-model runtime and obtaining an openly
-licensed, verified AEP predictor remain concrete blockers in #470. Requests
+licensed, verified AEP predictor remain concrete blockers ([known gaps](../known-gaps.md#cleavage-validation-and-coverage)). Requests
 for novel-sequence cathepsin/AEP predictions must continue to report unsupported
 coverage. Experimental source imports remain available now.
 
 ## Source-backed long-peptide case study
 
 [Wada et al. 2018](https://doi.org/10.1371/journal.pone.0199249) is explicitly
-assigned to validation in Pepsickle's Table 1. This PR now curates all 47
+assigned to validation in Pepsickle's Table 1. The fixture curates all 47
 detected products from Figure 2A and 2C: two 31-residue vaccine constructs
 containing the same epitopes in different orders, joined by RR linkers.
 The dataset retains first-detection times, figure row IDs, parent endpoints
-and the purified murine-i20S assay conditions. The correction was checked.
+and the purified murine-i20S assay conditions.
 
 The real gradient-boosted immunoproteasome model scores the complete constructs.
 Its native scores are paired with 24 observed internal construct/bond pairs;
@@ -117,13 +117,13 @@ homology-family overlap and the original fitted partition remain explicit
 limitations. This is a small study-held-out case study, not a new calibrated
 performance estimate or a reconstruction of all 225 author validation windows.
 
-The [fixture README](../tests/data/wada2018/README.md) gives the primary source,
+The [fixture README](https://github.com/openvax/mhctools/blob/master/tests/data/wada2018/README.md) gives the primary source,
 license, curation scope and reproducible command. The report preserves observed
 products through batch save/reload, with endpoint/boundary/internal overlays.
 No missing product is relabeled as a negative, and no product detection time is
 converted into a predicted cleavage rate or presentation outcome.
 
-Additional extracellular coverage is tracked in [#476](https://github.com/openvax/mhctools/issues/476):
+Additional extracellular coverage is tracked in [known gaps](../known-gaps.md#cleavage-validation-and-coverage):
 CleaveNet's MMP substrate scores need their own native endpoint and assay
 validation rather than conversion to per-bond probabilities.
 
