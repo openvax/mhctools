@@ -105,7 +105,7 @@ human serum half-life or primary-DC cytosolic-delivery observations.
 
 ## Dataset/model lineage inventory
 
-The installed [inventory](../mhctools/data/model_lineage.json) records sources,
+The installed [inventory](https://github.com/openvax/mhctools/blob/master/mhctools/data/model_lineage.json) records sources,
 known relationships and unresolved questions rather than assuming models
 have independent training data:
 
@@ -126,7 +126,7 @@ have independent training data:
   than experimentally observed. This shared ancestry with POSEIDON requires
   row-level auditing before claiming an independent comparison.
 - qPISA coefficient reproduction and ERAMER adapter agreement are documented
-  in the [cleavage guide](cleavage.md); their reproduction is separate from
+  in the [cleavage guide](cleavage/index.md); their reproduction is separate from
   new assay validation.
 
 No third-party raw exposure/uptake datasets or model weights are redistributed.

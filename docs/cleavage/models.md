@@ -1,36 +1,133 @@
-# Peptidase cleavage evidence
+# Cleavage models
 
-For named epitope occurrences with flanks, complete vaccine constructs and
-separate tumor/APC/extracellular scenarios, use the
-[batch API and CLI](cleavage-batch.md). It preserves categorical and numerical
-evidence through overlays and save/reload.
+The model panel behind `predict_cleavage()` and `mhctools cleavage`. Which
+enzyme, where it acts, what pattern it assesses and how strongly a match should
+be read is below; what the result states mean is in [reading the
+evidence](evidence.md).
 
-```python
-from mhctools import CleavageInput, DPP4qPISA
+## Running the panel
 
-peptide = CleavageInput("HAEGTFTSD", source_id="GLP-1 fragment")
-result = DPP4qPISA().predict(peptide)
-print(result.sites[0].bond)   # 2: HA | EGTFTSD
-print(result.sites[0].score)  # 2.1694, native qPISA score
-print(result.to_dict())      # input, model, assay, limitations and source bonds
+```sh
+mhctools cleavage --list-models
+mhctools cleavage --list-models --json
+mhctools cleavage --sequence RPPGFSPFR --model app2-xp --model cpn-basic
+mhctools cleavage --sequence VPYGSFKHV --compartment cytosol --out cleavage.json
+mhctools cleavage --sequence HAEGTFTSD --model dpp4-qpisa --n-term acetylated
+mhctools cleavage --sequence SIINFEKL --model pepsickle-in-vivo-human-only
 ```
 
-This API describes individual peptide bonds. Bond `b` splits
-`sequence[:b] | sequence[b:]`; `source_bond` adds the zero-based
-`source_start` offset. Existing proteasomal scoring APIs remain available.
+```python
+from mhctools import predict_cleavage
+results = predict_cleavage("TSGPNQ", models=["fap-endo-gp", "prep-pro"])
+```
 
-Inputs describe canonical, linear L-peptides. Strings assume free N and C
-termini. Use `CleavageInput` to explicitly record `n_term="acetylated"` or
-`c_term="amidated"`, or `unknown`. These forms are recorded but the initial
-qPISA implementation abstains because they are outside its supported domain.
-Other modifications, D-residues, cyclization and conjugates are unsupported;
-do not strip their chemistry to obtain a score.
+The default panel evaluates all 20 built-in models and returns separate
+results. `--model` and `--sequence` can be repeated. `--list-models` prints a
+compact discovery table; add `--json` for its full machine-readable catalog.
+The eight optional Pepsickle models cover epitope and C/I digestion families;
+see [proteasome models](#proteasome-models).
+Missing assets and uninspected external runtimes are listed as unresolved.
+Predictions carry SHA-256 identities for the actual runtime's weights,
+inference code, feature code and dependency metadata.
+Prediction JSON uses schema version 2: its top-level `models` object stores each
+full provenance record once, keyed by model name, and each item in `results`
+references that name in its `model` field. The output retains unmatched and
+unsupported results, source coordinates and chemistry. Numerical scores are
+written with six significant digits. `--source-start` is a zero-based offset
+shared by the supplied inputs; use separate calls when fragments have different
+offsets.
 
-Exopeptidases assess exposed termini. An internal `HAE` is not an immediate
-DPP4 site. To ask about a hypothesized product, use
-`parent.fragment(start, end, n_term="free", c_term="free")` and predict that
-fragment. The source offset is retained. This conditional analysis does not
-predict formation of the fragment, cleavage order, rates or competition.
+Compartment filtering uses exact, conservative enzyme-location annotations.
+`serum`, `plasma`, `extracellular`, `cytosol`, `endosome` and `er` are
+distinct. The `extracellular` filter is useful for broader candidate
+screening; `serum` is not an exhaustive inventory of everything potentially
+present in a serum sample. Presence, concentration, activation, inhibitors and
+exposure are not inferred. No combination is converted into overall stability.
+
+## The models
+
+Strictness grades are explained in [reading the evidence](evidence.md#how-strict-is-each-motif).
+
+| Model | Assessed recognition pattern | Strictness | Main scope and primary evidence |
+| --- | --- | --- | --- |
+| `dpp4-qpisa` | N-terminal P2-P1\|P1′ score | scored | Human DPP4; quantitative model described above |
+| `ace-dipeptidyl` | C-terminal \|non-Pro–non-Asp/Glu | required | Ordinary human ACE dipeptide activity; [angiotensin assays](https://doi.org/10.1042/BJ20040634) |
+| `mme-hydrophobic` | Selected P1′ residues Phe/Ile/Leu/Tyr | preferred | Human neprilysin; [kidney peptide assays](https://pubmed.ncbi.nlm.nih.gov/6349683/); incomplete whole-sequence specificity |
+| `cpb2-basic` | C-terminal \|Lys/Arg, explicitly active enzyme | required | Human TAFIa; [chemerin cleavage](https://pmc.ncbi.nlm.nih.gov/articles/PMC2613638/); unknown/zymogen/inactive states abstain |
+| `cpn-basic` | C-terminal \|Lys/Arg | required | Human plasma CPN; [Oshima et al. 1975](https://doi.org/10.1016/0003-9861(75)90104-6) |
+| `app1-xp` | N-terminal X\|Pro | required | Cytosolic human XPNPEP1; [Cottrell et al. 2000](https://pubmed.ncbi.nlm.nih.gov/11106490/); manganese dependent, distinct gene product from XPNPEP2 |
+| `app2-xp` | N-terminal X\|Pro | required | Human XPNPEP2; [Molinaro et al.](https://pubmed.ncbi.nlm.nih.gov/15361070/) |
+| `fap-dipeptidyl` | N-terminal X-Pro\|non-Pro | required | Human FAP; [Edosada et al.](https://pubmed.ncbi.nlm.nih.gov/16410248/) |
+| `fap-endo-gp` | Gly-Pro\|non-Pro | required | FAP endopeptidase; [substrate profiling](https://pubmed.ncbi.nlm.nih.gov/16480718/), [prime-side constraint](https://pubmed.ncbi.nlm.nih.gov/22750443/) |
+| `enpep-acidic` | N-terminal Asp/Glu\|X | preferred | Aminopeptidase A; [human specificity study](https://pubmed.ncbi.nlm.nih.gov/23888046/); calcium and sequence affect activity |
+| `anpep-ala` | N-terminal Ala\|X preference | permissive | Aminopeptidase N; [human structure/biochemistry](https://pubmed.ncbi.nlm.nih.gov/22932899/); many other substrates omitted |
+| `dpp8-xp-xa` | N-terminal X-(Pro/Ala)\|non-Pro | required | Cytosolic DPP8; [characterization](https://pubmed.ncbi.nlm.nih.gov/11012666/), [degradomics](https://pmc.ncbi.nlm.nih.gov/articles/PMC3656252/) |
+| `dpp9-xp-xa` | N-terminal X-(Pro/Ala)\|non-Pro | required | Cytosolic DPP9; [antigen processing](https://pubmed.ncbi.nlm.nih.gov/19667070/), same degradomics study |
+| `tpp2-tripeptidyl` | N-terminal tripeptide, non-Pro P1 and P1′ | permissive | Cytosolic TPP2; [RU1 precursor processing](https://doi.org/10.4049/jimmunol.169.8.4161); topology, not selectivity |
+| `npepps-n-terminal` | First bond lacking Gly/Pro context | permissive | Puromycin-sensitive aminopeptidase; same RU1 study; broad enzyme, weak flag |
+| `prep-pro` | Internal X-Pro\|X | required | PREP/POP, conservative 4–30-residue domain; [human profiling](https://pubmed.ncbi.nlm.nih.gov/22750443/); flanking preferences omitted |
+| `erap2-basic` | N-terminal Arg/Lys\|X preference | preferred | ERAP2 in ER; [biochemistry](https://pubmed.ncbi.nlm.nih.gov/12799365/), [peptide structures](https://pubmed.ncbi.nlm.nih.gov/26381406/); not a full-context predictor |
+| `thop1-observed` | Exact-sequence source lookup | source observations | Cytosolic THOP1; [Knight et al. 1995](https://pubmed.ncbi.nlm.nih.gov/7755557/) |
+| `nln-observed` | Exact-sequence source lookup | source observations | Cytosolic NLN; [human neurolysin structures and LC-MS](https://pubmed.ncbi.nlm.nih.gov/39117724/) |
+| `lnpep-observed` | Exact-sequence source lookup | source observations | Endosomal LNPEP/IRAP; [Georgiadou et al. 2010](https://pubmed.ncbi.nlm.nih.gov/20592285/) |
+| `eramer-step` (optional) | Initial N-terminal bond; length-specific PWM score | scored | ERAP1 in ER; [ERAMER](https://pubmed.ncbi.nlm.nih.gov/38925438/), 9–16 residues |
+
+The motif models return decisions without numerical scores. For example,
+APP removes the first residue of `RPPGFSPFR` at `R|PPGFSPFR`; DPP-like
+activity would remove two residues and is a separate assessment. FAP's
+endopeptidase rule can also assess an N-acetylated input, supported by its
+blocked-substrate activity. ACE also accepts N-acetylation, and MME accepts
+C-amidation. Other rules conservatively accept free termini only;
+an unsupported modified input does not establish that
+its bonds resist enzymatic cleavage.
+
+## Proteasome models
+
+Eight optional Pepsickle models cover the epitope and digestion families, with
+explicit constitutive (C) or immunoproteasome (I) selection where the family has
+it. They are excluded from the default panel and selected by exact name:
+
+| Model | Family | Context | Proteasome |
+|---|---|---|---|
+| `pepsickle-in-vivo-human-only` | epitope-trained neural ensemble | 8 residues before and after P1 | agnostic |
+| `pepsickle-in-vivo-all-mammal` | epitope-trained neural ensemble | 8 residues before and after P1 | agnostic |
+| `pepsickle-in-vitro-2-human-only-constitutive` | digestion-trained neural ensemble | 3 residues before and after P1 | C |
+| `pepsickle-in-vitro-2-human-only-immunoproteasome` | digestion-trained neural ensemble | 3 residues before and after P1 | I |
+| `pepsickle-in-vitro-2-all-mammal-constitutive` | digestion-trained neural ensemble | 3 residues before and after P1 | C |
+| `pepsickle-in-vitro-2-all-mammal-immunoproteasome` | digestion-trained neural ensemble | 3 residues before and after P1 | I |
+| `pepsickle-in-vitro-all-mammal-constitutive` | gradient-boosted digestion model | needs the isolated scikit-learn 0.23.2 runtime (see [below](#the-legacy-gradient-boosted-runtime)) | C |
+| `pepsickle-in-vitro-all-mammal-immunoproteasome` | gradient-boosted digestion model | needs the isolated scikit-learn 0.23.2 runtime | I |
+
+The Python `Pepsickle` wrapper takes `model_type` and `proteasome_type` (`C`
+or `I`) for digestion models. It rejects a proteasome type for the epitope
+model and `human_only=True` for gradient boosting, which upstream ignores.
+Model metadata identifies actual weights, code, population and model family.
+The upstream endpoint sentinel is excluded from canonical bond results.
+
+### The legacy gradient-boosted runtime
+
+Provision it with Docker:
+
+```sh
+python scripts/setup_test_backends.py pepsickle
+source env/test-backends/activate.sh
+```
+
+This pins Python 3.8.20, scikit-learn 0.23.2 and its companion packages in a
+separate container. Its generated `PEPSICKLE_GB_PYTHON` launcher selects that
+runtime only for gradient boosting and runs inference with networking
+disabled. Neural models keep their existing runtime. A separately managed
+interpreter can be selected with `Pepsickle(python_executable=...)` or
+`PEPSICKLE_PYTHON` for every model family.
+
+Prediction provenance comes from the selected interpreter, including package
+versions and actual code/weight hashes. A changed identity between inspection
+and inference causes failure. Catalog listing does not start external
+runtimes; their identities remain unresolved until the predictor is selected.
+No model is silently substituted when a runtime is missing or incompatible.
+
+Adapter agreement with upstream inference establishes implementation
+conformance, not accuracy for tumor/APC processing or vaccine-peptide survival.
 
 ## Human DPP4 qPISA
 
@@ -67,148 +164,7 @@ unless otherwise credited; Dataset EV2 has no separate credit restriction.
 Attribution: Rajani Kanth Gudipati and colleagues, 2024, DOI above. No figures
 or upstream R source code are redistributed.
 
-## Interpreting rule-based evidence
-
-The shared result contract also supports `motif_rule` evidence, reported as
-`matched` or `not_matched` with no numerical score. A rule match indicates a
-known recognition pattern; a non-match does not establish resistance.
-`unsupported_reason` means the input could not be assessed and carries no
-score. These states must remain separate in downstream displays and ranking.
-
-### Building a position track for a full sequence
-
-A downstream tool (topiary, vaxrank) that wants to overlay cleavage evidence
-from several models onto one parent sequence, as a track indexed by
-position, reads `source_bond` from `to_dict()["sites"]` and keys everything
-on it. That coordinate is `source_start + bond`, so it is the same absolute
-number no matter which model or which fragment produced the site:
-
-```python
-track = {}
-for result in predict_cleavage(peptide, compartment="cytosol"):
-    for site in result.to_dict()["sites"]:
-        track.setdefault(site["source_bond"], []).append(
-            {"model": result.model.name, "status": site["status"], "score": site["score"]})
-```
-
-Two model shapes contribute to that track differently, and a caller building
-one has to model both:
-
-- **Internal topology** (`mme-hydrophobic`, `fap-endo-gp`, `prep-pro`)
-  assesses every internal bond of whatever peptide it is given in one
-  `predict()` call. Calling it once on the full input already produces a
-  multi-position run of track entries.
-- **Terminal topology** (the aminopeptidases, carboxypeptidases, DPP-family,
-  `dpp4-qpisa` and `eramer-step`) only ever assesses the *currently exposed*
-  end of its input — always exactly one bond, regardless of peptide length.
-  It cannot tell you whether a bond in the middle of a long precursor is a
-  plausible trimming stop; it can only assess a candidate fragment you
-  supply. To extend a track with these models, model the hypothesized
-  trimming step explicitly with `parent.fragment(start, end, n_term=...,
-  c_term=...)` and predict on that fragment. Its `source_bond` still lands
-  on the parent's absolute coordinates, so it merges into the same track —
-  but producing a track over a whole precursor this way means enumerating
-  candidate fragments yourself; the model does not search for them.
-
-The same rule applies to `substrate_reference` evidence (THOP1, neurolysin,
-IRAP): it never invents a bond, so a source case that reports degradation
-without pinning one contributes no track entry, not a guessed position.
-
-Because motif and source-reference models never emit numerical scores, and
-because `not_matched`/`no_cleavage_detected` are not probabilities of
-resistance, a track built this way is evidence to overlay and inspect, not a
-single per-position score to rank or threshold.
-
-## Model panel and JSON command
-
-```sh
-mhctools cleavage --list-models
-mhctools cleavage --list-models --json
-mhctools cleavage --sequence RPPGFSPFR --model app2-xp --model cpn-basic
-mhctools cleavage --sequence VPYGSFKHV --compartment cytosol --out cleavage.json
-mhctools cleavage --sequence HAEGTFTSD --model dpp4-qpisa --n-term acetylated
-mhctools cleavage --sequence SIINFEKL --model pepsickle-in-vivo-human-only
-```
-
-```python
-from mhctools import predict_cleavage
-results = predict_cleavage("TSGPNQ", models=["fap-endo-gp", "prep-pro"])
-```
-
-The default panel evaluates all 20 built-in models and returns separate
-results. `--model` and `--sequence` can be repeated. `--list-models` prints a
-compact discovery table; add `--json` for its full machine-readable catalog.
-The eight optional Pepsickle models cover epitope and C/I digestion families;
-see [batch model selection](cleavage-batch.md#proteasome-model-selection).
-Missing assets and uninspected external runtimes are listed as unresolved.
-Predictions carry SHA-256 identities for the actual runtime's weights,
-inference code, feature code and dependency metadata.
-Prediction JSON uses schema version 2: its top-level `models` object stores each
-full provenance record once, keyed by model name, and each item in `results`
-references that name in its `model` field. The output retains unmatched and
-unsupported results, source coordinates and chemistry. Numerical scores are
-written with six significant digits. `--source-start` is a zero-based offset
-shared by the supplied inputs; use separate calls when fragments have different
-offsets.
-
-Compartment filtering uses exact, conservative enzyme-location annotations.
-`serum`, `plasma`, `extracellular`, `cytosol`, `endosome` and `er` are
-distinct. The `extracellular` filter is useful for broader candidate
-screening; `serum` is not an exhaustive inventory of everything potentially
-present in a serum sample. Presence, concentration, activation, inhibitors and
-exposure are not inferred. No combination is converted into overall stability.
-
-### How strict is each motif?
-
-A recognition pattern is only as informative as the evidence behind it, so
-every motif rule carries a `motif_strictness` grade and a `strictness_basis`
-naming the source observation that supports the grade. Read a decision through
-the grade rather than treating all matches alike:
-
-| Grade | What a match means | What a non-match means |
-| --- | --- | --- |
-| `required` | The pattern is necessary for this activity, so a match clears a real gate. Rates, exposure and competition still decide the outcome. | Meaningful evidence against cleavage by this enzyme through this route. Still not proof of resistance. |
-| `preferred` | A favoured context, not a gate. | Weak evidence. Non-matching bonds are cleaved, usually more slowly. |
-| `permissive` | Little information; the rule mostly describes topology or a broad enzyme. | Almost no information. |
-
-Grades apply to motif rules only. Scored models report native units instead,
-and source references report what an experiment observed. Neither carries a
-grade, and both leave `motif_strictness` null.
-
-| Model | Assessed recognition pattern | Strictness | Main scope and primary evidence |
-| --- | --- | --- | --- |
-| `dpp4-qpisa` | N-terminal P2-P1\|P1′ score | scored | Human DPP4; quantitative model described above |
-| `ace-dipeptidyl` | C-terminal \|non-Pro–non-Asp/Glu | required | Ordinary human ACE dipeptide activity; [angiotensin assays](https://doi.org/10.1042/BJ20040634) |
-| `mme-hydrophobic` | Selected P1′ residues Phe/Ile/Leu/Tyr | preferred | Human neprilysin; [kidney peptide assays](https://pubmed.ncbi.nlm.nih.gov/6349683/); incomplete whole-sequence specificity |
-| `cpb2-basic` | C-terminal \|Lys/Arg, explicitly active enzyme | required | Human TAFIa; [chemerin cleavage](https://pmc.ncbi.nlm.nih.gov/articles/PMC2613638/); unknown/zymogen/inactive states abstain |
-| `cpn-basic` | C-terminal \|Lys/Arg | required | Human plasma CPN; [Oshima et al. 1975](https://doi.org/10.1016/0003-9861(75)90104-6) |
-| `app1-xp` | N-terminal X\|Pro | required | Cytosolic human XPNPEP1; [Cottrell et al. 2000](https://pubmed.ncbi.nlm.nih.gov/11106490/); manganese dependent, distinct gene product from XPNPEP2 |
-| `app2-xp` | N-terminal X\|Pro | required | Human XPNPEP2; [Molinaro et al.](https://pubmed.ncbi.nlm.nih.gov/15361070/) |
-| `fap-dipeptidyl` | N-terminal X-Pro\|non-Pro | required | Human FAP; [Edosada et al.](https://pubmed.ncbi.nlm.nih.gov/16410248/) |
-| `fap-endo-gp` | Gly-Pro\|non-Pro | required | FAP endopeptidase; [substrate profiling](https://pubmed.ncbi.nlm.nih.gov/16480718/), [prime-side constraint](https://pubmed.ncbi.nlm.nih.gov/22750443/) |
-| `enpep-acidic` | N-terminal Asp/Glu\|X | preferred | Aminopeptidase A; [human specificity study](https://pubmed.ncbi.nlm.nih.gov/23888046/); calcium and sequence affect activity |
-| `anpep-ala` | N-terminal Ala\|X preference | permissive | Aminopeptidase N; [human structure/biochemistry](https://pubmed.ncbi.nlm.nih.gov/22932899/); many other substrates omitted |
-| `dpp8-xp-xa` | N-terminal X-(Pro/Ala)\|non-Pro | required | Cytosolic DPP8; [characterization](https://pubmed.ncbi.nlm.nih.gov/11012666/), [degradomics](https://pmc.ncbi.nlm.nih.gov/articles/PMC3656252/) |
-| `dpp9-xp-xa` | N-terminal X-(Pro/Ala)\|non-Pro | required | Cytosolic DPP9; [antigen processing](https://pubmed.ncbi.nlm.nih.gov/19667070/), same degradomics study |
-| `tpp2-tripeptidyl` | N-terminal tripeptide, non-Pro P1 and P1′ | permissive | Cytosolic TPP2; [RU1 precursor processing](https://doi.org/10.4049/jimmunol.169.8.4161); topology, not selectivity |
-| `npepps-n-terminal` | First bond lacking Gly/Pro context | permissive | Puromycin-sensitive aminopeptidase; same RU1 study; broad enzyme, weak flag |
-| `prep-pro` | Internal X-Pro\|X | required | PREP/POP, conservative 4–30-residue domain; [human profiling](https://pubmed.ncbi.nlm.nih.gov/22750443/); flanking preferences omitted |
-| `erap2-basic` | N-terminal Arg/Lys\|X preference | preferred | ERAP2 in ER; [biochemistry](https://pubmed.ncbi.nlm.nih.gov/12799365/), [peptide structures](https://pubmed.ncbi.nlm.nih.gov/26381406/); not a full-context predictor |
-| `thop1-observed` | Exact-sequence source lookup | source observations | Cytosolic THOP1; [Knight et al. 1995](https://pubmed.ncbi.nlm.nih.gov/7755557/) |
-| `nln-observed` | Exact-sequence source lookup | source observations | Cytosolic NLN; [human neurolysin structures and LC-MS](https://pubmed.ncbi.nlm.nih.gov/39117724/) |
-| `lnpep-observed` | Exact-sequence source lookup | source observations | Endosomal LNPEP/IRAP; [Georgiadou et al. 2010](https://pubmed.ncbi.nlm.nih.gov/20592285/) |
-| `eramer-step` (optional) | Initial N-terminal bond; length-specific PWM score | scored | ERAP1 in ER; [ERAMER](https://pubmed.ncbi.nlm.nih.gov/38925438/), 9–16 residues |
-
-The motif models return decisions without numerical scores. For example,
-APP removes the first residue of `RPPGFSPFR` at `R|PPGFSPFR`; DPP-like
-activity would remove two residues and is a separate assessment. FAP's
-endopeptidase rule can also assess an N-acetylated input, supported by its
-blocked-substrate activity. ACE also accepts N-acetylation, and MME accepts
-C-amidation. Other rules conservatively accept free termini only;
-an unsupported modified input does not establish that
-its bonds resist enzymatic cleavage.
-
-### Serum and extracellular candidates
+## Serum and extracellular candidates
 
 ```sh
 mhctools cleavage --sequence DRVYIHPFHL --model ace-dipeptidyl --model mme-hydrophobic
@@ -244,7 +200,7 @@ These small reproduction controls do not establish specificity, serum
 half-life performance, or validity on long peptides. The report explicitly
 shows missing serum-half-life and long-peptide evidence.
 
-### Cytosolic and endosomal candidates
+## Cytosolic and endosomal candidates
 
 ```sh
 mhctools cleavage --sequence VPYGSFKHV --compartment cytosol
@@ -295,7 +251,7 @@ from Georgiadou 2010 is excluded entirely: the paper prints `DIRSSVQNKL` in
 its results and Table I but `DIRSSQVNKL` in the Figure 3F caption, and an
 exact-sequence catalog cannot silently pick one. Both strings are retained in
 the dataset notice, and the discrepancy is tracked in
-[#332](https://github.com/openvax/mhctools/issues/332).
+[known gaps](../known-gaps.md#cleavage-validation-and-coverage).
 
 Thimet oligopeptidase contributes no non-cleavage record at all. Every
 resistant peptide in its source is a hydroxyproline analogue or carries an
@@ -308,7 +264,7 @@ Those gaps are the point: nothing here calibrates how long a peptide survives
 in the cytosol of an antigen-presenting cell, where the proteasome, competing
 aminopeptidases and TAP transport all act at once.
 
-### ERAP1 and existing processing models
+## ERAP1 and existing processing models
 
 ```sh
 mhctools fetch eramer
@@ -336,42 +292,3 @@ default to subprocess isolation because the upstream package deserializes a
 pickle, while still requiring users to trust the installed model artifact.
 Processing-model output scales must not be mixed with qPISA scores or motif
 decisions.
-
-## Wider candidate inventory and next PRs
-
-This is a starting panel, not a complete inventory of human proteolysis.
-The next work is prioritized by useful substrate coverage and evidence:
-
-1. **Benchmark the shipped models** on held-out, assay-specific substrates:
-   [#291](https://github.com/openvax/mhctools/issues/291). Include observed
-   non-cleavages, terminal modifications, homologous-sequence leakage checks,
-   and coverage/abstention. Purified-enzyme turnover and disappearance of intact
-   peptide in serum are separate endpoints.
-2. **Remaining intracellular gaps** after [#327](https://github.com/openvax/mhctools/issues/327)
-   shipped TPP2, NPEPPS, XPNPEP1, THOP1, NLN and endosomal LNPEP/IRAP.
-   Resolve the conflicting IRAP precursor sequence
-   ([#332](https://github.com/openvax/mhctools/issues/332)) before that record
-   can be curated. Curate exact TPP2 and NPEPPS substrate observations from the
-   [RU1 precursor](https://pubmed.ncbi.nlm.nih.gov/12370345/) and
-   [long-precursor trimming](https://pubmed.ncbi.nlm.nih.gov/16849449/) studies
-   so those permissive rules gain reproduction records. Primary reports
-   disagree about whether mature class I epitopes are good THOP1 substrates;
-   settle that with curated data rather than by choosing a side. Cytosolic
-   aminopeptidases LAP3 and BLMH, and the endo/lysosomal cathepsins and
-   legumain that matter for class II and cross-presentation, remain unmodeled.
-3. **Activated blood and inflammation-associated proteases**: F2/thrombin,
-   PLG/plasmin, KLKB1, ELANE, CTSG, PRTN3 and relevant extracellular cathepsins
-   and matrix metalloproteases. Curate activation, inhibitors, tissue exposure,
-   and assay conditions before choosing a predictor. A generic Arg/Lys or
-   hydrophobic-residue scan would not distinguish these enzymes.
-4. **Other exopeptidases/compartments**: DPP7, DPP2-family annotations,
-   cathepsins C/H, ACE2, carboxypeptidases M/E and lysosomal/endosomal processing
-   merit separate domain reviews. Do not infer ER or serum activity merely
-   from membership in a peptidase family.
-
-Downstream sequence overlays and fragment/construct projections are tracked
-in [topiary #288](https://github.com/openvax/topiary/issues/288) and
-[vaxrank #422](https://github.com/openvax/vaxrank/issues/422). They should retain
-exact fragment chemistry and parent coordinates rather than treating internal
-exo motifs as immediate cleavage sites. The broader validated serum-cleavage
-work remains tracked in [#278](https://github.com/openvax/mhctools/issues/278).

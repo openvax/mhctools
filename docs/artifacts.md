@@ -119,7 +119,7 @@ paths, and license provenance.
 
 Manual artifacts are listed but `fetch` will not redistribute them.
 
-Small published models such as [Calis](predictors.md#calis) are fully embedded
+Small published models such as [Calis](predictors/immunogenicity.md#calis) are fully embedded
 in the mhctools package, appear as `mhctools package`, and never need a fetch.
 
 ## Inventory is not capability

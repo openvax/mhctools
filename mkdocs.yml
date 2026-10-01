@@ -1,0 +1,82 @@
+site_name: mhctools
+site_description: One Python interface to ~30 MHC binding, presentation, immunogenicity and antigen-processing predictors
+site_url: https://openvax.github.io/mhctools/
+repo_url: https://github.com/openvax/mhctools
+repo_name: openvax/mhctools
+edit_uri: edit/master/docs/
+docs_dir: docs
+strict: true
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.top
+    - search.suggest
+    - content.code.copy
+
+validation:
+  omitted_files: warn
+  absolute_links: warn
+  unrecognized_links: warn
+  anchors: warn
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: numpy
+            show_root_heading: true
+            show_source: false
+            members_order: source
+
+markdown_extensions:
+  - admonition
+  - tables
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Choosing:
+      - Choosing a predictor: choosing.md
+      - Predictor matrix: predictor-matrix.md
+      - Known limits: limitations.md
+  - Using predictors:
+      - Predictors: predictors/index.md
+      - MHC binding and presentation: predictors/binding.md
+      - Antigen processing: predictors/processing.md
+      - Immunogenicity: predictors/immunogenicity.md
+      - TCR specificity: predictors/tcr.md
+      - Peptide half-life: predictors/peptide-pk.md
+      - Results and DataFrames: results.md
+      - Recipes: recipes.md
+      - Allele names: alleles.md
+      - Command line: cli.md
+  - Installing:
+      - Getting models: artifacts.md
+      - Optional backends: backends.md
+      - Environment variables: env-vars.md
+      - Licensing: licensing.md
+      - Troubleshooting: troubleshooting.md
+  - Understanding output:
+      - Prediction kinds: kinds.md
+      - Peptide PK and exposure: exposure-results.md
+      - Backend conformance: optional-backends.md
+  - Cleavage and vaccines:
+      - Cleavage evidence: cleavage/index.md
+      - Cleavage models: cleavage/models.md
+      - Reading the evidence: cleavage/evidence.md
+      - Batch assessments: cleavage/batch.md
+      - Validation status: cleavage/validation.md
+      - Vaccine reports: vaccine-reports.md
+      - Benchmarks: benchmarks.md
+  - Reference:
+      - API reference: api.md
+      - Migration guide: migration.md
+      - Known gaps: known-gaps.md
+  - Contributing:
+      - Testing: testing.md
+      - Maintaining the SMM subset: dev/smm-subset.md

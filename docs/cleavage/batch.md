@@ -66,8 +66,8 @@ from a sequence or assume an injected peptide reaches circulation.
 Imported `evidence` and other JSON fields survive normalization, inference,
 save/reload and reporting unchanged. They do not automatically become scores
 or independent corroboration. Generalized source-file reconciliation and
-ranking remain Topiary responsibilities; see [#366](https://github.com/openvax/topiary/issues/366)
-and [Vaxrank #497](https://github.com/openvax/vaxrank/issues/497).
+ranking are Topiary responsibilities, and construct selection is Vaxrank's; see
+[known gaps](../known-gaps.md#downstream-integration).
 
 ## Scenarios and trimming
 
@@ -114,44 +114,28 @@ the output. Catalog names cannot override built-in models.
 This provides an input mode for cathepsin/AEP experiments while transferable
 prediction remains unavailable. A source lookup abstains on every unobserved
 chemical form. Never fill omitted cleavage sites with experimental negatives.
-See [the biological coverage review](cleavage-validation.md).
+See [the biological coverage review](validation.md).
 
-## Proteasome model selection
+## Guarantees
 
-- `pepsickle-in-vivo-{human-only,all-mammal}`: epitope-trained neural ensemble,
-  proteasome-type agnostic; eight residues before and after P1.
-- `pepsickle-in-vitro-2-{human-only,all-mammal}-{constitutive,immunoproteasome}`:
-  digestion-trained neural ensemble; three residues before and after P1.
-- `pepsickle-in-vitro-all-mammal-{constitutive,immunoproteasome}`:
-  gradient-boosted digestion model. Its artifact requires the isolated
-  scikit-learn 0.23.2 runtime; see setup below.
-
-The Python `Pepsickle` wrapper takes `model_type` and `proteasome_type` (`C`
-or `I`) for digestion models. It rejects a proteasome type for the epitope
-model and `human_only=True` for gradient boosting, which upstream ignores.
-Model metadata identifies actual weights, code, population and model family.
-The upstream endpoint sentinel is excluded from canonical bond results.
-
-Provision the legacy runtime with Docker:
-
-```sh
-python scripts/setup_test_backends.py pepsickle
-source env/test-backends/activate.sh
-pytest tests/test_pepsickle_legacy.py --require-all
-```
-
-This pins Python 3.8.20, scikit-learn 0.23.2 and its companion packages in a
-separate container. Its generated `PEPSICKLE_GB_PYTHON` launcher selects that
-runtime only for gradient boosting and runs inference with networking
-disabled. Neural models keep their existing runtime. A separately managed
-interpreter can be selected with `Pepsickle(python_executable=...)` or
-`PEPSICKLE_PYTHON` for every model family.
-
-Prediction provenance comes from the selected interpreter, including package
-versions and actual code/weight hashes. A changed identity between inspection
-and inference causes failure. Catalog listing does not start external
-runtimes; their identities remain unresolved until the predictor is selected.
-No model is silently substituted when a runtime is missing or incompatible.
-
-Adapter agreement with upstream inference establishes implementation
-conformance, not accuracy for tumor/APC processing or vaccine-peptide survival.
+- Preserve input occurrence IDs, source offsets, chemistry, sequence scope,
+  epitope intervals, imported predictions and arbitrary source annotations.
+  Native windows do not establish exposed molecular termini.
+- Use zero-based, half-open epitope/fragment intervals and existing cleavage
+  bond coordinates. Reject inconsistent peptide/sequence/interval combinations.
+- Scenarios explicitly name models and compartments. Default panels report
+  their limitations and missing biological coverage; optional models never
+  silently disappear or substitute for requested models.
+- Hypothetical fragments require explicit terminal chemistry and an assumption
+  explaining their production. Their assessments remain conditional.
+- Preserve categorical motif decisions, quantitative scores, substrate-only
+  observations, unsupported inputs and runtime failures separately. Overlay
+  internal bonds and the N/C boundaries without inventing terminal bonds.
+- JSON round-trips retain the original inputs and evidence. Human reports
+  consume these same records and do not assign aggregate protection scores.
+- Expose upstream Pepsickle epitope and in-vitro model families with explicit
+  constitutive/immunoproteasome selection, exact artifact identity and native
+  score semantics. Reject settings the upstream model ignores.
+- Review cathepsin/AEP evidence with pH, activation and assay scope. Include
+  source-linked observations only where the original sequence and bond are
+  verified. Missing transferable models remain explicit coverage gaps.

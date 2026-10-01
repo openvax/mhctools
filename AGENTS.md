@@ -30,6 +30,9 @@ Before telling the user a change is "complete":
 - `./lint.sh` — ruff check
 - `./test.sh` — pytest (with coverage where configured)
 - `./deploy.sh [version]` — lint → test → optional version bump → build → twine upload → tag → push
+- `python scripts/predictor_matrix.py` — regenerate `docs/predictor-matrix.md` (add new predictors to `scripts/predictor_matrix.py` first; a test fails if one is missing)
+- `python scripts/check_docs_links.py` — check links and anchors in `README.md` and `docs/`
+- `mkdocs build --strict` — build the docs site (`pip install -e ".[docs]"`); it deploys to GitHub Pages on merge to `master`
 
 ## Code Style
 
