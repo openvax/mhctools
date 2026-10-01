@@ -1,5 +1,5 @@
 site_name: mhctools
-site_description: One Python interface to ~30 MHC binding, presentation, immunogenicity and antigen-processing predictors
+site_description: Run MHC binding, presentation, immunogenicity and antigen-processing predictors through one predict() call
 site_url: https://openvax.github.io/mhctools/
 repo_url: https://github.com/openvax/mhctools
 repo_name: openvax/mhctools

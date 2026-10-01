@@ -140,7 +140,7 @@ results[0].processing.score      # antigen-processing score, not allele-specific
   per-allele mode for larger panels.
 
 MHCflurry predictions carry both the Python package and the official
-model-release identity in `predictor_version` — for example
+model-release identity in `predictor_version`, for example
 `2.2.1+release-2.2.0`. The version is captured when weights are loaded and
 retained with the cached model object. `mhcflurry_composite_version()` exposes
 the same rule publicly; it checks the selected directory, including environment
@@ -221,9 +221,8 @@ The wrapper loads the pinned upstream model definitions and weights unchanged,
 batches inference deterministically in-process, and preserves canonical
 mhcgnomes allele identity in its outputs.
 
-> ⚠️ CapHLA performance numbers are author-reported. Treat it as a
-> complementary research predictor rather than a default or an independent
-> validation.
+CapHLA's performance numbers are author-reported. Treat it as a complementary
+research predictor, not a default and not an independent validation.
 
 ## MixMHCpred
 
@@ -298,7 +297,7 @@ external call, including under v3.0 where the legacy `-c` option was removed.
 ## MixMHC2pred
 
 `MixMHC2pred` is a pan-allele **class-II** presentation predictor and a strong
-complement to `NetMHCIIpan` — the two were independently co-best in the
+complement to `NetMHCIIpan`. The two were independently co-best in the
 *Frontiers in Immunology* 2024 class-II benchmark.
 
 It emits one `pMHC_presentation` prediction per (peptide, allele): `score` is
@@ -306,7 +305,7 @@ the raw MixMHC2pred score (higher = better) and `percentile_rank` is its %Rank
 (lower = better).
 
 It is academic / non-commercial licensed, so mhctools shells out to an install
-you provide. Download a **release**, not a bare clone — the release ships the
+you provide. Download a release, not a bare clone: the release ships the
 `PWMdef/` allele definitions. Alleles may be given in the usual spellings
 (`HLA-DRB1*15:01`) or in MixMHC2pred's own (`DRB1_15_01`,
 `DQA1_01_02__DQB1_06_02`).

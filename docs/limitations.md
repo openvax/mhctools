@@ -16,13 +16,13 @@ Each row links to the full explanation in context.
 | `PRIME` | Higher self-reported numbers are partly explained by documented train/test overlap; training positives are mostly viral | [notes](predictors/immunogenicity.md#read-this-before-trusting-a-score) |
 | `Pepsickle`, `NetChop` | The C-terminal score needs the residues after the peptide; with no `c_flanks` it is 0.0, which is not a prediction of no cleavage | [notes](predictors/processing.md#pepsickle) |
 | `TLimmuno2` | ~1 minute per distinct allele; class-II immunogenicity is noisier than class-I | [notes](predictors/immunogenicity.md#tlimmuno2) |
-| `PlifePred2` | Endpoint semantics are not established — units, transform, species and matrix are all inferred | [notes](predictors/peptide-pk.md#plifepred2) |
+| `PlifePred2` | Endpoint semantics are not established; units, transform, species and matrix are all inferred | [notes](predictors/peptide-pk.md#plifepred2) |
 | `PeptiVerse` | Fit on 130 examples, cross-validation only, no external test set; unsafe pickle serialization | [notes](predictors/peptide-pk.md#peptiverse) |
 | `NetCleave_II` | Class-II C-terminal cleavage is a much weaker signal than class I (AUC ~0.66 vs ~0.91) | [notes](predictors/processing.md#netcleave) |
 | `DeepTAP` | Self-reported evaluation; no independent TAP benchmark exists for any tool | [notes](predictors/processing.md#deeptap) |
 | `ERAMER` | Self-reported evaluation; ERAP1 trimming is intrinsically noisy | [notes](predictors/processing.md#eramer) |
 | `CapHLA` | Performance numbers are author-reported | [notes](predictors/binding.md#caphla) |
-| `MixTCRpred` | Loading a PyTorch checkpoint can execute serialized code — use trusted sources | [notes](predictors/tcr.md#mixtcrpred) |
+| `MixTCRpred` | Loading a PyTorch checkpoint can execute serialized code; use trusted sources | [notes](predictors/tcr.md#mixtcrpred) |
 | `DPP4qPISA` | Substrate-depletion estimates, not serum half-lives or probabilities | [cleavage guide](cleavage/index.md) |
 
 ## Three recurring themes
@@ -73,9 +73,9 @@ capability](artifacts.md#inventory-is-not-capability).
 
 ## Where the rest lives
 
-- [Benchmark methodology and training overlap](benchmarks.md) — how mhctools
+- [Benchmark methodology and training overlap](benchmarks.md): how mhctools
   reports provenance, repeated measurements, and missing target-domain evidence
-- [Optional backend conformance](optional-backends.md) — what `verified` and
+- [Optional backend conformance](optional-backends.md): what `verified` and
   `inference_reproduced` do and do not claim
-- [Peptide PK, uptake, and tissue exposure](exposure-results.md) — why these
+- [Peptide PK, uptake, and tissue exposure](exposure-results.md): why these
   endpoints refuse a generic ordering

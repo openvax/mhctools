@@ -6,49 +6,14 @@
 
 # mhctools
 
-One Python interface to ~30 MHC binding, presentation, immunogenicity, and
-antigen-processing predictors.
-
-Each predictor has its own input format, output format, allele spelling, and
-installation ritual. mhctools gives them all the same `predict()` call and the
-same result objects, so swapping NetMHCpan for MHCflurry is a one-line change
-and comparing them is a DataFrame. Everything runs locally.
+mhctools runs MHC binding, presentation, immunogenicity and antigen-processing
+predictors through a single `predict()` call and returns the same result
+objects whichever one you use. Swapping NetMHCpan for MHCflurry is a one-line
+change, and comparing them gives you a DataFrame. Everything runs locally.
 
 **Documentation: <https://openvax.github.io/mhctools/>**
 
-## Install and predict
-
-```sh
-pip install mhctools
-mhctools fetch mhcflurry     # MHCflurry ships as a dependency; this downloads its weights
-```
-
-```python
-from mhctools import MHCflurry
-
-predictor = MHCflurry(alleles=["HLA-A*02:01", "HLA-B*07:02"])
-results = predictor.predict(["SIINFEKL", "GILGFVFTL"])
-
-for r in results:
-    if r.affinity:
-        print(f"{r.peptide} -> {r.affinity.allele} IC50={r.affinity.value:.1f}nM")
-```
-
-That is the whole pattern. `predict()` returns one `PeptideResult` per input
-peptide, in input order. Each exposes an accessor per kind of prediction
-(`r.affinity`, `r.presentation`, `r.immunogenicity`, ...) that is `None` when
-the predictor does not produce that kind. Scan proteins with
-`predict_proteins()`, and get a pandas DataFrame from any `*_dataframe()` method.
-See [results and DataFrames](https://openvax.github.io/mhctools/results/).
-
-`Calis` needs no download at all; most predictors need model weights or an
-external tool first (see below). The command line does the same job:
-
-```sh
-mhctools --sequence SIINFEKL SIINFEKLQ --mhc-predictor mhcflurry --mhc-alleles A0201
-```
-
-## Which predictor?
+## Available predictors
 
 | I want to predict… | Kind | Predictors |
 |---|---|---|
@@ -70,6 +35,38 @@ mhctools --sequence SIINFEKL SIINFEKLQ --mhc-predictor mhcflurry --mhc-alleles A
 
 `RandomBindingPredictor` is built in and produces random affinities, which is
 occasionally useful as a null baseline.
+
+## Install and predict
+
+```sh
+pip install mhctools
+mhctools fetch mhcflurry     # MHCflurry ships as a dependency; this downloads its weights
+```
+
+```python
+from mhctools import MHCflurry
+
+predictor = MHCflurry(alleles=["HLA-A*02:01", "HLA-B*07:02"])
+results = predictor.predict(["SIINFEKL", "GILGFVFTL"])
+
+for r in results:
+    if r.affinity:
+        print(f"{r.peptide} -> {r.affinity.allele} IC50={r.affinity.value:.1f}nM")
+```
+
+`predict()` returns one `PeptideResult` per input
+peptide, in input order. Each exposes an accessor per kind of prediction
+(`r.affinity`, `r.presentation`, `r.immunogenicity`, ...) that is `None` when
+the predictor does not produce that kind. Scan proteins with
+`predict_proteins()`, and get a pandas DataFrame from any `*_dataframe()` method.
+See [results and DataFrames](https://openvax.github.io/mhctools/results/).
+
+`Calis` needs no download. Most other predictors need model weights or an
+external tool first (see below). The command line does the same job:
+
+```sh
+mhctools --sequence SIINFEKL SIINFEKLQ --mhc-predictor mhcflurry --mhc-alleles A0201
+```
 
 ## Getting models
 

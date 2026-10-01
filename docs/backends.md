@@ -43,16 +43,16 @@ The recognition, Gfeller, keras, NetTCR and SMM groups fetch separately licensed
 and weights, so they require `--accept-license`. Review the terms before using
 that option, because they are not all the same kind of term:
 
-- academic / non-commercial —
+- academic / non-commercial:
   [MixTCRpred](https://github.com/GfellerLab/MixTCRpred),
   [MixMHCpred](https://github.com/GfellerLab/MixMHCpred),
   [MixMHC2pred](https://github.com/GfellerLab/MixMHC2pred),
   [PRIME](https://github.com/GfellerLab/PRIME);
 - [NetTCR academic software license](https://github.com/mnielLab/NetTCR-2.2/blob/7cead3fe6dcb539ff8e2d9121586dafca1e059c2/academic_software_license_agreement.pdf)
   for the `nettcr` group;
-- Non-Profit Open Software License 3.0 — the IEDB MHC-I bundle used by `smm`
+- Non-Profit Open Software License 3.0: the IEDB MHC-I bundle used by `smm`
   (see [SMM setup](#local-smm-and-smm-pmbec));
-- **no published license** —
+- no published license:
   [TLimmuno2](https://github.com/XSLiuLab/TLimmuno2) and
   [NetCleave](https://github.com/BSC-CNS-EAPM/NetCleave), which is why the `keras`
   group is gated. Here `--accept-license` records that you have
@@ -109,7 +109,7 @@ Both run out-of-process under an interpreter that defaults to the one running
 mhctools, which need not have their dependencies. 
 `MIXTCRPRED_PYTHON` is provisioned by the `recognition` group above. Its
 sidecar additionally runs with `PYTHONNOUSERSITE=1`, so packages installed with
-`pip install --user` are not visible to it — install into the interpreter
+`pip install --user` are not visible to it, so install into the interpreter
 itself.
 
 DeepTAP has no setup group; point `DEEPTAP_PYTHON` at any interpreter with

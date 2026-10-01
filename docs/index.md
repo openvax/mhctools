@@ -1,12 +1,32 @@
 # mhctools
 
-One Python interface to about 30 MHC binding, presentation, immunogenicity and
-antigen-processing predictors.
+mhctools runs MHC binding, presentation, immunogenicity and antigen-processing
+predictors through a single `predict()` call and returns the same result
+objects whichever one you use. Swapping NetMHCpan for MHCflurry is a one-line
+change, and comparing them gives you a DataFrame. Everything runs locally.
 
-Each predictor has its own input format, output format, allele spelling and
-installation ritual. mhctools gives them all the same `predict()` call and the
-same result objects, so swapping NetMHCpan for MHCflurry is a one-line change
-and comparing them is a DataFrame. Everything runs locally.
+## Available predictors
+
+| I want to predict… | Kind | Predictors |
+|---|---|---|
+| Binding affinity to an allele | `pMHC_affinity` | `NetMHCpan`, `NetMHC`, `NetMHCIIpan`, `NetMHCcons`, `MHCflurry`, `CapHLA`, `SMM`, `SMMPMBEC` |
+| Surface presentation | `pMHC_presentation` | `NetMHCpan41`/`42`, `NetMHCIIpan`, `MHCflurry`, `CapHLA`, `MixMHCpred` (I), `MixMHC2pred` (II), `BigMHC` |
+| How long the pMHC complex lasts | `pMHC_stability` | `NetMHCstabpan` |
+| Combined antigen processing | `antigen_processing` | `MHCflurry` |
+| Proteasomal cleavage | `proteasome_cleavage` | `Pepsickle`, `NetChop`, `NetCleave_I` |
+| Endolysosomal cleavage (class II) | `endolysosomal_cleavage` | `NetCleave_II` |
+| TAP transport into the ER | `tap_transport` | `DeepTAP` |
+| ERAP1 N-terminal trimming | `erap_trimming` | `ERAMER` |
+| Whether a T cell responds | `immunogenicity` | `Calis`, `PRIME`, `BigMHC_IM`, `DeepImmuno`, `TLimmuno2` (II) |
+| Whether a specific TCR recognises it | `pMHC_TCR_binding` | `NetTCR`, `Tulip`, `MixTCRpred` |
+| How long the free peptide survives | `peptide_half_life` | `PeptiVerse`, `PlifePred2` |
+| Which peptidase cuts which bond | none | [cleavage API](cleavage/index.md) |
+
+- [Predictor matrix](predictor-matrix.md): every predictor, class, command-line name, input, install route and license on one page.
+- [Choosing a predictor](choosing.md) and [known limits](limitations.md). Several of these models are weaker than their own papers suggest; read the limits before you trust a score.
+
+`RandomBindingPredictor` is built in and produces random affinities, which is
+occasionally useful as a null baseline.
 
 ## Quickstart
 
