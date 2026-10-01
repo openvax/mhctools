@@ -14,18 +14,18 @@ peptide; the others also need an allele.
 
 ## Read this before trusting a score
 
-> ⚠️ Every current CD8 immunogenicity predictor — `PRIME`, `BigMHC_IM`, and
-> `DeepImmuno` included — ranks well in the characterized regime but generalizes poorly to
-> truly novel neoepitopes; independent benchmarks put the field near AUC
-> 0.5–0.65 on unseen tumor neoepitopes (ITSNdb ~0.52–0.60, ICERFIRE ~0.56,
-> IMPROVE ~0.60). In the one neutral head-to-head that scored both (NeoaPred,
-> *Bioinformatics* 2024), **`BigMHC_IM` edged `PRIME` on cancer neoepitopes**,
-> while PRIME tends to do better on viral / infectious-disease epitopes — its
-> training positives are mostly viral and cancer-testis antigens, with only
-> ~129 (v1) / ~596 (v2) true immunogenic neoepitopes. PRIME's higher
-> self-reported numbers are partly attributable to documented train/test
-> overlap (IMPROVE flagged ~70% overlap with its evaluation set). Use these
-> scores to prioritize, not as ground truth.
+Every current CD8 immunogenicity predictor, including `PRIME`, `BigMHC_IM` and
+`DeepImmuno`, does well on well-characterized epitopes and poorly on novel
+neoepitopes. Independent benchmarks put the field at AUC 0.5–0.65 on unseen
+tumor neoepitopes (ITSNdb ~0.52–0.60, ICERFIRE ~0.56, IMPROVE ~0.60). Use the
+scores to prioritize candidates, not as ground truth.
+
+In the one neutral head-to-head that scored both (NeoaPred, *Bioinformatics*
+2024), `BigMHC_IM` edged `PRIME` on cancer neoepitopes, while PRIME tends to do
+better on viral epitopes. Its training positives are mostly viral and
+cancer-testis antigens, with only ~129 (v1) / ~596 (v2) true immunogenic
+neoepitopes, and its higher self-reported numbers are partly explained by
+train/test overlap (IMPROVE flagged ~70% overlap with its evaluation set).
 
 
 ## Calis
@@ -35,8 +35,8 @@ et al. 2013): a fixed per-amino-acid log-enrichment scale weighted by
 per-position importance, with the anchor positions (P1/P2/C-terminus) masked
 out.
 
-It needs **no external install and no downloaded weights** — the ~30 published
-parameters (from the open-access CC-BY paper) are built in — so it is a fast,
+It needs no external install and no downloaded weights. Its ~30 published
+parameters (from the open-access CC-BY paper) are built in, so it is a fast,
 dependency-free, allele-independent baseline. It emits one `immunogenicity`
 prediction per peptide (empty `allele`); `score > 0` leans immunogenic.
 
@@ -87,7 +87,7 @@ DeepImmuno ships its weights in-repo and is MIT-licensed, but its script loads
 them with an old Keras 2 / TensorFlow stack, so mhctools shells out to
 DeepImmuno's own CLI in a separate checkout. Run `mhctools fetch deepimmuno`,
 or point at a manual clone with `DEEPIMMUNO_HOME`, and set `DEEPIMMUNO_PYTHON`
-to an interpreter that has TensorFlow — with Keras 2, or newer TensorFlow plus
+to an interpreter that has TensorFlow with Keras 2, or newer TensorFlow plus
 the `tf-keras` shim, since the wrapper sets `TF_USE_LEGACY_KERAS=1` for the
 subprocess.
 
@@ -102,9 +102,9 @@ results[0].immunogenicity.score                   # 0.9568 (higher = more immuno
 
 ## TLimmuno2
 
-`TLimmuno2` is the odd one out: it predicts **class-II (CD4+)** immunogenicity
-— the only class-II immunogenicity model here (`Calis`, `PRIME`, `BigMHC_IM` and
-`DeepImmuno` are all class I).
+`TLimmuno2` is the odd one out: it predicts class-II (CD4+) immunogenicity,
+and it is the only class-II immunogenicity model here (`Calis`, `PRIME`,
+`BigMHC_IM` and `DeepImmuno` are all class I).
 
 It scores a peptide against a class-II allele (transfer-learned from class-II
 binding) and emits one `immunogenicity` prediction per (peptide, allele):
@@ -128,7 +128,7 @@ results = predictor.predict(["FHTMWHVTRGAVLMY"])
 results[0].immunogenicity.score                    # 0.9874 (higher = more immunogenic)
 ```
 
-> ⚠️ TLimmuno2's %Rank is computed against ~90,000 background peptides **per
-> distinct allele**, so a call costs about a minute per allele regardless of how
-> many peptides you pass — batch peptides by allele. Class-II immunogenicity is
-> noisier than class-I; a prioritization aid, not ground truth.
+TLimmuno2's %Rank is computed against ~90,000 background peptides for each
+distinct allele, so a call costs about a minute per allele no matter how many
+peptides you pass. Batch peptides by allele. Class-II immunogenicity is noisier
+than class-I, so use the score to prioritize, not as ground truth.

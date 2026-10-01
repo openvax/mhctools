@@ -4,7 +4,7 @@ What `predict()` returns and how to read it.
 
 **`predict()` returns a list of `PeptideResult`.** Each one carries the peptide
 string and gives you accessors for each kind of prediction. An accessor returns
-`None` when the predictor doesn't produce that kind — so `r.stability` is
+`None` when the predictor doesn't produce that kind, so `r.stability` is
 `None` from an affinity-only model, rather than an error or a zero.
 
 **Results preserve input order and repeated peptides.** `results[i]` corresponds
@@ -44,8 +44,8 @@ r.filter(kind="pMHC_affinity")
 r.filter(allele="HLA-A*02:01")
 ```
 
-**Underneath, each `PeptideResult` wraps a tuple of `Prediction` objects** —
-frozen dataclasses, one per allele-kind combination, each self-contained:
+Each `PeptideResult` wraps a tuple of `Prediction` objects: frozen dataclasses,
+one per allele and kind, each self-contained:
 
 ```python
 from mhctools import Prediction
@@ -66,19 +66,18 @@ pred = Prediction(
 
 Three fields do most of the work, and they mean the same thing everywhere:
 
-- **`score`** — always present, always higher-is-better, but on a
-  predictor-specific scale.
-- **`value`** — a physical quantity on a linear scale, in that kind's canonical
+- `score`: always present and higher-is-better, on a predictor-specific scale.
+- `value`: a physical quantity on a linear scale, in that kind's canonical
   unit (nM for affinity, hours for stability). Empty when the kind has no unit,
-  or when the wrapper cannot honestly convert to it.
-- **`percentile_rank`** — 0-100, lower is stronger, present when the predictor
+  or when the wrapper cannot convert to it.
+- `percentile_rank`: 0-100, lower is stronger, present when the predictor
   scores against a background distribution.
 
 A predictor can emit more than one kind. NetMHCpan 4.1, for example, produces
 both `pMHC_affinity` and `pMHC_presentation` for every peptide-allele pair.
 
-Full reference: **[prediction kinds, units, and MHC context](kinds.md)**
-— the kinds, what fills `value`, and how `MeasurementContext` works. Which
+Full reference: [prediction kinds, units, and MHC context](kinds.md), which
+covers the kinds, what fills `value`, and how `MeasurementContext` works. Which
 predictor emits which kind is in the [predictor matrix](predictor-matrix.md).
 
 ## Which accessor for which kind

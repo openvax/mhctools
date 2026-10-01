@@ -41,7 +41,7 @@ mhctools --sequence AAAQQQSIINFEKL --extract-subsequences \
 ## Annotate a table (`predict-table`)
 
 Reads a CSV, runs each requested predictor once, and appends one score column
-per predictor — choosing the best allele per row — while preserving every input
+per predictor, choosing the best allele per row, while preserving every input
 column:
 
 ```sh
@@ -61,7 +61,7 @@ Each `--predictor` spec is `NAME[:OUTPUT_COLUMN[:FIELD]]`, where `FIELD` is
 A row may hold several alleles per cell (whitespace-, comma-, or
 semicolon-separated); the best one per peptide is chosen and recorded in a
 `<OUTPUT_COLUMN>_best_allele` provenance column. Missing or blank
-peptide/allele cells stay unscored — they are never coerced into a literal
+peptide/allele cells stay unscored. They are not coerced into a literal
 sequence or allele string and sent to a predictor.
 
 Pass `--predictor-info info.csv` to also write a sidecar describing each

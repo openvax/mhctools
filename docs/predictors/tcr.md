@@ -56,16 +56,16 @@ results[0].preds[0].score                 # higher = more likely binding
 
 [TULIP-TCR](https://github.com/barthelemymp/TULIP-TCR) is **GPLv3** and pinned
 to `transformers==4.32.1`; mhctools is Apache-2.0 and depends on neither torch
-nor transformers. The `Tulip` wrapper therefore vendors none of TULIP — it runs
+nor transformers. The `Tulip` wrapper therefore vendors none of TULIP. It runs
 an upstream checkout out-of-process, in an isolated interpreter, via TULIP's own
 `predict.py`. `mhctools fetch tulip` obtains the tested code, tokenizers, and
 weights; `scripts/setup_tulip_env.sh` can build the separate runtime.
 
 You may instead provide your own checkout and interpreter:
 
-- `TULIP_HOME` — a clone of TULIP-TCR (provides `predict.py`, `src/`,
+- `TULIP_HOME`: a clone of TULIP-TCR (provides `predict.py`, `src/`,
   tokenizers, and the released `model_weights/`);
-- `TULIP_PYTHON` — an isolated **Python 3.11** interpreter with `torch` and
+- `TULIP_PYTHON`: an isolated Python 3.11 interpreter with `torch` and
   `transformers==4.32.1`. Python 3.11 specifically, so `tokenizers` installs
   from a prebuilt wheel and needs no Rust toolchain.
 
@@ -121,6 +121,5 @@ original repository only after explicit acceptance. Optional checkpoints come
 from the authors' immutable CC-BY-4.0 Zenodo record and are checksum-verified
 before use.
 
-> ⚠️ As with any PyTorch checkpoint, explicit overrides and user-managed model
-> files must come from a trusted source, because loading can execute serialized
-> code.
+As with any PyTorch checkpoint, explicit overrides and user-managed model files
+must come from a trusted source, because loading can execute serialized code.

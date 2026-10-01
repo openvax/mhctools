@@ -36,14 +36,14 @@ one has to model both:
   multi-position run of track entries.
 - **Terminal topology** (the aminopeptidases, carboxypeptidases, DPP-family,
   `dpp4-qpisa` and `eramer-step`) only ever assesses the *currently exposed*
-  end of its input — always exactly one bond, regardless of peptide length.
+  end of its input: always exactly one bond, regardless of peptide length.
   It cannot tell you whether a bond in the middle of a long precursor is a
   plausible trimming stop; it can only assess a candidate fragment you
   supply. To extend a track with these models, model the hypothesized
   trimming step explicitly with `parent.fragment(start, end, n_term=...,
   c_term=...)` and predict on that fragment. Its `source_bond` still lands
-  on the parent's absolute coordinates, so it merges into the same track —
-  but producing a track over a whole precursor this way means enumerating
+  on the parent's absolute coordinates, so it merges into the same track.
+  Producing a track over a whole precursor this way means enumerating
   candidate fragments yourself; the model does not search for them.
 
 The same rule applies to `substrate_reference` evidence (THOP1, neurolysin,

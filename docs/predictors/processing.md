@@ -106,9 +106,9 @@ have confirmed your own use is authorized rather than accepting stated terms;
 the recorded manifest says `"license": "none published"`. A checkout you manage
 yourself still takes precedence.
 
-> ⚠️ NetCleave's own paper reports that class-II C-terminal cleavage is a much
-> weaker signal than class I (AUC ~0.66 vs ~0.91). Treat
-> `endolysosomal_cleavage` scores accordingly.
+NetCleave's own paper reports that class-II C-terminal cleavage is a much weaker
+signal than class I (AUC ~0.66 vs ~0.91), so weigh `endolysosomal_cleavage`
+scores accordingly.
 
 ## DeepTAP
 
@@ -116,8 +116,8 @@ TAP (transporter associated with antigen processing) shuttles cytosolic
 peptides into the ER for MHC-I loading. It is a distinct step from proteasomal
 cleavage.
 
-`DeepTAP` is a BiGRU that scores each peptide once — **allele-independent**,
-like the cleavage predictors — emitting one `tap_transport` prediction per
+`DeepTAP` is a BiGRU that scores each peptide once, independent of allele,
+like the cleavage predictors. It emits one `tap_transport` prediction per
 peptide with an empty `allele`. `score` is in 0-1 (higher = stronger TAP
 binding); in `task_type="reg"` mode the predicted affinity in nM is also
 surfaced as `value` (lower = stronger).
@@ -137,14 +137,14 @@ results = predictor.predict(["SIINFEKL", "AEASAAAAY"])
 results[1].tap_transport.score             # 0-1, higher = stronger TAP binding
 ```
 
-> ⚠️ DeepTAP's evaluation is self-reported, and no independent TAP benchmark
-> exists for any tool (true of the whole TAP field). Treat the score as a useful
-> pathway signal for prioritization, not a validated oracle.
+DeepTAP's evaluation is self-reported, and no independent TAP benchmark exists
+for any tool. Treat the score as a pathway signal for prioritizing, not a
+validated one.
 
 ## ERAMER
 
 ERAP1 trims the N-termini of 9–16mer precursor peptides in the ER down to the
-8–10mers MHC-I presents — the step between TAP transport and MHC loading.
+8–10mers MHC-I presents, the step between TAP transport and MHC loading.
 
 `ERAMER` scores a precursor by averaging a per-length position-weight-matrix
 specificity over each residue trimmed off as it is cut toward a target epitope
@@ -166,5 +166,5 @@ results = predictor.predict(["GGGGGVVVVVVAAAEE"])   # a 9-16mer precursor
 results[0].erap_trimming.score
 ```
 
-> ⚠️ ERAMER's evaluation is self-reported and ERAP1 trimming is an intrinsically
-> noisy signal; treat the score as a pathway prior, not a validated oracle.
+ERAMER's evaluation is self-reported and ERAP1 trimming is inherently noisy.
+Treat the score as a pathway prior, not a validated one.

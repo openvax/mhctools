@@ -1,8 +1,7 @@
 # Getting models: `fetch`, `ls`, and `predictors`
 
-Most predictors need something downloaded before they will run — model weights,
-reference files, or a snapshot of the upstream tool. mhctools has one command
-for all of it:
+Most predictors need something downloaded before they will run: model weights,
+reference files, or a snapshot of the upstream tool. One command covers all of it:
 
 ```sh
 mhctools fetch <name>
@@ -66,7 +65,7 @@ mhctools predictors calis netchop --check reproduced --strict --json
 
 `fetch` works the same way for every artifact, whichever tier it belongs to.
 
-**Already available counts as success** — whether mhctools, a native
+Already-available counts as success, whether mhctools, a native
 downloader, the package itself, or you installed it. Re-running is a no-op, so
 a provisioning script can call `fetch` over a whole list without
 special-casing manual tools. The `manager` and `fetchable` fields say who owns
@@ -99,7 +98,7 @@ upstream setup scripts, or duplicate a cache owned by another package.
 
 ## Where snapshots live
 
-mhctools-managed snapshots default to the platform's user data directory —
+mhctools-managed snapshots default to the platform's user data directory:
 `~/Library/Application Support/mhctools` on macOS, `~/.local/share/mhctools` on
 Linux. To put them on shared or scratch storage, set `MHCTOOLS_DATA_DIR`, pass
 `--data-dir`, or use the Python `data_dir=` argument.
@@ -132,8 +131,8 @@ and `REPRODUCED` columns are independent observations, and `not checked` is
 never promoted to success. `--check` sets the highest level it will attempt,
 while `--strict` returns a nonzero exit unless every selected integration
 reaches that level. Reproduction is available only for registered,
-reference-backed probes — a successful help command establishes `runnable`,
-never `reproduced`.
+reference-backed probes. A successful help command establishes `runnable`, not
+`reproduced`.
 
 The earlier `mhctools integrations` spelling still works as an alias.
 

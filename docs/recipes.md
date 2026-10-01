@@ -41,9 +41,8 @@ df = ms.predict_proteins_dataframe({"TP53": "MEEPQ..."})
 
 ## Add predictor scores to an existing table
 
-Evaluation workflows often start from an annotated benchmark table — columns
-like `sample_id`, `hit`, `peptide`, and a per-row genotype — and just need
-scores appended. `annotate_table` is I/O-free and works on any `DataFrame`:
+A benchmark table usually has columns like `sample_id`, `hit`, `peptide` and a
+per-row genotype, and needs scores appended. `annotate_table` is I/O-free and works on any `DataFrame`:
 
 ```python
 from mhctools import annotate_table, AnnotationSpec, NetMHCpan42_BA
