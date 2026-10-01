@@ -20,10 +20,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
@@ -97,8 +97,8 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
@@ -121,16 +121,16 @@ jobs:
       MHCFLURRY_DATA_DIR: ${{ github.workspace }}/mhcflurry-data
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
 
       - name: Checkout private netmhc-bundle repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: openvax/netmhc-bundle
           ref: v1.0.0
@@ -154,7 +154,7 @@ jobs:
           echo "version=$(python -c 'import mhcflurry; print(mhcflurry.__version__)')" >> "$GITHUB_OUTPUT"
 
       - name: Cache MHCflurry model weights
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ github.workspace }}/mhcflurry-data
           key: mhcflurry-${{ runner.os }}-${{ steps.mhcflurry.outputs.version }}
@@ -200,12 +200,12 @@ jobs:
       UV_CACHE_DIR: ${{ github.workspace }}/.uv-cache
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # Python 3.11 so transformers==4.32.1's tokenizers install from a
       # prebuilt wheel (no cp312 wheel exists; a Rust build would be needed).
       - name: Set up Python 3.11
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.11"
           cache: pip
@@ -219,7 +219,7 @@ jobs:
       # on the setup script, which pins the dependency set, so a change there
       # busts the cache.
       - name: Cache uv sidecar downloads
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ github.workspace }}/.uv-cache
           key: uv-${{ runner.os }}-py311-${{ hashFiles('scripts/setup_tulip_env.sh') }}
@@ -228,7 +228,7 @@ jobs:
       # setup script skips cloning when predict.py is already present. Bump the
       # -v1 suffix to force a fresh clone.
       - name: Cache TULIP-TCR checkout
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ github.workspace }}/TULIP-TCR
           key: tulip-tcr-${{ runner.os }}-v1
@@ -257,10 +257,10 @@ jobs:
       MHCTOOLS_DATA_DIR: ${{ github.workspace }}/mhctools-data
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
@@ -272,7 +272,7 @@ jobs:
           python -m pip install -e ".[dev,caphla]"
 
       - name: Cache pinned CapHLA snapshot
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ env.MHCTOOLS_DATA_DIR }}
           key: caphla-${{ runner.os }}-${{ hashFiles('mhctools/artifacts.py') }}
@@ -292,10 +292,10 @@ jobs:
       MHCTOOLS_DATA_DIR: ${{ github.workspace }}/mhctools-data
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python 3.11
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.11"
           cache: pip
@@ -308,7 +308,7 @@ jobs:
           python -m pip install -e ".[dev,mixtcrpred]"
 
       - name: Cache pinned MixTCRpred source and weights
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ env.MHCTOOLS_DATA_DIR }}
           key: mixtcrpred-${{ runner.os }}-${{ hashFiles('mhctools/artifacts.py', 'mhctools/mixtcrpred.py') }}
@@ -342,9 +342,9 @@ jobs:
           - group: nettcr
             tests: tests/test_nettcr.py
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
           cache: pip
@@ -357,7 +357,7 @@ jobs:
 
       - name: Cache pinned half-life snapshots
         if: matrix.group == 'half-life'
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/.cache/huggingface
