@@ -10,14 +10,14 @@ an allele, and they emit `pMHC_TCR_binding`, read with `result.tcr_binding`.
 | [Tulip](#tulip) | `(peptide, TCR)` pairs plus the presenting allele | `mhctools fetch tulip` + a TULIP-capable Python (`TULIP_HOME`, `TULIP_PYTHON`) |
 | [MixTCRpred](#mixtcrpred) | TCRs, scored against one fixed pMHC target per model | `pip install "mhctools[mixtcrpred]"` + `mhctools fetch mixtcrpred --accept-license` |
 
-`NetTCR` and `Tulip` take explicit pairs through `predict_pairs()` or every
+NetTCR and Tulip take explicit pairs through `predict_pairs()` or every
 peptide-by-TCR combination through `predict(peptides, tcrs)`. They have no
 `--mhc-predictor` name on the command line, because the input does not fit that
-interface; `MixTCRpred` has its own `mhctools mixtcrpred` subcommand.
+interface; MixTCRpred has its own `mhctools mixtcrpred` subcommand.
 
 ## NetTCR
 
-`NetTCR` predicts whether a paired αβ T-cell receptor recognises a (class-I)
+[NetTCR](#nettcr) predicts whether a paired αβ T-cell receptor recognises a (class-I)
 peptide. Unlike the MHC-ligand predictors, its input is a peptide plus a `TCR`
 (the six CDR loops), not an allele, and it emits the `pMHC_TCR_binding` kind.
 
@@ -56,7 +56,7 @@ results[0].preds[0].score                 # higher = more likely binding
 
 [TULIP-TCR](https://github.com/barthelemymp/TULIP-TCR) is **GPLv3** and pinned
 to `transformers==4.32.1`; mhctools is Apache-2.0 and depends on neither torch
-nor transformers. The `Tulip` wrapper therefore vendors none of TULIP. It runs
+nor transformers. The [Tulip](#tulip) wrapper therefore vendors none of TULIP. It runs
 an upstream checkout out-of-process, in an isolated interpreter, via TULIP's own
 `predict.py`. `mhctools fetch tulip` obtains the tested code, tokenizers, and
 weights; `scripts/setup_tulip_env.sh` can build the separate runtime.
@@ -71,7 +71,7 @@ You may instead provide your own checkout and interpreter:
 
 ## MixTCRpred
 
-MixTCRpred has a different, deliberately explicit shape: each checkpoint is
+[MixTCRpred](#mixtcrpred) has a different, deliberately explicit shape: each checkpoint is
 trained for one fixed peptide/MHC target. Its catalog currently contains 146
 models (43 marked high-confidence by upstream), spanning human/mouse class I
 and II targets.

@@ -1,9 +1,42 @@
-# Antigen-processing predictors
+# Antigen processing
 
-Predictors for the steps between a protein and an MHC molecule: proteasomal and
-endolysosomal cleavage, TAP transport, and ERAP1 trimming. All of them are
-**allele-independent**, so `Prediction.allele` is empty, and each emits a
-single kind that you read through a dedicated accessor:
+Antigen processing includes the generation, trimming, destruction, and
+transport of peptides before MHC loading. Peptidases are the enzymes that
+hydrolyze peptide bonds within these pathways. The relevant compartment depends
+on the pathway:
+
+| Location | Role | Models and evidence |
+|---|---|---|
+| Cytosol | Proteasomal peptide generation and further trimming or degradation | [Pepsickle](#pepsickle), [NetChop](#netchop), [cytosolic peptidases](../cleavage/choosing.md#cytosolic-trimming-and-degradation) |
+| ER | N-terminal trimming of class I precursors after TAP transport | [ERAMER](#eramer), [ERAP2 motif evidence](../cleavage/choosing.md#er-trimming) |
+| Endosomes and lysosomes | Class II antigen processing and some class I cross-presentation routes | [NetCleave](#netcleave), [IRAP source observations](../cleavage/choosing.md#endosomal-cross-presentation), [coverage limits](../cleavage/validation.md#apc-endolysosomal-enzymes) |
+| Cell surface and extracellular fluids | Peptide turnover before or outside cellular uptake | [Extracellular peptidase models](../cleavage/choosing.md#extracellular-peptide-degradation) |
+
+Experimental work establishes roles for
+[proteasomes in class I peptide generation](https://pubmed.ncbi.nlm.nih.gov/8087844/),
+[ERAP1 in ER trimming](https://pubmed.ncbi.nlm.nih.gov/12436110/), and
+[cathepsin S in class II processing](https://pubmed.ncbi.nlm.nih.gov/9616206/).
+[IRAP-mediated cross-presentation](https://pubmed.ncbi.nlm.nih.gov/19498108/)
+also illustrates why an endosomal location does not imply class II alone.
+Extracellular turnover can affect which peptides reach a cell; its prediction
+does not establish uptake or presentation.
+
+## Choose the output you need
+
+Use the peptide-level predictors below for a processing score, TAP transport,
+or precursor trimming. Use the [peptidase activity API](../cleavage/index.md)
+when you need individual bonds, enzyme identity, and experimental or motif
+evidence. Both interfaces include [Pepsickle](#pepsickle) and
+[ERAMER](#eramer); the distinction is the result format and endpoint.
+
+The [model-selection guide](../cleavage/choosing.md) recommends models for
+specific biological questions. For peptide stability and delivery endpoints,
+see [peptide half-life](peptide-pk.md) and [uptake and tissue exposure](../exposure-results.md).
+
+## Peptide-level results
+
+The following predictors are allele-independent: `Prediction.allele` is empty.
+Each emits one kind, available through a dedicated result accessor:
 
 | Kind | Accessor | Predictors |
 |---|---|---|
@@ -12,19 +45,17 @@ single kind that you read through a dedicated accessor:
 | `tap_transport` | `result.tap_transport` | [DeepTAP](#deeptap) |
 | `erap_trimming` | `result.erap_trimming` | [ERAMER](#eramer) |
 
-MHCflurry additionally emits an `antigen_processing` score (`result.processing`);
-see [MHCflurry](binding.md#mhcflurry). For per-bond, per-enzyme evidence
-rather than a per-peptide score, use the [cleavage API](../cleavage/index.md).
+The `antigen_processing` kind is specifically [MHCflurry](binding.md#mhcflurry)'s combined processing
+score (`result.processing`); it is not the name of a compartment or a complete
+simulation of antigen processing. See [MHCflurry](binding.md#mhcflurry).
 
-Proteasome predictors score each cleavage position and aggregate them into one
-peptide-level number (see `ProcessingPredictor` and `ProteasomePredictor`). A
-C-terminal cleavage score depends on the residues that follow the peptide, so
-**pass flanks** (`c_flanks=`, and `n_flanks=` where supported) or scan a
-protein with `predict_proteins()`.
+Proteasome predictors summarize cleavage evidence into a peptide-level score.
+C-terminal scores depend on the residues after the peptide. Pass `c_flanks=`
+and `n_flanks=` where supported, or scan a protein with `predict_proteins()`.
 
 ## Pepsickle
 
-`Pepsickle` is the in-vivo epitope proteasome model of [Weeder et al.
+[Pepsickle](#pepsickle) is the in-vivo epitope proteasome model of [Weeder et al.
 (2021)](https://doi.org/10.1093/bioinformatics/btab628). Install the package
 with `pip install pepsickle`; there is nothing to fetch.
 
@@ -49,8 +80,8 @@ selection, are exposed per bond through the
 
 ## NetChop
 
-NetChop 3.1 ships as 32-bit x86 Linux binaries. On macOS and ARM Linux,
-`NetChop` automatically runs a user-supplied licensed installation in a
+[NetChop](#netchop) 3.1 ships as 32-bit x86 Linux binaries. On macOS and ARM Linux,
+NetChop automatically runs a user-supplied licensed installation in a
 digest-pinned compatibility container. Set `NETCHOP_HOME` to the directory
 containing `bin/netChop` (or set `NETMHC_BUNDLE_HOME` to its parent bundle) and
 preload the runtime image once:
@@ -76,7 +107,7 @@ results[0].cleavage.score
 
 ## NetCleave
 
-`NetCleave` works differently from `Pepsickle` and `NetChop`: it emits a **single
+[NetCleave](#netcleave) works differently from [Pepsickle](#pepsickle) and [NetChop](#netchop): it emits a **single
 C-terminal cleavage score per peptide**, and it covers **both** the MHC-I
 proteasomal (`NetCleave_I` → `proteasome_cleavage`) and MHC-II endolysosomal
 (`NetCleave_II` → `endolysosomal_cleavage`) pathways.
@@ -106,7 +137,7 @@ have confirmed your own use is authorized rather than accepting stated terms;
 the recorded manifest says `"license": "none published"`. A checkout you manage
 yourself still takes precedence.
 
-NetCleave's own paper reports that class-II C-terminal cleavage is a much weaker
+[NetCleave](#netcleave)'s own paper reports that class-II C-terminal cleavage is a much weaker
 signal than class I (AUC ~0.66 vs ~0.91), so weigh `endolysosomal_cleavage`
 scores accordingly.
 
@@ -116,7 +147,7 @@ TAP (transporter associated with antigen processing) shuttles cytosolic
 peptides into the ER for MHC-I loading. It is a distinct step from proteasomal
 cleavage.
 
-`DeepTAP` is a BiGRU that scores each peptide once, independent of allele,
+[DeepTAP](#deeptap) is a BiGRU that scores each peptide once, independent of allele,
 like the cleavage predictors. It emits one `tap_transport` prediction per
 peptide with an empty `allele`. `score` is in 0-1 (higher = stronger TAP
 binding); in `task_type="reg"` mode the predicted affinity in nM is also
@@ -146,7 +177,7 @@ validated one.
 ERAP1 trims the N-termini of 9–16mer precursor peptides in the ER down to the
 8–10mers MHC-I presents, the step between TAP transport and MHC loading.
 
-`ERAMER` scores a precursor by averaging a per-length position-weight-matrix
+[ERAMER](#eramer) scores a precursor by averaging a per-length position-weight-matrix
 specificity over each residue trimmed off as it is cut toward a target epitope
 length. It is allele-independent, emitting one `erap_trimming` prediction per
 peptide, with `score` roughly −1…1 (higher = more likely trimmed).

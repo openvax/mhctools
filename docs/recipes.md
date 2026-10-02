@@ -1,7 +1,7 @@
 # Recipes
 
 Short answers to common tasks. Each assumes you have a predictor built as in the
-[quickstart](index.md#quickstart).
+[quickstart](getting-started.md#predict-for-peptides).
 
 ## Scan proteins instead of peptides
 

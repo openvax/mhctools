@@ -76,7 +76,7 @@ artifact is an explicit trust decision.
 
 ## PeptiVerse inventory
 
-`PeptiVerse` verifies the pinned upstream `inference.py`, the exact
+[PeptiVerse](predictors/peptide-pk.md#peptiverse) verifies the pinned upstream `inference.py`, the exact
 `transformer_wt_log` checkpoint/configuration/calibration files, and the ESM2
 weights, configuration, and tokenizer files. Its manifest names
 `Transformer_WT_Log` directly; it never accepts upstream's fallback to
@@ -92,7 +92,7 @@ not make that claim.
 
 ## PlifePred2 inventory
 
-`PlifePred2` verifies the natural-peptide forest from the official 1.0 wheel,
+[PlifePred2](predictors/peptide-pk.md#plifepred2) verifies the natural-peptide forest from the official 1.0 wheel,
 Pfeature's QSO implementation at revision
 `93636eb95bed9df2893b7a0c56b1215e648ecdbf`, both QSO distance matrices, and
 the three additional data files that Pfeature reads at process startup. Only
@@ -116,8 +116,8 @@ only after that local smoke succeeds.
 
 | Backend/candidate | Endpoint-specific release | Static artifact gate | Real inference |
 |---|---|---|---|
-| PeptiVerse | Human-serum half-life, exact `transformer_wt_log` | Exact source/model/calibration/ESM2 inventory; automated conformance | Opt-in smoke; no published platform combination yet |
-| PlifePred2 | Undocumented blood-half-life native regression | Exact forest/QSO/resources inventory; automated conformance | Reproduced on macOS arm64 / Python 3.12 / CPU; otherwise opt-in |
+| [PeptiVerse](predictors/peptide-pk.md#peptiverse) | Human-serum half-life, exact `transformer_wt_log` | Exact source/model/calibration/ESM2 inventory; automated conformance | Opt-in smoke; no published platform combination yet |
+| [PlifePred2](predictors/peptide-pk.md#plifepred2) | Undocumented blood-half-life native regression | Exact forest/QSO/resources inventory; automated conformance | Reproduced on macOS arm64 / Python 3.12 / CPU; otherwise opt-in |
 | POSEIDON | None established | Blocked: research/training repository is not an inference-complete endpoint release | Not run |
 | PERSEU | None established | Blocked: interactive design path and serialized models do not provide a reviewed prediction-only entry point | Not run |
 

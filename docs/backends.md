@@ -3,7 +3,7 @@
 Most predictors need something downloaded or installed first. There are two
 routes:
 
-- **`mhctools fetch <name>`** installs what mhctools can legally and safely
+- `mhctools fetch <name>` installs what mhctools can legally and safely
   fetch. This is the route for most users; see [getting models](artifacts.md).
 - **The repository's `scripts/setup_test_backends.py`** provisions the heavier
   backends (isolated Python runtimes, pinned snapshots) from a source checkout.
@@ -18,8 +18,8 @@ single `fetch`.
 ## Source-checkout setup
 
 Install mhctools in editable mode with its development dependencies. The setup
-below covers CapHLA, TULIP, MixTCRpred, PeptiVerse, PlifePred2/Pfeature,
-MixMHCpred 3, MixMHC2pred, PRIME, DeepImmuno, TLimmuno2, NetCleave, and NetTCR.
+below covers [CapHLA](predictors/binding.md#caphla), TULIP, [MixTCRpred](predictors/tcr.md#mixtcrpred), [PeptiVerse](predictors/peptide-pk.md#peptiverse), [PlifePred2](predictors/peptide-pk.md#plifepred2)/Pfeature,
+[MixMHCpred](predictors/binding.md#mixmhcpred) 3, [MixMHC2pred](predictors/binding.md#mixmhc2pred), [PRIME](predictors/immunogenicity.md#prime), [DeepImmuno](predictors/immunogenicity.md#deepimmuno), [TLimmuno2](predictors/immunogenicity.md#tlimmuno2), [NetCleave](predictors/processing.md#netcleave), and [NetTCR](predictors/tcr.md#nettcr).
 It supplements the other predictors listed in the [predictor reference](predictors/index.md);
 `mhctools ls` reports their availability. This is several GB of downloads,
 including ESM2's 2.6 GB weights.
@@ -39,7 +39,7 @@ python -m pip install -e '.[dev,caphla,nettcr]'
 python scripts/setup_test_backends.py half-life recognition gfeller keras nettcr smm --accept-license
 ```
 
-The recognition, Gfeller, keras, NetTCR and SMM groups fetch separately licensed code
+The recognition, Gfeller, keras, NetTCR and [SMM](predictors/binding.md#smm-and-smm-pmbec) groups fetch separately licensed code
 and weights, so they require `--accept-license`. Review the terms before using
 that option, because they are not all the same kind of term:
 
@@ -80,7 +80,7 @@ The `smm` setup group installs a 2.4 MB subset of the official
 [IEDB MHC-I 3.1.7 bundle](https://downloads.iedb.org/tools/mhci/3.1.7/README),
 verifies its pinned SHA-256, and installs its Python code, allele metadata, and
 model/percentile data. It does not install or execute the bundled DTU binaries.
-SMM 1.0 and SMM-PMBEC 1.0 run with the current Python interpreter, including on
+[SMM](predictors/binding.md#smm-and-smm-pmbec) 1.0 and [SMM-PMBEC](predictors/binding.md#smm-and-smm-pmbec) 1.0 run with the current Python interpreter, including on
 Apple Silicon; no extra Python dependencies are needed.
 Review `LIAI_license.txt` (Non-Profit Open Software License 3.0) before
 accepting the license. Upstream code and models stay outside the package.
@@ -112,7 +112,7 @@ sidecar additionally runs with `PYTHONNOUSERSITE=1`, so packages installed with
 `pip install --user` are not visible to it, so install into the interpreter
 itself.
 
-DeepTAP has no setup group; point `DEEPTAP_PYTHON` at any interpreter with
+[DeepTAP](predictors/processing.md#deeptap) has no setup group; point `DEEPTAP_PYTHON` at any interpreter with
 `torch` and `pytorch-lightning`, and `DEEPTAP_HOME` at a checkout
 (`mhctools fetch deeptap`). The current interpreter is used when
 `DEEPTAP_PYTHON` is unset, which is enough when it already has torch.
@@ -127,7 +127,7 @@ misconfiguration to fix, not a backend to step over.
 
 ## NetTCR with LiteRT
 
-NetTCR's bundled inference models run under LiteRT without TensorFlow:
+[NetTCR](predictors/tcr.md#nettcr)'s bundled inference models run under LiteRT without TensorFlow:
 
 ```sh
 python -m pip install -e '.[dev,nettcr]'
@@ -144,9 +144,9 @@ run another predictor is not needed to enable NetTCR.
 
 ## DeepImmuno, TLimmuno2, and NetCleave (isolated TensorFlow)
 
-DeepImmuno and TLimmuno2 ship weights from the Keras 2 era. Modern TensorFlow
+[DeepImmuno](predictors/immunogenicity.md#deepimmuno) and [TLimmuno2](predictors/immunogenicity.md#tlimmuno2) ship weights from the Keras 2 era. Modern TensorFlow
 reaches that API through the `tf-keras` shim with `TF_USE_LEGACY_KERAS=1`, which the wrappers
-set for their subprocess. NetCleave uses modern Keras in the same isolated
+set for their subprocess. [NetCleave](predictors/processing.md#netcleave) uses modern Keras in the same isolated
 runtime, without that per-process setting:
 
 ```sh
@@ -177,13 +177,13 @@ source env/test-backends/activate.sh
 
 The generated launcher binds to the built image ID, disables networking, and
 does not mount host files. CI runs both constitutive and immunoproteasome profiles against direct upstream
-inference and checks runtime provenance. Host neural Pepsickle dependencies are
+inference and checks runtime provenance. Host neural [Pepsickle](predictors/processing.md#pepsickle) dependencies are
 unchanged. This is implementation conformance, not held-out biological
 validation; see [cleavage validation](cleavage/validation.md).
 
 ## Legacy NetMHC on Apple Silicon
 
-NetMHC 3.4 and NetMHCcons need Python 2 and Linux x86 executables. With Docker
+[NetMHC](predictors/binding.md#netmhc) 3.4 and [NetMHCcons](predictors/binding.md#netmhccons) need Python 2 and Linux x86 executables. With Docker
 running and an existing licensed netmhc-bundle installation:
 
 ```sh

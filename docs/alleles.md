@@ -26,29 +26,29 @@ default allele.
 ## What happens with a bad allele
 
 - A string that mhcgnomes cannot parse (`foo`) raises `mhcgnomes.ParseError`
-  from predictors such as `MHCflurry`. Command-line predictors instead check an
+  from predictors such as [MHCflurry](predictors/binding.md#mhcflurry). Command-line predictors instead check an
   unparseable name against the tool's own allele list and raise
   `UnsupportedAllele` when it is not there.
 - An allele that parses but the predictor does not support (`HLA-A*99:99`, or a
   class II allele passed to a class I predictor) raises `UnsupportedAllele`
-  naming the predictor and, for the NetMHC family, the command that lists what
+  naming the predictor and, for the [NetMHC](predictors/binding.md#netmhc) family, the command that lists what
   it does support (for example `netMHCpan-4.2 -listMHC`).
 - Predictors never silently drop an unsupported allele or return a shorter
   result list.
 
 Some tools accept names mhcgnomes cannot parse, such as `H-2-Qa1` or
 `BoLA-amani.1`. Command-line predictors validate these against the tool's own
-list, so they can be requested; `MHCflurry` rejects `H-2-Kb` with
+list, so they can be requested; MHCflurry rejects `H-2-Kb` with
 `UnsupportedAllele`.
 
-`TLimmuno2` also accepts its native NetMHCIIpan-style keys (`DRB1_0803`,
-`HLA-DPA10103-DPB10101`), and `MixMHC2pred` accepts its own spelling
+[TLimmuno2](predictors/immunogenicity.md#tlimmuno2) also accepts its native [NetMHCIIpan](predictors/binding.md#netmhciipan)-style keys (`DRB1_0803`,
+`HLA-DPA10103-DPB10101`), and [MixMHC2pred](predictors/binding.md#mixmhc2pred) accepts its own spelling
 (`DRB1_15_01`, `DQA1_01_02__DQB1_06_02`).
 
 ## Which class does an allele need?
 
-Class I predictors (NetMHCpan, MHCflurry, ...) need class I alleles and class II
-predictors (NetMHCIIpan, MixMHC2pred, TLimmuno2) need class II. See the
+Class I predictors ([NetMHCpan](predictors/binding.md#netmhcpan), [MHCflurry](predictors/binding.md#mhcflurry), ...) need class I alleles and class II
+predictors ([NetMHCIIpan](predictors/binding.md#netmhciipan), [MixMHC2pred](predictors/binding.md#mixmhc2pred), [TLimmuno2](predictors/immunogenicity.md#tlimmuno2)) need class II. See the
 **MHC class** column of the [predictor matrix](predictor-matrix.md). Predictors
 that report `mhc_dependence` of `none` ignore alleles entirely; see
 [MHC dependence and class](kinds.md#mhc-dependence-and-class).

@@ -1,95 +1,44 @@
 # mhctools
 
-mhctools runs MHC binding, presentation, immunogenicity and antigen-processing
-predictors through a single `predict()` call and returns the same result
-objects whichever one you use. Swapping NetMHCpan for MHCflurry is a one-line
-change, and comparing them gives you a DataFrame.
-
-## Available predictors
-
-| Predict | Predictors |
-|---|---|
-| Binding affinity | [`NetMHCpan`](predictors/binding.md#netmhcpan), [`NetMHC`](predictors/binding.md#netmhc), [`NetMHCIIpan`](predictors/binding.md#netmhciipan), [`NetMHCcons`](predictors/binding.md#netmhccons), [`MHCflurry`](predictors/binding.md#mhcflurry), [`CapHLA`](predictors/binding.md#caphla), [`SMM`](predictors/binding.md#smm-and-smm-pmbec), [`SMMPMBEC`](predictors/binding.md#smm-and-smm-pmbec) |
-| Presentation | [`NetMHCpan41`/`42`](predictors/binding.md#netmhcpan), [`NetMHCIIpan`](predictors/binding.md#netmhciipan), [`MHCflurry`](predictors/binding.md#mhcflurry), [`CapHLA`](predictors/binding.md#caphla), [`MixMHCpred`](predictors/binding.md#mixmhcpred) (I), [`MixMHC2pred`](predictors/binding.md#mixmhc2pred) (II), [`BigMHC`](predictors/binding.md#bigmhc) |
-| Binding stability | [`NetMHCstabpan`](predictors/binding.md#netmhcstabpan) |
-| Antigen processing | [`MHCflurry`](predictors/binding.md#mhcflurry) |
-| Proteasomal cleavage | [`Pepsickle`](predictors/processing.md#pepsickle), [`NetChop`](predictors/processing.md#netchop), [`NetCleave_I`](predictors/processing.md#netcleave) |
-| Endolysosomal cleavage | [`NetCleave_II`](predictors/processing.md#netcleave) |
-| TAP transport | [`DeepTAP`](predictors/processing.md#deeptap) |
-| ERAP1 trimming | [`ERAMER`](predictors/processing.md#eramer) |
-| Immunogenicity | [`Calis`](predictors/immunogenicity.md#calis), [`PRIME`](predictors/immunogenicity.md#prime), [`BigMHC_IM`](predictors/binding.md#bigmhc), [`DeepImmuno`](predictors/immunogenicity.md#deepimmuno), [`TLimmuno2`](predictors/immunogenicity.md#tlimmuno2) (II) |
-| TCR recognition | [`NetTCR`](predictors/tcr.md#nettcr), [`Tulip`](predictors/tcr.md#tulip), [`MixTCRpred`](predictors/tcr.md#mixtcrpred) |
-| Peptide half-life | [`PeptiVerse`](predictors/peptide-pk.md#peptiverse), [`PlifePred2`](predictors/peptide-pk.md#plifepred2) |
-| Per-bond cleavage | [cleavage API](cleavage/index.md) |
-
-- [Predictor matrix](predictor-matrix.md): every predictor, class, command-line name, input, install route and license on one page.
-- [Choosing a predictor](choosing.md) and [known limits](limitations.md). Several of these models are weaker than their own papers suggest; read the limits before you trust a score.
-
-`RandomBindingPredictor` is built in and produces random affinities, which is
-occasionally useful as a null baseline.
+mhctools is a Python library for running MHC binding, presentation,
+immunogenicity, and antigen-processing predictors. It provides a common
+interface to tools such as [NetMHCpan](predictors/binding.md#netmhcpan) and [MHCflurry](predictors/binding.md#mhcflurry), with results you can inspect
+in Python or export as a pandas DataFrame.
 
 ## Quickstart
 
+Install mhctools and download the [MHCflurry](predictors/binding.md#mhcflurry) model weights:
+
 ```sh
 pip install mhctools
-mhctools fetch mhcflurry     # MHCflurry ships as a dependency; this downloads its weights
+mhctools fetch mhcflurry
 ```
 
 ```python
 from mhctools import MHCflurry
 
-predictor = MHCflurry(alleles=["HLA-A*02:01", "HLA-B*07:02"])
+predictor = MHCflurry(alleles=["HLA-A*02:01"])
 results = predictor.predict(["SIINFEKL", "GILGFVFTL"])
-
-for r in results:
-    if r.affinity:
-        print(f"{r.peptide} -> {r.affinity.allele} IC50={r.affinity.value:.1f}nM")
+df = predictor.predict_dataframe(["SIINFEKL", "GILGFVFTL"])
 ```
 
-`predict()` returns one `PeptideResult` per peptide, in input order, with an
-accessor for each [kind of prediction](kinds.md) (`r.affinity`, `r.presentation`,
-`r.immunogenicity`, ...) that is `None` when the predictor does not produce it.
+The [getting started guide](getting-started.md) explains the results and shows
+how to use another predictor.
 
-Every predictor answers `predict()`, though what you
-pass differs by family (alleles, flanks, TCRs); see [input
-shapes](predictors/index.md#input-shapes). `Calis` needs no download at all.
+## Documentation
 
-## Find what you need
+- [Getting started](getting-started.md): install the library and make your first prediction.
+- [User guide](predictors/index.md): supported predictors, inputs, and examples.
+- [Recipes](recipes.md): scan proteins, run multiple samples, and annotate tables.
+- [API reference](api.md): Python classes and functions.
 
-**I am choosing a predictor**
+For model selection, read [choosing a predictor](choosing.md) and the
+[known limits](limitations.md). For installation help, see
+[getting models](artifacts.md) and [troubleshooting](troubleshooting.md).
 
-- [Choosing a predictor](choosing.md): by question and by constraint
-- [Predictor matrix](predictor-matrix.md): every predictor, class, CLI name, input, install route and license
-- [Known limits](limitations.md): read before trusting a score
+## Processing and vaccine analysis
 
-**I am using one**
-
-- [Predictors](predictors/index.md): one page per family, with an example for each
-- [Results and DataFrames](results.md) and [recipes](recipes.md)
-- [Allele names](alleles.md) and [peptide lengths](predictors/index.md#peptide-lengths)
-- [Command line](cli.md)
-
-**I am installing something**
-
-- [Getting models](artifacts.md): `mhctools fetch`, `ls` and `predictors`
-- [Installing optional backends](backends.md), [environment variables](env-vars.md) and [licensing](licensing.md)
-- [Troubleshooting](troubleshooting.md)
-
-**I need to understand the output**
-
-- [Prediction kinds, units and MHC context](kinds.md)
-- [Peptide PK, uptake and tissue exposure](exposure-results.md)
-- [Optional backend conformance](optional-backends.md)
-
-**Cleavage, vaccines and benchmarks**
-
-- [Peptidase cleavage evidence](cleavage/index.md): [models](cleavage/models.md), [batch assessments](cleavage/batch.md), [validation](cleavage/validation.md)
-- [Route-aware vaccine reports](vaccine-reports.md)
-- [Assay-aware benchmarks](benchmarks.md)
-
-**Reference and maintenance**
-
-- [API reference](api.md)
-- [Migration guide](migration.md) and [known gaps](known-gaps.md)
-- [Testing](testing.md); releases are described in
-  [RELEASING.md](https://github.com/openvax/mhctools/blob/master/RELEASING.md)
+The [antigen-processing guide](predictors/processing.md) covers proteasomes,
+peptidases, transport, and trimming, with [model recommendations](cleavage/choosing.md)
+and [batch assessments](cleavage/batch.md). Related workflows include
+[vaccine reports](vaccine-reports.md) and [assay-aware benchmarks](benchmarks.md).

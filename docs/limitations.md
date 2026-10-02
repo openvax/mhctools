@@ -11,23 +11,23 @@ Each row links to the full explanation in context.
 
 | Predictor | What to watch out for | Details |
 |---|---|---|
-| CD8 immunogenicity (`PRIME`, `BigMHC_IM`, `DeepImmuno`) | Field-wide: ~AUC 0.5–0.65 on unseen tumor neoepitopes | [notes](predictors/immunogenicity.md#deepimmuno) |
-| `DeepImmuno` | Scores 9- and 10-mers only, over a fixed set of about 62 alleles; other alleles are snapped to the nearest one it knows | [notes](predictors/immunogenicity.md#deepimmuno) |
-| `PRIME` | Higher self-reported numbers are partly explained by documented train/test overlap; training positives are mostly viral | [notes](predictors/immunogenicity.md#read-this-before-trusting-a-score) |
-| `Pepsickle`, `NetChop` | The C-terminal score needs the residues after the peptide; with no `c_flanks` it is 0.0, which is not a prediction of no cleavage | [notes](predictors/processing.md#pepsickle) |
-| `TLimmuno2` | ~1 minute per distinct allele; class-II immunogenicity is noisier than class-I | [notes](predictors/immunogenicity.md#tlimmuno2) |
-| `PlifePred2` | Endpoint semantics are not established; units, transform, species and matrix are all inferred | [notes](predictors/peptide-pk.md#plifepred2) |
-| `PeptiVerse` | Fit on 130 examples, cross-validation only, no external test set; unsafe pickle serialization | [notes](predictors/peptide-pk.md#peptiverse) |
-| `NetCleave_II` | Class-II C-terminal cleavage is a much weaker signal than class I (AUC ~0.66 vs ~0.91) | [notes](predictors/processing.md#netcleave) |
-| `DeepTAP` | Self-reported evaluation; no independent TAP benchmark exists for any tool | [notes](predictors/processing.md#deeptap) |
-| `ERAMER` | Self-reported evaluation; ERAP1 trimming is intrinsically noisy | [notes](predictors/processing.md#eramer) |
-| `CapHLA` | Performance numbers are author-reported | [notes](predictors/binding.md#caphla) |
-| `MixTCRpred` | Loading a PyTorch checkpoint can execute serialized code; use trusted sources | [notes](predictors/tcr.md#mixtcrpred) |
-| `DPP4qPISA` | Substrate-depletion estimates, not serum half-lives or probabilities | [cleavage guide](cleavage/index.md) |
+| CD8 immunogenicity ([PRIME](predictors/immunogenicity.md#prime), [BigMHC](predictors/binding.md#bigmhc) IM, [DeepImmuno](predictors/immunogenicity.md#deepimmuno)) | Field-wide: ~AUC 0.5–0.65 on unseen tumor neoepitopes | [notes](predictors/immunogenicity.md#deepimmuno) |
+| DeepImmuno | Scores 9- and 10-mers only, over a fixed set of about 62 alleles; other alleles are snapped to the nearest one it knows | [notes](predictors/immunogenicity.md#deepimmuno) |
+| PRIME | Higher self-reported numbers are partly explained by documented train/test overlap; training positives are mostly viral | [notes](predictors/immunogenicity.md#read-this-before-trusting-a-score) |
+| [Pepsickle](predictors/processing.md#pepsickle), [NetChop](predictors/processing.md#netchop) | The C-terminal score needs the residues after the peptide; with no `c_flanks` it is 0.0, which is not a prediction of no cleavage | [notes](predictors/processing.md#pepsickle) |
+| [TLimmuno2](predictors/immunogenicity.md#tlimmuno2) | ~1 minute per distinct allele; class-II immunogenicity is noisier than class-I | [notes](predictors/immunogenicity.md#tlimmuno2) |
+| [PlifePred2](predictors/peptide-pk.md#plifepred2) | Endpoint semantics are not established; units, transform, species and matrix are all inferred | [notes](predictors/peptide-pk.md#plifepred2) |
+| [PeptiVerse](predictors/peptide-pk.md#peptiverse) | Fit on 130 examples, cross-validation only, no external test set; unsafe pickle serialization | [notes](predictors/peptide-pk.md#peptiverse) |
+| [NetCleave](predictors/processing.md#netcleave) (class II) | Class-II C-terminal cleavage is a much weaker signal than class I (AUC ~0.66 vs ~0.91) | [notes](predictors/processing.md#netcleave) |
+| [DeepTAP](predictors/processing.md#deeptap) | Self-reported evaluation; no independent TAP benchmark exists for any tool | [notes](predictors/processing.md#deeptap) |
+| [ERAMER](predictors/processing.md#eramer) | Self-reported evaluation; ERAP1 trimming is intrinsically noisy | [notes](predictors/processing.md#eramer) |
+| [CapHLA](predictors/binding.md#caphla) | Performance numbers are author-reported | [notes](predictors/binding.md#caphla) |
+| [MixTCRpred](predictors/tcr.md#mixtcrpred) | Loading a PyTorch checkpoint can execute serialized code; use trusted sources | [notes](predictors/tcr.md#mixtcrpred) |
+| [DPP4qPISA](cleavage/models.md#human-dpp4-qpisa) | Substrate-depletion estimates, not serum half-lives or probabilities | [peptidase activity guide](cleavage/index.md) |
 
 ## Three recurring themes
 
-**Self-reported evaluation.** `DeepTAP`, `ERAMER`, and `CapHLA` are each
+**Self-reported evaluation.** [DeepTAP](predictors/processing.md#deeptap), [ERAMER](predictors/processing.md#eramer), and [CapHLA](predictors/binding.md#caphla) are each
 evaluated by their own authors, with no neutral benchmark to check them
 against. For TAP and ERAP1 trimming this reflects the state of the field, not a
 gap these particular tools left. Read those scores as pathway priors that help
@@ -38,7 +38,7 @@ well inside the regime they were trained on and fall toward chance outside it.
 The [DeepImmuno notes](predictors/immunogenicity.md#deepimmuno) give the independent benchmark
 numbers and the one neutral head-to-head comparison.
 
-**Unestablished semantics.** [`PlifePred2`](predictors/peptide-pk.md#plifepred2) ships no
+**Unestablished semantics.** [PlifePred2](predictors/peptide-pk.md#plifepred2) ships no
 publication, training data, or target definition. mhctools reports its native
 output and declines to claim a duration unless you explicitly opt in. This is
 the clearest case of a general rule: where a transform to a physical unit is
@@ -69,7 +69,7 @@ capability](artifacts.md#inventory-is-not-capability).
 
 **A motif non-match is not evidence of resistance.** In the cleavage API,
 `not_matched` and `no_cleavage_detected` are not probabilities. See the
-[cleavage guide](cleavage/evidence.md#interpreting-rule-based-evidence).
+[peptidase activity guide](cleavage/evidence.md#interpreting-rule-based-evidence).
 
 ## Where the rest lives
 

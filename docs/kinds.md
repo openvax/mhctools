@@ -4,30 +4,23 @@ Every `Prediction` says what it measures (`kind`), how confident or favourable
 it is (`score`), and, when the measurement has a physical unit, how much
 (`value`). This page is the reference for all three.
 
-- [The kinds](#the-kinds)
-- [score, value, and percentile_rank](#score-value-and-percentile_rank)
-- [Units are the wrapper's job](#units-are-the-wrappers-job)
-- [Measurement context](#measurement-context)
-- [MHC dependence and class](#mhc-dependence-and-class)
-- [What each predictor emits](#what-each-predictor-emits)
-
 ## The kinds
 
 The canonical strings live in `mhctools.pred.Kind`.
 
 | Kind | Meaning | `value` unit |
 |---|---|---|
-| `pMHC_affinity` | Peptide-MHC binding affinity | `nM` (IC50) |
+| `pMHC_affinity` | Peptide-MHC binding affinity | nM (IC50) |
 | `pMHC_presentation` | Likelihood of surface presentation (EL/processing) | none |
-| `pMHC_stability` | Peptide-MHC complex stability | `hours` (Thalf) |
+| `pMHC_stability` | Peptide-MHC complex stability | hours (Thalf) |
 | `pMHC_TCR_binding` | TCR recognition of a peptide-MHC (pMHC:TCR binding) | none |
 | `immunogenicity` | T-cell immunogenicity | none |
 | `antigen_processing` | Combined processing score | none |
 | `proteasome_cleavage` | Proteasomal (MHC-I, cytosolic) C-terminal cleavage score | none |
 | `endolysosomal_cleavage` | Endolysosomal (MHC-II, cathepsin) C-terminal cleavage score | none |
-| `tap_transport` | TAP transport / binding score | `nM` |
+| `tap_transport` | TAP transport / binding score | nM |
 | `erap_trimming` | ERAP1 N-terminal trimming score | none |
-| `peptide_half_life` | Parent-peptide half-life; matrix and systemic scope live in context | `hours` |
+| `peptide_half_life` | Parent-peptide half-life; matrix and systemic scope live in context | hours |
 | `systemic_clearance` | Systemic or apparent clearance | context-defined |
 | `distribution_volume` | Systemic or apparent distribution volume | context-defined |
 | `systemic_exposure` | Systemic exposure, such as AUC | context-defined |
@@ -53,11 +46,11 @@ prediction measures *something*; only some kinds have a unit. A model that
 emits a bare 0–1 confidence is still a prediction of a kind: it fills `score`
 and leaves `value` empty. Wrappers fill both wherever the predictor supports it.
 
-**`score`** is always present and always orders higher-is-better. Its scale is
+`score` is always present and always orders higher-is-better. Its scale is
 predictor-specific: it may be a probability, an uncalibrated model output, a
 transformed estimate, or a copy of `value`. Check the predictor's own notes
-before comparing or thresholding it. PeptiVerse, for instance, repeats its
-predicted hours in both `score` and `value`, while PlifePred2 keeps its
+before comparing or thresholding it. [PeptiVerse](predictors/peptide-pk.md#peptiverse), for instance, repeats its
+predicted hours in both `score` and `value`, while [PlifePred2](predictors/peptide-pk.md#plifepred2) keeps its
 unresolved native output in `score` and leaves `value` empty unless its
 inferred conversion is explicitly enabled.
 
@@ -65,14 +58,14 @@ Higher-is-better is a numerical selection convention within one documented
 endpoint. A larger score is not universally better for a vaccine, and scores
 from different predictors or endpoints are not interchangeable.
 
-**`value`** appears only for the kinds marked with a unit above, and carries a
+`value` appears only for the kinds marked with a unit above, and carries a
 physical quantity on a linear scale in that unit. It is not a log, not a
 rescaling, and not whatever the upstream tool happened to print. A kind having a
 unit does not oblige every predictor to fill it: a wrapper whose transform to
 that unit is unresolved leaves `value` empty rather than guessing (see
-[`PlifePred2`](predictors/peptide-pk.md#plifepred2)).
+[PlifePred2](predictors/peptide-pk.md#plifepred2)).
 
-**`percentile_rank`** appears when the predictor scores against a background
+`percentile_rank` appears when the predictor scores against a background
 distribution, and is always lower-is-better.
 
 For affinity predictions, `score` is commonly the monotone `1-log50k`
@@ -95,10 +88,10 @@ value_unit(Kind.immunogenicity)    # None
 
 Converting to the canonical unit happens in the wrapper, and it long predates
 this registry. Affinity predictors commonly work in `1-log50k` space
-internally, and every affinity wrapper here inverts it to nM, so a NetMHCpan
-IC50 and an MHCflurry IC50 are directly comparable. PeptiVerse's upstream
+internally, and every affinity wrapper here inverts it to nM, so a [NetMHCpan](predictors/binding.md#netmhcpan)
+IC50 and an [MHCflurry](predictors/binding.md#mhcflurry) IC50 are directly comparable. [PeptiVerse](predictors/peptide-pk.md#peptiverse)'s upstream
 sequence model applies its `log1p(hours)` inverse and the wrapper reports
-hours. PlifePred2's target transform and assay provenance remain unresolved, so
+hours. [PlifePred2](predictors/peptide-pk.md#plifepred2)'s target transform and assay provenance remain unresolved, so
 that wrapper reports only the native score by default;
 `assume_log10_seconds=True` opts into the inferred conversion to hours.
 

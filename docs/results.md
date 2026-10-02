@@ -1,24 +1,20 @@
 # Results and DataFrames
 
-What `predict()` returns and how to read it.
+The `predict()` method returns a list of `PeptideResult` objects, one per input
+peptide. Each result contains predictions across the requested alleles and
+prediction kinds.
 
-**`predict()` returns a list of `PeptideResult`.** Each one carries the peptide
-string and gives you accessors for each kind of prediction. An accessor returns
-`None` when the predictor doesn't produce that kind, so `r.stability` is
-`None` from an affinity-only model, rather than an error or a zero.
+## Read a peptide result
 
-**Results preserve input order and repeated peptides.** `results[i]` corresponds
-to `peptides[i]`, so you can use `zip(peptides, results)`. A repeated peptide
-gets its own `PeptideResult` for each occurrence. The NetMHC family and the
-legacy binding-prediction fallback score each distinct peptide once and expand
-its predictions back to every occurrence. If those backends omit a requested
-peptide/allele pair, `predict()` raises `ValueError` instead of returning a
-shorter, misaligned list.
+An accessor such as `result.affinity` selects the best prediction of that kind.
+It returns `None` when the predictor does not produce the kind. For example,
+an affinity-only model has no stability result.
 
 ```python
 from mhctools import MHCflurry
 
-results = MHCflurry(alleles=["HLA-A*02:01", "HLA-B*07:02"]).predict(["SIINFEKL", "GILGFVFTL"])
+predictor = MHCflurry(alleles=["HLA-A*02:01", "HLA-B*07:02"])
+results = predictor.predict(["SIINFEKL", "GILGFVFTL"])
 r = results[0]
 
 r.peptide                      # "SIINFEKL"
@@ -44,8 +40,11 @@ r.filter(kind="pMHC_affinity")
 r.filter(allele="HLA-A*02:01")
 ```
 
-Each `PeptideResult` wraps a tuple of `Prediction` objects: frozen dataclasses,
-one per allele and kind, each self-contained:
+## Read a prediction
+
+Each peptide result contains a tuple of `Prediction` objects, one per allele
+and kind. These immutable objects also carry the predictor and source-sequence
+information:
 
 ```python
 from mhctools import Prediction
@@ -64,7 +63,7 @@ pred = Prediction(
 )
 ```
 
-Three fields do most of the work, and they mean the same thing everywhere:
+The main numerical fields are:
 
 - `score`: always present and higher-is-better, on a predictor-specific scale.
 - `value`: a physical quantity on a linear scale, in that kind's canonical
@@ -73,12 +72,11 @@ Three fields do most of the work, and they mean the same thing everywhere:
 - `percentile_rank`: 0-100, lower is stronger, present when the predictor
   scores against a background distribution.
 
-A predictor can emit more than one kind. NetMHCpan 4.1, for example, produces
+A predictor can emit more than one kind. [NetMHCpan](predictors/binding.md#netmhcpan) 4.1, for example, produces
 both `pMHC_affinity` and `pMHC_presentation` for every peptide-allele pair.
 
-Full reference: [prediction kinds, units, and MHC context](kinds.md), which
-covers the kinds, what fills `value`, and how `MeasurementContext` works. Which
-predictor emits which kind is in the [predictor matrix](predictor-matrix.md).
+See [prediction kinds](kinds.md) for units and measurement context, and the
+[predictor matrix](predictor-matrix.md) for each model's output kinds.
 
 ## Which accessor for which kind
 
@@ -126,3 +124,13 @@ The columns are the same for every predictor, and are defined once as
 | `allele`, `tcr` | the MHC allele and/or TCR, empty when not applicable |
 | `kind`, `score`, `value`, `percentile_rank` | [the prediction itself](kinds.md) |
 | `measurement_context`, `peptide_input`, `cache_key` | assay context and exact-input identity |
+
+## Ordering and repeated peptides
+
+Results preserve input order and repeated peptides. `results[i]` corresponds
+to `peptides[i]`, so you can use `zip(peptides, results)`. A repeated peptide
+gets its own `PeptideResult` for each occurrence. The [NetMHC](predictors/binding.md#netmhc) family and the
+legacy binding-prediction fallback score each distinct peptide once and expand
+its predictions back to every occurrence. If those backends omit a requested
+peptide/allele pair, `predict()` raises `ValueError` instead of returning a
+shorter, misaligned list.
