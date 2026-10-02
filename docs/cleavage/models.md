@@ -1,9 +1,12 @@
-# Cleavage models
+# Peptidase models
 
 The model panel behind `predict_cleavage()` and `mhctools cleavage`. Which
 enzyme, where it acts, what pattern it assesses and how strongly a match should
 be read is below; what the result states mean is in [reading the
 evidence](evidence.md).
+
+For model selection by biological endpoint and compartment, see
+[choosing processing and peptidase models](choosing.md).
 
 ## Running the panel
 
@@ -24,7 +27,7 @@ results = predict_cleavage("TSGPNQ", models=["fap-endo-gp", "prep-pro"])
 The default panel evaluates all 20 built-in models and returns separate
 results. `--model` and `--sequence` can be repeated. `--list-models` prints a
 compact discovery table; add `--json` for its full machine-readable catalog.
-The eight optional Pepsickle models cover epitope and C/I digestion families;
+The eight optional [Pepsickle](../predictors/processing.md#pepsickle) models cover epitope and C/I digestion families;
 see [proteasome models](#proteasome-models).
 Missing assets and uninspected external runtimes are listed as unresolved.
 Predictions carry SHA-256 identities for the actual runtime's weights,
@@ -83,7 +86,7 @@ its bonds resist enzymatic cleavage.
 
 ## Proteasome models
 
-Eight optional Pepsickle models cover the epitope and digestion families, with
+Eight optional [Pepsickle](../predictors/processing.md#pepsickle) models cover the epitope and digestion families, with
 explicit constitutive (C) or immunoproteasome (I) selection where the family has
 it. They are excluded from the default panel and selected by exact name:
 
@@ -98,7 +101,7 @@ it. They are excluded from the default panel and selected by exact name:
 | `pepsickle-in-vitro-all-mammal-constitutive` | gradient-boosted digestion model | needs the isolated scikit-learn 0.23.2 runtime (see [below](#the-legacy-gradient-boosted-runtime)) | C |
 | `pepsickle-in-vitro-all-mammal-immunoproteasome` | gradient-boosted digestion model | needs the isolated scikit-learn 0.23.2 runtime | I |
 
-The Python `Pepsickle` wrapper takes `model_type` and `proteasome_type` (`C`
+The Python Pepsickle wrapper takes `model_type` and `proteasome_type` (`C`
 or `I`) for digestion models. It rejects a proteasome type for the epitope
 model and `human_only=True` for gradient boosting, which upstream ignores.
 Model metadata identifies actual weights, code, population and model family.
@@ -277,13 +280,13 @@ Alternatively, construct `ERAMERCleavage(pwm_path="/path/to/PWM.xlsx")` or set
 excluded from the default panel. Explicit selection fails clearly if the
 external asset or its runtime is missing.
 
-`eramer-step` computes the existing ERAMER intermediate PWM specificity for
+`eramer-step` computes the existing [ERAMER](../predictors/processing.md#eramer) intermediate PWM specificity for
 one exposed 9–16-residue precursor, assigning it to bond 1. It does not report
 the average of later trimming intermediates. Its version contains the SHA-256
 of the actual workbook snapshot used for inference. The GPL-licensed workbook
 is loaded at runtime and is not included in the mhctools distribution.
 
-The existing `ERAMER` cascade API, `NetChop`, `Pepsickle` and other proteasome
+The existing ERAMER cascade API, [NetChop](../predictors/processing.md#netchop), [Pepsickle](../predictors/processing.md#pepsickle) and other proteasome
 predictors remain available through their existing interfaces. Pepsickle also
 has a canonical `PepsickleCleavage.predict()` facade and the two CLI model names
 shown above. Array index `i` maps to internal bond `i + 1`; the upstream final

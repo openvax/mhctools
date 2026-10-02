@@ -125,8 +125,8 @@ have independent training data:
   sets and adds CPPsite2.0 data. Some negative CPP labels are generated rather
   than experimentally observed. This shared ancestry with POSEIDON requires
   row-level auditing before claiming an independent comparison.
-- qPISA coefficient reproduction and ERAMER adapter agreement are documented
-  in the [cleavage guide](cleavage/index.md); their reproduction is separate from
+- qPISA coefficient reproduction and [ERAMER](predictors/processing.md#eramer) adapter agreement are documented
+  in the [peptidase activity guide](cleavage/index.md); their reproduction is separate from
   new assay validation.
 
 No third-party raw exposure/uptake datasets or model weights are redistributed.

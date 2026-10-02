@@ -6,41 +6,19 @@
 
 # mhctools
 
-mhctools runs MHC binding, presentation, immunogenicity and antigen-processing
-predictors through a single `predict()` call and returns the same result
-objects whichever one you use. Swapping NetMHCpan for MHCflurry is a one-line
-change, and comparing them gives you a DataFrame.
+mhctools is a Python library for running MHC binding, presentation,
+immunogenicity, and antigen-processing predictors. It provides a common
+interface to tools such as [NetMHCpan](https://openvax.github.io/mhctools/predictors/binding/#netmhcpan) and [MHCflurry](https://openvax.github.io/mhctools/predictors/binding/#mhcflurry), with results you can inspect
+in Python or export as a pandas DataFrame.
 
-**Documentation: <https://openvax.github.io/mhctools/>**
-
-## Available predictors
-
-| Predict | Predictors |
-|---|---|
-| Binding affinity | [`NetMHCpan`](https://openvax.github.io/mhctools/predictors/binding/#netmhcpan), [`NetMHC`](https://openvax.github.io/mhctools/predictors/binding/#netmhc), [`NetMHCIIpan`](https://openvax.github.io/mhctools/predictors/binding/#netmhciipan), [`NetMHCcons`](https://openvax.github.io/mhctools/predictors/binding/#netmhccons), [`MHCflurry`](https://openvax.github.io/mhctools/predictors/binding/#mhcflurry), [`CapHLA`](https://openvax.github.io/mhctools/predictors/binding/#caphla), [`SMM`](https://openvax.github.io/mhctools/predictors/binding/#smm-and-smm-pmbec), [`SMMPMBEC`](https://openvax.github.io/mhctools/predictors/binding/#smm-and-smm-pmbec) |
-| Presentation | [`NetMHCpan41`/`42`](https://openvax.github.io/mhctools/predictors/binding/#netmhcpan), [`NetMHCIIpan`](https://openvax.github.io/mhctools/predictors/binding/#netmhciipan), [`MHCflurry`](https://openvax.github.io/mhctools/predictors/binding/#mhcflurry), [`CapHLA`](https://openvax.github.io/mhctools/predictors/binding/#caphla), [`MixMHCpred`](https://openvax.github.io/mhctools/predictors/binding/#mixmhcpred) (I), [`MixMHC2pred`](https://openvax.github.io/mhctools/predictors/binding/#mixmhc2pred) (II), [`BigMHC`](https://openvax.github.io/mhctools/predictors/binding/#bigmhc) |
-| Binding stability | [`NetMHCstabpan`](https://openvax.github.io/mhctools/predictors/binding/#netmhcstabpan) |
-| Antigen processing | [`MHCflurry`](https://openvax.github.io/mhctools/predictors/binding/#mhcflurry) |
-| Proteasomal cleavage | [`Pepsickle`](https://openvax.github.io/mhctools/predictors/processing/#pepsickle), [`NetChop`](https://openvax.github.io/mhctools/predictors/processing/#netchop), [`NetCleave_I`](https://openvax.github.io/mhctools/predictors/processing/#netcleave) |
-| Endolysosomal cleavage | [`NetCleave_II`](https://openvax.github.io/mhctools/predictors/processing/#netcleave) |
-| TAP transport | [`DeepTAP`](https://openvax.github.io/mhctools/predictors/processing/#deeptap) |
-| ERAP1 trimming | [`ERAMER`](https://openvax.github.io/mhctools/predictors/processing/#eramer) |
-| Immunogenicity | [`Calis`](https://openvax.github.io/mhctools/predictors/immunogenicity/#calis), [`PRIME`](https://openvax.github.io/mhctools/predictors/immunogenicity/#prime), [`BigMHC_IM`](https://openvax.github.io/mhctools/predictors/binding/#bigmhc), [`DeepImmuno`](https://openvax.github.io/mhctools/predictors/immunogenicity/#deepimmuno), [`TLimmuno2`](https://openvax.github.io/mhctools/predictors/immunogenicity/#tlimmuno2) (II) |
-| TCR recognition | [`NetTCR`](https://openvax.github.io/mhctools/predictors/tcr/#nettcr), [`Tulip`](https://openvax.github.io/mhctools/predictors/tcr/#tulip), [`MixTCRpred`](https://openvax.github.io/mhctools/predictors/tcr/#mixtcrpred) |
-| Peptide half-life | [`PeptiVerse`](https://openvax.github.io/mhctools/predictors/peptide-pk/#peptiverse), [`PlifePred2`](https://openvax.github.io/mhctools/predictors/peptide-pk/#plifepred2) |
-| Per-bond cleavage | [cleavage API](https://openvax.github.io/mhctools/cleavage/) |
-
-- [Predictor matrix](https://openvax.github.io/mhctools/predictor-matrix/): every predictor, class, command-line name, input, install route and license on one page.
-- [Choosing a predictor](https://openvax.github.io/mhctools/choosing/) and [known limits](https://openvax.github.io/mhctools/limitations/). Several of these models are weaker than their own papers suggest; read the limits before you trust a score.
-
-`RandomBindingPredictor` is built in and produces random affinities, which is
-occasionally useful as a null baseline.
+Read the [getting started guide](https://openvax.github.io/mhctools/getting-started/)
+or browse the [documentation](https://openvax.github.io/mhctools/).
 
 ## Install and predict
 
 ```sh
 pip install mhctools
-mhctools fetch mhcflurry     # MHCflurry ships as a dependency; this downloads its weights
+mhctools fetch mhcflurry
 ```
 
 ```python
@@ -49,69 +27,40 @@ from mhctools import MHCflurry
 predictor = MHCflurry(alleles=["HLA-A*02:01", "HLA-B*07:02"])
 results = predictor.predict(["SIINFEKL", "GILGFVFTL"])
 
-for r in results:
-    if r.affinity:
-        print(f"{r.peptide} -> {r.affinity.allele} IC50={r.affinity.value:.1f}nM")
+for result in results:
+    affinity = result.affinity
+    if affinity is not None:
+        print(result.peptide, affinity.allele, affinity.value)
 ```
 
-`predict()` returns one `PeptideResult` per input
-peptide, in input order. Each exposes an accessor per [kind of prediction](https://openvax.github.io/mhctools/kinds/)
-(`r.affinity`, `r.presentation`, `r.immunogenicity`, ...) that is `None` when
-the predictor does not produce that kind. Scan proteins with
-`predict_proteins()`, and get a pandas DataFrame from any `*_dataframe()` method.
-See [results and DataFrames](https://openvax.github.io/mhctools/results/).
+Each result corresponds to one input peptide. The affinity accessor selects
+the strongest prediction across alleles, with IC50 in nM. Use
+`predict_dataframe()` for a pandas table or `predict_proteins()` to scan protein
+sequences. See [results and DataFrames](https://openvax.github.io/mhctools/results/).
 
-`Calis` needs no download. Most other predictors need model weights or an
-external tool first (see below). The command line does the same job:
+Most predictors need model weights or an external installation. Use
+`mhctools ls` to locate models and `mhctools predictors` to check which can run.
+The [installation guide](https://openvax.github.io/mhctools/artifacts/) explains
+downloads, optional backends, and licensing.
 
-```sh
-mhctools --sequence SIINFEKL SIINFEKLQ --mhc-predictor mhcflurry --mhc-alleles A0201
-```
+## Guides
 
-## Getting models
-
-Most predictors need something downloaded first, with one command for all of it:
-
-```sh
-mhctools ls                       # what exists, where it lives, who manages it
-mhctools fetch mhcflurry          # get it
-mhctools predictors               # can it actually run?
-```
-
-`fetch` is idempotent. Academic-licensed tools need an explicit
-`--accept-license`, and the DTU NetMHC family needs a license you request from
-DTU directly. See [getting models](https://openvax.github.io/mhctools/artifacts/)
-and [licensing](https://openvax.github.io/mhctools/licensing/).
-
-## Beyond peptide-MHC
-
-- **[Per-bond peptidase evidence](https://openvax.github.io/mhctools/cleavage/)**, including
-  [contextual batches](https://openvax.github.io/mhctools/cleavage/batch/) for epitopes with
-  flanks and complete vaccine constructs under tumor, APC and extracellular scenarios.
-- **[Route-aware vaccine reports](https://openvax.github.io/mhctools/vaccine-reports/)**:
-  `mhctools vaccine-report` writes a sequence-centered PDF with route policies and checksums.
-- **[Assay-aware benchmarks](https://openvax.github.io/mhctools/benchmarks/)**:
-  `mhctools benchmark` evaluates source-linked observations with training-overlap reporting.
-- **[Peptide PK, uptake and exposure](https://openvax.github.io/mhctools/exposure-results/)** result kinds.
-
-## Documentation
-
-| Start here | |
-|---|---|
-| [Command line](https://openvax.github.io/mhctools/cli/) | Every `mhctools` subcommand |
-| [Results and DataFrames](https://openvax.github.io/mhctools/results/) | `PeptideResult`, `Prediction`, columns |
-| [Recipes](https://openvax.github.io/mhctools/recipes/) | Scan proteins, many genotypes, annotate a table |
-| [Allele names](https://openvax.github.io/mhctools/alleles/) | Accepted spellings and errors |
-| [Troubleshooting](https://openvax.github.io/mhctools/troubleshooting/) | Common failures |
-| [Migration guide](https://openvax.github.io/mhctools/migration/) | Old names and what replaced them |
+- [Choosing a predictor](https://openvax.github.io/mhctools/choosing/) and
+  [known limits](https://openvax.github.io/mhctools/limitations/)
+- [Predictor matrix](https://openvax.github.io/mhctools/predictor-matrix/): Python classes, CLI names, inputs, and installation routes
+- [Recipes](https://openvax.github.io/mhctools/recipes/): protein scans, multiple samples, and table annotation
+- [Command line](https://openvax.github.io/mhctools/cli/)
+- [Peptidase activity](https://openvax.github.io/mhctools/cleavage/),
+  [vaccine reports](https://openvax.github.io/mhctools/vaccine-reports/), and
+  [benchmarks](https://openvax.github.io/mhctools/benchmarks/)
 
 ## Development
 
 ```sh
-./develop.sh    # editable install
-./lint.sh       # ruff
-./test.sh       # pytest
+./develop.sh
+./lint.sh
+./test.sh
 ```
 
-See the [testing guide](https://openvax.github.io/mhctools/testing/) for a complete run with no skipped tests.
-Releases are described in [RELEASING.md](RELEASING.md).
+See the [testing guide](https://openvax.github.io/mhctools/testing/) and
+[release instructions](RELEASING.md).

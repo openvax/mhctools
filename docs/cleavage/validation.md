@@ -37,7 +37,7 @@ predictions are not silently substituted.
 ## APC endolysosomal enzymes
 
 The current built-in panel has no transferable cathepsin S/L/B or AEP model.
-IRAP is an exact-substrate source catalog, and NetCleave-II is a class-II
+IRAP is an exact-substrate source catalog, and [NetCleave](../predictors/processing.md#netcleave)-II is a class-II
 C-terminal processing proxy, not an enzyme-specific cathepsin predictor.
 The absence is explicit in batch coverage reports and tracked in
 [known gaps](../known-gaps.md#cleavage-validation-and-coverage).
@@ -101,7 +101,7 @@ coverage. Experimental source imports remain available now.
 ## Source-backed long-peptide case study
 
 [Wada et al. 2018](https://doi.org/10.1371/journal.pone.0199249) is explicitly
-assigned to validation in Pepsickle's Table 1. The fixture curates all 47
+assigned to validation in [Pepsickle](../predictors/processing.md#pepsickle)'s Table 1. The fixture curates all 47
 detected products from Figure 2A and 2C: two 31-residue vaccine constructs
 containing the same epitopes in different orders, joined by RR linkers.
 The dataset retains first-detection times, figure row IDs, parent endpoints

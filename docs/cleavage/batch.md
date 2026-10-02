@@ -52,7 +52,7 @@ uses one-based inclusive epitope windows; convert explicitly when using it.
 reconstruction window must retain unknown molecular termini. A construct
 can declare `n_term` and `c_term`; both default to `unknown`. Do not turn
 native-window edges into exposed substrate ends to obtain peptidase scores.
-Pepsickle can assess native, protein, construct or conditional-fragment sequence
+[Pepsickle](../predictors/processing.md#pepsickle) can assess native, protein, construct or conditional-fragment sequence
 context with free or unknown termini (including mixed free/unknown states);
 the result explicitly records that sequence-only assumption. Known chemical
 modifications still cause abstention in sequence-only models.
@@ -133,7 +133,7 @@ See [the biological coverage review](validation.md).
   internal bonds and the N/C boundaries without inventing terminal bonds.
 - JSON round-trips retain the original inputs and evidence. Human reports
   consume these same records and do not assign aggregate protection scores.
-- Expose upstream Pepsickle epitope and in-vitro model families with explicit
+- Expose upstream [Pepsickle](../predictors/processing.md#pepsickle) epitope and in-vitro model families with explicit
   constitutive/immunoproteasome selection, exact artifact identity and native
   score semantics. Reject settings the upstream model ignores.
 - Review cathepsin/AEP evidence with pH, activation and assay scope. Include

@@ -1,27 +1,27 @@
 # Immunogenicity predictors
 
 Predictors of whether a peptide elicits a T-cell response. They emit
-`immunogenicity`, read with `result.immunogenicity`. `Calis` needs only the
+`immunogenicity`, read with `result.immunogenicity`. [Calis](#calis) needs only the
 peptide; the others also need an allele.
 
 | Predictor | Class | Needs | Notes |
 |---|---|---|---|
 | [Calis](#calis) | I | peptides only | Built in; the baseline |
-| [PRIME](#prime) | I | peptides + alleles | Calls MixMHCpred |
+| [PRIME](#prime) | I | peptides + alleles | Calls [MixMHCpred](binding.md#mixmhcpred) |
 | [DeepImmuno](#deepimmuno) | I | peptides + alleles | 9- and 10-mers only |
 | [TLimmuno2](#tlimmuno2) | II | peptides + class II alleles | Slow percentile rank |
-| [BigMHC_IM](binding.md#bigmhc) | I | peptides + alleles | Described under BigMHC |
+| [BigMHC_IM](binding.md#bigmhc) | I | peptides + alleles | Described under [BigMHC](binding.md#bigmhc) |
 
 ## Read this before trusting a score
 
-Every current CD8 immunogenicity predictor, including `PRIME`, `BigMHC_IM` and
-`DeepImmuno`, does well on well-characterized epitopes and poorly on novel
+Every current CD8 immunogenicity predictor, including [PRIME](#prime), [BigMHC](binding.md#bigmhc) IM and
+[DeepImmuno](#deepimmuno), does well on well-characterized epitopes and poorly on novel
 neoepitopes. Independent benchmarks put the field at AUC 0.5–0.65 on unseen
 tumor neoepitopes (ITSNdb ~0.52–0.60, ICERFIRE ~0.56, IMPROVE ~0.60). Use the
 scores to prioritize candidates, not as ground truth.
 
 In the one neutral head-to-head that scored both (NeoaPred, *Bioinformatics*
-2024), `BigMHC_IM` edged `PRIME` on cancer neoepitopes, while PRIME tends to do
+2024), BigMHC IM edged PRIME on cancer neoepitopes, while PRIME tends to do
 better on viral epitopes. Its training positives are mostly viral and
 cancer-testis antigens, with only ~129 (v1) / ~596 (v2) true immunogenic
 neoepitopes, and its higher self-reported numbers are partly explained by
@@ -30,7 +30,7 @@ train/test overlap (IMPROVE flagged ~70% overlap with its evaluation set).
 
 ## Calis
 
-`Calis` is the classic sequence-only IEDB class-I immunogenicity model (Calis
+[Calis](#calis) is the classic sequence-only IEDB class-I immunogenicity model (Calis
 et al. 2013): a fixed per-amino-acid log-enrichment scale weighted by
 per-position importance, with the anchor positions (P1/P2/C-terminus) masked
 out.
@@ -50,8 +50,8 @@ results[0].immunogenicity.score            # 0.30484 (higher = more immunogenic)
 
 ## PRIME
 
-`PRIME` predicts CD8+ T-cell immunogenicity of class-I peptides by combining
-MHC-I binding (via MixMHCpred, which it calls internally) with a
+[PRIME](#prime) predicts CD8+ T-cell immunogenicity of class-I peptides by combining
+MHC-I binding (via [MixMHCpred](binding.md#mixmhcpred), which it calls internally) with a
 TCR-recognition propensity model. It emits one `immunogenicity` prediction per
 (peptide, allele): `score` is the PRIME score (higher = more immunogenic) and
 `percentile_rank` is the PRIME %Rank (lower = better).
@@ -77,7 +77,7 @@ the PRIME process tree, including its nested MixMHCpred call.
 
 ## DeepImmuno
 
-`DeepImmuno` predicts class-I CD8+ immunogenicity from the peptide and its
+[DeepImmuno](#deepimmuno) predicts class-I CD8+ immunogenicity from the peptide and its
 HLA-A/B/C allele with a small CNN (Li et al. 2021). It scores **9- and 10-mers
 only** and supports a fixed set of ~62 alleles, snapping anything else to the
 nearest it knows. It emits one `immunogenicity` prediction per (peptide,
@@ -102,19 +102,18 @@ results[0].immunogenicity.score                   # 0.9568 (higher = more immuno
 
 ## TLimmuno2
 
-`TLimmuno2` is the odd one out: it predicts class-II (CD4+) immunogenicity,
-and it is the only class-II immunogenicity model here (`Calis`, `PRIME`,
-`BigMHC_IM` and `DeepImmuno` are all class I).
+[TLimmuno2](#tlimmuno2) predicts class-II (CD4+) immunogenicity. [Calis](#calis), [PRIME](#prime), [BigMHC](binding.md#bigmhc) IM,
+and [DeepImmuno](#deepimmuno) predict class-I immunogenicity.
 
 It scores a peptide against a class-II allele (transfer-learned from class-II
 binding) and emits one `immunogenicity` prediction per (peptide, allele):
 `score` in 0–1 (higher = more immunogenic) and `percentile_rank` from its %Rank
 against a background set, rescaled to 0–100 (lower = more immunogenic).
 
-Native NetMHCIIpan-style keys (`DRB1_0803`, `HLA-DPA10103-DPB10101`) pass
+Native [NetMHCIIpan](binding.md#netmhciipan)-style keys (`DRB1_0803`, `HLA-DPA10103-DPB10101`) pass
 through; common DR forms (`HLA-DRB1*08:03`) are converted; anything TLimmuno2
 does not know raises. Its upstream license is ambiguous (an Apache-2.0 README
-badge, no LICENSE file), which mhctools treats the same way as NetCleave: it
+badge, no LICENSE file), which mhctools treats the same way as [NetCleave](processing.md#netcleave): it
 can fetch a pinned snapshot, but only when you confirm your own use is
 authorized, so the first fetch requires `--accept-license`. `TLIMMUNO2_PYTHON`
 names an interpreter that has TensorFlow (Keras 2, or newer TensorFlow plus

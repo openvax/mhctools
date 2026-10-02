@@ -36,7 +36,7 @@ exists. It is reviewed at release time.
 - **Held-out, assay-specific benchmarking of the shipped cleavage models**,
   including observed non-cleavages, terminal modifications, homologous-sequence
   leakage checks and abstention. Purified-enzyme turnover and disappearance of
-  intact peptide in serum are separate endpoints. Reconstructing the Pepsickle
+  intact peptide in serum are separate endpoints. Reconstructing the [Pepsickle](predictors/processing.md#pepsickle)
   paper's processed validation partition belongs here too.
   [#291](https://github.com/openvax/mhctools/issues/291)
 - **Half-life endpoints**: auditing pepADMET endpoints, overlap with the Tan
@@ -55,5 +55,5 @@ projects; mhctools provides the evidence contract.
 
 ## Maintenance
 
-- Making the SMM subset audit independent of zlib compression differences.
+- Making the [SMM](predictors/binding.md#smm-and-smm-pmbec) subset audit independent of zlib compression differences.
   [#465](https://github.com/openvax/mhctools/issues/465)

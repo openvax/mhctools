@@ -11,14 +11,6 @@ Predictors that ship their own download manager keep using it. mhctools reports
 which manager owns the files and where they landed, rather than copying them
 into a second cache.
 
-- [The three commands](#the-three-commands)
-- [How `fetch` behaves](#how-fetch-behaves)
-- [The same thing from Python](#the-same-thing-from-python)
-- [Where snapshots live](#where-snapshots-live)
-- [Who owns what: the MANAGER column](#who-owns-what-the-manager-column)
-- [Inventory is not capability](#inventory-is-not-capability)
-- [Licensing](#licensing)
-
 ## The three commands
 
 ```sh
@@ -112,7 +104,7 @@ paths, and license provenance.
 | Manager | Meaning |
 |---|---|
 | `mhctools package` / `<package> package` | Weights shipped inside an installed Python package |
-| `mhcflurry` | MHCflurry's own native download cache |
+| `mhcflurry` | [MHCflurry](predictors/binding.md#mhcflurry)'s own native download cache |
 | `mhctools` | A pinned snapshot fetched into the data directory above |
 | `user` / `manual` | An existing checkout or licensed executable you own |
 
@@ -143,7 +135,7 @@ license at all. `--accept-license` records that you reviewed the terms and
 confirmed your own use is authorized. It does not grant rights mhctools does
 not have, and it cannot stand in for a license you must request yourself.
 
-The DTU NetMHC-family downloads are the clearest example: they are
+The DTU [NetMHC](predictors/binding.md#netmhc)-family downloads are the clearest example: they are
 identity-bound licenses. DTU requires a name, position, academic email,
 affiliation, and acceptance, then sends a private download link. So
 `--accept-license` cannot substitute for the official DTU request form, and

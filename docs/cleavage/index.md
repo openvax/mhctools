@@ -1,24 +1,31 @@
-# Peptidase cleavage evidence
+# Peptidase activity
 
-Per-bond evidence about where peptidases can cut a peptide, from published
-models and curated experimental observations. This is different from the
-per-peptide cleavage *scores* in [antigen-processing predictors](../predictors/processing.md):
-these APIs say which bond, by which enzyme, with what evidence, and they keep
-categorical motif decisions separate from numerical scores.
+This API reports per-bond evidence about peptide hydrolysis by proteasomes and
+other peptidases, using published models and curated experimental observations.
+It covers enzymes in the cytosol, ER, endosomes, and extracellular settings.
+See [antigen processing](../predictors/processing.md) for their relationship to
+MHC presentation and [choosing models](choosing.md) for recommendations by
+biological question.
+
+Results identify the bond, enzyme, and evidence type. Some models produce a
+numerical score; others report motif decisions or observations for an exact
+substrate. These retain their own interpretation, as described in
+[reading the evidence](evidence.md).
 
 ## Which API do I use?
 
-| I want… | Use | Read |
-|---|---|---|
-| Evidence for one or a few peptides, per bond and per enzyme | `predict_cleavage()` or `mhctools cleavage` | this page |
-| Evidence for named epitopes with their flanks, or complete vaccine constructs, across tumor / APC / extracellular scenarios | `predict_cleavage_batch()` or `mhctools cleavage --input` | [batch assessments](batch.md) |
-| A sequence-centered PDF for a vaccine construct | `mhctools vaccine-report` | [vaccine reports](../vaccine-reports.md) |
-| To evaluate a model against measured data | `mhctools benchmark` | [benchmarks](../benchmarks.md) |
-| One cleavage *score* per peptide | `Pepsickle`, `NetChop`, `NetCleave` | [processing predictors](../predictors/processing.md) |
+| Task | Guide |
+|---|---|
+| Assess individual peptide bonds | [Quickstart](#quickstart) |
+| Assess epitopes with flanks or complete vaccine constructs | [Batch assessments](batch.md) |
+| Generate a sequence-centered PDF | [Vaccine reports](../vaccine-reports.md) |
+| Evaluate a model against measurements | [Benchmarks](../benchmarks.md) |
+| Get one cleavage score per peptide | [Processing predictors](../predictors/processing.md) |
 
-Related pages: [models](models.md) (every model, what it assesses, how strict it
-is), [reading the evidence](evidence.md) (what `matched`, `not_matched` and
-`unsupported` mean), and [validation status](validation.md).
+Batch assessments cover tumor, APC, and extracellular scenarios. See
+[models](models.md) for the supported enzymes and endpoints,
+[reading the evidence](evidence.md) for result states, and
+[validation status](validation.md) for the supporting data.
 
 ## Quickstart
 
@@ -40,7 +47,6 @@ mhctools cleavage --sequence RPPGFSPFR --model app2-xp --model cpn-basic
 ```
 
 ## Coordinates and chemistry
-
 
 This API describes individual peptide bonds. Bond `b` splits
 `sequence[:b] | sequence[b:]`; `source_bond` adds the zero-based

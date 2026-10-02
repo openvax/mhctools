@@ -6,13 +6,13 @@ presentation, and complex stability. Every row of the
 to the section here that explains it.
 
 All of these take **peptides plus alleles** and return one prediction per
-peptide-allele pair (or one per peptide for MHCflurry's haplotype mode). Spell
+peptide-allele pair (or one per peptide for [MHCflurry](#mhcflurry)'s haplotype mode). Spell
 alleles any way [mhcgnomes](../alleles.md) understands, for example
 `HLA-A*02:01`. The default scanning window is narrow (9 residues for class I,
 15-20 for class II); see [peptide lengths](index.md#peptide-lengths).
 
-The DTU tools (`NetMHCpan`, `NetMHC`, `NetMHCcons`, `NetMHCIIpan`,
-`NetMHCstabpan`) are identity-bound academic licenses, so mhctools calls an
+The DTU tools ([NetMHCpan](#netmhcpan), [NetMHC](#netmhc), [NetMHCcons](#netmhccons), [NetMHCIIpan](#netmhciipan),
+[NetMHCstabpan](#netmhcstabpan)) are identity-bound academic licenses, so mhctools calls an
 installation you provide rather than fetching one: put the executable on
 `PATH` or pass `program_name="/path/to/netMHCpan"`. See
 [licensing](../licensing.md).
@@ -25,7 +25,7 @@ your code rather than discovered: `NetMHCpan42`, `NetMHCpan41`, `NetMHCpan4`,
 `NetMHCpan3`, `NetMHCpan28`. The `_BA` and `_EL` variants restrict a class to
 binding affinity or eluted-ligand presentation.
 
-NetMHCpan 4.1 and 4.2 emit both `pMHC_affinity` and `pMHC_presentation` for
+[NetMHCpan](#netmhcpan) 4.1 and 4.2 emit both `pMHC_affinity` and `pMHC_presentation` for
 every peptide-allele pair from a single run.
 
 ```python
@@ -55,12 +55,12 @@ results = NetMHC(alleles=["HLA-A*02:01"]).predict(["SIINFEKL"])
 results[0].affinity.value                 # IC50, nM
 ```
 
-NetMHC 3.4 needs Python 2 and a Linux x86 executable. On Apple Silicon, see
+[NetMHC](#netmhc) 3.4 needs Python 2 and a Linux x86 executable. On Apple Silicon, see
 [legacy NetMHC on Apple Silicon](../backends.md#legacy-netmhc-on-apple-silicon).
 
 ## NetMHCcons
 
-`NetMHCcons` 1.1 is the consensus of several NetMHC-family methods and emits
+[NetMHCcons](#netmhccons) 1.1 is the consensus of several [NetMHC](#netmhc)-family methods and emits
 class I `pMHC_affinity`.
 
 ```python
@@ -92,7 +92,7 @@ pairs (`HLA-DPA1*01:03-DPB1*04:01`); see [allele names](../alleles.md).
 
 ## NetMHCstabpan
 
-`NetMHCstabpan` predicts the half-life of the assembled peptide-MHC complex,
+[NetMHCstabpan](#netmhcstabpan) predicts the half-life of the assembled peptide-MHC complex,
 emitting class I `pMHC_stability` with `value` in hours. That is a different
 quantity from `peptide_half_life`; see [prediction kinds](../kinds.md#the-kinds).
 
@@ -108,14 +108,14 @@ It has no default scanning window, so pass `peptide_lengths=` to
 
 ## MHCflurry
 
-MHCflurry ships as a dependency of mhctools, so only its model weights need
+[MHCflurry](#mhcflurry) ships as a dependency of mhctools, so only its model weights need
 downloading:
 
 ```sh
 mhctools fetch mhcflurry
 ```
 
-`MHCflurry` uses the modern presentation API and emits three kinds: per-allele
+MHCflurry uses the modern presentation API and emits three kinds: per-allele
 `pMHC_affinity`, `pMHC_presentation`, and the allele-independent
 `antigen_processing` score (read it with `result.processing`).
 `MHCflurry_Affinity` uses the older affinity-only API and emits
@@ -156,7 +156,7 @@ schema.
 
 ## BigMHC
 
-`BigMHC` wraps two class I models behind one constructor: `BigMHC_EL`
+[BigMHC](#bigmhc) wraps two class I models behind one constructor: `BigMHC_EL`
 (eluted-ligand `pMHC_presentation`) and `BigMHC_IM` (`immunogenicity`). The
 generic `BigMHC(alleles, mode="el" | "im")` selects between them. Models load
 on the first `predict()` call and stay in memory.
@@ -182,7 +182,7 @@ before using `BigMHC_IM` to rank neoepitopes.
 
 ## CapHLA
 
-`CapHLA` is a 2025 MIT-licensed PyTorch model family ([Chang & Wu, *Briefings
+[CapHLA](#caphla) is a 2025 MIT-licensed PyTorch model family ([Chang & Wu, *Briefings
 in Bioinformatics*](https://doi.org/10.1093/bib/bbae595)) covering human and
 mouse MHC class I and II, with peptides from 7–25 residues.
 
@@ -221,12 +221,12 @@ The wrapper loads the pinned upstream model definitions and weights unchanged,
 batches inference deterministically in-process, and preserves canonical
 mhcgnomes allele identity in its outputs.
 
-CapHLA's performance numbers are author-reported. Treat it as a complementary
+[CapHLA](#caphla)'s performance numbers are author-reported. Treat it as a complementary
 research predictor, not a default and not an independent validation.
 
 ## MixMHCpred
 
-`MixMHCpred` 3.0 predicts **class-I presentation** for peptides of length 8-14.
+[MixMHCpred](#mixmhcpred) 3.0 predicts **class-I presentation** for peptides of length 8-14.
 Version 3.0 adds pan-allele inference, MHC-I sequence alignment and
 sequence-driven prediction, and optional binding-motif/peptide-length plots.
 
@@ -290,14 +290,14 @@ sequence_result.artifacts.files
 ```
 
 Both artifact APIs require a new output path: the wrapper refuses an existing
-path because MixMHCpred itself deletes and recreates its output directory.
+path because [MixMHCpred](#mixmhcpred) itself deletes and recreates its output directory.
 `exclude_peptides_with_cysteine=True` is implemented by mhctools before the
 external call, including under v3.0 where the legacy `-c` option was removed.
 
 ## MixMHC2pred
 
-`MixMHC2pred` is a pan-allele **class-II** presentation predictor and a strong
-complement to `NetMHCIIpan`. The two were independently co-best in the
+[MixMHC2pred](#mixmhc2pred) is a pan-allele **class-II** presentation predictor and a strong
+complement to [NetMHCIIpan](#netmhciipan). The two were independently co-best in the
 *Frontiers in Immunology* 2024 class-II benchmark.
 
 It emits one `pMHC_presentation` prediction per (peptide, allele): `score` is
@@ -322,7 +322,7 @@ results[0].presentation.score
 
 ## SMM and SMM-PMBEC
 
-`SMM` and `SMMPMBEC` run IEDB's official standalone matrix methods locally and
+The [SMM](#smm-and-smm-pmbec) and [SMM-PMBEC](#smm-and-smm-pmbec) wrappers run IEDB's official matrix methods locally and
 emit class I `pMHC_affinity` as IC50 in nM. Unsupported allele and length
 pairs fail explicitly.
 
@@ -354,8 +354,8 @@ results = RandomBindingPredictor(alleles=["HLA-A*02:01"]).predict(["SIINFEKL"])
 Every predictor runs locally. The historical Python names
 `IedbNetMHCpan`, `IedbNetMHCcons`, `IedbNetMHCIIpan`, `IedbSMM`, and
 `IedbSMM_PMBEC` (and their `*-iedb` CLI names) remain as local compatibility
-wrappers. They require installed NetMHCpan **4.1 BA**, NetMHCcons, NetMHCIIpan
-**4.3 BA**, SMM, or SMM-PMBEC respectively.
+wrappers. They require installed [NetMHCpan](#netmhcpan) **4.1 BA**, [NetMHCcons](#netmhccons), [NetMHCIIpan](#netmhciipan)
+**4.3 BA**, [SMM](#smm-and-smm-pmbec), or [SMM-PMBEC](#smm-and-smm-pmbec) respectively.
 
 A few differences are worth knowing before you rely on them:
 

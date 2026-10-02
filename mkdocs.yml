@@ -9,8 +9,12 @@ strict: true
 
 theme:
   name: material
+  font: false
+  palette:
+    primary: white
+    accent: blue
   features:
-    - navigation.sections
+    - navigation.tabs
     - navigation.top
     - search.suggest
     - content.code.copy
@@ -37,17 +41,30 @@ markdown_extensions:
   - tables
   - toc:
       permalink: true
+      toc_depth: 2
+
+extra_css:
+  - stylesheets/docs.css
 
 nav:
   - Home: index.md
-  - Choosing:
+  - Getting started:
+      - First prediction: getting-started.md
       - Choosing a predictor: choosing.md
-      - Predictor matrix: predictor-matrix.md
-      - Known limits: limitations.md
-  - Using predictors:
-      - Predictors: predictors/index.md
+      - Getting models: artifacts.md
+      - Optional backends: backends.md
+      - Troubleshooting: troubleshooting.md
+  - User guide:
+      - Supported predictors: predictors/index.md
       - MHC binding and presentation: predictors/binding.md
-      - Antigen processing: predictors/processing.md
+      - Antigen processing:
+          - Overview and predictors: predictors/processing.md
+          - Choosing processing models: cleavage/choosing.md
+          - Peptidase activity: cleavage/index.md
+          - Peptidase models: cleavage/models.md
+          - Reading the evidence: cleavage/evidence.md
+          - Batch assessments: cleavage/batch.md
+          - Validation status: cleavage/validation.md
       - Immunogenicity: predictors/immunogenicity.md
       - TCR specificity: predictors/tcr.md
       - Peptide half-life: predictors/peptide-pk.md
@@ -55,28 +72,20 @@ nav:
       - Recipes: recipes.md
       - Allele names: alleles.md
       - Command line: cli.md
-  - Installing:
-      - Getting models: artifacts.md
-      - Optional backends: backends.md
-      - Environment variables: env-vars.md
-      - Licensing: licensing.md
-      - Troubleshooting: troubleshooting.md
-  - Understanding output:
-      - Prediction kinds: kinds.md
-      - Peptide PK and exposure: exposure-results.md
-      - Backend conformance: optional-backends.md
-  - Cleavage and vaccines:
-      - Cleavage evidence: cleavage/index.md
-      - Cleavage models: cleavage/models.md
-      - Reading the evidence: cleavage/evidence.md
-      - Batch assessments: cleavage/batch.md
-      - Validation status: cleavage/validation.md
       - Vaccine reports: vaccine-reports.md
       - Benchmarks: benchmarks.md
   - Reference:
       - API reference: api.md
+      - Predictor matrix: predictor-matrix.md
+      - Prediction kinds: kinds.md
+      - Peptide PK and exposure: exposure-results.md
+      - Environment variables: env-vars.md
+      - Licensing: licensing.md
+      - Known limits: limitations.md
+      - Backend conformance: optional-backends.md
       - Migration guide: migration.md
       - Known gaps: known-gaps.md
-  - Contributing:
+  - Development:
       - Testing: testing.md
+      - Documentation style: dev/documentation-style.md
       - Maintaining the SMM subset: dev/smm-subset.md

@@ -1,56 +1,64 @@
 # Choosing a predictor
 
-Start from the question you are asking, then check the practical constraints
-(license, installation, input) before the model details.
+Choose the biological question first, then check the model's inputs,
+installation requirements, and license. The [predictor matrix](predictor-matrix.md)
+lists every supported class and command-line name.
 
 ## By question
 
-| I want to know… | Kind | Start with |
-|---|---|---|
-| Will this peptide bind my class I allele? | `pMHC_affinity` | [`NetMHCpan`](predictors/binding.md#netmhcpan) (DTU license) or [`MHCflurry`](predictors/binding.md#mhcflurry) (open); both report IC50 in nM, so the two are directly comparable |
-| Will it be presented on the cell surface? | `pMHC_presentation` | [`NetMHCpan41`/`42`](predictors/binding.md#netmhcpan), [`MHCflurry`](predictors/binding.md#mhcflurry); add [`MixMHCpred`](predictors/binding.md#mixmhcpred), [`BigMHC_EL`](predictors/binding.md#bigmhc) or [`CapHLA`](predictors/binding.md#caphla) as independent opinions |
-| The same for class II | `pMHC_affinity` / `pMHC_presentation` | [`NetMHCIIpan`](predictors/binding.md#netmhciipan) 4.3 and [`MixMHC2pred`](predictors/binding.md#mixmhc2pred); [`MixMHC2pred`](predictors/binding.md#mixmhc2pred) and NetMHCIIpan were independently co-best in a 2024 class II benchmark |
-| How long the pMHC complex lasts | `pMHC_stability` | [`NetMHCstabpan`](predictors/binding.md#netmhcstabpan) |
-| Whether the peptide is cut out of the protein | `proteasome_cleavage` | [`Pepsickle`](predictors/processing.md#pepsickle) (open) or [`NetChop`](predictors/processing.md#netchop); class II uses [`NetCleave_II`](predictors/processing.md#netcleave) |
-| Whether it reaches the ER | `tap_transport` | [`DeepTAP`](predictors/processing.md#deeptap) |
-| Whether ERAP1 trims a precursor | `erap_trimming` | [`ERAMER`](predictors/processing.md#eramer) |
-| Whether a T cell responds | `immunogenicity` | [`Calis`](predictors/immunogenicity.md#calis) as a baseline; [`PRIME`](predictors/immunogenicity.md#prime), [`BigMHC_IM`](predictors/binding.md#bigmhc), [`DeepImmuno`](predictors/immunogenicity.md#deepimmuno); [`TLimmuno2`](predictors/immunogenicity.md#tlimmuno2) for class II |
-| Whether a specific TCR recognises it | `pMHC_TCR_binding` | [`NetTCR`](predictors/tcr.md#nettcr), [`Tulip`](predictors/tcr.md#tulip), [`MixTCRpred`](predictors/tcr.md#mixtcrpred) |
-| How long a free peptide survives in serum | `peptide_half_life` | [`PeptiVerse`](predictors/peptide-pk.md#peptiverse), [`PlifePred2`](predictors/peptide-pk.md#plifepred2) |
-| Which peptidase cuts which bond | none | the [cleavage API](cleavage/index.md) |
+| Question | Predictors |
+|---|---|
+| Class I binding affinity | [NetMHCpan](predictors/binding.md#netmhcpan) or [MHCflurry](predictors/binding.md#mhcflurry) |
+| Class I presentation | [NetMHCpan 4.1/4.2](predictors/binding.md#netmhcpan), [MHCflurry](predictors/binding.md#mhcflurry), [MixMHCpred](predictors/binding.md#mixmhcpred), [BigMHC (EL)](predictors/binding.md#bigmhc), [CapHLA](predictors/binding.md#caphla) |
+| Class II binding or presentation | [NetMHCIIpan](predictors/binding.md#netmhciipan) for affinity or presentation; [MixMHC2pred](predictors/binding.md#mixmhc2pred) for presentation |
+| Peptide-MHC complex stability | [NetMHCstabpan](predictors/binding.md#netmhcstabpan) |
+| Proteasomal cleavage | [Pepsickle](predictors/processing.md#pepsickle) or [NetChop](predictors/processing.md#netchop) |
+| Class II cleavage | [NetCleave (class II)](predictors/processing.md#netcleave) |
+| TAP transport | [DeepTAP](predictors/processing.md#deeptap) |
+| ERAP1 trimming | [ERAMER](predictors/processing.md#eramer) |
+| T-cell immunogenicity | [Calis](predictors/immunogenicity.md#calis), [PRIME](predictors/immunogenicity.md#prime), [BigMHC (IM)](predictors/binding.md#bigmhc), [DeepImmuno](predictors/immunogenicity.md#deepimmuno); [TLimmuno2](predictors/immunogenicity.md#tlimmuno2) for class II |
+| Recognition by a specific TCR | [NetTCR](predictors/tcr.md#nettcr), [Tulip](predictors/tcr.md#tulip), [MixTCRpred](predictors/tcr.md#mixtcrpred) |
+| Free-peptide half-life | [PeptiVerse](predictors/peptide-pk.md#peptiverse), [PlifePred2](predictors/peptide-pk.md#plifepred2) |
+| Per-bond peptidase evidence | [Peptidase activity](cleavage/index.md) |
 
-The [predictor matrix](predictor-matrix.md) has the full list with inputs and
-install routes.
+The family guides explain each model's output and validation limits.
+[Prediction kinds](kinds.md) defines the corresponding result fields and units.
 
 ## By constraint
 
-**No license to request or sign.** `MHCflurry`, `CapHLA`, `SMM`/`SMMPMBEC`,
-`Pepsickle`, `DeepTAP`, `DeepImmuno`, `Calis` and `RandomBindingPredictor` are
-open or built in. The DTU tools need a license you request from DTU; the Gfeller
-lab tools (`MixMHCpred`, `MixMHC2pred`, `PRIME`, `MixTCRpred`) and `BigMHC` and
-`NetTCR` are academic, non-commercial. See [licensing](licensing.md).
+### License
 
-**Nothing to download.** Only `Calis` and `RandomBindingPredictor`.
+[MHCflurry](predictors/binding.md#mhcflurry), [CapHLA](predictors/binding.md#caphla), [SMM](predictors/binding.md#smm-and-smm-pmbec)/[SMM-PMBEC](predictors/binding.md#smm-and-smm-pmbec), [Pepsickle](predictors/processing.md#pepsickle), [DeepTAP](predictors/processing.md#deeptap), [DeepImmuno](predictors/immunogenicity.md#deepimmuno), and [Calis](predictors/immunogenicity.md#calis)
+are open source or built in. The DTU tools require a license from DTU. The
+Gfeller lab tools, [BigMHC](predictors/binding.md#bigmhc), and [NetTCR](predictors/tcr.md#nettcr) have academic, non-commercial terms.
+See [licensing](licensing.md) before installing a model.
 
-**Runs in your Python without a separate environment.** `MHCflurry`, `CapHLA`,
-`SMM`, `Calis`, `Pepsickle` (its neural models) and `NetTCR`. The DTU tools and
-the Gfeller tools are external executables. The torch and TensorFlow models
-(`DeepTAP`, `DeepImmuno`, `TLimmuno2`, `MixTCRpred`, `Tulip`, `PeptiVerse`,
-`PlifePred2`) run in a separate interpreter; see [environment
-variables](env-vars.md).
+### Downloads
 
-**Peptides only, no allele.** `Calis`, `DeepTAP`, `ERAMER`, `PeptiVerse`,
-`PlifePred2`, and the cleavage predictors (which also want flanks).
+[Calis](predictors/immunogenicity.md#calis) and `RandomBindingPredictor` need no download. Other models need weights,
+reference data, or an external tool; see [getting models](artifacts.md).
+
+### Runtime
+
+[MHCflurry](predictors/binding.md#mhcflurry), [CapHLA](predictors/binding.md#caphla), [SMM](predictors/binding.md#smm-and-smm-pmbec), [Calis](predictors/immunogenicity.md#calis), [Pepsickle](predictors/processing.md#pepsickle)'s neural models, and [NetTCR](predictors/tcr.md#nettcr) run in
+the current Python environment. The DTU and Gfeller tools use external
+executables. [DeepTAP](predictors/processing.md#deeptap), [DeepImmuno](predictors/immunogenicity.md#deepimmuno), [TLimmuno2](predictors/immunogenicity.md#tlimmuno2), [MixTCRpred](predictors/tcr.md#mixtcrpred), [Tulip](predictors/tcr.md#tulip), [PeptiVerse](predictors/peptide-pk.md#peptiverse),
+and [PlifePred2](predictors/peptide-pk.md#plifepred2) use a separate interpreter; see [optional backends](backends.md)
+and [environment variables](env-vars.md).
+
+### Inputs
+
+[Calis](predictors/immunogenicity.md#calis), [DeepTAP](predictors/processing.md#deeptap), [ERAMER](predictors/processing.md#eramer), [PeptiVerse](predictors/peptide-pk.md#peptiverse), and [PlifePred2](predictors/peptide-pk.md#plifepred2) accept peptides without
+alleles. Cleavage predictors also use flanking residues. See
+[input shapes](predictors/index.md#input-shapes) for the other families.
 
 ## Good habits
 
-- **Use more than one predictor for the same kind** and compare. Everything in
-  one table is the point of mhctools; see [recipes](recipes.md) and
-  `mhctools predict-table`.
-- **Compare like with like.** `value` is comparable across predictors of the
-  same kind (IC50 in nM). `score` is predictor-specific and is not. See
-  [prediction kinds](kinds.md#score-value-and-percentile_rank).
-- **Do not rank neoepitopes by immunogenicity alone.** Every current CD8
-  immunogenicity predictor falls toward chance on unseen tumor neoepitopes; see
-  the [warning](predictors/immunogenicity.md#read-this-before-trusting-a-score).
-- **Read the known limits** for the predictors you pick: [limitations](limitations.md).
+- Compare predictors of the same endpoint. The [recipes](recipes.md) show how
+  to combine results in a table.
+- Compare physical values only when the units and measurement context agree.
+  Model scores use predictor-specific scales; see
+  [score, value, and percentile rank](kinds.md#score-value-and-percentile_rank).
+- Read the [immunogenicity caveats](predictors/immunogenicity.md#read-this-before-trusting-a-score)
+  before ranking neoepitopes. Performance falls toward chance on unseen tumor neoepitopes.
+- Check the [known limits](limitations.md) of each model you select.

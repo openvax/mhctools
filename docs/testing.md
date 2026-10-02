@@ -45,11 +45,11 @@ misconfiguration.
 
 | Backend | Setup group | Command |
 |---|---|---|
-| Pepsickle gradient-boosted | `pepsickle` | `pytest tests/test_pepsickle_legacy.py tests/test_pepsickle_runtime.py --require-all` |
-| SMM, SMM-PMBEC | `smm` | `python -m pytest tests/test_smm.py tests/test_smm_integration.py --require-all` |
-| NetTCR (LiteRT) | `nettcr` | `python -m pytest tests/test_nettcr.py --require-all -W error` |
-| DeepImmuno, TLimmuno2, NetCleave | `keras` | `python -m pytest tests/test_deepimmuno.py tests/test_tlimmuno2.py tests/test_netcleave.py --require-all -W error` |
-| Legacy NetMHC | `legacy` | `TEST_SH_MAX=2 ./test.sh --require-all -ra` |
+| [Pepsickle](predictors/processing.md#pepsickle) gradient-boosted | `pepsickle` | `pytest tests/test_pepsickle_legacy.py tests/test_pepsickle_runtime.py --require-all` |
+| [SMM](predictors/binding.md#smm-and-smm-pmbec), [SMM-PMBEC](predictors/binding.md#smm-and-smm-pmbec) | `smm` | `python -m pytest tests/test_smm.py tests/test_smm_integration.py --require-all` |
+| [NetTCR](predictors/tcr.md#nettcr) (LiteRT) | `nettcr` | `python -m pytest tests/test_nettcr.py --require-all -W error` |
+| [DeepImmuno](predictors/immunogenicity.md#deepimmuno), [TLimmuno2](predictors/immunogenicity.md#tlimmuno2), [NetCleave](predictors/processing.md#netcleave) | `keras` | `python -m pytest tests/test_deepimmuno.py tests/test_tlimmuno2.py tests/test_netcleave.py --require-all -W error` |
+| Legacy [NetMHC](predictors/binding.md#netmhc) | `legacy` | `TEST_SH_MAX=2 ./test.sh --require-all -ra` |
 
 Notes on what CI asserts:
 
@@ -67,7 +67,7 @@ Notes on what CI asserts:
   against direct upstream inference, checks runtime provenance, and exercises
   batch save/reload. This is implementation conformance, not held-out
   biological validation; see [cleavage validation](cleavage/validation.md).
-- The legacy NetMHC runtime exists only for the old NetMHC 3.4 and NetMHCcons
+- The legacy NetMHC runtime exists only for the old NetMHC 3.4 and [NetMHCcons](predictors/binding.md#netmhccons)
   integration tests.
 
 Maintaining the pinned SMM subset is covered in [maintaining the IEDB SMM
@@ -93,10 +93,10 @@ mkdocs build --strict
 
 ## CI and release verification
 
-CI runs the public suite on Python 3.9–3.12, the licensed NetMHC integration
-suite, and separate real-model jobs for TULIP, CapHLA, MixTCRpred, the two
+CI runs the public suite on Python 3.9–3.12, the licensed [NetMHC](predictors/binding.md#netmhc) integration
+suite, and separate real-model jobs for TULIP, [CapHLA](predictors/binding.md#caphla), [MixTCRpred](predictors/tcr.md#mixtcrpred), the two
 half-life predictors, the three Gfeller MHC predictors,
-DeepImmuno/TLimmuno2/NetCleave, NetTCR, and local SMM/SMM-PMBEC. Each focused
+[DeepImmuno](predictors/immunogenicity.md#deepimmuno)/[TLimmuno2](predictors/immunogenicity.md#tlimmuno2)/[NetCleave](predictors/processing.md#netcleave), [NetTCR](predictors/tcr.md#nettcr), and local [SMM](predictors/binding.md#smm-and-smm-pmbec)/[SMM-PMBEC](predictors/binding.md#smm-and-smm-pmbec). Each focused
 model job uses `--require-all`, so a missing installation cannot silently turn it green.
 The complete release run requires all installed backends and zero skips:
 

@@ -23,7 +23,7 @@ compartment, analyte, and systemic scope when they are known.
 
 ## PeptiVerse
 
-`PeptiVerse` wraps one endpoint of the upstream multi-property platform. Its
+[PeptiVerse](#peptiverse) wraps one endpoint of the upstream multi-property platform. Its
 dependencies (torch, `transformers==4.46.0`, xgboost, lightning, and ESM2) stay
 out of the mhctools environment: inference runs offline in a subprocess under
 `PEPTIVERSE_PYTHON`. Provision the exact snapshots before prediction:
@@ -72,7 +72,7 @@ a matching checksum shows identity, not safety, so use only snapshots you trust.
 
 ## PlifePred2
 
-This endpoint's semantics are not established. PlifePred2 ships no publication,
+This endpoint's semantics are not established. [PlifePred2](#plifepred2) ships no publication,
 no training data and no target definition, so its units, transform, species and
 assay matrix are all inferred from the artifacts. By default the wrapper
 reports only the model's native output and claims no duration at all.
@@ -105,13 +105,13 @@ about seven significant figures, where log2 and ln both invert the whole
 training range to a few seconds up to a couple of minutes. The minimum also
 lands on 20.2 s, matching the 20-second floor in the lineage paper. That last
 point is corroboration rather than proof: the same forests hold targets past
-that paper's 24-hour ceiling, so PlifePred2 was trained on a different dataset
+that paper's 24-hour ceiling, so [PlifePred2](#plifepred2) was trained on a different dataset
 and the old filter cannot establish the new target. Note also that the lineage
 paper states log2, not log10.
 
 **What is not established.** The species and assay matrix. The result therefore
 uses generic `peptide_half_life` with `matrix=None`; do not report it as a
-measured whole-blood property or treat it as interchangeable with PeptiVerse's
+measured whole-blood property or treat it as interchangeable with [PeptiVerse](#peptiverse)'s
 human-serum endpoint.
 
 Natural peptides only, 12–100 residues. Upstream's CLI silently drops
