@@ -33,6 +33,10 @@ plugins:
           options:
             docstring_style: numpy
             show_root_heading: true
+            heading_level: 3
+            show_root_full_path: false
+            separate_signature: true
+            docstring_section_style: list
             show_source: false
             members_order: source
 
