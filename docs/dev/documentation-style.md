@@ -57,6 +57,10 @@ classes in the predictor matrix. When referring to the upstream model, use
 its ordinary name. Write “NetMHCpan 4.2”, rather than the wrapper spelling
 `NetMHCpan42`, unless the wrapper is the subject.
 
+Link model names to their guide on first use in a section and in comparison
+tables. Keep the link label in ordinary text, including names such as
+[Pepsickle](../predictors/processing.md#pepsickle).
+
 Do not combine bold and code styling just to emphasize a field name. Explain
 the field in a sentence or give it a row in a reference table.
 

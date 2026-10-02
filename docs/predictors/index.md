@@ -16,7 +16,7 @@ see the [predictor matrix](../predictor-matrix.md).
 | Binding affinity | [NetMHCpan](binding.md#netmhcpan), [NetMHC](binding.md#netmhc), [NetMHCIIpan](binding.md#netmhciipan), [NetMHCcons](binding.md#netmhccons), [MHCflurry](binding.md#mhcflurry), [CapHLA](binding.md#caphla), [SMM](binding.md#smm-and-smm-pmbec), [SMM-PMBEC](binding.md#smm-and-smm-pmbec) |
 | Presentation | [NetMHCpan 4.1/4.2](binding.md#netmhcpan), [NetMHCIIpan](binding.md#netmhciipan), [MHCflurry](binding.md#mhcflurry), [CapHLA](binding.md#caphla), [MixMHCpred](binding.md#mixmhcpred) (I), [MixMHC2pred](binding.md#mixmhc2pred) (II), [BigMHC](binding.md#bigmhc) |
 | Binding stability | [NetMHCstabpan](binding.md#netmhcstabpan) |
-| Antigen processing | [MHCflurry](binding.md#mhcflurry) |
+| Combined processing score | [MHCflurry](binding.md#mhcflurry) |
 | Proteasomal cleavage | [Pepsickle](processing.md#pepsickle), [NetChop](processing.md#netchop), [NetCleave (class I)](processing.md#netcleave) |
 | Endolysosomal cleavage | [NetCleave (class II)](processing.md#netcleave) |
 | TAP transport | [DeepTAP](processing.md#deeptap) |
@@ -24,7 +24,7 @@ see the [predictor matrix](../predictor-matrix.md).
 | Immunogenicity | [Calis](immunogenicity.md#calis), [PRIME](immunogenicity.md#prime), [BigMHC (IM)](binding.md#bigmhc), [DeepImmuno](immunogenicity.md#deepimmuno), [TLimmuno2](immunogenicity.md#tlimmuno2) (II) |
 | TCR recognition | [NetTCR](tcr.md#nettcr), [Tulip](tcr.md#tulip), [MixTCRpred](tcr.md#mixtcrpred) |
 | Peptide half-life | [PeptiVerse](peptide-pk.md#peptiverse), [PlifePred2](peptide-pk.md#plifepred2) |
-| Per-bond cleavage | [cleavage API](../cleavage/index.md) |
+| Peptidase activity | [peptidase activity API](../cleavage/index.md) |
 
 Read the [known limits](../limitations.md) before interpreting a score.
 
