@@ -1,11 +1,33 @@
 # Licensing
 
-mhctools is Apache-2.0. The predictors it wraps are not, and mhctools never
-bundles another project's code or weights: it fetches a pinned snapshot, calls
-an installation you provide, or reimplements a published model. Check the
-upstream license before you use any of them, particularly commercially.
+## The mhctools license
 
-## The five tiers
+mhctools uses the [Apache License 2.0](https://github.com/openvax/mhctools/blob/master/LICENSE).
+It permits use, modification, and redistribution, including commercial use.
+You can include mhctools in an application without publishing that application's
+source code.
+
+When redistributing mhctools or a modified version:
+
+- Include a copy of the license.
+- Retain applicable copyright and attribution notices, including notices from
+  a supplied NOTICE file.
+- Mark files you changed.
+
+The license includes a limited contributor patent grant. It does not grant
+trademark rights, and the software comes without warranties. The
+[full terms](https://www.apache.org/licenses/LICENSE-2.0) and
+[Apache licensing FAQ](https://www.apache.org/foundation/license-faq.html)
+explain these conditions.
+
+<a id="the-five-tiers"></a>
+
+## Predictor licenses
+
+Each upstream program, model, or dataset has its own terms. The mhctools
+license does not grant permission to use those materials. Check the
+predictor's linked upstream license before installing it or redistributing
+its code or weights.
 
 The [predictor matrix](predictor-matrix.md) gives every predictor one of these:
 

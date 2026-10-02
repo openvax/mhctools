@@ -20,6 +20,15 @@ Use descriptive headings such as “Predict for peptides” or “Read the resul
 The [pandas tutorials](https://pandas.pydata.org/docs/getting_started/intro_tutorials/index.html)
 are a useful model for organizing pages around reader questions.
 
+[MHCflurry's documentation](https://openvax.github.io/mhcflurry/) is another
+useful structural reference: it gives first-use tutorials, model selection and
+evaluation, API reference, and maintainer workflows distinct entry points.
+Its [installation guide](https://openvax.github.io/mhcflurry/intro.html) follows
+setup with a first prediction and an explanation of the output.
+
+Keep mhctools' current visual style. Use these references to improve page
+structure, headings, and the route from an example to further explanation.
+
 Avoid repeating the sidebar or table of contents in the page body. A short
 list of related pages is useful when it explains where to go next.
 
@@ -34,6 +43,10 @@ Describe behavior directly. Replace “Every predictor answers predict” with
 “Each predictor provides a prediction method”. Remove introductions that
 repeat the heading, promotional claims, and commentary about implementation
 unless it affects how a reader uses the API.
+
+For maintenance pages, put the procedure first. Give failure conditions and
+artifact details their own sections; link the relevant script instead of
+making readers extract instructions from a history paragraph.
 
 Keep scientific qualifications close to the claim they constrain. Preserve
 units, input restrictions, assay context, and source links when shortening a
