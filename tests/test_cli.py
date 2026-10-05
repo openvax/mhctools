@@ -286,7 +286,7 @@ def test_add_output_args_uses_supplied_parser():
 def test_peptides_without_subsequences():
     peptide = "SIINFEKLQY"
     args = parse_args([
-        "--mhc-predictor", "netmhc",
+        "--mhc-predictor", "random",
         "--mhc-peptide-lengths", "9",
         "--sequence", peptide,
         "--mhc-alleles", "H-2-Kb"])
@@ -297,7 +297,7 @@ def test_peptides_without_subsequences():
 def test_peptides_with_subsequences():
     peptide = "SIINFEKLQY"
     args = parse_args([
-        "--mhc-predictor", "netmhc",
+        "--mhc-predictor", "random",
         "--mhc-peptide-lengths", "9",
         "--sequence", peptide,
         "--extract-subsequences",
@@ -313,7 +313,7 @@ def test_peptides_file_without_subsequences():
         f.write("%s\n" % peptide)
 
     args = parse_args([
-        "--mhc-predictor", "netmhc",
+        "--mhc-predictor", "random",
         "--mhc-peptide-lengths", "9",
         "--input-peptides-file", f.name,
         "--mhc-alleles", "H-2-Kb"])
@@ -351,7 +351,7 @@ def test_peptides_file_with_subsequences():
         f.write("%s\n" % peptide)
 
     args = parse_args([
-        "--mhc-predictor", "netmhc",
+        "--mhc-predictor", "random",
         "--mhc-peptide-lengths", "9",
         "--input-peptides-file", f.name,
         "--extract-subsequences",
