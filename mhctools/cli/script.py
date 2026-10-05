@@ -84,6 +84,9 @@ SUBCOMMANDS = (
         "Report peptidase motif evidence and native model scores per bond",
         ".cleavage", "main"),
     _subcommand(
+        "cleavenet", "Score whole substrates or ten-residue windows for 18 MMPs",
+        ".cleavenet", "main"),
+    _subcommand(
         "mixtcrpred",
         "Score a paired alpha/beta TCR table with one MixTCRpred model",
         ".mixtcrpred", "main"),

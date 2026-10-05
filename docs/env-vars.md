@@ -58,3 +58,9 @@ their subprocess; you do not need to set it yourself.
 |---|---|
 | `MHCTOOLS_TEST_ENV` | Path to an `activate.sh` for `./test.sh`; `/dev/null` disables it. See [testing](testing.md). |
 | `TEST_SH_MAX`, `TEST_SH_MIN`, `PER_WORKER_GB` | Worker limits for `./test.sh`. |
+
+## CleaveNet
+
+`CLEAVENET_HOME` selects the pinned source/weight installation; otherwise the
+managed `mhctools fetch cleavenet` installation is used. `CLEAVENET_PYTHON`
+selects the isolated TensorFlow 2.18.0 interpreter. See [CleaveNet](cleavage/cleavenet.md).

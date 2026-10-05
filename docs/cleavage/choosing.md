@@ -95,3 +95,9 @@ concentration nor calibration in that fluid. For a duration endpoint, consult
 [peptide half-life models](../predictors/peptide-pk.md); for delivery, consult
 [uptake and exposure results](../exposure-results.md). Do not combine the
 peptidase outputs into a serum-stability probability.
+
+## Whole-substrate MMP scoring
+
+[CleaveNet](cleavenet.md) supplies local whole-substrate MMP Z-scores and ensemble
+spread, with optional ten-residue window scanning. Use its dedicated results
+when you need this assay-scoped endpoint; it does not produce bond tracks.

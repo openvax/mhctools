@@ -18,6 +18,7 @@ The canonical strings live in `mhctools.pred.Kind`.
 | `antigen_processing` | Combined processing score | none |
 | `proteasome_cleavage` | Proteasomal (MHC-I, cytosolic) C-terminal cleavage score | none |
 | `endolysosomal_cleavage` | Endolysosomal (MHC-II, cathepsin) C-terminal cleavage score | none |
+| `substrate_cleavage` | Whole-substrate susceptibility in a named enzyme/assay context | none |
 | `tap_transport` | TAP transport / binding score | nM |
 | `erap_trimming` | ERAP1 N-terminal trimming score | none |
 | `peptide_half_life` | Parent-peptide half-life; matrix and systemic scope live in context | hours |
@@ -164,7 +165,8 @@ that `kind_support()` reports for each kind, which can differ by mode.
 | `Pepsickle`, `NetChop` | `proteasome_cleavage` | `none` | `none` |
 | `NetCleave_I` | `proteasome_cleavage` | `none` | `I` |
 | `NetCleave_II` | `endolysosomal_cleavage` | `none` | `II` |
-| `DeepTAP` | `tap_transport` | `none` | `none` |
+| `DeepTAP` | `substrate_cleavage` | Whole-substrate susceptibility in a named enzyme/assay context | none |
+| `tap_transport` | `none` | `none` |
 | `ERAMER` | `erap_trimming` | `none` | `I` |
 | `NetTCR` | `pMHC_TCR_binding` | `none` | `I` |
 | `Tulip` | `pMHC_TCR_binding` | `single_allele` | `I` |
@@ -173,3 +175,10 @@ that `kind_support()` reports for each kind, which can differ by mode.
 | `TLimmuno2` | `immunogenicity` | `single_allele` | `II` |
 | `Calis` | `immunogenicity` | `none` | `I` |
 | `PeptiVerse`, `PlifePred2` | `peptide_half_life` | `none` | `none` |
+
+## Whole-substrate scores
+
+[CleaveNet](cleavage/cleavenet.md) reports `substrate_cleavage` through dedicated
+substrate result records. These hold one Z-score and ensemble spread per enzyme,
+with assay and artifact provenance. This endpoint has no universal ordering
+across enzyme/assay contexts and must not be substituted for a bond track.

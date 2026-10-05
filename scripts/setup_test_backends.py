@@ -130,6 +130,13 @@ def keras(root, python, config):
                   NETCLEAVE_PYTHON=str(runtime))
 
 
+def cleavenet(root, python, config):
+    source = Path(fetch("cleavenet"))
+    runtime = make_env(root, "cleavenet-env", python,
+                       ["-r", str(source / "requirements.txt")])
+    config.update(CLEAVENET_HOME=str(source), CLEAVENET_PYTHON=str(runtime))
+
+
 def nettcr(root, python, config):
     # NetTCR runs in-process. Install mhctools[nettcr] in the caller's env;
     # its LiteRT interpreter needs no TensorFlow or Keras environment.
@@ -292,7 +299,7 @@ def main():
         nargs="+",
         choices=[
             "half-life", "recognition", "gfeller", "keras", "nettcr",
-            "legacy", "smm", "pepsickle",
+            "legacy", "smm", "pepsickle", "cleavenet",
         ],
     )
     parser.add_argument("--python", default="python3.11", help="Python 3.11 interpreter for isolated runtimes")
@@ -309,7 +316,7 @@ def main():
     config = json.loads(state.read_text()) if state.exists() else {}
     functions = {"half-life": half_life, "recognition": recognition,
                  "gfeller": gfeller, "keras": keras, "nettcr": nettcr,
-                 "legacy": legacy, "smm": smm, "pepsickle": pepsickle}
+                 "legacy": legacy, "smm": smm, "pepsickle": pepsickle, "cleavenet": cleavenet}
     for group in args.groups:
         functions[group](root, args.python, config)
         state.write_text(json.dumps(config, indent=2) + "\n")
