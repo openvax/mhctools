@@ -11,6 +11,7 @@ on:
       - "README.md"
       - "mhctools/**"
       - "scripts/predictor_matrix.py"
+      - "scripts/docs_version.py"
       - ".github/workflows/docs.yml"
   pull_request:
     paths:
@@ -19,6 +20,7 @@ on:
       - "README.md"
       - "mhctools/**"
       - "scripts/predictor_matrix.py"
+      - "scripts/docs_version.py"
       - ".github/workflows/docs.yml"
   workflow_dispatch:
 

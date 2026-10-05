@@ -9,6 +9,7 @@ strict: true
 
 theme:
   name: material
+  custom_dir: docs/overrides
   font: false
   palette:
     primary: white
@@ -24,6 +25,9 @@ validation:
   absolute_links: warn
   unrecognized_links: warn
   anchors: warn
+
+hooks:
+  - scripts/docs_version.py
 
 plugins:
   - search
