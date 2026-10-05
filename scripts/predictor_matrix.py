@@ -36,7 +36,7 @@ FAMILIES = [
 # artifact (`mhctools fetch` / `ls` name(s), or None), install, license, page.
 ROWS = [
     dict(family="processing", name="CleaveNet",
-         classes=["CleaveNet"], cli=[], kinds=[], mhc_class="none",
+         classes=["CleaveNet"], cli=[], kinds=["substrate_cleavage"], mhc_class="none",
          inputs="whole substrates or ten-residue windows; dedicated native result",
          lengths="1-10; centered padding for shorter inputs", artifact="cleavenet",
          install="`mhctools fetch cleavenet` + isolated TensorFlow 2.18.0",

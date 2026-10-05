@@ -183,7 +183,7 @@ See the [antigen processing guide](predictors/processing.md) for examples and mo
 
 - Python classes: `CleaveNet`
 - CLI names: (none)
-- Prediction kinds: (none)
+- Prediction kinds: `substrate_cleavage`
 - Default scanning lengths: 1-10; centered padding for shorter inputs
 - Installation: `mhctools fetch cleavenet` + isolated TensorFlow 2.18.0
 - License: open

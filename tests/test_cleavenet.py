@@ -155,3 +155,21 @@ def test_real_models_match_official_source():
         assert result.inventory.status == "verified"
         assert result.inventory.inference_status == "reproduced"
         assert dict(result.runtime)["tensorflow"] == "2.18.0"
+
+
+def test_native_subcommand_preserves_json_and_windows(predictor, monkeypatch, capsys):
+    from mhctools.cli import cleavenet as cli
+    from mhctools.cli.script import main
+    mock_sidecar(monkeypatch)
+    monkeypatch.setattr(cli, "CleaveNet", lambda **kwargs: predictor)
+    assert main(["cleavenet", "--peptides", "PRVFQLRVFL", "LRVFL",
+                 "--source-name", "vaccine", "--source-start", "12"]) == 0
+    records = json.loads(capsys.readouterr().out)["results"]
+    assert [r["peptide_input"]["sequence"] for r in records] == ["PRVFQLRVFL", "LRVFL"]
+    assert records[1]["peptide_input"]["source_start"] == 12
+    assert records[1]["kind"] == "substrate_cleavage"
+    assert len(records[1]["scores"]) == 18
+    assert main(["cleavenet", "--peptides", "PRVFQLRVFL", "--windows"]) == 0
+    record = json.loads(capsys.readouterr().out)["results"][0]
+    assert record["padded_sequence"] == "PRVFQLRVFL"
+    assert "bond" not in record

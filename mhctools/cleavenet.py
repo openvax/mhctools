@@ -20,6 +20,7 @@ from .optional_backend import (
     prediction_cache_key, run_python_sidecar,
 )
 from .peptide_input import PeptideInput, sequence_only_chemistry_error
+from .pred import Kind
 
 UPSTREAM_REVISION = "4dac67defc99ca35d967ddc76eca0fe8b74afdad"
 PAPER = "https://doi.org/10.1038/s41467-025-67226-1"
@@ -140,7 +141,7 @@ class CleaveNetResult:
             peptide_input=self.peptide_input.to_dict(),
             padded_sequence=self.padded_sequence,
             scores=[asdict(score) for score in self.scores],
-            endpoint=ENDPOINT, score_units="dimensionless Z-score", assay=ASSAY, reference=PAPER,
+            kind=Kind.substrate_cleavage, endpoint=ENDPOINT, score_units="dimensionless Z-score", assay=ASSAY, reference=PAPER,
             assay_conditions="model uses sequence only; no enzyme dose, incubation, pH or matrix inputs",
             training_source="Kukreja et al. 2015 mRNA-display data; pinned splits/kukreja",
             validation="official-source conformance only; no independently audited held-out benchmark",
@@ -203,6 +204,14 @@ class CleaveNet:
                       "padding": "centered to 10; odd remainder on right",
                       "tensorflow": "2.18.0", "ensemble_sd_ddof": 0})
         self.artifact_inventory.require_usable()
+
+    def kind_support(self):
+        """Native whole-substrate endpoint and its MHC independence."""
+        return {Kind.substrate_cleavage: {"mhc_dependence": "none", "mhc_class": "none"}}
+
+    @property
+    def supported_kinds(self):
+        return tuple(self.kind_support())
 
     def _run_sidecar(self, sequences):
         with tempfile.TemporaryDirectory(prefix="mhctools-cleavenet-") as directory:

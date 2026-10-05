@@ -63,6 +63,8 @@ _UNREGISTERED_BY_DESIGN = {
     # mhctools.peptidases.cleavage_models().
     "DPP4qPISA",
     "ERAMERCleavage",
+    # Whole-substrate results and ensembles, served by `mhctools cleavenet`.
+    "CleaveNet",
 }
 
 

@@ -57,6 +57,8 @@ class Kind:
     antigen_processing = "antigen_processing"
     proteasome_cleavage = "proteasome_cleavage"
     endolysosomal_cleavage = "endolysosomal_cleavage"
+    # Whole-substrate evidence, separate from per-bond processing scores.
+    substrate_cleavage = "substrate_cleavage"
     tap_transport = "tap_transport"
     erap_trimming = "erap_trimming"
     # Half-life of the parent peptide. MeasurementContext distinguishes a
@@ -84,6 +86,7 @@ class Kind:
 
 
 CONTEXT_DEPENDENT_KINDS = frozenset((
+    Kind.substrate_cleavage,
     Kind.peptide_half_life,
     Kind.systemic_clearance,
     Kind.distribution_volume,
@@ -95,6 +98,7 @@ CONTEXT_DEPENDENT_KINDS = frozenset((
 """Kinds for which mhctools intentionally defines no universal ordering."""
 
 PHYSICAL_VALUE_KINDS = CONTEXT_DEPENDENT_KINDS - {
+    Kind.substrate_cleavage,
     Kind.cpp_classification,
     # May expose only a native score when conversion to a duration is unknown.
     Kind.peptide_half_life,

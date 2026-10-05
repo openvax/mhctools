@@ -57,6 +57,20 @@ Coordinates are zero-based, and DataFrame `source_end` is exclusive. A window
 score does not assert that the window is released from the parent or identify
 a central bond. Duplicate inputs remain separate occurrences.
 
+## Command line
+
+The dedicated subcommand writes the native result records as JSON:
+
+```bash
+mhctools cleavenet --peptides PRVFQLRVFL LRVFL > mmp-scores.json
+mhctools cleavenet --peptides ACDEFGHIKLMNPQRSTVWY --windows > mmp-windows.json
+```
+
+`--windows` retains source intervals for each ten-residue window. Use
+`--source-name` and `--source-start` to identify its parent occurrence. The
+`--mhc-predictor` registry is reserved for its standard prediction table; this
+subcommand serves the richer substrate endpoint.
+
 ## Read the evidence
 
 The native regression target is a dimensionless cleavage Z-score from the
