@@ -110,3 +110,11 @@ and [batch assessment](https://github.com/openvax/mhctools/blob/master/mhctools/
 ::: mhctools.predict_cleavage_batch
 
 ::: mhctools.CleavageInput
+
+## Whole-substrate MMP evidence
+
+::: mhctools.cleavenet.CleaveNet
+
+::: mhctools.cleavenet.CleaveNetResult
+
+::: mhctools.cleavenet.CleaveNetScore

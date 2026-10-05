@@ -120,6 +120,9 @@ from .unsupported_allele import UnsupportedAllele
 # Lazy-load predictors that pull in heavy optional dependencies (torch, Keras/TF).
 # Accessing mhctools.BigMHC or mhctools.MHCflurry triggers the import on first use.
 _LAZY_IMPORTS = {
+    "CleaveNet": (".cleavenet", "CleaveNet"),
+    "CleaveNetResult": (".cleavenet", "CleaveNetResult"),
+    "CleaveNetScore": (".cleavenet", "CleaveNetScore"),
     "BigMHC": (".bigmhc", "BigMHC"),
     "BigMHC_EL": (".bigmhc", "BigMHC_EL"),
     "BigMHC_IM": (".bigmhc", "BigMHC_IM"),
@@ -148,9 +151,12 @@ def __getattr__(name):
     raise AttributeError(
         "module %r has no attribute %r" % (__name__, name))
 
-__version__ = "3.46.9"
+__version__ = "3.47.0"
 
 __all__ = [
+    "CleaveNet",
+    "CleaveNetResult",
+    "CleaveNetScore",
     "mhcflurry_composite_version",
     "Prediction",
     "MeasurementContext",

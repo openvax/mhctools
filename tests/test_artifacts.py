@@ -70,7 +70,7 @@ def test_curated_json_files_are_explicit_package_resources():
 def test_list_includes_native_and_packaged_artifacts(no_user_installs):
     statuses = {status.name: status for status in list_artifacts()}
     assert set(statuses) == {
-        "bigmhc", "calis", "caphla", "deepimmuno", "deeptap", "eramer",
+        "bigmhc", "calis", "caphla", "cleavenet", "deepimmuno", "deeptap", "eramer",
         "mhcflurry", "mhcflurry-affinity", "mixmhc2pred", "mixmhcpred",
         "mixtcrpred",
         "netchop", "netcleave", "netmhc", "netmhccons", "netmhciipan",
@@ -776,6 +776,7 @@ def test_fetchable_wrappers_all_expose_a_fetch_classmethod():
     import importlib
 
     wrappers = {
+        "cleavenet": ("cleavenet", "CleaveNet"),
         "bigmhc": ("bigmhc", "BigMHC"),
         "caphla": ("caphla", "CapHLA"),
         "deepimmuno": ("deepimmuno", "DeepImmuno"),

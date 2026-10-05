@@ -120,3 +120,12 @@ TEST_SH_MAX=2 ./test.sh --require-all -ra
 # After merging, from clean master:
 PYTEST_ADDOPTS=--require-all TEST_SH_MAX=2 ./deploy.sh
 ```
+
+## CleaveNet source conformance
+
+Provision with `python scripts/setup_test_backends.py cleavenet --python python3.11`,
+source the generated activation file, then run
+`python -m pytest tests/test_cleavenet.py --require-all`. The separate CI job runs
+the real five-model ensemble; the quality matrix runs validation and mocked
+output-contract regressions without TensorFlow. The recorded fixture comes
+from official source inference, not an independent experimental benchmark.

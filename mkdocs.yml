@@ -70,6 +70,7 @@ nav:
           - Choosing processing models: cleavage/choosing.md
           - Peptidase activity: cleavage/index.md
           - Peptidase models: cleavage/models.md
+          - CleaveNet MMP substrates: cleavage/cleavenet.md
           - Reading the evidence: cleavage/evidence.md
           - Batch assessments: cleavage/batch.md
           - Validation status: cleavage/validation.md

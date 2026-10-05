@@ -96,6 +96,22 @@ class _Snapshot:
 # change, which gives wrappers a stable upstream layout and reproducible model
 # identity instead of silently following a moving default branch.
 _SNAPSHOTS = {
+    "cleavenet": _Snapshot(
+        repository="https://github.com/microsoft/cleavenet.git",
+        revision="4dac67defc99ca35d967ddc76eca0fe8b74afdad",
+        sparse_paths=("/cleavenet/", "/LICENSE", "/data/LICENSE", "/requirements.txt",
+                      "/splits/kukreja/X_all.csv", "/splits/kukreja/y_all.csv",
+                      "/weights/transformer_*/model.h5"),
+        sparse_cone=False,
+        required_paths=("cleavenet/__init__.py", "cleavenet/models.py", "cleavenet/data.py",
+                        "cleavenet/analysis.py", "cleavenet/plotter.py", "cleavenet/utils.py",
+                        "LICENSE", "data/LICENSE",
+                        "requirements.txt", "splits/kukreja/X_all.csv", "splits/kukreja/y_all.csv",
+                        *("weights/transformer_%d/model.h5" % i for i in range(5))),
+        license_name="MIT (code); CDLA-Permissive-2.0 (data)",
+        license_url="https://github.com/microsoft/cleavenet/tree/4dac67defc99ca35d967ddc76eca0fe8b74afdad",
+        environment_variable="CLEAVENET_HOME",
+    ),
     "bigmhc": _Snapshot(
         repository="https://github.com/KarchinLab/bigmhc.git",
         revision="c7e37a249317704bf96a1e3881a7ece3c3c977a6",

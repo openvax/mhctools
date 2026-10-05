@@ -172,11 +172,21 @@ See the [antigen processing guide](predictors/processing.md) for examples and mo
 
 | Predictor | MHC class | Input |
 |---|---|---|
+| [CleaveNet](cleavage/cleavenet.md) | none | whole substrates or ten-residue windows; dedicated native result |
 | [Pepsickle](predictors/processing.md#pepsickle) | none | peptides (flanks recommended) |
 | [NetChop](predictors/processing.md#netchop) | none | peptides (flanks recommended) |
 | [NetCleave](predictors/processing.md#netcleave) | I or II | peptides + C-terminal flank (>= 3 residues) |
 | [DeepTAP](predictors/processing.md#deeptap) | none | peptides only |
 | [ERAMER](predictors/processing.md#eramer) | none (class I context) | peptides only (9-16mer precursors) |
+
+### CleaveNet
+
+- Python classes: `CleaveNet`
+- CLI names: (none)
+- Prediction kinds: (none)
+- Default scanning lengths: 1-10; centered padding for shorter inputs
+- Installation: `mhctools fetch cleavenet` + isolated TensorFlow 2.18.0
+- License: open
 
 ### Pepsickle
 

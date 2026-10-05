@@ -280,6 +280,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - group: cleavenet
+            tests: tests/test_cleavenet.py
           - group: half-life
             tests: tests/test_peptiverse.py tests/test_plifepred2.py
           - group: smm
