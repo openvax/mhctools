@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Fail closed unless PyPI confirms that an exact release is absent."""
 
+from __future__ import annotations
+
 import argparse
 from http.client import HTTPException
 import json

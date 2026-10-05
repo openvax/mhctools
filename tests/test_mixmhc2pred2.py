@@ -142,6 +142,7 @@ requires_mixmhc2pred = pytest.mark.skipif(
            "MixMHC2pred / MixMHC2pred_unix on PATH)")
 
 
+@pytest.mark.requires_external_tool
 @requires_mixmhc2pred
 def test_mixmhc2pred_end_to_end():
     predictor = MixMHC2pred(

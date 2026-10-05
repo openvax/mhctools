@@ -18,6 +18,9 @@ import mhctools
 from .predictor_classes import mhc1_predictor_classes
 
 
+pytestmark = pytest.mark.requires_external_tool
+
+
 # Tests assume that a netMHC-3.4 binary exists, and that netMHC is 4.0.
 program_name_overrides = {mhctools.NetMHC3: "netMHC-3.4"}
 

@@ -18,7 +18,7 @@ from mhctools.bigmhc import BigMHC
 from mhctools.pred import Kind, PeptideResult, COLUMNS
 
 
-# Skip entire module if BigMHC is not installed
+# Gate tests that need a real BigMHC checkout
 BIGMHC_DIR = None
 for candidate in [
     os.environ.get("BIGMHC_DIR", ""),
@@ -31,7 +31,7 @@ for candidate in [
             BIGMHC_DIR = candidate
             break
 
-pytestmark = pytest.mark.skipif(
+requires_bigmhc = pytest.mark.skipif(
     BIGMHC_DIR is None,
     reason="BigMHC not installed (set BIGMHC_DIR or clone to ~/bigmhc)")
 
@@ -41,6 +41,8 @@ PEPTIDES = ["SIINFEKL", "GILGFVFTL", "NLVPMVATV"]
 
 # -- init --
 
+@pytest.mark.requires_external_tool
+@requires_bigmhc
 def test_init_el():
     p = BigMHC(ALLELES, mode="el", bigmhc_path=BIGMHC_DIR)
     assert p.mode == "el"
@@ -48,11 +50,15 @@ def test_init_el():
     assert p._models is None  # lazy, not loaded yet
 
 
+@pytest.mark.requires_external_tool
+@requires_bigmhc
 def test_init_im():
     p = BigMHC(ALLELES, mode="im", bigmhc_path=BIGMHC_DIR)
     assert p.mode == "im"
 
 
+@pytest.mark.requires_external_tool
+@requires_bigmhc
 def test_init_string_allele():
     p = BigMHC("HLA-A*02:01", mode="el", bigmhc_path=BIGMHC_DIR)
     assert p.alleles == ["HLA-A*02:01"]
@@ -68,6 +74,8 @@ def test_init_missing_path():
         BigMHC(ALLELES, bigmhc_path="/nonexistent/path")
 
 
+@pytest.mark.requires_external_tool
+@requires_bigmhc
 def test_str_before_load():
     p = BigMHC(ALLELES, mode="el", bigmhc_path=BIGMHC_DIR)
     s = str(p)
@@ -82,6 +90,8 @@ def el_predictor():
     return BigMHC(ALLELES, mode="el", bigmhc_path=BIGMHC_DIR)
 
 
+@pytest.mark.requires_external_tool
+@requires_bigmhc
 def test_predict_el_returns_peptide_preds(el_predictor):
     results = el_predictor.predict(PEPTIDES)
     assert isinstance(results, list)
@@ -91,6 +101,8 @@ def test_predict_el_returns_peptide_preds(el_predictor):
         assert len(pp.preds) == len(ALLELES)
 
 
+@pytest.mark.requires_external_tool
+@requires_bigmhc
 def test_predict_el_scores_are_probabilities(el_predictor):
     results = el_predictor.predict(PEPTIDES)
     for pp in results:
@@ -98,6 +110,8 @@ def test_predict_el_scores_are_probabilities(el_predictor):
             assert 0.0 <= pred.score <= 1.0
 
 
+@pytest.mark.requires_external_tool
+@requires_bigmhc
 def test_predict_el_kind(el_predictor):
     results = el_predictor.predict(PEPTIDES)
     for pp in results:
@@ -105,29 +119,39 @@ def test_predict_el_kind(el_predictor):
             assert pred.kind == Kind.pMHC_presentation
 
 
+@pytest.mark.requires_external_tool
+@requires_bigmhc
 def test_predict_el_predictor_name(el_predictor):
     results = el_predictor.predict(PEPTIDES)
     assert results[0].preds[0].predictor_name == "bigmhc_el"
 
 
+@pytest.mark.requires_external_tool
+@requires_bigmhc
 def test_predict_el_peptides_correct(el_predictor):
     results = el_predictor.predict(PEPTIDES)
     for pep, pp in zip(PEPTIDES, results):
         assert pp.preds[0].peptide == pep
 
 
+@pytest.mark.requires_external_tool
+@requires_bigmhc
 def test_predict_el_alleles_correct(el_predictor):
     results = el_predictor.predict(PEPTIDES)
     for pp in results:
         assert pp.preds[0].allele == ALLELES[0]
 
 
+@pytest.mark.requires_external_tool
+@requires_bigmhc
 def test_predict_el_scores_vary(el_predictor):
     results = el_predictor.predict(PEPTIDES)
     scores = [pp.preds[0].score for pp in results]
     assert len(set(round(s, 4) for s in scores)) > 1
 
 
+@pytest.mark.requires_external_tool
+@requires_bigmhc
 def test_predict_models_stay_loaded(el_predictor):
     """After first predict(), models should stay in memory."""
     el_predictor.predict(["SIINFEKL"])
@@ -135,6 +159,8 @@ def test_predict_models_stay_loaded(el_predictor):
     assert "loaded" in str(el_predictor)
 
 
+@pytest.mark.requires_external_tool
+@requires_bigmhc
 def test_predict_repeated_calls_consistent(el_predictor):
     """Multiple predict() calls return identical scores."""
     r1 = el_predictor.predict(PEPTIDES)
@@ -150,6 +176,8 @@ def im_predictor():
     return BigMHC(ALLELES, mode="im", bigmhc_path=BIGMHC_DIR)
 
 
+@pytest.mark.requires_external_tool
+@requires_bigmhc
 def test_predict_im_kind(im_predictor):
     results = im_predictor.predict(PEPTIDES)
     for pp in results:
@@ -157,11 +185,15 @@ def test_predict_im_kind(im_predictor):
             assert pred.kind == Kind.immunogenicity
 
 
+@pytest.mark.requires_external_tool
+@requires_bigmhc
 def test_predict_im_predictor_name(im_predictor):
     results = im_predictor.predict(PEPTIDES)
     assert results[0].preds[0].predictor_name == "bigmhc_im"
 
 
+@pytest.mark.requires_external_tool
+@requires_bigmhc
 def test_predict_im_scores_are_probabilities(im_predictor):
     results = im_predictor.predict(PEPTIDES)
     for pp in results:
@@ -169,6 +201,8 @@ def test_predict_im_scores_are_probabilities(im_predictor):
             assert 0.0 <= pred.score <= 1.0
 
 
+@pytest.mark.requires_external_tool
+@requires_bigmhc
 def test_predict_el_im_scores_differ(el_predictor, im_predictor):
     """EL and IM models should produce different scores."""
     el = el_predictor.predict(PEPTIDES)
@@ -180,6 +214,8 @@ def test_predict_el_im_scores_differ(el_predictor, im_predictor):
 
 # -- ordering --
 
+@pytest.mark.requires_external_tool
+@requires_bigmhc
 def test_predict_mixed_lengths_ordering(el_predictor):
     """Peptides of different lengths are batched separately;
     verify output order matches input order."""
@@ -189,6 +225,8 @@ def test_predict_mixed_lengths_ordering(el_predictor):
         assert pp.preds[0].peptide == pep
 
 
+@pytest.mark.requires_external_tool
+@requires_bigmhc
 def test_predict_duplicate_peptides(el_predictor):
     """Duplicate peptides should produce duplicate results in order."""
     peptides = ["SIINFEKL", "GILGFVFTL", "SIINFEKL"]
@@ -202,6 +240,8 @@ def test_predict_duplicate_peptides(el_predictor):
 
 # -- multiple alleles --
 
+@pytest.mark.requires_external_tool
+@requires_bigmhc
 def test_predict_multiple_alleles():
     alleles = ["HLA-A*02:01", "HLA-B*07:02"]
     p = BigMHC(alleles, mode="el", bigmhc_path=BIGMHC_DIR)
@@ -213,6 +253,8 @@ def test_predict_multiple_alleles():
     assert pp.preds[1].allele == "HLA-B*07:02"
 
 
+@pytest.mark.requires_external_tool
+@requires_bigmhc
 def test_predict_multiple_alleles_mixed_lengths():
     """Multi-allele + mixed-length peptides: ordering stress test."""
     alleles = ["HLA-A*02:01", "HLA-B*07:02"]
@@ -230,6 +272,8 @@ def test_predict_multiple_alleles_mixed_lengths():
 
 # -- batch performance --
 
+@pytest.mark.requires_external_tool
+@requires_bigmhc
 def test_predict_long_list(el_predictor):
     """Run on a realistic protein-length input to verify batching works."""
     protein = "MFVFLVLLPLVSSQCVNLTTRTQLPPAYTNSFTRGVYYPDKVFRSSVLHSTQDLFLPFFSNVTWFHAI"
@@ -245,6 +289,8 @@ def test_predict_long_list(el_predictor):
 
 # -- dataframe --
 
+@pytest.mark.requires_external_tool
+@requires_bigmhc
 def test_predict_dataframe(el_predictor):
     df = el_predictor.predict_dataframe(PEPTIDES)
     assert list(df.columns) == list(COLUMNS)
@@ -253,6 +299,8 @@ def test_predict_dataframe(el_predictor):
     assert (df["predictor_name"] == "bigmhc_el").all()
 
 
+@pytest.mark.requires_external_tool
+@requires_bigmhc
 def test_predict_dataframe_multiple_alleles():
     alleles = ["HLA-A*02:01", "HLA-B*07:02"]
     p = BigMHC(alleles, mode="el", bigmhc_path=BIGMHC_DIR)
@@ -262,6 +310,8 @@ def test_predict_dataframe_multiple_alleles():
 
 # -- single string input --
 
+@pytest.mark.requires_external_tool
+@requires_bigmhc
 def test_predict_single_string(el_predictor):
     results = el_predictor.predict("SIINFEKL")
     assert len(results) == 1

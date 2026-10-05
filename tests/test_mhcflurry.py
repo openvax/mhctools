@@ -19,6 +19,11 @@ from mhcflurry import Class1AffinityPredictor
 from mhctools import MHCflurry, MHCflurry_Affinity, mhcflurry_composite_version
 from mhctools.pred import Kind
 
+import pytest
+
+
+pytestmark = pytest.mark.requires_external_tool
+
 DEFAULT_ALLELE = "HLA-A*02:01"
 
 protein_sequence_dict = {

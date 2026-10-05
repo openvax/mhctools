@@ -298,6 +298,7 @@ requires_mixmhcpred_v3 = pytest.mark.skipif(
 )
 
 
+@pytest.mark.requires_external_tool
 @requires_mixmhcpred_v3
 def test_mixmhcpred_v3_end_to_end_known_and_pan_alleles():
     predictor = MixMHCpred(
@@ -314,6 +315,7 @@ def test_mixmhcpred_v3_end_to_end_known_and_pan_alleles():
     assert result.allele_info[1].closest_training_allele == "HLA-A*01:01"
 
 
+@pytest.mark.requires_external_tool
 @requires_mixmhcpred_v3
 def test_mixmhcpred_v3_end_to_end_sequence_prediction():
     executable = Path(resolve_mixmhcpred_path(MIXMHCPRED_V3))

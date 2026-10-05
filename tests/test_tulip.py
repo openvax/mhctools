@@ -245,6 +245,7 @@ def predictor():
     return Tulip()
 
 
+@pytest.mark.requires_external_tool
 @requires_tulip
 def test_e2e_predict_grid(predictor):
     results = predictor.predict(
@@ -258,6 +259,7 @@ def test_e2e_predict_grid(predictor):
             assert isinstance(p.score, float)
 
 
+@pytest.mark.requires_external_tool
 @requires_tulip
 def test_e2e_known_binder_scores_higher(predictor):
     # For the influenza epitope GILGFVFTL, the known binder (clone1) should
@@ -267,6 +269,7 @@ def test_e2e_known_binder_scores_higher(predictor):
     assert by_tcr["clone1"] > by_tcr["clone2"]
 
 
+@pytest.mark.requires_external_tool
 @requires_tulip
 def test_e2e_mhc_changes_score(predictor):
     # Supplying the MHC allele should change the score vs. MHC-agnostic.

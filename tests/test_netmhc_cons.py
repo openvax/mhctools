@@ -18,6 +18,9 @@ from mhctools.allele_normalization import normalize_allele_name
 from mhctools.optional_backend import probe_executable
 
 
+pytestmark = pytest.mark.requires_external_tool
+
+
 _NETMHCCONS_CAPABILITY = probe_executable("netMHCcons", args=("-h",))
 _NETMHC3_CAPABILITY = probe_executable("netMHC-3.4", args=("-h",))
 _NETMHCCONS_REASON = "; ".join(

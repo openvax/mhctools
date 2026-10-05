@@ -166,6 +166,7 @@ requires_tlimmuno2 = pytest.mark.skipif(
            "tf-keras; see docs/testing.md)")
 
 
+@pytest.mark.requires_external_tool
 @requires_tlimmuno2
 def test_tlimmuno2_end_to_end():
     predictor = TLimmuno2(

@@ -421,6 +421,7 @@ def _integration_predictor():
     return MixTCRpred(MODEL, batch_size=3)
 
 
+@pytest.mark.requires_external_tool
 def test_real_checkpoint_regression_current_pytorch():
     predictor = _integration_predictor()
     tcrs = [

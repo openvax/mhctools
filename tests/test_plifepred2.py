@@ -430,6 +430,7 @@ requires_plifepred2 = pytest.mark.skipif(
     reason="set PLIFEPRED2_HOME and PFEATURE_HOME to run this")
 
 
+@pytest.mark.requires_external_tool
 @requires_plifepred2
 def test_end_to_end_matches_the_reference_values():
     # Computed by running Pfeature's QSO extractor and the shipped forest
@@ -454,6 +455,7 @@ def test_end_to_end_matches_the_reference_values():
         assert pred.predictor_version == predictor.predictor_version
 
 
+@pytest.mark.requires_external_tool
 @requires_plifepred2
 def test_end_to_end_scores_follow_their_peptides_when_reordered():
     # Pfeature associates feature rows with inputs by position only, so this
@@ -465,6 +467,7 @@ def test_end_to_end_scores_follow_their_peptides_when_reordered():
     assert forward[1].preds[0].score == pytest.approx(reverse[0].preds[0].score)
 
 
+@pytest.mark.requires_external_tool
 @requires_plifepred2
 def test_end_to_end_hours_require_explicit_opt_in():
     # The duration is gated because the transform is inferred, not documented.
@@ -479,6 +482,7 @@ def test_end_to_end_hours_require_explicit_opt_in():
     assert pred.score == pytest.approx(default.score)
 
 
+@pytest.mark.requires_external_tool
 @requires_plifepred2
 def test_end_to_end_dataframe_has_the_standard_columns():
     from mhctools.pred import COLUMNS
@@ -487,6 +491,7 @@ def test_end_to_end_dataframe_has_the_standard_columns():
     assert frame["kind"].tolist() == [Kind.peptide_half_life]
 
 
+@pytest.mark.requires_external_tool
 @requires_plifepred2
 def test_end_to_end_minimum_peptide_length_is_accepted():
     peptide = "SIINFEKLGGAL"

@@ -52,6 +52,7 @@ def _netchop_or_skip():
     return predictor
 
 
+@pytest.mark.requires_external_tool
 def test_cleavage_probs():
     obj = _netchop_or_skip()
     for pep in peptides:
@@ -70,6 +71,7 @@ def test_cleavage_probs():
     testing.assert_almost_equal(probs2[84], 0.104684)
 
 
+@pytest.mark.requires_external_tool
 def test_predict_proteins():
     obj = _netchop_or_skip()
     result = obj.predict_proteins({"pep0": peptides[0]})

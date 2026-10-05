@@ -12,8 +12,12 @@ from mhctools import load_cleavage_batch, predict_cleavage_batch, write_cleavage
 from mhctools.pepsickle import Pepsickle
 
 
-pytestmark = pytest.mark.skipif(not os.environ.get("PEPSICKLE_GB_PYTHON"),
-                                reason="Configure PEPSICKLE_GB_PYTHON for legacy-artifact inference")
+pytestmark = [
+    pytest.mark.requires_external_tool,
+    pytest.mark.skipif(
+        not os.environ.get("PEPSICKLE_GB_PYTHON"),
+        reason="Configure PEPSICKLE_GB_PYTHON for legacy-artifact inference"),
+]
 SEQUENCE = "LSRKVAELVHFLLLKYRAR"
 
 

@@ -93,7 +93,17 @@ mkdocs build --strict
 
 ## CI and release verification
 
-CI runs the public suite on Python 3.9–3.12, the licensed [NetMHC](predictors/binding.md#netmhc) integration
+CI discovers all tests on Python 3.9–3.12 and runs every test without the
+`requires_external_tool` marker. New offline test files join that matrix
+automatically. Mark only tests that require separately installed predictor
+binaries, weights, or isolated upstream runtimes; keep parser, mocked-adapter,
+and validation tests in mixed modules unmarked. Run the same selection locally:
+
+```sh
+python -m pytest tests/ -m "not requires_external_tool" --strict-markers -ra
+```
+
+CI also runs the licensed [NetMHC](predictors/binding.md#netmhc) integration
 suite, and separate real-model jobs for TULIP, [CapHLA](predictors/binding.md#caphla), [MixTCRpred](predictors/tcr.md#mixtcrpred), the two
 half-life predictors, the three Gfeller MHC predictors,
 [DeepImmuno](predictors/immunogenicity.md#deepimmuno)/[TLimmuno2](predictors/immunogenicity.md#tlimmuno2)/[NetCleave](predictors/processing.md#netcleave), [NetTCR](predictors/tcr.md#nettcr), and local [SMM](predictors/binding.md#smm-and-smm-pmbec)/[SMM-PMBEC](predictors/binding.md#smm-and-smm-pmbec). Each focused

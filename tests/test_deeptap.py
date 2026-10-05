@@ -172,6 +172,7 @@ requires_deeptap = pytest.mark.skipif(
            "see docs/testing.md)")
 
 
+@pytest.mark.requires_external_tool
 @requires_deeptap
 def test_deeptap_end_to_end_cla():
     predictor = DeepTAP(task_type="cla", deeptap_home=DEEPTAP_HOME)
@@ -194,6 +195,7 @@ def test_deeptap_end_to_end_cla():
     assert by_peptide["KADDDKPGA"] == pytest.approx(0.2964, abs=1e-3)
 
 
+@pytest.mark.requires_external_tool
 @requires_deeptap
 def test_deeptap_end_to_end_reg_sets_value():
     predictor = DeepTAP(task_type="reg", deeptap_home=DEEPTAP_HOME)

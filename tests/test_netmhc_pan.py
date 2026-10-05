@@ -17,6 +17,9 @@ import pytest
 from mhctools import NetMHCpan, NetMHCpan41
 
 
+pytestmark = pytest.mark.requires_external_tool
+
+
 DEFAULT_ALLELE = 'HLA-A*02:01'
 
 protein_sequence_dict = {
