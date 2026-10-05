@@ -109,6 +109,7 @@ def _predict_ref(predictor, ref):
     return pairs, predictor.predict(peptides, c_flanks=c_flanks)
 
 
+@pytest.mark.requires_external_tool
 @requires_netcleave
 def test_reproduces_cli_class_I(predictor_I):
     pairs, results = _predict_ref(predictor_I, CLASS_I_REF)
@@ -117,6 +118,7 @@ def test_reproduces_cli_class_I(predictor_I):
         assert got == pytest.approx(CLASS_I_REF[(pep, cflank)], abs=1e-3)
 
 
+@pytest.mark.requires_external_tool
 @requires_netcleave
 def test_reproduces_cli_class_II(predictor_II):
     pairs, results = _predict_ref(predictor_II, CLASS_II_REF)
@@ -125,6 +127,7 @@ def test_reproduces_cli_class_II(predictor_II):
         assert got == pytest.approx(CLASS_II_REF[(pep, cflank)], abs=1e-3)
 
 
+@pytest.mark.requires_external_tool
 @requires_netcleave
 def test_class_I_emits_proteasome_kind(predictor_I):
     pp = predictor_I.predict(["SIINFEKL"], c_flanks=["DGH"])[0]
@@ -136,12 +139,14 @@ def test_class_I_emits_proteasome_kind(predictor_I):
     assert 0.0 <= pred.score <= 1.0
 
 
+@pytest.mark.requires_external_tool
 @requires_netcleave
 def test_class_II_emits_endolysosomal_kind(predictor_II):
     pp = predictor_II.predict(["SIINFEKL"], c_flanks=["DGH"])[0]
     assert pp.preds[0].kind == Kind.endolysosomal_cleavage
 
 
+@pytest.mark.requires_external_tool
 @requires_netcleave
 def test_kind_support_metadata(predictor_I, predictor_II):
     assert predictor_I.kind_support() == {
@@ -150,6 +155,7 @@ def test_kind_support_metadata(predictor_I, predictor_II):
         Kind.endolysosomal_cleavage: {"mhc_dependence": "none", "mhc_class": "II"}}
 
 
+@pytest.mark.requires_external_tool
 @requires_netcleave
 def test_class_I_stronger_than_class_II(predictor_I, predictor_II):
     """NetCleave's class-I C-terminal signal is much stronger than class-II
@@ -165,12 +171,14 @@ def test_class_I_stronger_than_class_II(predictor_I, predictor_II):
         assert a > b
 
 
+@pytest.mark.requires_external_tool
 @requires_netcleave
 def test_predict_requires_c_flanks(predictor_I):
     with pytest.raises(ValueError, match="c_flanks"):
         predictor_I.predict(["SIINFEKL"])
 
 
+@pytest.mark.requires_external_tool
 @requires_netcleave
 def test_short_c_flank_yields_empty_result(predictor_I):
     # 2-residue c_flank can't build the 4+3 site -> empty PeptideResult,
@@ -180,6 +188,7 @@ def test_short_c_flank_yields_empty_result(predictor_I):
     assert results[0].preds == ()
 
 
+@pytest.mark.requires_external_tool
 @requires_netcleave
 def test_mixed_valid_and_short_flanks_stay_aligned(predictor_I):
     results = predictor_I.predict(
@@ -189,6 +198,7 @@ def test_mixed_valid_and_short_flanks_stay_aligned(predictor_I):
     assert results[1].cleavage is not None    # valid
 
 
+@pytest.mark.requires_external_tool
 @requires_netcleave
 def test_predict_proteins(predictor_I):
     protein = "MASIINFEKLDGHKQRLLWNGPMAVQRSTTT"  # SIINFEKL@2, LLWNGPMAV@16
@@ -202,6 +212,7 @@ def test_predict_proteins(predictor_I):
     assert scored["SIINFEKL"].source_sequence_name == "p"
 
 
+@pytest.mark.requires_external_tool
 @requires_netcleave
 def test_predict_proteins_repeated_peptide(predictor_I):
     """Regression: a peptide occurring more than once in the protein must not
@@ -227,6 +238,7 @@ def test_predict_proteins_repeated_peptide(predictor_I):
     assert by_offset[2].score != by_offset[16].score
 
 
+@pytest.mark.requires_external_tool
 @requires_netcleave
 def test_predict_recurring_peptide_in_flank(predictor_I):
     """Regression: a peptide that recurs within peptide+flank must not crash."""
@@ -235,6 +247,7 @@ def test_predict_recurring_peptide_in_flank(predictor_I):
     assert 0.0 <= pp.cleavage.score <= 1.0
 
 
+@pytest.mark.requires_external_tool
 @requires_netcleave
 def test_two_instances_do_not_interfere(predictor_I, predictor_II):
     """Regression: distinct instances must not collide on the shared output
@@ -247,6 +260,7 @@ def test_two_instances_do_not_interfere(predictor_I, predictor_II):
     assert b.score == pytest.approx(CLASS_II_REF[("SIINFEKL", "DGH")], abs=1e-3)
 
 
+@pytest.mark.requires_external_tool
 @requires_netcleave
 def test_predict_dataframe_schema(predictor_II):
     df = predictor_II.predict_dataframe(["SIINFEKL"], c_flanks=["DGH"])
@@ -255,6 +269,7 @@ def test_predict_dataframe_schema(predictor_II):
     assert df["c_flank"].iloc[0] == "DGH"
 
 
+@pytest.mark.requires_external_tool
 @requires_netcleave
 def test_repeated_calls_consistent(predictor_I):
     a = predictor_I.predict(["SIINFEKL"], c_flanks=["DGH"])[0].cleavage.score
@@ -262,12 +277,14 @@ def test_repeated_calls_consistent(predictor_I):
     assert a == b
 
 
+@pytest.mark.requires_external_tool
 @requires_netcleave
 def test_predict_empty_returns_empty(predictor_I):
     assert predictor_I.predict([], c_flanks=[]) == []
     assert predictor_I.predict([]) == []   # no c_flanks needed for empty input
 
 
+@pytest.mark.requires_external_tool
 @requires_netcleave
 def test_subclasses_set_class(predictor_I, predictor_II):
     assert predictor_I.mhc_class == "I"

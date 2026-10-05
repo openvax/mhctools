@@ -141,6 +141,7 @@ requires_deepimmuno = pytest.mark.skipif(
            "tf-keras; see docs/testing.md)")
 
 
+@pytest.mark.requires_external_tool
 @requires_deepimmuno
 def test_deepimmuno_end_to_end():
     predictor = DeepImmuno(
@@ -165,6 +166,7 @@ def test_deepimmuno_end_to_end():
     assert by_peptide["GILGFVFTL"] == pytest.approx(0.8872, abs=1e-3)
 
 
+@pytest.mark.requires_external_tool
 @requires_deepimmuno
 def test_deepimmuno_multiple_alleles_per_peptide():
     predictor = DeepImmuno(

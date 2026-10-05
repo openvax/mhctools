@@ -182,6 +182,7 @@ requires_prime = pytest.mark.skipif(
            "MIXMHCPRED_PATH, or put PRIME and MixMHCpred on PATH)")
 
 
+@pytest.mark.requires_external_tool
 @requires_prime
 def test_prime_end_to_end():
     predictor = PRIME(
@@ -204,6 +205,7 @@ def test_prime_end_to_end():
         assert result.immunogenicity is not None
 
 
+@pytest.mark.requires_external_tool
 @requires_prime
 def test_prime_dataframe_end_to_end():
     predictor = PRIME(

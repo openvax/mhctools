@@ -39,59 +39,8 @@ jobs:
       - name: Build distribution artifacts
         run: python -m build --sdist --wheel --no-isolation
 
-      - name: Run public pytest subset
-        run: |
-          pytest -ra \
-            tests/test_binding_prediction.py \
-            tests/test_binding_prediction_collection.py \
-            tests/test_mhcflurry_provenance.py \
-            tests/test_cli_parsing_helpers.py \
-            tests/test_cli_registry.py \
-            tests/test_cli_subcommands.py \
-            tests/test_packaging.py \
-            tests/test_class2_allele_formats.py \
-            tests/test_cli_filters.py \
-            tests/test_mhc_formats.py \
-            tests/test_netchop_parse.py \
-            tests/test_osteosarc_fixtures.py \
-            tests/test_process_helpers.py \
-            tests/test_smm.py tests/test_iedb_local.py \
-            tests/test_smm_subset_provenance.py \
-            tests/test_require_all.py \
-            tests/test_peptiverse.py \
-            tests/test_plifepred2.py \
-            tests/test_cleavage.py \
-            tests/test_cleavage_batch.py \
-            tests/test_wada_cleavage.py \
-            tests/test_cathepsin_reference.py \
-            tests/test_vaccine_report.py \
-            tests/test_dpp4.py \
-            tests/test_peptidases.py \
-            tests/test_benchmark.py \
-            tests/test_serum_cleavage.py \
-            tests/test_eramer_cleavage.py \
-            tests/test_pred.py \
-            tests/test_prediction_alignment.py \
-            tests/test_annotate_table.py \
-            tests/test_prime.py \
-            tests/test_mixmhc2pred2.py \
-            tests/test_deeptap.py \
-            tests/test_calis.py \
-            tests/test_eramer.py \
-            tests/test_wrapper_base.py \
-            tests/test_deepimmuno.py \
-            tests/test_tlimmuno2.py \
-            tests/test_processing_predictor.py \
-            tests/test_pepsickle.py \
-            tests/test_pepsickle_runtime.py \
-            tests/test_bigmhc.py \
-            tests/test_caphla.py \
-            tests/test_unparseable_alleles.py \
-            tests/test_nettcr.py \
-            tests/test_netcleave.py \
-            tests/test_mixtcrpred.py \
-            tests/test_tulip.py \
-            tests/test_random.py
+      - name: Run all offline tests
+        run: python -m pytest tests/ -m "not requires_external_tool" --strict-markers -ra
 
   integration-pepsickle-legacy:
     runs-on: ubuntu-22.04

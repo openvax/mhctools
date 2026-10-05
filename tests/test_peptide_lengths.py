@@ -24,21 +24,25 @@ from mhctools.base_predictor import BasePredictor
 from .common import eq_, assert_raises
 
 
+@pytest.mark.requires_external_tool
 def test_class2_9mer_success():
     ii_pan_predictor = NetMHCIIpan(alleles=["HLA-DRB1*01:01"])
     predictions = ii_pan_predictor.predict_peptides(["A" * 9])
     eq_(len(predictions), 1)
 
+@pytest.mark.requires_external_tool
 def test_class2_8mer_fails():
     ii_pan_predictor = NetMHCIIpan(alleles=["HLA-DRB1*01:01"])
     with assert_raises(ValueError):
         ii_pan_predictor.predict_peptides(["A" * 8])
 
+@pytest.mark.requires_external_tool
 def test_class1_8mer_success():
     netmhc = NetMHC(alleles=["HLA-A0201"])
     predictions = netmhc.predict_peptides(["A" * 8])
     eq_(len(predictions), 1)
 
+@pytest.mark.requires_external_tool
 def test_class1_7mer_failure():
     netmhc = NetMHC(alleles=["HLA-A0201"])
     with assert_raises(ValueError):

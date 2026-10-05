@@ -284,6 +284,7 @@ def predictor():
     return NetTCR(nettcr_path=NETTCR_DIR)
 
 
+@pytest.mark.requires_external_tool
 @requires_nettcr
 def test_init_lazy(predictor):
     assert predictor._interpreters is None
@@ -291,6 +292,7 @@ def test_init_lazy(predictor):
     assert "not loaded" in str(predictor)
 
 
+@pytest.mark.requires_external_tool
 @requires_nettcr
 def test_reproduces_published_ensemble(predictor):
     """The wrapper must reproduce NetTCR's own 20-model ensemble output."""
@@ -303,6 +305,7 @@ def test_reproduces_published_ensemble(predictor):
             % (row[0], expected, got))
 
 
+@pytest.mark.requires_external_tool
 @requires_nettcr
 def test_published_binder_ranks_top(predictor):
     """The labeled binder should outscore every non-binder in the sample."""
@@ -315,6 +318,7 @@ def test_published_binder_ranks_top(predictor):
     assert binder > max(others)
 
 
+@pytest.mark.requires_external_tool
 @requires_nettcr
 def test_predict_pairs_kind_and_fields(predictor):
     pairs = [_row_to_pair(row) for row, _ in PUBLISHED_ENSEMBLE]
@@ -330,6 +334,7 @@ def test_predict_pairs_kind_and_fields(predictor):
         assert 0.0 <= pred.score <= 1.0
 
 
+@pytest.mark.requires_external_tool
 @requires_nettcr
 def test_predict_cross_product(predictor):
     peptides = ["AVFDRKSDAK", "GILGFVFTL"]
@@ -342,6 +347,7 @@ def test_predict_cross_product(predictor):
         assert pp.tcrs == {t.identifier for t in tcrs}
 
 
+@pytest.mark.requires_external_tool
 @requires_nettcr
 def test_predict_single_peptide_single_tcr(predictor):
     _, tcr = _row_to_pair(PUBLISHED_ENSEMBLE[2][0])
@@ -350,6 +356,7 @@ def test_predict_single_peptide_single_tcr(predictor):
     assert len(results[0].preds) == 1
 
 
+@pytest.mark.requires_external_tool
 @requires_nettcr
 def test_batch_matches_single(predictor):
     """A batched call and per-pair calls must give identical scores
@@ -360,6 +367,7 @@ def test_batch_matches_single(predictor):
     np.testing.assert_allclose(batched, singly, atol=1e-6)
 
 
+@pytest.mark.requires_external_tool
 @requires_nettcr
 def test_predict_models_stay_loaded(predictor):
     predictor.predict_pairs([_row_to_pair(PUBLISHED_ENSEMBLE[0][0])])
@@ -367,6 +375,7 @@ def test_predict_models_stay_loaded(predictor):
     assert "loaded" in str(predictor)
 
 
+@pytest.mark.requires_external_tool
 @requires_nettcr
 def test_predict_repeated_calls_consistent(predictor):
     pairs = [_row_to_pair(row) for row, _ in PUBLISHED_ENSEMBLE]
@@ -376,6 +385,7 @@ def test_predict_repeated_calls_consistent(predictor):
         assert a.preds[0].score == b.preds[0].score
 
 
+@pytest.mark.requires_external_tool
 @requires_nettcr
 def test_predict_empty_tcrs(predictor):
     results = predictor.predict(["GILGFVFTL"], [])
@@ -383,6 +393,7 @@ def test_predict_empty_tcrs(predictor):
     assert results[0].preds == ()
 
 
+@pytest.mark.requires_external_tool
 @requires_nettcr
 def test_predict_dataframe_schema(predictor):
     _, tcr = _row_to_pair(PUBLISHED_ENSEMBLE[2][0])
@@ -392,6 +403,7 @@ def test_predict_dataframe_schema(predictor):
     assert df["kind"].iloc[0] == Kind.pMHC_TCR_binding
 
 
+@pytest.mark.requires_external_tool
 @requires_nettcr
 def test_bad_tcr_type_raises(predictor):
     with pytest.raises(TypeError, match="TCR"):

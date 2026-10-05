@@ -187,6 +187,7 @@ requires_caphla = pytest.mark.skipif(
     reason="CapHLA not installed (run `mhctools fetch caphla`)")
 
 
+@pytest.mark.requires_external_tool
 @requires_caphla
 def test_all_upstream_alleles_normalize_to_library_keys():
     library = pd.read_csv(Path(CAPHLA_HOME) / "HLA_library.csv")
@@ -199,6 +200,7 @@ def test_all_upstream_alleles_normalize_to_library_keys():
     assert set(classes) == {"I", "II"}
 
 
+@pytest.mark.requires_external_tool
 @requires_caphla
 def test_reproduces_official_el_and_ba_fixture():
     pytest.importorskip("torch")

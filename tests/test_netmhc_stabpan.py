@@ -12,6 +12,8 @@
 
 import os
 
+import pytest
+
 from numpy.testing import assert_allclose
 from mhctools import NetMHCstabpan
 from mhctools.base_commandline_predictor import BaseCommandlinePredictor
@@ -41,6 +43,7 @@ web_server_predictions = [
 # this test suite to succeeed. Also all peptides must be the same length.
 
 
+@pytest.mark.requires_external_tool
 def test_netmhc_stabpan_accuracy():    
     # Check that the netMHCstabpan program is working and returning th eexpected outputs.
     predictor = NetMHCstabpan(

@@ -108,6 +108,7 @@ requires_eramer = pytest.mark.skipif(
            "needs openpyxl)")
 
 
+@pytest.mark.requires_external_tool
 @requires_eramer
 def test_eramer_end_to_end_matches_reference():
     # Reference values are ERAMER v1.0's own sample output (README/test.fasta).
@@ -124,6 +125,7 @@ def test_eramer_end_to_end_matches_reference():
     assert results[0].erap_trimming is by_peptide["GGGGGVVVVVVAAAEE"]
 
 
+@pytest.mark.requires_external_tool
 @requires_eramer
 def test_eramer_epitope_length_changes_cascade():
     # epitope_length 9 drops the shortest (9-mer) trimming step vs default 8.

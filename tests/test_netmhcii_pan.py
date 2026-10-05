@@ -15,6 +15,11 @@ from .common import eq_
 from mhctools import NetMHCIIpan
 from mhctools.allele_normalization import normalize_allele_name
 
+import pytest
+
+
+pytestmark = pytest.mark.requires_external_tool
+
 def test_netmhcii_pan_DRB():
     alleles = [normalize_allele_name("HLA-DRB1*01:01")]
     ii_pan_predictor = NetMHCIIpan(

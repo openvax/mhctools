@@ -1,5 +1,10 @@
 from mhctools import NetMHCIIpan43, NetMHCIIpan43_EL, NetMHCIIpan43_BA
 
+import pytest
+
+
+pytestmark = pytest.mark.requires_external_tool
+
 
 def test_netmhciipan43():
     predictor = NetMHCIIpan43(alleles=['DRB1_0101'])

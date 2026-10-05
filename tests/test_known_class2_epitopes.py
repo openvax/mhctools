@@ -17,6 +17,9 @@ import pytest
 from .predictor_classes import mhc2_predictor_classes
 
 
+pytestmark = pytest.mark.requires_external_tool
+
+
 def expect_binder(mhc_model, peptide):
     prediction = mhc_model.predict_subsequences(peptide)[0]
     if prediction.value:

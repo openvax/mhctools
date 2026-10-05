@@ -29,15 +29,18 @@ def run_class_with_executable(mhc_class, mhc_executable):
         sequence_dict=sequence_dict,
         peptide_lengths=[9])
 
+@pytest.mark.requires_external_tool
 @raises(SystemError)
 def test_executable_mismatch_3_4():
     run_class_with_executable(NetMHC3, "netMHC")
 
+@pytest.mark.requires_external_tool
 @requires_netmhc3_located
 @raises(SystemError)
 def test_executable_mismatch_4_3():
     run_class_with_executable(NetMHC4, "netMHC-3.4")
 
+@pytest.mark.requires_external_tool
 def test_wrapper_function_netMHC4():
     alleles = [normalize_allele_name("HLA-A*02:01")]
     wrapped_4 = NetMHC(
@@ -46,6 +49,7 @@ def test_wrapper_function_netMHC4():
         program_name="netMHC")
     eq_(type(wrapped_4), NetMHC4)
 
+@pytest.mark.requires_external_tool
 @requires_netmhc3_runnable
 def test_wrapper_function_netMHC3():
     alleles = [normalize_allele_name("HLA-A*02:01")]
@@ -62,6 +66,7 @@ def test_wrapper_failure():
            default_peptide_lengths=[9],
            program_name="netMHC-none")
 
+@pytest.mark.requires_external_tool
 @requires_netmhc3_runnable
 def test_multiple_lengths_netmhc3():
     alleles = [normalize_allele_name("H-2-Kb")]

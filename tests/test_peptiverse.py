@@ -506,6 +506,7 @@ requires_peptiverse = pytest.mark.skipif(
     reason="set PEPTIVERSE_HOME to a PeptiVerse snapshot to run this")
 
 
+@pytest.mark.requires_external_tool
 @requires_peptiverse
 def test_end_to_end_returns_hours(peptiverse_environment):
     predictor = PeptiVerse(device="cpu", **peptiverse_environment)
@@ -526,6 +527,7 @@ def test_end_to_end_returns_hours(peptiverse_environment):
     assert len(predictor.last_qc) == len(peptides)
 
 
+@pytest.mark.requires_external_tool
 @requires_peptiverse
 def test_end_to_end_is_deterministic(peptiverse_environment):
     predictor = PeptiVerse(device="cpu", **peptiverse_environment)
@@ -534,6 +536,7 @@ def test_end_to_end_is_deterministic(peptiverse_environment):
     assert first == second
 
 
+@pytest.mark.requires_external_tool
 @requires_peptiverse
 def test_end_to_end_dataframe_has_the_standard_columns(peptiverse_environment):
     from mhctools.pred import COLUMNS
@@ -543,6 +546,7 @@ def test_end_to_end_dataframe_has_the_standard_columns(peptiverse_environment):
     assert frame["kind"].tolist() == [Kind.peptide_half_life]
 
 
+@pytest.mark.requires_external_tool
 @requires_peptiverse
 def test_end_to_end_uncertainty_stays_out_of_the_prediction(peptiverse_environment):
     # Upstream's half-life conformal bundle references a class defined in its

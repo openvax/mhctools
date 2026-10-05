@@ -12,8 +12,11 @@ from mhctools import SMM, SMMPMBEC
 
 ROOT = Path(__file__).parent / "data/osteosarc"
 PROGRAM = os.environ.get("IEDB_MHCI_EXECUTABLE", "iedb-mhci")
-pytestmark = pytest.mark.skipif(
-    not shutil.which(PROGRAM), reason="Install local SMM: see docs/testing.md")
+pytestmark = [
+    pytest.mark.requires_external_tool,
+    pytest.mark.skipif(
+        not shutil.which(PROGRAM), reason="Install local SMM: see docs/testing.md"),
+]
 
 
 @pytest.mark.parametrize("cls,method", [(SMM, "smm"), (SMMPMBEC, "smmpmbec")])
