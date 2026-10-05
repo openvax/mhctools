@@ -37,7 +37,7 @@ def test_published_release_is_detected(monkeypatch):
 
 def test_only_404_means_release_is_available(monkeypatch):
     def missing(request, timeout):
-        raise HTTPError(request.full_url, 404, "Not Found", {}, None)
+        raise HTTPError(request.full_url, 404, "Not Found", {}, BytesIO())
 
     monkeypatch.setattr(PREFLIGHT, "urlopen", missing)
     assert not PREFLIGHT.pypi_release_exists("mhctools", "3.44.43")
@@ -47,8 +47,9 @@ def test_only_404_means_release_is_available(monkeypatch):
     "error",
     [
         TimeoutError("lookup timed out"),
-        HTTPError("https://pypi.org", 503, "Service Unavailable", {}, None),
+        HTTPError("https://pypi.org", 503, "Service Unavailable", {}, BytesIO()),
     ],
+    ids=["timeout", "http-503"],
 )
 def test_lookup_failure_is_not_treated_as_available(monkeypatch, error):
     def fail(*args, **kwargs):
@@ -57,6 +58,8 @@ def test_lookup_failure_is_not_treated_as_available(monkeypatch, error):
     monkeypatch.setattr(PREFLIGHT, "urlopen", fail)
     with pytest.raises(RuntimeError, match="could not verify mhctools 3.44.43"):
         PREFLIGHT.pypi_release_exists("mhctools", "3.44.43")
+    if isinstance(error, HTTPError):
+        assert error.fp.closed
 
 
 @pytest.mark.parametrize(
