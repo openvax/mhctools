@@ -91,6 +91,10 @@ python -m pip install -e '.[docs]'
 mkdocs build --strict
 ```
 
+The header version is read from `mhctools/__init__.py` during each docs build.
+It describes the checked-out package version and is independent of GitHub
+release metadata.
+
 ## CI and release verification
 
 CI discovers all tests on Python 3.9–3.12 and runs every test without the
