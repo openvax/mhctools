@@ -27,6 +27,7 @@ from typing import Any, Iterable
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.patches import FancyBboxPatch, Rectangle
+from display_labels import dpp4_loss_label
 import numpy as np
 import pandas as pd
 from scipy.cluster.hierarchy import leaves_list, linkage
@@ -1941,7 +1942,7 @@ def draw_extracellular_panel(
                      "unassessed": "NOT ASSESSED", "outside_segment": "SITE OUTSIDE THIS SEGMENT"}[state]
             if model != "dpp4-qpisa" and state == "unsupported":
                 title = "NOT ASSESSED / OUTSIDE RULE SCOPE"
-            suffix = f" | full-SLP score {evidence['score']:+.3f} log2 depletion" if evidence["score"] is not None else ""
+            suffix = f" | full SLP: {dpp4_loss_label(evidence['score'])}" if evidence["score"] is not None else ""
             ax.text(left + .15, y + .11, title + suffix, fontsize=10.5,
                     fontweight="bold", color="#59616b", va="center")
             ax.text(left + .15, y - .20, evidence["detail"], fontsize=9, color="#59616b", va="center")
@@ -1956,7 +1957,7 @@ def draw_extracellular_panel(
                         fontsize=12, fontweight="bold", family="monospace", color=color)
             ax.plot([x, x], [y - .26, y + .26], color=color, linewidth=3.5)
             value_x = left + (right - left) * .63
-            ax.annotate(f"{evidence['score']:+.3f}  log2 depletion", xy=(x, y), xytext=(value_x, y),
+            ax.annotate(dpp4_loss_label(evidence["score"]), xy=(x, y), xytext=(value_x, y),
                         fontsize=13, fontweight="bold", color=color, va="center", ha="center",
                         bbox={"boxstyle": "round,pad=.45", "facecolor": "#fff1d9", "edgecolor": color, "linewidth": 1.5},
                         arrowprops={"arrowstyle": "-", "color": color, "linewidth": 1.2})
@@ -1964,19 +1965,16 @@ def draw_extracellular_panel(
         if evidence["unmatched_bonds"]:
             ax.scatter([bond + .5 for bond in evidence["unmatched_bonds"]], [y] * len(evidence["unmatched_bonds"]),
                        s=42, facecolors="white", edgecolors="#98a2ad", linewidths=1.2, zorder=2)
-        for bond in evidence["matched_bonds"]:
-            x = bond + .5
-            ax.add_patch(FancyBboxPatch((x - .32, y - .24), .64, .48,
-                                        boxstyle="round,pad=.02,rounding_size=.09",
-                                        facecolor=color, edgecolor=color, linewidth=1.2, zorder=3))
-            ax.text(x, y, "M", ha="center", va="center", color="white", fontsize=12, fontweight="bold", zorder=4)
+        if evidence["matched_bonds"]:
+            ax.scatter([bond + .5 for bond in evidence["matched_bonds"]], [y] * len(evidence["matched_bonds"]),
+                       marker="v", s=225, facecolors=color, edgecolors="white", linewidths=1, zorder=3)
         assessed_bonds = set(evidence["matched_bonds"] + evidence["unmatched_bonds"])
         if model in {"mme-hydrophobic", "fap-endo-gp"}:
             for bond in set(bonds) - assessed_bonds:
                 ax.text(bond + .5, y, "NA", ha="center", va="center", fontsize=9, color="#59616b")
-    fig.text(.19, .102, "M = motif match   |   hollow circle = assessed, no motif match   |   NA = not assessed. Enzyme presence and exposure are not measured.",
+    fig.text(.19, .102, "Triangle = motif match   |   hollow circle = no motif match   |   NA = not assessed. Enzyme presence and exposure are not measured.",
              fontsize=10, color="#333333")
-    fig.text(.19, .087, "DPP4: predicted log2(buffer control / treated substrate), source assay 4 h. Motifs have no numeric score; neither view gives a cleavage rate.",
+    fig.text(.19, .087, "DPP4: predicted peptide-signal loss in the source 4 h assay. Native scores remain in CSV. Motifs indicate sequence matches only.",
              fontsize=9.5, color="#333333")
     return ax
 
@@ -2720,8 +2718,10 @@ def write_manuscript_caption(path: Path, selection_df: pd.DataFrame) -> None:
         "<=5% native percentile rank, respectively. Their selection favors intended-"
         "epitope overlap, then distinct alleles, then native rank; all predictions remain "
         "in the accompanying CSV. The enlarged extracellular panel repeats the residue "
-        "axis. DPP4's labeled callout connects to intact SLP bond 2 and uses native log2 "
-        "substrate depletion units. M blocks mark motif matches, hollow circles mark "
+        "axis. DPP4's labeled callout connects to intact SLP bond 2 and shows rounded "
+        "predicted percent loss on the source four-hour assay scale; native log2 scores "
+        "remain in CSV. Negative native estimates say No predicted loss, while missing "
+        "estimates remain unavailable. Large triangles mark motif matches, hollow circles mark "
         "assessed non-matches, and unavailable rows state their reason. FAP internal "
         "Gly-Pro|non-Pro and N-terminal dipeptidyl activities have separate rows. "
         "All enzyme rows remain visible; exposure and cleavage kinetics are unmodeled.",
@@ -2988,8 +2988,11 @@ def write_report(
         "all-mammal Pepsickle output remains available in the exact-score and summary tables.",
         "Below the sequence, NetCleave-II is separated from a larger extracellular enzyme panel with its own residue axis. "
         "DPP4, MME, separate FAP internal/N-terminal activities, ANPEP and ENPEP always remain visible. "
-        "Large M blocks mark motif matches, hollow circles mark assessed non-matches, and unavailable rows state the exact reason. "
-        "DPP4 has a labeled native log2 depletion callout at intact SLP bond 2; continuation pages do not create new exposed termini. "
+        "Large triangles mark motif matches, hollow circles mark assessed non-matches, and unavailable rows state the exact reason. "
+        "DPP4 shows rounded predicted percent loss at intact SLP bond 2, converted as 100 * (1 - 2**(-native score)) "
+        "on the source four-hour assay scale. Negative native estimates say No predicted loss, and positive estimates below 1% "
+        "say <1% predicted loss. Native log2 scores remain unchanged in CSV. This display is neither an observed vaccine-peptide loss "
+        "nor a cleavage probability or in-vivo kinetic estimate. Continuation pages do not create new exposed termini. "
         "Plasma-oriented and intact-SLP intracellular terminal rules remain in CSV instead of being presented "
         "as default injection-site biology. Model coverage does not establish enzyme presence or exposure.",
         "",
@@ -3300,6 +3303,7 @@ def main() -> None:
             ).returncode
             != 0,
             "analysis_script_sha256": sha256_file(Path(__file__)),
+            "display_labels_sha256": sha256_file(Path(__file__).with_name("display_labels.py")),
             "generated_at": generated_at.isoformat(),
             "output_directory": output_dir.name,
             "display_threshold": THRESHOLD,

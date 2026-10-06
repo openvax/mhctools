@@ -19,7 +19,9 @@ SCRIPT_PATH = (
 SPEC = spec_from_file_location("osteosarc_vaccine_cleavage_analysis", SCRIPT_PATH)
 assert SPEC is not None and SPEC.loader is not None
 ANALYSIS = module_from_spec(SPEC)
-SPEC.loader.exec_module(ANALYSIS)
+with pytest.MonkeyPatch.context() as patch:
+    patch.syspath_prepend(str(SCRIPT_PATH.parent))
+    SPEC.loader.exec_module(ANALYSIS)
 
 
 def test_processing_producer_preserves_training_endpoint_in_model_labels(monkeypatch):
@@ -274,6 +276,24 @@ def frozen_enzyme_inputs():
     )
 
 
+@pytest.mark.parametrize("score,label", [
+    (.686, "38% predicted loss"),
+    (1.0, "50% predicted loss"),
+    (2.0, "75% predicted loss"),
+    (0.0, "0% predicted loss"),
+    (.0002, "<1% predicted loss"),
+    (-.5799, "No predicted loss"),
+])
+def test_dpp4_loss_display_transforms_the_assay_ratio_without_inventing_probability(score, label):
+    assert ANALYSIS.dpp4_loss_label(score) == label
+
+
+@pytest.mark.parametrize("score", [float("nan"), float("inf")])
+def test_dpp4_loss_display_rejects_nonfinite_scores(score):
+    with pytest.raises(ValueError, match="finite native score"):
+        ANALYSIS.dpp4_loss_label(score)
+
+
 def test_dpp4_keeps_negative_score_and_missing_coefficients_distinct(frozen_enzyme_inputs):
     _, quantitative, motifs = frozen_enzyme_inputs
     supported = ANALYSIS.enzyme_track_evidence(
@@ -341,6 +361,27 @@ def test_enzyme_panel_keeps_no_match_and_unavailable_rows_visible(frozen_enzyme_
         assert any("1 motif match / 1 assessed bond" in label for label in labels)
         assert any("Gly-Pro|non-Pro" in label for label in labels)
         assert ANALYSIS.MOTIF_DISPLAY_NAMES["fap-endo-gp"] == "FAP - Gly-Pro|X"
+        assert "M" not in labels  # This sequence contains no Met; no motif-letter markers.
+        assert any("Triangle = motif match" in text.get_text() for text in fig.texts)
+    finally:
+        ANALYSIS.plt.close(fig)
+
+
+@pytest.mark.parametrize("record_id,segment,label", [
+    ("SLC25A12-chr2-171813470:vaccine-peptide-4", (1, 16), "38% predicted loss"),
+    ("BMP1-chr8-22192067:vaccine-peptide-3", (1, 22), "No predicted loss"),
+    ("GLIS3-chr9-3856149:vaccine-peptide-1", (28, 54),
+     "SITE OUTSIDE THIS SEGMENT | full SLP: 8% predicted loss"),
+])
+def test_enzyme_panel_uses_loss_labels_without_reassigning_intact_terminal_sites(
+    frozen_enzyme_inputs, record_id, segment, label
+):
+    inventory, quantitative, motifs = frozen_enzyme_inputs
+    record = inventory.loc[inventory.sequence_record_id == record_id].iloc[0]
+    fig = ANALYSIS.plt.figure(figsize=(16, 16.2))
+    try:
+        ax = ANALYSIS.draw_extracellular_panel(fig, record, quantitative, motifs, segment)
+        assert label in [text.get_text() for text in ax.texts]
     finally:
         ANALYSIS.plt.close(fig)
 

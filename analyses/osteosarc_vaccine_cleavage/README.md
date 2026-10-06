@@ -9,7 +9,7 @@ by curated human-peptidase recognition rules?
 Every invocation writes a new date/time-stamped directory under `results/` so
 an earlier analysis is never overwritten. The [generated-run index](results/README.md)
 links the checked-in report, tables, and
-[figure atlas](results/2026-10-06T125244-757271-0400/mhctools-all-figures.pdf).
+[figure atlas](results/2026-10-06T142010-273003-0400/mhctools-all-figures.pdf).
 The complete model/code/weight inventory and checksums travel with that run.
 The PDF begins with a clustered predictor/SLP agreement overview and then
 uses each disclosed SLP sequence as the central visual axis. Large residue
@@ -24,7 +24,7 @@ window; it is binary coverage, not prediction count or probability. Red ticks in
 ligand span show relevant pre-binding internal cleavage evidence; they do not
 claim post-binding cleavage or protection. The 80-aa outlier is split across three
 continuation pages rather than compressed. Use
-[`atlas_sequence_order.csv`](results/2026-10-06T125244-757271-0400/tables/atlas_sequence_order.csv) to jump
+[`atlas_sequence_order.csv`](results/2026-10-06T142010-273003-0400/tables/atlas_sequence_order.csv) to jump
 from a sequence record to its PDF page. Every map page is also exported as a
 vector PDF and 300 dpi PNG; `slp_map_exports.csv` indexes those files.
 
@@ -41,7 +41,7 @@ declared criteria rather than visual preference. Its exact choices and metrics
 are in `manuscript_figure_selection.csv`.
 
 For a compact answer to “which SLP is flagged by which model,” start with
-[`slp_predictor_matrix.csv`](results/2026-10-06T125244-757271-0400/tables/slp_predictor_matrix.csv). Its
+[`slp_predictor_matrix.csv`](results/2026-10-06T142010-273003-0400/tables/slp_predictor_matrix.csv). Its
 column suffixes distinguish within-model fractions above 0.5, native scores,
 and motif-match counts; those unlike quantities must not be combined or
 ranked as though they shared a scale. Exact bond-level outputs remain in the
@@ -82,11 +82,12 @@ secretion or extracellular exposure is declared.
 
 ## Reading the enlarged enzyme panel
 
-- DPP4 has a large native log2-depletion score box connected to intact SLP
-  bond 2. The source model has complete published coefficients for 28 of
+- DPP4 has a large predicted-percent-loss box connected to intact SLP
+  bond 2, using the source four-hour assay scale. Native log2 scores remain
+  unchanged in CSV. The source model has complete published coefficients for 28 of
   these 40 SLP records; the other 12 show their exact missing-coefficient
   reason. An unavailable score is not zero or resistance.
-- M blocks mark motif matches; hollow circles mark assessed non-matches.
+- Large filled triangles mark motif matches; hollow circles mark assessed non-matches.
   FAP N-terminal recognition tests X-Pro|non-Pro only at bond 2; its separate
   internal rule tests Gly-Pro|non-Pro. Each mode matches three SLP records
   in this frozen run. These are partial motif rules, without numerical scores.
@@ -100,6 +101,12 @@ secretion or extracellular exposure is declared.
 Row visibility describes model coverage, not measured enzyme presence or
 biological exposure. A motif non-match does not establish protection. Exact
 scores, assessment reasons and source provenance remain in the frozen tables.
+The DPP4 display converts its native score as `100 * (1 - 2**(-score))`,
+rounded to whole percent. Positive estimates below 1% show `<1% predicted loss`;
+negative native estimates show `No predicted loss` without changing the
+underlying score or claiming resistance. These are predicted relative
+peptide-signal changes in the source assay, not measured vaccine-peptide loss,
+cleavage probabilities, or in-vivo degradation percentages.
 Primary references: [DPP4 qPISA](https://pmc.ncbi.nlm.nih.gov/articles/PMC11612144/),
 [FAP internal specificity](https://pubmed.ncbi.nlm.nih.gov/16480718/),
 [MME specificity](https://pubmed.ncbi.nlm.nih.gov/6349683/).

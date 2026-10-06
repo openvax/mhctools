@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Render mechanism-separated site scores from a verified frozen Sid run.
 
-No prediction or network requests occur. Numerical scores stay in their
-native units, categorical evidence stays categorical, and missing sites
-remain unassessed. Coordinates refer to the intact disclosed vaccine input.
+No prediction or network requests occur. CSV scores stay in native units;
+DPP4 display uses predicted assay-loss percentages. Categorical evidence
+stays categorical, and missing sites remain unassessed. Coordinates refer
+to the intact disclosed vaccine input.
 """
 
 import argparse
@@ -16,6 +17,7 @@ from pathlib import Path
 import subprocess
 from xml.sax.saxutils import escape
 
+from display_labels import dpp4_loss_label
 from mhctools.eramer_cleavage import ERAMERCleavage
 from mhctools.peptidases import cleavage_models, get_cleavage_model
 
@@ -254,8 +256,10 @@ def cell_text(row):
     if row is None or row["assessment_state"] in ("unassessed", "unsupported"):
         return "NA"
     if row["assessment_state"] == "scored":
+        if row.get("model") == "dpp4-qpisa":
+            return dpp4_loss_label(float(row["score"]))
         return "%.3f" % float(row["score"])
-    return "M" if row["assessment_state"] == "matched" else "N"
+    return "Match" if row["assessment_state"] == "matched" else "No match"
 
 
 def render_pdf(path, records, rows, catalog, organism, source_name):
@@ -272,6 +276,25 @@ def render_pdf(path, records, rows, catalog, organism, source_name):
     canvas.setAuthor("mhctools")
     ink, muted = colors.HexColor("#172c3a"), colors.HexColor("#54636c")
     style = ParagraphStyle("body", fontName="Helvetica", fontSize=9, leading=12, textColor=ink)
+
+    def motif_marker(row, x, y):
+        if row is None or row["assessment_state"] in ("unassessed", "unsupported"):
+            canvas.setFillColor(muted)
+            canvas.setFont("Helvetica", 8)
+            canvas.drawCentredString(x, y, "NA")
+        elif row["assessment_state"] == "matched":
+            colour = "#7b3e98" if row["model"].startswith("fap-") else "#007b83"
+            canvas.setFillColor(colors.HexColor(colour))
+            path = canvas.beginPath()
+            path.moveTo(x - 6, y + 8)
+            path.lineTo(x + 6, y + 8)
+            path.lineTo(x, y - 3)
+            path.close()
+            canvas.drawPath(path, stroke=0, fill=1)
+        else:
+            canvas.setStrokeColor(muted)
+            canvas.setLineWidth(.8)
+            canvas.circle(x, y + 2, 3, stroke=1, fill=0)
 
     def paragraph(text, x, y, available=width - 72, size=9):
         para = Paragraph(text, ParagraphStyle("p", parent=style, fontSize=size, leading=size + 3))
@@ -328,8 +351,8 @@ def render_pdf(path, records, rows, catalog, organism, source_name):
         "That annotation is an mRNA minimal/candidate epitope and does not establish the experimentally used minimal target of every SLP.", 36, y - 18)
     y = paragraph(
         "<b>Coordinates:</b> bond b is between SLP residues b and b+1. An internal core cut lies strictly between the core boundaries. "
-        "Each numeric cell is one model's native score, rounded to three decimals for display; CSV retains the original precision. "
-        "NA means unassessed/unsupported, never zero. M/N means motif matched/not matched, never a numerical score.", 36, y - 14)
+        "Numeric grid cells show native model scores, rounded to three decimals; DPP4 shows predicted percent loss in the source four-hour assay. "
+        "CSV retains native scores. NA means unassessed/unsupported. Triangles mark motif matches; hollow circles mark non-matches.", 36, y - 14)
     y = paragraph(
         "<b>Mechanism:</b> ligand-trained models report processing proxies; they cannot name the enzyme responsible for a bond. "
         "20S reports an in-vitro proteasome model. Named peptidases have their own assay/motif evidence. "
@@ -358,7 +381,7 @@ def render_pdf(path, records, rows, catalog, organism, source_name):
                      model["biological_route"] + "; " + model["enzyme_attribution"], model["training_or_assay"]])
     y = table(data, [172, 245, width - 72 - 417], y - 18)
     y = paragraph("<b>DPP4 qPISA:</b> only the exposed N-terminal dipeptide bond (b=2) of the intact SLP. "
-                  "Native log2 substrate depletion, not 0-1 cleavage probability or serum half-life. Missing coefficients cause abstention. "
+                  "Predicted percent loss in the source four-hour assay; native scores remain in CSV. Missing coefficients cause abstention. "
                   "<b>ERAMER:</b> ERAP1's initial N-terminal trimming step (b=1), only for 9-16-residue inputs; native PWM specificity.", 36, y - 16)
     paragraph("<b>Key primary sources:</b><br/>"
               "NetChop: https://services.healthtech.dtu.dk/services/NetChop-3.1/ ; DOI 10.1007/s00251-005-0781-7<br/>"
@@ -440,7 +463,7 @@ def render_pdf(path, records, rows, catalog, organism, source_name):
                     canvas.setFont("Helvetica-Bold" if high else "Helvetica", 7.5)
                     canvas.drawCentredString(x + col_width / 2, row_y, cell_text(row))
             y -= 169
-            paragraph("INTERNAL ENZYME MOTIFS - M = matched; N = not matched; NA = outside scope (no numerical score)", 36, y, size=8)
+            paragraph("INTERNAL ENZYME MOTIFS - triangle = match; hollow circle = no match; NA = outside scope", 36, y, size=8)
             for row_number, name in enumerate(INTERNAL_MOTIFS):
                 row_y = y - 28 - row_number * 17
                 canvas.setFillColor(ink)
@@ -449,12 +472,9 @@ def render_pdf(path, records, rows, catalog, organism, source_name):
                 for col, bond in enumerate(bonds):
                     row = assessment_at(lookup, record["sequence_record_id"], name, bond)
                     x = left + col * col_width
-                    matched = bool(row and row["assessment_state"] == "matched")
-                    canvas.setFillColor(colors.HexColor("#f8dfce" if matched else "#f5f7f8"))
+                    canvas.setFillColor(colors.HexColor("#f5f7f8"))
                     canvas.rect(x, row_y - 5, col_width - 1, 15, fill=1, stroke=0)
-                    canvas.setFillColor(ink if matched else muted)
-                    canvas.setFont("Helvetica-Bold" if matched else "Helvetica", 8)
-                    canvas.drawCentredString(x + col_width / 2, row_y, cell_text(row))
+                    motif_marker(row, x + col_width / 2, row_y)
             y -= 90
             paragraph("EXPOSED TERMINI ONLY - N1/N2/N3 remove 1/2/3 N-terminal residues; C1/C2 remove 1/2 C-terminal residues", 36, y, size=8)
             for i, model in enumerate(terminal_models):
@@ -466,14 +486,19 @@ def render_pdf(path, records, rows, catalog, organism, source_name):
                 row = matches[0]
                 suffix = " | " + row["bond_label"] if row["bond"] else " | no assessed bond"
                 number = cell_text(row)
-                if row["assessment_state"] == "scored":
-                    number += " log2 depletion" if model["model"] == "dpp4-qpisa" else " PWM specificity"
+                motif = row["assessment_state"] in ("matched", "not_matched")
+                if motif:
+                    number = ""
+                elif row["assessment_state"] == "scored" and model["model"] != "dpp4-qpisa":
+                    number += " PWM specificity"
                 topology_label = ("N" if model["topology"] == "n_terminal" else "C") + model["residues_removed"]
                 enzyme = model["enzyme_attribution"] + (" (active assumption)" if model["model"] == "cpb2-basic" else "")
                 text = enzyme + " [" + topology_label + "] / " + model["model"] + suffix + " : " + number
                 canvas.setFillColor(ink)
                 canvas.setFont("Helvetica", 7.5)
                 canvas.drawString(x, row_y, text)
+                if motif:
+                    motif_marker(row, x + canvas.stringWidth(text, "Helvetica", 7.5) + 8, row_y)
             paragraph("Gold bond headers are strictly inside the located source epitope. Exposure and chemical assumptions are in the catalog. "
                       "CSV retains unassessed reasons and native precision. No score aggregation or resistance claim.", 36, 51, size=7)
             footer()
@@ -506,7 +531,8 @@ def main():
         "prediction_source_run": source.name, "source_manifest_sha256": sha256(source / "SHA256SUMS.json"),
         "source_files_verified": len(manifest), "source_provenance": source_provenance,
         "organism_context": args.organism, "preferred_pepsickle": preferred_pepsickle(args.organism),
-        "score_display": "three decimals; CSV retains original source score strings",
+        "score_display": "DPP4: whole-percent predicted loss in source 4 h assay; negative estimates: No predicted loss; small positive estimates: <1%; other numeric scores: three decimals; CSV retains native source strings",
+        "display_labels_sha256": sha256(Path(__file__).with_name("display_labels.py")),
         "source_minimal_epitope_annotation": "source mRNA minimal/candidate epitope; only verified recorded offsets are highlighted",
         "renderer_sha256": sha256(Path(__file__)), "sequence_uploads": False,
         "git_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),

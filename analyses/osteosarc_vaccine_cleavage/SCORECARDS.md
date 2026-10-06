@@ -1,22 +1,22 @@
 # Cleavage site and mechanism scorecards
 
-The [PDF scorecards](results/2026-10-06T120823-676672-0400-mechanisms/cleavage-mechanisms.pdf)
+The [PDF scorecards](results/2026-10-06T142004-779643-0400-mechanisms/cleavage-mechanisms.pdf)
 show every internal bond of 40 disclosed Sid vaccine SLP records (39 unique
 sequences). Every processing row names its training endpoint and every named
 peptidase retains its internal or terminal topology. The PDF has bookmarks
-and a [page index](results/2026-10-06T120823-676672-0400-mechanisms/page_index.csv).
+and a [page index](results/2026-10-06T142004-779643-0400-mechanisms/page_index.csv).
 
-The [site table](results/2026-10-06T120823-676672-0400-mechanisms/cleavage_sites.csv)
+The [site table](results/2026-10-06T142004-779643-0400-mechanisms/cleavage_sites.csv)
 retains all 7,248 frozen assessments, including native score strings,
 categorical motif states, abstention reasons, vaccine/source links, original
 context annotations, corrected mechanism descriptions, and core coordinates.
-The [mechanism catalog](results/2026-10-06T120823-676672-0400-mechanisms/mechanism_catalog.csv)
+The [mechanism catalog](results/2026-10-06T142004-779643-0400-mechanisms/mechanism_catalog.csv)
 names each model's enzyme attribution, topology, assay/training endpoint,
 native units, location and exposure requirements, limitations, and primary
-references. The [provenance receipt](results/2026-10-06T120823-676672-0400-mechanisms/provenance.json)
+references. The [provenance receipt](results/2026-10-06T142004-779643-0400-mechanisms/provenance.json)
 retains the source run's complete model/runtime provenance and records that
 inference was not repeated. All 107 source artifacts were checksum-verified.
-The [output checksums](results/2026-10-06T120823-676672-0400-mechanisms/SHA256SUMS.json)
+The [output checksums](results/2026-10-06T142004-779643-0400-mechanisms/SHA256SUMS.json)
 cover the generated PDF and tables.
 
 ## Interpretation
@@ -33,7 +33,8 @@ cover the generated PDF and tables.
   not a claim about extracellular vaccine degradation. Neither assigns a
   particular proteasome catalytic subunit.
 - **DPP4 qPISA:** only the exposed N-terminal dipeptide bond (SLP bond 2),
-  with native log2 substrate depletion. It is not a 0-1 processing score,
+  displayed as whole-percent predicted loss in the source four-hour assay;
+  native log2 substrate depletion remains unchanged in CSV. It is not a 0-1 processing score,
   serum half-life, or internal-proline cleavage rule. Repeated trimming and
   hypothetical newly exposed fragments are not simulated.
 - **ERAMER:** ERAP1's initial N-terminal trimming step (bond 1), using native
@@ -51,10 +52,16 @@ left unlocated. In particular, TECPR1's CeGaT peptide contains a different
 candidate core; its internal bonds are shown, without borrowing the mRNA
 core annotation.
 
-Numerical PDF cells are rounded to three decimals; CSV retains native
-precision. Bold cells meet the raw score's within-model 0.5 display threshold.
+Numerical grid cells are rounded to three decimals; CSV retains native
+precision. DPP4 uses the same simple percent-loss display as the atlas,
+converted as `100 * (1 - 2**(-score))`; negative estimates say `No predicted loss`
+and small positive estimates say `<1% predicted loss`. The display describes
+predicted relative peptide-signal loss in the source assay, not observed
+vaccine-peptide loss or in-vivo degradation.
+Bold cells meet the raw score's within-model 0.5 display threshold.
 No threshold is applied to DPP4 or ERAMER. `NA` is unassessed/unsupported,
-never zero; `M`/`N` are motif matched/not matched, never numerical scores.
+never zero. Large triangles mark motif matches and hollow circles mark
+assessed non-matches; motifs remain qualitative evidence.
 The models and their biological contexts are not combined into a consensus,
 whole-peptide survival probability, uptake estimate, or clinical conclusion.
 The original immutable predictions and their annotations remain available.
