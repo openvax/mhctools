@@ -264,6 +264,87 @@ def test_display_uses_top_ten_cap_and_opinionated_slp_enzyme_tracks():
     })
 
 
+@pytest.fixture(scope="module")
+def frozen_enzyme_inputs():
+    source = SCRIPT_PATH.parent / "results" / "2026-09-18T175125-855754-0400" / "tables"
+    return (
+        pd.read_csv(source / "vaccine_sequence_inventory.csv"),
+        pd.read_csv(source / "slp_quantitative_bond_scores.csv"),
+        pd.read_csv(source / "slp_motif_assessments.csv"),
+    )
+
+
+def test_dpp4_keeps_negative_score_and_missing_coefficients_distinct(frozen_enzyme_inputs):
+    _, quantitative, motifs = frozen_enzyme_inputs
+    supported = ANALYSIS.enzyme_track_evidence(
+        "BMP1-chr8-22192067:vaccine-peptide-3", "dpp4-qpisa", quantitative, motifs, list(range(1, 23)))
+    assert supported["state"] == "scored"
+    assert supported["bond"] == 2
+    assert supported["score"] == pytest.approx(-.0052)
+    unsupported = ANALYSIS.enzyme_track_evidence(
+        "KDM3B-chr5-138391529:vaccine-peptide-2", "dpp4-qpisa", quantitative, motifs, list(range(1, 17)))
+    assert unsupported["state"] == "unsupported"
+    assert unsupported["score"] is None
+    assert "missing coefficients" in unsupported["detail"]
+    assert "P2:P" in unsupported["detail"]
+
+
+def test_fap_modes_and_no_match_have_separate_recorded_sites(frozen_enzyme_inputs):
+    _, quantitative, motifs = frozen_enzyme_inputs
+    internal = ANALYSIS.enzyme_track_evidence(
+        "CD109-chr6-73818405:vaccine-peptide-1", "fap-endo-gp", quantitative, motifs, list(range(1, 23)))
+    assert internal["matched_bonds"] == [5]  # SFSGP|G...
+    terminal = ANALYSIS.enzyme_track_evidence(
+        "NME1-chr17-51154443:vaccine-peptide-1", "fap-dipeptidyl", quantitative, motifs, list(range(1, 13)))
+    assert terminal["matched_bonds"] == [2]  # PP|I...
+    nonmatch = ANALYSIS.enzyme_track_evidence(
+        "CD109-chr6-73818405:vaccine-peptide-1", "fap-dipeptidyl", quantitative, motifs, list(range(1, 23)))
+    assert nonmatch["state"] == "assessed"
+    assert nonmatch["matched_bonds"] == []
+    assert nonmatch["unmatched_bonds"] == [2]
+
+
+def test_mme_length_abstention_and_missing_data_are_not_nonmatches(frozen_enzyme_inputs):
+    _, quantitative, motifs = frozen_enzyme_inputs
+    evidence = ANALYSIS.enzyme_track_evidence(
+        "GLIS3-chr9-3856149:vaccine-peptide-1", "mme-hydrophobic", quantitative, motifs, list(range(28, 55)))
+    assert evidence["state"] == "unsupported"
+    assert "30 residues" in evidence["detail"]
+    assert not evidence["matched_bonds"] and not evidence["unmatched_bonds"]
+    missing = ANALYSIS.enzyme_track_evidence("unknown", "mme-hydrophobic", quantitative, motifs, [1, 2])
+    assert missing["state"] == "unassessed"
+
+
+def test_intact_terminal_sites_are_not_projected_to_continuation_pages(frozen_enzyme_inputs):
+    _, quantitative, motifs = frozen_enzyme_inputs
+    for model in ("dpp4-qpisa", "fap-dipeptidyl", "anpep-ala", "enpep-acidic"):
+        evidence = ANALYSIS.enzyme_track_evidence(
+            "GLIS3-chr9-3856149:vaccine-peptide-1", model, quantitative, motifs, list(range(28, 55)))
+        assert evidence["state"] == "outside_segment"
+        assert not evidence["matched_bonds"] and not evidence["unmatched_bonds"]
+        assert "outside this segment" in evidence["detail"]
+        if model == "dpp4-qpisa":
+            assert evidence["bond"] == 2
+            assert evidence["score"] == pytest.approx(.1126)
+
+
+def test_enzyme_panel_keeps_no_match_and_unavailable_rows_visible(frozen_enzyme_inputs):
+    inventory, quantitative, motifs = frozen_enzyme_inputs
+    record = inventory.loc[inventory.sequence_record_id == "KDM3B-chr5-138391529:vaccine-peptide-2"].iloc[0]
+    fig = ANALYSIS.plt.figure(figsize=(16, 16.2))
+    try:
+        ax = ANALYSIS.draw_extracellular_panel(fig, record, quantitative, motifs, (1, 16))
+        labels = [text.get_text() for text in ax.texts]
+        assert {"DPP4 / qPISA", "MME / neprilysin", "FAP - internal", "FAP - N-terminal"}.issubset(labels)
+        assert "NOT SCORED / OUTSIDE MODEL SCOPE" in labels
+        assert any("0 motif matches / 16 assessed bonds" in label for label in labels)
+        assert any("1 motif match / 1 assessed bond" in label for label in labels)
+        assert any("Gly-Pro|non-Pro" in label for label in labels)
+        assert ANALYSIS.MOTIF_DISPLAY_NAMES["fap-endo-gp"] == "FAP - Gly-Pro|X"
+    finally:
+        ANALYSIS.plt.close(fig)
+
+
 def test_red_cut_requires_three_hits_and_all_four_display_tracks_assessed():
     ligand = pd.DataFrame(
         [{"sequence_record_id": "record", "mhc_class": "I", "start": 1, "end": 3}]

@@ -119,8 +119,9 @@ FIGURE_SLP_EXTRACELLULAR_MODELS = [
     "enpep-acidic",
 ]
 FIGURE_SLP_ENZYME_TRACKS = [
-    ("MME / neprilysin", ("mme-hydrophobic",), "extracellular exposure"),
-    ("FAP", ("fap-dipeptidyl", "fap-endo-gp"), "tumor-stroma conditional"),
+    ("MME / neprilysin", ("mme-hydrophobic",), "Internal hydrophobic preference"),
+    ("FAP - internal", ("fap-endo-gp",), "Gly-Pro|non-Pro recognition"),
+    ("FAP - N-terminal", ("fap-dipeptidyl",), "Remove 2 residues: X-Pro|non-Pro"),
     ("ANPEP / CD13", ("anpep-ala",), "exposed N-terminus only"),
     ("ENPEP", ("enpep-acidic",), "exposed N-terminus only"),
 ]
@@ -146,7 +147,7 @@ MOTIF_DISPLAY_NAMES = {
     "cpn-basic": "CPN1 - basic C-term",
     "app2-xp": "XPNPEP2 - X|Pro",
     "fap-dipeptidyl": "FAP - dipeptidyl",
-    "fap-endo-gp": "FAP - Gly|Pro",
+    "fap-endo-gp": "FAP - Gly-Pro|X",
     "enpep-acidic": "ENPEP - acidic N-term",
     "anpep-ala": "ANPEP - Ala N-term",
     "app1-xp": "XPNPEP1 - X|Pro",
@@ -1837,6 +1838,149 @@ def mhc_display_selections(
     return pd.DataFrame(rows)
 
 
+def enzyme_track_evidence(
+    record_id: str,
+    model: str,
+    quantitative_df: pd.DataFrame,
+    motifs_df: pd.DataFrame,
+    bonds: list[int],
+) -> dict[str, Any]:
+    """Describe recorded evidence without turning missing results into negatives."""
+    evidence = {"state": "unassessed", "detail": "No assessment in the source run",
+                "matched_bonds": [], "unmatched_bonds": [], "score": None, "bond": None}
+    if model == "dpp4-qpisa":
+        results = quantitative_df.loc[
+            (quantitative_df["sequence_record_id"] == record_id)
+            & (quantitative_df["model"] == model)
+        ]
+        if results.empty:
+            return evidence
+        if len(results) != 1:
+            raise ValueError("Expected one intact-SLP DPP4 assessment")
+        result = results.iloc[0]
+        if not result["assessable"]:
+            return {**evidence, "state": "unsupported", "detail": str(result["unsupported_reason"])}
+        bond, score = int(result["bond"]), float(result["score"])
+        if bond != 2 or not math.isfinite(score):
+            raise ValueError("DPP4 requires a finite native score at intact SLP bond 2")
+        return {**evidence, "state": "scored" if bond in bonds else "outside_segment",
+                "score": score, "bond": bond,
+                "detail": "Intact SLP bond 2" if bond in bonds else "Intact SLP bond 2 is outside this segment"}
+
+    results = motifs_df.loc[
+        (motifs_df["sequence_record_id"] == record_id) & (motifs_df["model"] == model)
+    ]
+    if results.empty:
+        return evidence
+    assessed = results.loc[results["status"].isin(("matched", "not_matched"))]
+    if assessed.empty:
+        reasons = results["unsupported_reason"].dropna().astype(str)
+        reasons = reasons.loc[reasons != ""]
+        return {**evidence, "state": "unsupported" if not reasons.empty else "unassessed",
+                "detail": "; ".join(reasons.unique()) or "No assessable bonds in the source run"}
+    visible = assessed.loc[assessed["bond"].isin(bonds)]
+    if visible.empty:
+        terminal = model in {"fap-dipeptidyl", "anpep-ala", "enpep-acidic"}
+        sites = ", ".join(str(int(bond)) for bond in assessed["bond"].unique())
+        return {**evidence, "state": "outside_segment" if terminal else "unassessed",
+                "detail": f"Intact N-terminal bond {sites} is outside this segment" if terminal
+                else "No assessed bonds in this segment"}
+    matched = sorted(set(int(bond) for bond in visible.loc[visible["status"] == "matched", "bond"]))
+    unmatched = sorted(set(int(bond) for bond in visible.loc[visible["status"] == "not_matched", "bond"]))
+    count = len(matched) + len(unmatched)
+    return {**evidence, "state": "assessed", "matched_bonds": matched, "unmatched_bonds": unmatched,
+            "detail": f"{len(matched)} motif match{'es' if len(matched) != 1 else ''} / "
+                      f"{count} assessed bond{'s' if count != 1 else ''}"}
+
+
+def draw_extracellular_panel(
+    fig: plt.Figure,
+    record: pd.Series,
+    quantitative_df: pd.DataFrame,
+    motifs_df: pd.DataFrame,
+    segment: tuple[int, int],
+) -> plt.Axes:
+    """Draw large enzyme rows aligned to a repeated, intact-SLP residue axis."""
+    start_bond, end_bond = segment
+    residue_start, residue_end = start_bond, end_bond + 1
+    bonds = list(range(start_bond, end_bond + 1))
+    sequence = record["sequence"]
+    ax = fig.add_axes([0.19, 0.12, 0.765, 0.265])
+    ax.set_xlim(residue_start - 0.8, residue_end + 0.8)
+    ax.set_ylim(-0.65, 7.55)
+    ax.axis("off")
+    left, right = residue_start - 0.45, residue_end + 0.45
+    fig.text(0.19, 0.404, "EXTRACELLULAR ENZYME EVIDENCE - requires enzyme exposure",
+             fontsize=12, fontweight="bold", color="#18222d")
+    ax.add_patch(Rectangle((left, 6.43), right - left, .66, facecolor="#edf1f5", edgecolor="none"))
+    bounds = _minimal_epitope_bounds(record)
+    if bounds:
+        core_left, core_right = max(residue_start, bounds[0]), min(residue_end, bounds[1])
+        if core_left <= core_right:
+            ax.add_patch(Rectangle((core_left - .45, 6.43), core_right - core_left + .9, .66,
+                                   facecolor="#fff0b3", edgecolor="#c78c00", linewidth=1.2))
+    for position in range(residue_start, residue_end + 1):
+        ax.text(position, 6.78, sequence[position - 1], ha="center", va="center",
+                fontsize=15, fontweight="bold", family="monospace", color="#18222d")
+        if position in (residue_start, residue_end) or position % 5 == 0:
+            ax.text(position, 6.33, str(position), ha="center", va="top", fontsize=9, color="#56616c")
+    tracks = [("DPP4 / qPISA", ("dpp4-qpisa",), "N-terminal 2-residue removal")] + FIGURE_SLP_ENZYME_TRACKS
+    for index, (label, models, scope) in enumerate(tracks):
+        model, = models
+        y = 5.5 - 1.1 * index
+        color = "#a86500" if model == "dpp4-qpisa" else "#7b3e98" if model.startswith("fap-") else "#007b83"
+        evidence = enzyme_track_evidence(record["sequence_record_id"], model, quantitative_df, motifs_df, bonds)
+        ax.text(residue_start - .68, y + .10, label, ha="right", va="center", fontsize=12,
+                fontweight="bold", color=color)
+        ax.text(residue_start - .68, y - .23, scope, ha="right", va="center", fontsize=9, color="#56616c")
+        ax.add_patch(Rectangle((left, y - .29), right - left, .58,
+                               facecolor="#f5f7f9", edgecolor="none", zorder=-1))
+        state = evidence["state"]
+        if state in {"unsupported", "unassessed", "outside_segment"}:
+            title = {"unsupported": "NOT SCORED / OUTSIDE MODEL SCOPE",
+                     "unassessed": "NOT ASSESSED", "outside_segment": "SITE OUTSIDE THIS SEGMENT"}[state]
+            if model != "dpp4-qpisa" and state == "unsupported":
+                title = "NOT ASSESSED / OUTSIDE RULE SCOPE"
+            suffix = f" | full-SLP score {evidence['score']:+.3f} log2 depletion" if evidence["score"] is not None else ""
+            ax.text(left + .15, y + .11, title + suffix, fontsize=10.5,
+                    fontweight="bold", color="#59616b", va="center")
+            ax.text(left + .15, y - .20, evidence["detail"], fontsize=9, color="#59616b", va="center")
+            continue
+        ax.text(left, y + .44, evidence["detail"] + (" - partial recognition rule" if model != "dpp4-qpisa" else " - free N terminus"),
+                fontsize=9.5, va="center", color="#46515b")
+        if state == "scored":
+            x = evidence["bond"] + .5
+            ax.plot([residue_start - .32, x - .10], [y, y], color=color, linewidth=4, solid_capstyle="round")
+            for position in (1, 2):
+                ax.text(position, y + .08, sequence[position - 1], ha="center", va="bottom",
+                        fontsize=12, fontweight="bold", family="monospace", color=color)
+            ax.plot([x, x], [y - .26, y + .26], color=color, linewidth=3.5)
+            value_x = left + (right - left) * .63
+            ax.annotate(f"{evidence['score']:+.3f}  log2 depletion", xy=(x, y), xytext=(value_x, y),
+                        fontsize=13, fontweight="bold", color=color, va="center", ha="center",
+                        bbox={"boxstyle": "round,pad=.45", "facecolor": "#fff1d9", "edgecolor": color, "linewidth": 1.5},
+                        arrowprops={"arrowstyle": "-", "color": color, "linewidth": 1.2})
+            continue
+        if evidence["unmatched_bonds"]:
+            ax.scatter([bond + .5 for bond in evidence["unmatched_bonds"]], [y] * len(evidence["unmatched_bonds"]),
+                       s=42, facecolors="white", edgecolors="#98a2ad", linewidths=1.2, zorder=2)
+        for bond in evidence["matched_bonds"]:
+            x = bond + .5
+            ax.add_patch(FancyBboxPatch((x - .32, y - .24), .64, .48,
+                                        boxstyle="round,pad=.02,rounding_size=.09",
+                                        facecolor=color, edgecolor=color, linewidth=1.2, zorder=3))
+            ax.text(x, y, "M", ha="center", va="center", color="white", fontsize=12, fontweight="bold", zorder=4)
+        assessed_bonds = set(evidence["matched_bonds"] + evidence["unmatched_bonds"])
+        if model in {"mme-hydrophobic", "fap-endo-gp"}:
+            for bond in set(bonds) - assessed_bonds:
+                ax.text(bond + .5, y, "NA", ha="center", va="center", fontsize=9, color="#59616b")
+    fig.text(.19, .102, "M = motif match   |   hollow circle = assessed, no motif match   |   NA = not assessed. Enzyme presence and exposure are not measured.",
+             fontsize=10, color="#333333")
+    fig.text(.19, .087, "DPP4: predicted log2(buffer control / treated substrate), source assay 4 h. Motifs have no numeric score; neither view gives a cleavage rate.",
+             fontsize=9.5, color="#333333")
+    return ax
+
+
 def plot_sequence_atlas_page(
     record: pd.Series,
     quantitative_df: pd.DataFrame,
@@ -1858,10 +2002,10 @@ def plot_sequence_atlas_page(
     bonds = list(range(start_bond, end_bond + 1))
     record_id = record["sequence_record_id"]
     residue_start, residue_end = start_bond, end_bond + 1
-    fig = plt.figure(figsize=(16, 12.5))
-    ax = fig.add_axes([0.12, 0.13, 0.835, 0.75])
+    fig = plt.figure(figsize=(16, 16.2))
+    ax = fig.add_axes([0.19, 0.424, 0.765, 0.456])
     ax.set_xlim(residue_start - 0.8, residue_end + 0.8)
-    ax.set_ylim(-8.05, 6.95)
+    ax.set_ylim(-4.35, 6.95)
     ax.axis("off")
 
     # The sequence is the coordinate system, not merely another annotation.
@@ -1928,11 +2072,6 @@ def plot_sequence_atlas_page(
                 color="#56616c",
             )
 
-    score_subset = quantitative_df.loc[
-        (quantitative_df["sequence_record_id"] == record_id)
-        & quantitative_df["assessable"]
-        & quantitative_df["bond"].isin(bonds)
-    ]
     model_colors = {
         "netchop-3.1-20s-3.0": "#0072b2",
         "pepsickle-in-vivo-human-only": "#009e73",
@@ -2081,34 +2220,6 @@ def plot_sequence_atlas_page(
             zorder=7,
         )
 
-    # DPP4 is the one quantitative extracellular assay in this panel. ERAP1
-    # scores are kept in the tables but not drawn against the intact SLP:
-    # ER trimming applies to shorter precursors after cross-presentation.
-    terminal_y = {"dpp4-qpisa": -5.10}
-    terminal_label = {"dpp4-qpisa": "DPP4 - exposed N-terminus (native score)"}
-    terminal_color = {"dpp4-qpisa": "#8a5a00"}
-    for model, y in terminal_y.items():
-        ax.text(
-            residue_start - 0.68,
-            y,
-            terminal_label[model],
-            ha="right",
-            va="center",
-            fontsize=8.2,
-            color=terminal_color[model],
-        )
-        for result in score_subset.loc[score_subset["model"] == model].itertuples():
-            x = int(result.bond) + 0.5
-            ax.scatter(
-                [x],
-                [y],
-                marker="D",
-                s=38,
-                color=terminal_color[model],
-                edgecolor="#6a4600",
-            )
-            ax.text(x + 0.10, y + 0.15, f"{float(result.score):.2g}", fontsize=8)
-
     def short_allele(value: str) -> str:
         value = value.replace("HLA-", "").replace("DRA1*01:01-", "")
         if "-" in value and value.startswith(("DPA1", "DQA1")):
@@ -2237,54 +2348,7 @@ def plot_sequence_atlas_page(
         color="#66717b",
     )
 
-    matched = motifs_df.loc[
-        (motifs_df["sequence_record_id"] == record_id)
-        & (motifs_df["status"] == "matched")
-        & motifs_df["bond"].isin(bonds)
-    ]
-    shown_enzyme_tracks = []
-    for label, models, scope in FIGURE_SLP_ENZYME_TRACKS:
-        subset = matched.loc[matched["model"].isin(models)]
-        if not subset.empty:
-            shown_enzyme_tracks.append((label, models, scope, subset))
-    for track_index, (label, models, scope, subset) in enumerate(shown_enzyme_tracks):
-        y = -5.70 - 0.58 * track_index
-        color = "#007b83"
-        ax.text(
-            residue_start - 0.68,
-            y,
-            f"{label} - {scope}",
-            ha="right",
-            va="center",
-            fontsize=8.4,
-            color=color,
-        )
-        ax.plot(
-            [residue_start - 0.45, residue_end + 0.45],
-            [y, y],
-            color="#c9d0d6",
-            linewidth=0.7,
-            zorder=0,
-        )
-        for bond, group in subset.groupby("bond"):
-            x = int(bond) + 0.5
-            # Multiple source rules for the same enzyme remain distinct in
-            # CSV; one larger marker on the enzyme's own row keeps the page
-            # readable and avoids implying independent enzyme support.
-            marker_size = 46 + 12 * (group["model"].nunique() - 1)
-            ax.scatter([x], [y], marker="v", s=marker_size, color=color,
-                       edgecolor="white", linewidth=0.6, zorder=3)
-
-    ax.text(
-        residue_start - 0.68,
-        -4.55,
-        "EXTRACELLULAR BEFORE/DURING SLP UPTAKE - exposure-dependent evidence",
-        ha="left",
-        va="center",
-        fontsize=8.6,
-        fontweight="bold",
-        color="#46515b",
-    )
+    draw_extracellular_panel(fig, record, quantitative_df, motifs_df, segment)
 
     vaccines = record["vaccines"].replace(";", ", ")
     continuation = (
@@ -2327,7 +2391,7 @@ def plot_sequence_atlas_page(
     )
     fig.text(
         0.5,
-        0.086,
+        0.064,
         "SCORES  Separate native 0-1 tracks; joined assessed bonds are not smoothed. Dashed = 0.5 display threshold; gaps = unassessed.",
         ha="center",
         va="center",
@@ -2336,7 +2400,7 @@ def plot_sequence_atlas_page(
     )
     fig.text(
         0.5,
-        0.057,
+        0.044,
         "RED  All four cytosolic tracks assessed the bond and >=3 reached 0.5. Four filled/open beads show model concurrence, never probability.",
         ha="center",
         va="center",
@@ -2345,7 +2409,7 @@ def plot_sequence_atlas_page(
     )
     fig.text(
         0.5,
-        0.028,
+        0.024,
         "MHC  Up to 10/class: intended overlap, then allele diversity, then native rank. Red ticks inside bars are pre-binding cut evidence; full results stay in CSV.",
         ha="center",
         va="center",
@@ -2655,7 +2719,12 @@ def write_manuscript_caption(path: Path, selection_df: pd.DataFrame) -> None:
         "Blue and purple bars are selected MHC-I and MHC-II ligand windows at <=2% and "
         "<=5% native percentile rank, respectively. Their selection favors intended-"
         "epitope overlap, then distinct alleles, then native rank; all predictions remain "
-        "in the accompanying CSV.",
+        "in the accompanying CSV. The enlarged extracellular panel repeats the residue "
+        "axis. DPP4's labeled callout connects to intact SLP bond 2 and uses native log2 "
+        "substrate depletion units. M blocks mark motif matches, hollow circles mark "
+        "assessed non-matches, and unavailable rows state their reason. FAP internal "
+        "Gly-Pro|non-Pro and N-terminal dipeptidyl activities have separate rows. "
+        "All enzyme rows remain visible; exposure and cleavage kinetics are unmodeled.",
         "",
         "Panels were chosen by declared complementary criteria, with different genes and "
         "a disclosed intended epitope on every page:",
@@ -2917,10 +2986,12 @@ def write_report(
         "as a distinct in-vitro proteasome view rather than a substitute for Cterm. The human-only Pepsickle model is "
         "species-matched but experimental and trained on less data than its all-mammal counterpart. The near-redundant "
         "all-mammal Pepsickle output remains available in the exact-score and summary tables.",
-        "Below the sequence, NetCleave-II is separated from extracellular exposure. DPP4 and each matched, "
-        "biologically prioritized MME, FAP, ANPEP, or ENPEP rule receives its own readable enzyme track. "
+        "Below the sequence, NetCleave-II is separated from a larger extracellular enzyme panel with its own residue axis. "
+        "DPP4, MME, separate FAP internal/N-terminal activities, ANPEP and ENPEP always remain visible. "
+        "Large M blocks mark motif matches, hollow circles mark assessed non-matches, and unavailable rows state the exact reason. "
+        "DPP4 has a labeled native log2 depletion callout at intact SLP bond 2; continuation pages do not create new exposed termini. "
         "Plasma-oriented and intact-SLP intracellular terminal rules remain in CSV instead of being presented "
-        "as default injection-site biology.",
+        "as default injection-site biology. Model coverage does not establish enzyme presence or exposure.",
         "",
         "![Predictor agreement and clustered SLP order](figures/predictor_agreement_and_slp_clusters.png)",
         "",
