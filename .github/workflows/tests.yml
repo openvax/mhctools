@@ -289,7 +289,7 @@ jobs:
           - group: smm
             tests: tests/test_smm.py tests/test_smm_integration.py
           - group: gfeller
-            tests: tests/test_mixmhcpred.py tests/test_mixmhc2pred2.py tests/test_prime.py
+            tests: tests/test_mixmhcpred.py tests/test_mixmhcpred_runtime.py tests/test_mixmhcpred_runtime_integration.py tests/test_mixmhc2pred2.py tests/test_prime.py
           - group: keras
             tests: tests/test_deepimmuno.py tests/test_tlimmuno2.py tests/test_netcleave.py tests/test_artifacts.py
           - group: nettcr
@@ -321,6 +321,10 @@ jobs:
         if: matrix.group == 'nettcr'
         run: python -m pip install -e ".[nettcr]"
 
+      - name: Keep pandas 3 in the MixMHCpred and PRIME host
+        if: matrix.group == 'gfeller'
+        run: python -m pip install 'pandas>=3,<4'
+
       - name: Provision upstream models and isolated runtimes
         run: python scripts/setup_test_backends.py ${{ matrix.group }} --python python --accept-license
 
@@ -331,5 +335,8 @@ jobs:
           if [[ '${{ matrix.group }}' == 'nettcr' || '${{ matrix.group }}' == 'keras' ]]; then
             python -c "import importlib.util; assert importlib.util.find_spec('tensorflow') is None, 'TensorFlow leaked into the mhctools host'"
             flags=(-W error)
+          fi
+          if [[ '${{ matrix.group }}' == 'gfeller' ]]; then
+            python -c "import pandas; assert int(pandas.__version__.split('.')[0]) >= 3"
           fi
           python -m pytest ${{ matrix.tests }} --require-all -ra "${flags[@]}"

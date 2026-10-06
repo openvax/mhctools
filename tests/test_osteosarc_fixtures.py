@@ -32,6 +32,9 @@ PANELS = json.loads((ROOT / "inputs" / "panels.json").read_text())
 
 @pytest.fixture(autouse=True)
 def offline_only(monkeypatch):
+    # Recorded replay must not probe a locally provisioned backend runtime.
+    monkeypatch.delenv("MIXMHCPRED_PYTHON", raising=False)
+
     def forbidden(*args, **kwargs):
         raise AssertionError("Recorded fixture tests must not execute tools or use the network")
 

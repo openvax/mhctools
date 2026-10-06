@@ -250,6 +250,11 @@ def add_mhc_args(arg_parser):
         help="Path to models to use with predictor (e.g. mhcflurry).")
 
     mhc_options_arg_group.add_argument(
+        "--mixmhcpred-python",
+        help="Isolated pandas<3 Python executable for MixMHCpred or PRIME; "
+             "overrides MIXMHCPRED_PYTHON without changing host dependencies.")
+
+    mhc_options_arg_group.add_argument(
         "--mhc-peptide-lengths",
         type=parse_int_list,
         help="Peptide lengths to predict, e.g. '9' or '8-11' or '8,9,10'. "
@@ -324,6 +329,11 @@ def _build_predictor(cls, name, alleles, peptide_lengths, args):
             kwargs["caphla_path"] = args.mhc_predictor_path
         elif _cls_accepts(cls, "program_name"):
             kwargs["program_name"] = args.mhc_predictor_path
+    if getattr(args, "mixmhcpred_python", None):
+        if name == "mixmhcpred":
+            kwargs["python_executable"] = args.mixmhcpred_python
+        elif name == "prime":
+            kwargs["mixmhcpred_python"] = args.mixmhcpred_python
     logger.info("Building predictor %s(%s)",
                 getattr(cls, "__name__", name), kwargs)
     return cls(**kwargs)
@@ -335,6 +345,8 @@ def predictors_from_args(args):
     Returns a list of instantiated predictor objects.
     """
     names = _flatten_predictor_names(args)
+    if getattr(args, "mixmhcpred_python", None) and not set(names) & {"mixmhcpred", "prime"}:
+        raise ValueError("--mixmhcpred-python requires MixMHCpred or PRIME selection")
 
     # Fetch alleles only if at least one predictor needs them
     needs_alleles = any(_cls_accepts(mhc_predictors[n], "alleles") for n in names)

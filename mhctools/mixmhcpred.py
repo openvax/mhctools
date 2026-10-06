@@ -31,8 +31,10 @@ Upstream: https://github.com/GfellerLab/MixMHCpred
 from __future__ import annotations
 
 import os
+import platform
 import re
 import shutil
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from subprocess import STDOUT, CalledProcessError, TimeoutExpired, check_output
@@ -46,6 +48,7 @@ from .binding_prediction import BindingPrediction
 from .binding_prediction_collection import BindingPredictionCollection
 from .pred import Kind, PeptideResult, Prediction
 from .process_helpers import run_command
+from .mixmhcpred_runtime import resolve_runtime, runtime_environment
 
 _VERSION_RE = re.compile(r"MixMHCpred\s*(?:\(v)?([0-9]+(?:\.[0-9]+)+)")
 _CLOSEST_RE = re.compile(r"(.+?)\s*\(([-+0-9.eE]+)\)\s*$")
@@ -98,6 +101,7 @@ class MixMHCpredResult:
     stdout: str = ""
     aligned_sequences: tuple = ()
     artifacts: MixMHCpredArtifacts | None = None
+    runtime_info: dict | None = None
 
     @property
     def predictions(self):
@@ -446,6 +450,10 @@ class MixMHCpred(BasePredictor):
         Exclude cysteine-containing peptides in mhctools before invocation.
         This is version-independent; MixMHCpred 3.0 removed the old ``-c``
         option.
+    python_executable : str, optional
+        Python interpreter for all upstream v3 stages. Overrides
+        ``MIXMHCPRED_PYTHON``. Configure a separate pandas<3 venv to keep
+        pandas 3 in the mhctools host; omission preserves existing launchers.
     """
 
     mhc_class = "I"
@@ -455,7 +463,8 @@ class MixMHCpred(BasePredictor):
             alleles=None,
             default_peptide_lengths=(9,),
             program_name=None,
-            exclude_peptides_with_cysteine=False):
+            exclude_peptides_with_cysteine=False,
+            python_executable=None):
         if isinstance(alleles, str):
             alleles = alleles.split(",")
         normalized = []
@@ -480,6 +489,27 @@ class MixMHCpred(BasePredictor):
         self.program_name = program_name
         self.exclude_peptides_with_cysteine = exclude_peptides_with_cysteine
         self._version = None
+        self.python_executable = python_executable
+        self._runtime = None
+        self._runtime_resolved = False
+
+    @property
+    def runtime(self):
+        """Resolve and validate an explicitly selected backend lazily."""
+        if not self._runtime_resolved:
+            self._runtime = resolve_runtime(self.python_executable)
+            self._runtime_resolved = True
+        return self._runtime
+
+    @property
+    def runtime_info(self):
+        """Identify upstream, host and the configured backend independently."""
+        runtime = self.runtime
+        return dict(upstream_version=self.version, executable=self.executable,
+                    host_python_executable=sys.executable,
+                    host_python_version=platform.python_version(), host_pandas_version=pd.__version__,
+                    backend=runtime.to_dict() if runtime else
+                    dict(selection="inherited upstream launcher; interpreter unverified"))
 
     @property
     def executable(self):
@@ -512,19 +542,23 @@ class MixMHCpred(BasePredictor):
         return str(path)
 
     def _run_command(self, args, stdout_path):
+        runtime = self.runtime
         try:
-            with open(stdout_path, "w") as stdout_file:
+            with runtime_environment(runtime) as environment, open(stdout_path, "w") as stdout_file:
                 run_command(
                     args,
                     suppress_stderr=False,
                     redirect_stdout_file=stdout_file,
+                    redirect_stderr_to_stdout=True,
+                    env=environment,
                 )
         except (CalledProcessError, OSError) as e:
             stdout = (
                 Path(stdout_path).read_text()
                 if Path(stdout_path).exists() else "")
             raise RuntimeError(
-                f"MixMHCpred failed: {e}\n{stdout.strip()}") from e
+                f"MixMHCpred failed: {e}\n{stdout.strip()}\n"
+                "For an isolated backend, configure MIXMHCPRED_PYTHON or python_executable.") from e
         return Path(stdout_path).read_text()
 
     def predict_detailed(self, peptides, output_dir=None, output_motifs=False):
@@ -586,6 +620,7 @@ class MixMHCpred(BasePredictor):
             )
             if not result.version:
                 result.version = self.version
+            result.runtime_info = self.runtime_info
             return _validate_prediction_rows(result, peptide_list)
 
     def predict(self, peptides, n_flanks=None, c_flanks=None):
@@ -716,6 +751,7 @@ class MixMHCpred(BasePredictor):
                     stdout=stdout,
                     aligned_sequences=aligned,
                     artifacts=artifacts,
+                    runtime_info=self.runtime_info,
                 )
 
             prediction_path = run_output_dir / "Binding_predictions.txt"
@@ -733,6 +769,7 @@ class MixMHCpred(BasePredictor):
             )
             if not result.version:
                 result.version = self.version
+            result.runtime_info = self.runtime_info
             return _validate_prediction_rows(result, peptide_list)
 
     def _default_pred_kind(self):

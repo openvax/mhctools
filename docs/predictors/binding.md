@@ -246,12 +246,25 @@ git clone --branch v3.0 --depth 1 \
     https://github.com/GfellerLab/MixMHCpred.git
 chmod +x MixMHCpred/MixMHCpred
 export MIXMHCPRED_PATH="$PWD/MixMHCpred"
-pip install "mhctools[mixmhcpred]"
+pip install mhctools
+python3.11 -m venv .mixmhcpred-venv
+.mixmhcpred-venv/bin/python -m pip install numpy 'pandas>=2,<3' scipy logomaker matplotlib
+export MIXMHCPRED_PYTHON="$PWD/.mixmhcpred-venv/bin/python"
 ```
 
-The `mixmhcpred` extra installs the upstream Python dependencies. Sequence
-alignment additionally needs the `mafft` executable. The upstream
-`install_packages` script is another way to install both sets of dependencies.
+This isolated runtime lets the mhctools host keep Python 3.11+ and pandas 3.
+MixMHCpred 3.0 still uses pandas APIs removed in pandas 3, so its interpreter
+needs pandas below 3. Sequence alignment additionally needs `mafft` on PATH.
+The existing `mixmhcpred` extra installs dependencies into the host and keeps
+its protective `pandas<3` constraint; use it only for a shared environment.
+
+`MixMHCpred(python_executable="/path/to/venv/bin/python")` overrides
+`MIXMHCPRED_PYTHON`. The CLI equivalent is `--mixmhcpred-python`.
+An explicit interpreter is checked for dependencies before inference;
+missing, incompatible or broken runtimes raise with setup guidance. Child
+Python imports exclude host `PYTHONPATH`, `PYTHONHOME` and user-site packages.
+With no configured interpreter, existing upstream or user launchers retain
+control of their runtime.
 
 ```python
 from mhctools import MixMHCpred
@@ -270,6 +283,7 @@ detailed.table[["Score_bestAllele", "BestAllele", "%Rank_bestAllele"]]
 detailed.allele_info[1].closest_training_allele
 detailed.allele_info[1].distance
 detailed.allele_info[1].pan_allele
+detailed.runtime_info  # upstream, host and selected backend versions
 
 # Retain Binding_predictions.txt, PWM/PLD files and images, and the HTML view.
 motifs = predictor.predict_detailed(
@@ -293,6 +307,10 @@ Both artifact APIs require a new output path: the wrapper refuses an existing
 path because [MixMHCpred](#mixmhcpred) itself deletes and recreates its output directory.
 `exclude_peptides_with_cysteine=True` is implemented by mhctools before the
 external call, including under v3.0 where the legacy `-c` option was removed.
+Runtime diagnostics report the actual selected backend interpreter and
+Python/pandas/dependency versions separately from the host. An inherited
+launcher's interpreter is marked unverified. Prediction versions remain
+MixMHCpred's upstream version; isolation does not change model scores.
 
 ## MixMHC2pred
 
