@@ -384,8 +384,11 @@ def data_path(data_dir=None):
 
 
 def managed_path(name, data_dir=None):
-    """Return the pinned installation path for an mhctools-managed snapshot."""
+    """Return the pinned installation path for an mhctools-managed artifact."""
     canonical = _canonical_name(name)
+    if canonical == "phagescout":
+        from .phagescout_artifacts import managed_directory
+        return managed_directory(data_dir)
     try:
         snapshot = _SNAPSHOTS[canonical]
     except KeyError:
@@ -669,13 +672,16 @@ def _manual_directory_status(name):
 
 
 def _all_names():
-    return set(_STATUS_FUNCTIONS) | set(_SNAPSHOTS) | set(
+    return {"phagescout"} | set(_STATUS_FUNCTIONS) | set(_SNAPSHOTS) | set(
         _MANUAL_EXECUTABLES) | set(_MANUAL_DIRECTORIES)
 
 
 def artifact_status(name, data_dir=None):
     """Return the current status for a named predictor's artifacts."""
     canonical = _canonical_name(name)
+    if canonical == "phagescout":
+        from .phagescout_artifacts import status
+        return status(data_dir)
     if canonical in _SNAPSHOTS:
         return _snapshot_status(canonical, data_dir=data_dir)
     if canonical in _MANUAL_EXECUTABLES:
@@ -998,6 +1004,9 @@ def fetch(
     if model_selection and canonical != "mixtcrpred":
         raise ValueError(
             "Model selection is supported only for the mixtcrpred artifact")
+    if canonical == "phagescout":
+        from .phagescout_artifacts import fetch_profiles
+        return fetch_profiles(version=version, data_dir=data_dir)
     if canonical in ("mhcflurry", "mhcflurry-affinity"):
         # Ready is a no-op here too. Re-running otherwise restarted
         # MHCflurry's downloader, which then tells the user to delete the

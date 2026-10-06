@@ -39,7 +39,7 @@ ROWS = [
          classes=["PhageScout"], cli=[], kinds=[], mhc_class="none",
          inputs="canonical sequence; human ELANE/CTSG, inferred site contexts",
          lengths="2+ for aligned PWMs; 5+ for five-mer scoring; 9+ for aligned peptide profiles",
-         artifact=None, install="bundled CC BY 4.0 matrices/profiles; no external runtime",
+         artifact="phagescout", install="bundled profiles; optional `mhctools fetch phagescout`; no external runtime",
          license="open", page="cleavage/phagescout.md"),
     dict(family="processing", name="ITCell cathepsin profiles",
          classes=["ITCellCleavage"], cli=[], kinds=["endolysosomal_cleavage"], mhc_class="none",

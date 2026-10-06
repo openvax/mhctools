@@ -36,7 +36,8 @@ exists. It is reviewed at release time.
   | Plasma kallikrein KLKB1 | Add human plasma-enzyme evidence separately from tissue KLKs | [#518](https://github.com/openvax/mhctools/issues/518) |
   | ELANE/PRTN3 | Add distinct inflammatory-enzyme recognition and independent benchmarks | [#519](https://github.com/openvax/mhctools/issues/519) |
 
-  PhageScout native sequence artifacts are reproduced. Sequence-recognition
+  PhageScout native sequence artifacts, including the optional full DESeq2
+  peptide tables, are reproduced. Sequence-recognition
   rules can progress independently when their source scope is clear; external
   accuracy and whole-matrix validation depend on the benchmark work below.
 - **MMP substrate predictions** (CleaveNet), which need their own native endpoint

@@ -49,6 +49,11 @@ These are phage-derived recognition features with inferred aligned P1 anchors.
 Sparse profile non-matches are unassessed; neither their native scores nor
 negative PWM values are serum-loss percentages.
 
+Two optional full DESeq2 peptide lookups, `phagescout-elane-peptide-deseq2`
+and `phagescout-ctsg-peptide-deseq2`, retain the mean native log2 fold change
+over matching complete five-mers. Install their verified data separately
+with `mhctools fetch phagescout`; catalog discovery does not load the tables.
+
 The eight optional [Pepsickle](../predictors/processing.md#pepsickle) models cover epitope and C/I digestion families;
 see [proteasome models](#proteasome-models).
 Missing assets and uninspected external runtimes are listed as unresolved.

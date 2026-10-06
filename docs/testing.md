@@ -45,6 +45,7 @@ misconfiguration.
 
 | Backend | Setup group | Command |
 |---|---|---|
+| [PhageScout](cleavage/phagescout.md) full DESeq2 tables | `phagescout` | `pytest tests/test_phagescout_full_profiles.py --require-all` |
 | [Pepsickle](predictors/processing.md#pepsickle) gradient-boosted | `pepsickle` | `pytest tests/test_pepsickle_legacy.py tests/test_pepsickle_runtime.py --require-all` |
 | [SMM](predictors/binding.md#smm-and-smm-pmbec), [SMM-PMBEC](predictors/binding.md#smm-and-smm-pmbec) | `smm` | `python -m pytest tests/test_smm.py tests/test_smm_integration.py --require-all` |
 | [NetTCR](predictors/tcr.md#nettcr) (LiteRT) | `nettcr` | `python -m pytest tests/test_nettcr.py --require-all -W error` |

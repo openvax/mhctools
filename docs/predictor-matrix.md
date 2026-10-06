@@ -187,7 +187,7 @@ See the [antigen processing guide](predictors/processing.md) for examples and mo
 - CLI names: (none)
 - Prediction kinds: (none)
 - Default scanning lengths: 2+ for aligned PWMs; 5+ for five-mer scoring; 9+ for aligned peptide profiles
-- Installation: bundled CC BY 4.0 matrices/profiles; no external runtime
+- Installation: bundled profiles; optional `mhctools fetch phagescout`; no external runtime
 - License: open
 
 ### ITCell cathepsin profiles
