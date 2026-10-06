@@ -138,6 +138,7 @@ def main():
             ["git", "diff", "--quiet", "HEAD", "--"], cwd=repo, check=False
         ).returncode != 0,
         "analysis_script_sha256": sha256_file(Path(__file__).with_name("analyze.py")),
+        "display_labels_sha256": sha256_file(Path(__file__).with_name("display_labels.py")),
         "rerender_script_sha256": sha256_file(Path(__file__)),
         "generated_at": generated_at.isoformat(),
         "output_directory": output_dir.name,

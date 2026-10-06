@@ -12,7 +12,9 @@ ROOT = Path(__file__).parents[1]
 SCRIPT = ROOT / "analyses/osteosarc_vaccine_cleavage/mechanism_scorecards.py"
 SPEC = importlib.util.spec_from_file_location("mechanism_scorecards", SCRIPT)
 REPORT = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(REPORT)
+with pytest.MonkeyPatch.context() as patch:
+    patch.syspath_prepend(str(SCRIPT.parent))
+    SPEC.loader.exec_module(REPORT)
 SOURCE = ROOT / "analyses/osteosarc_vaccine_cleavage/results/2026-09-18T175125-855754-0400"
 
 
@@ -79,8 +81,10 @@ def test_unassessed_zero_and_motif_nonmatch_remain_distinct(frozen_report):
     assert REPORT.cell_text(unsupported) == "NA"
     assert REPORT.cell_text(None) == "NA"
     assert REPORT.cell_text({"assessment_state": "scored", "score": "0"}) == "0.000"
-    assert REPORT.cell_text({"assessment_state": "matched"}) == "M"
-    assert REPORT.cell_text({"assessment_state": "not_matched"}) == "N"
+    assert REPORT.cell_text({"assessment_state": "matched"}) == "Match"
+    assert REPORT.cell_text({"assessment_state": "not_matched"}) == "No match"
+    assert REPORT.cell_text({"model": "dpp4-qpisa", "assessment_state": "scored", "score": ".686"}) == "38% predicted loss"
+    assert REPORT.cell_text({"model": "dpp4-qpisa", "assessment_state": "scored", "score": "-.5799"}) == "No predicted loss"
     lookup = REPORT.site_lookup(rows)
     assert REPORT.assessment_at(lookup, unsupported["sequence_record_id"], unsupported["model"], 13) == unsupported
 

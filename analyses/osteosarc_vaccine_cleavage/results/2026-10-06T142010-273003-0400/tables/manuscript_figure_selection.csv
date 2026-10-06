@@ -1,0 +1,5 @@
+panel,sequence_record_id,gene,protein_change,length,has_disclosed_minimal_epitope,intended_epitope_internal_conservative_cuts,intended_epitope_overlapping_mhc_candidates,mhc_i_candidate_count,mhc_i_allele_count,mhc_ii_candidate_count,mhc_ii_allele_count,selection_reason
+A,MAP2-chr2-209694768:vaccine-peptide-4,MAP2,p.Leu867fs,24,True,3,50,39,4,11,4,most conservative cut evidence inside a disclosed intended epitope
+B,SMC5-chr9-70298024:vaccine-peptide-3,SMC5,p.Arg371Lys,21,True,0,28,35,5,13,2,no conservative internal cut and most MHC windows overlapping the intended epitope
+C,PIP5K1A-chr1-151242178:vaccine-peptide-3,PIP5K1A,p.Gly474fs,20,True,0,26,26,4,0,0,"most eligible class-I windows, then greatest class-I allele diversity"
+D,DYNC1H1-chr14-101980529:vaccine-peptide-3,DYNC1H1,p.Val314Ile,24,True,1,57,18,5,47,3,"most eligible class-II windows, then greatest class-II allele diversity"
