@@ -22,6 +22,23 @@ ANALYSIS = module_from_spec(SPEC)
 SPEC.loader.exec_module(ANALYSIS)
 
 
+def test_processing_producer_preserves_training_endpoint_in_model_labels(monkeypatch):
+    records = pd.DataFrame([{
+        "sequence_record_id": "record", "variant_id": "variant", "gene": "GENE",
+        "protein_change": "p.Ala1Val", "vaccines": "JLF V3", "sequence": "ACDE", "length": 4,
+    }])
+    monkeypatch.setattr(ANALYSIS, "Pepsickle", lambda **kwargs: SimpleNamespace(
+        cleavage_probs_many=lambda sequences: {sequence: [.1] * len(sequence) for sequence in sequences}))
+    _, models = ANALYSIS.pepsickle_rows(records)
+    assert all("type agnostic" in model["biological_context"] for model in models)
+    monkeypatch.setattr(ANALYSIS, "run_netchop_docker", lambda sequences, *args: [[.1] * len(sequence) for sequence in sequences])
+    rows, models = ANALYSIS.netchop_rows(records, Path("unused"))
+    contexts = {model["model"]: model["biological_context"] for model in models}
+    assert "ligand" in contexts["netchop-3.1-cterm-3.0"]
+    assert "in-vitro" in contexts["netchop-3.1-20s-3.0"]
+    assert all(row["biological_context"] == contexts[row["model"]] for row in rows)
+
+
 def test_sequence_segments_cover_every_internal_bond_once():
     for length in (2, 17, 28, 80):
         segments = ANALYSIS.sequence_segments("A" * length)
