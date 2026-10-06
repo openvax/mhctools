@@ -74,6 +74,7 @@ from .dpp4 import DPP4qPISA
 from .peptidases import cleavage_models, get_cleavage_model, predict_cleavage
 from .eramer_cleavage import ERAMERCleavage
 from .itcell_cleavage import ITCellCleavage
+from .phagescout import PhageScout
 from .tlimmuno2 import TLimmuno2
 from .processing_predictor import (
     ProcessingPredictor,
@@ -152,7 +153,7 @@ def __getattr__(name):
     raise AttributeError(
         "module %r has no attribute %r" % (__name__, name))
 
-__version__ = "3.47.5"
+__version__ = "3.47.6"
 
 __all__ = [
     "CleaveNet",
@@ -233,6 +234,7 @@ __all__ = [
     "write_cleavage_batch",
     "ERAMERCleavage",
     "ITCellCleavage",
+    "PhageScout",
     "TLimmuno2",
     "MHCflurry",
     "MHCflurry_Affinity",

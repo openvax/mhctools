@@ -172,6 +172,7 @@ See the [antigen processing guide](predictors/processing.md) for examples and mo
 
 | Predictor | MHC class | Input |
 |---|---|---|
+| [PhageScout sequence profiles](cleavage/phagescout.md) | none | canonical sequence; human ELANE/CTSG, inferred site contexts |
 | [ITCell cathepsin profiles](cleavage/itcell.md) | none | canonical sequence; B/S internal, H initial N-terminal trimming |
 | [CleaveNet](cleavage/cleavenet.md) | none | whole substrates or ten-residue windows; dedicated native result |
 | [Pepsickle](predictors/processing.md#pepsickle) | none | peptides (flanks recommended) |
@@ -179,6 +180,15 @@ See the [antigen processing guide](predictors/processing.md) for examples and mo
 | [NetCleave](predictors/processing.md#netcleave) | I or II | peptides + C-terminal flank (>= 3 residues) |
 | [DeepTAP](predictors/processing.md#deeptap) | none | peptides only |
 | [ERAMER](predictors/processing.md#eramer) | none (class I context) | peptides only (9-16mer precursors) |
+
+### PhageScout sequence profiles
+
+- Python classes: `PhageScout`
+- CLI names: (none)
+- Prediction kinds: (none)
+- Default scanning lengths: 2+ for aligned PWMs; 5+ for five-mer scoring; 9+ for aligned peptide profiles
+- Installation: bundled CC BY 4.0 matrices/profiles; no external runtime
+- License: open
 
 ### ITCell cathepsin profiles
 

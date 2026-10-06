@@ -1,8 +1,10 @@
 # Additional protease candidates
 
-Primary-source and author-artifact audit, checked 2026-10-06. The candidates
-below are not integrated models. [Known gaps](../known-gaps.md#cleavage-validation-and-coverage)
-tracks their implementation and shared validation dependencies.
+Primary-source and author-artifact audit, checked 2026-10-06. Bundled
+[PhageScout sequence profiles](phagescout.md) now reproduce native scores;
+the other routes below remain integration candidates.
+[Known gaps](../known-gaps.md#cleavage-validation-and-coverage) tracks their
+implementation and shared validation dependencies.
 
 The remaining gaps have different causes: some predictors publish weights but
 require unreproduced features, some describe neural models without supplying
@@ -13,7 +15,7 @@ probabilities or serum-survival estimates.
 
 ## Released predictor assets
 
-**PhageScout is the most concrete new candidate.** Its
+**PhageScout sequence profiles are available now.** Its
 [2026 paper](https://doi.org/10.3390/ijms27177593) describes neutrophil elastase
 and cathepsin G specificity scoring. [Zenodo 21387981](https://zenodo.org/records/21387981)
 declares CC BY 4.0 and supplies PWMs, peptide profiles, reference scores and
@@ -23,12 +25,12 @@ missed this separate release. The
 has no project license; its code and the licensed deposited assets require
 separate treatment.
 
-The independently implementable sequence-only scoring route should be
-reproduced first. Five-mer substrate enrichment, inferred aligned-nine-mer
+The independently implemented sequence-only route reproduces deposited
+native scores. Five-mer substrate enrichment, inferred aligned-nine-mer
 anchors and known MEROPS cuts have different evidentiary status. The author
 notebook contains raw, normalized and structural features; exact anchor,
 terminal handling, normalization population and trained-model feature order
-must be reproduced before scoring new short peptides. Structural classifiers
+remain requirements for new-sequence classifier inference. Structural classifiers
 require actual applicable features. Neither a normalized landscape score nor
 a classifier trained on balanced sites is a serum-loss percentage.
 
@@ -41,8 +43,11 @@ Downloaded files matched the author's MD5 checksums. SHA-256 identities:
 | `elastase_phage_balanced_XGB.rds` | `713d4b42cfb7443061b93dba51bb905b7afefac78a910fd69256ffdd91df2e28` |
 | `cathepsin_G_phage_balanced_XGB.rds` | `f98247ce7b8669f90e4ac7c168091e9b18e7ad90e009c2d5daf700701a3d9a28` |
 
-These assets were inspected and hashed, not executed. Trained-model runtime
-and independent accuracy are still unverified.
+Ten native sequence profiles reproduce deposited values and missing scores.
+All four phage-only boosters load in the official R XGBoost 3.2.1.1 runtime;
+their 18 feature names are retained, but no training-imputation medians are
+saved in their attributes. Automatic new-sequence classifier inference and
+independent accuracy remain unverified.
 
 **Other trained-model routes remain distinct.**
 [Tusar et al. CatS/L/B SVMs](https://doi.org/10.1038/s42003-023-04772-8)

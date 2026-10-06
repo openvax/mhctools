@@ -64,6 +64,7 @@ _UNREGISTERED_BY_DESIGN = {
     "DPP4qPISA",
     "ERAMERCleavage",
     "ITCellCleavage",
+    "PhageScout",
     # Whole-substrate results and ensembles, served by `mhctools cleavenet`.
     "CleaveNet",
 }

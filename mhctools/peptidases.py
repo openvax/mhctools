@@ -254,6 +254,8 @@ def cleavage_models(include_optional=False):
     models = (DPP4qPISA.model,) + tuple(rule.model for rule in _RULES) + tuple(
         reference.model for reference in substrate_references())
     models += tuple(ITCellCleavage.catalog_model(**settings) for settings in ITCELL_MODELS.values())
+    from .phagescout import PHAGESCOUT_MODELS, PhageScout
+    models += tuple(PhageScout.catalog_model(**settings) for settings in PHAGESCOUT_MODELS.values())
     if include_optional:
         # Reading ERAMERCleavage.model (a class attribute) does not load the
         # external PWM asset; only constructing ERAMERCleavage() does that.
@@ -290,17 +292,21 @@ def get_cleavage_model(name, *, enzyme_state=None):
     is_eramer = name == "eramer-step"
     from .itcell_cleavage import ITCELL_MODELS, ITCellCleavage
     is_itcell = name in ITCELL_MODELS
+    from .phagescout import PHAGESCOUT_MODELS, PhageScout
+    is_phagescout = name in PHAGESCOUT_MODELS
     from .pepsickle import PEPSICKLE_MODELS
     is_pepsickle = name in PEPSICKLE_MODELS
-    if len(matches) + is_dpp4 + is_eramer + is_pepsickle + is_itcell > 1:
+    if len(matches) + is_dpp4 + is_eramer + is_pepsickle + is_itcell + is_phagescout > 1:
         raise ValueError("Duplicate cleavage model name %r in the built-in panel" % name)
-    if is_dpp4 or is_eramer or is_pepsickle or is_itcell:
+    if is_dpp4 or is_eramer or is_pepsickle or is_itcell or is_phagescout:
         if enzyme_state is not None:
             raise ValueError("Explicit enzyme state is not supported for %s" % name)
         if is_dpp4:
             return DPP4qPISA()
         if is_itcell:
             return ITCellCleavage(**ITCELL_MODELS[name])
+        if is_phagescout:
+            return PhageScout(**PHAGESCOUT_MODELS[name])
         if is_eramer:
             from .eramer_cleavage import ERAMERCleavage
             return ERAMERCleavage()

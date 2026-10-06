@@ -2,7 +2,7 @@
 
 ## The mhctools license
 
-mhctools uses the [Apache License 2.0](https://github.com/openvax/mhctools/blob/master/LICENSE).
+mhctools adapter code uses the [Apache License 2.0](https://github.com/openvax/mhctools/blob/master/LICENSE).
 It permits use, modification, and redistribution, including commercial use.
 You can include mhctools in an application without publishing that application's
 source code.
@@ -19,6 +19,14 @@ trademark rights, and the software comes without warranties. The
 [full terms](https://www.apache.org/licenses/LICENSE-2.0) and
 [Apache licensing FAQ](https://www.apache.org/foundation/license-faq.html)
 explain these conditions.
+
+Bundled predictor data retain their own licenses: the
+[ITCell profiles](cleavage/itcell.md) are LGPL-2.1-only, and the
+[PhageScout matrices and peptide profiles](cleavage/phagescout.md) are
+CC BY 4.0. Their license texts and attribution notices are included in the
+distribution. Package metadata records the combined license expression;
+the independent PhageScout adapter does not include the unlicensed author
+notebook code.
 
 <a id="the-five-tiers"></a>
 

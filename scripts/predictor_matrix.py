@@ -35,6 +35,12 @@ FAMILIES = [
 # Fields: family, name, classes, cli, kinds, mhc_class, inputs, lengths,
 # artifact (`mhctools fetch` / `ls` name(s), or None), install, license, page.
 ROWS = [
+    dict(family="processing", name="PhageScout sequence profiles",
+         classes=["PhageScout"], cli=[], kinds=[], mhc_class="none",
+         inputs="canonical sequence; human ELANE/CTSG, inferred site contexts",
+         lengths="2+ for aligned PWMs; 5+ for five-mer scoring; 9+ for aligned peptide profiles",
+         artifact=None, install="bundled CC BY 4.0 matrices/profiles; no external runtime",
+         license="open", page="cleavage/phagescout.md"),
     dict(family="processing", name="ITCell cathepsin profiles",
          classes=["ITCellCleavage"], cli=[], kinds=["endolysosomal_cleavage"], mhc_class="none",
          inputs="canonical sequence; B/S internal, H initial N-terminal trimming",
