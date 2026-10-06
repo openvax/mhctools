@@ -287,14 +287,12 @@ def render_pdf(path, records, rows, catalog, organism, source_name):
             canvas.setFont("Helvetica", 8)
             canvas.drawCentredString(x, y, "NA")
         elif row["assessment_state"] == "matched":
-            colour = "#7b3e98" if row["model"].startswith("fap-") else "#007b83"
-            canvas.setFillColor(colors.HexColor(colour))
-            path = canvas.beginPath()
-            path.moveTo(x - 6, y + 8)
-            path.lineTo(x + 6, y + 8)
-            path.lineTo(x, y - 3)
-            path.close()
-            canvas.drawPath(path, stroke=0, fill=1)
+            canvas.saveState()
+            canvas.setStrokeColor(colors.HexColor("#C5323B"))
+            canvas.setLineWidth(1.6)
+            canvas.setDash(3, 2)
+            canvas.line(x, y - 3, x, y + 10)
+            canvas.restoreState()
         else:
             canvas.setStrokeColor(muted)
             canvas.setLineWidth(.8)
@@ -356,7 +354,7 @@ def render_pdf(path, records, rows, catalog, organism, source_name):
     y = paragraph(
         "<b>Coordinates:</b> bond b is between SLP residues b and b+1. An internal core cut lies strictly between the core boundaries. "
         "Numeric grid cells show native model scores, rounded to three decimals; DPP4 shows predicted percent loss in the source four-hour assay. "
-        "CSV retains native scores. NA means unassessed/unsupported. Triangles mark motif matches; hollow circles mark non-matches.", 36, y - 14)
+        "CSV retains native scores. NA means unassessed/unsupported. Dashed red lines mark motif matches; hollow circles mark non-matches.", 36, y - 14)
     y = paragraph(
         "<b>Mechanism:</b> ligand-trained models report processing proxies; they cannot name the enzyme responsible for a bond. "
         "20S reports an in-vitro proteasome model. Named peptidases have their own assay/motif evidence. "
@@ -467,7 +465,7 @@ def render_pdf(path, records, rows, catalog, organism, source_name):
                     canvas.setFont("Helvetica-Bold" if high else "Helvetica", 7.5)
                     canvas.drawCentredString(x + col_width / 2, row_y, cell_text(row))
             y -= 169
-            paragraph("INTERNAL ENZYME MOTIFS - triangle = match; hollow circle = no match; NA = outside scope", 36, y, size=8)
+            paragraph("INTERNAL ENZYME MOTIFS - dashed red line = match; hollow circle = no match; NA = outside scope", 36, y, size=8)
             for row_number, name in enumerate(INTERNAL_MOTIFS):
                 row_y = y - 28 - row_number * 17
                 canvas.setFillColor(ink)

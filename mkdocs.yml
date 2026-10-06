@@ -75,6 +75,7 @@ nav:
           - Reading the evidence: cleavage/evidence.md
           - Batch assessments: cleavage/batch.md
           - Validation status: cleavage/validation.md
+          - Additional candidates: cleavage/candidates.md
       - Immunogenicity: predictors/immunogenicity.md
       - TCR specificity: predictors/tcr.md
       - Peptide half-life: predictors/peptide-pk.md

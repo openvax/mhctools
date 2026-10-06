@@ -57,15 +57,14 @@ class Report:
         paragraph.drawOn(self.canvas, x, top - height)
         return top - height
 
-    def triangle(self, x, y, size=5):
+    def site_marker(self, x, bottom, top):
         from reportlab.lib.colors import HexColor
-        path = self.canvas.beginPath()
-        path.moveTo(x, y)
-        path.lineTo(x - size, y + size * 1.7)
-        path.lineTo(x + size, y + size * 1.7)
-        path.close()
-        self.canvas.setFillColor(HexColor(RED))
-        self.canvas.drawPath(path, stroke=0, fill=1)
+        self.canvas.saveState()
+        self.canvas.setStrokeColor(HexColor(RED))
+        self.canvas.setLineWidth(1.6)
+        self.canvas.setDash(3, 2)
+        self.canvas.line(x, bottom, x, top)
+        self.canvas.restoreState()
 
     def new_page(self, title, subtitle, record=None, kind="overview", segment=""):
         if self.page:
@@ -135,7 +134,7 @@ class Report:
         from reportlab.lib.colors import HexColor
         self.new_page(record["gene"] + " / sites and terminal enzymes",
                       "Proteasomes: cytosolic access after uptake/export. Cathepsins: endolysosomal access. "
-                      "Triangles mark candidates; gold marks a source core.", record, "sites",
+                      "Dashed red lines mark candidate bonds; gold marks a source core.", record, "sites",
                       "%d-%d" % (bonds[0], bonds[-1]))
         start, end = bonds[0] - 1, bonds[-1] + 1
         self.text(36, 690, "RESIDUES %d-%d" % (start + 1, end), 9, GRAY, "Helvetica-Bold")
@@ -150,6 +149,11 @@ class Report:
             base = 588 - index * 62
             self.paragraph(36, base + 37, label, width=100, size=10)
             self.text(36, base + 4, "%s to %s" % (low, high), 8, GRAY)
+            # Repeat residues beside each model so a cut is visibly between its flanks.
+            for residue_index in range(start, end):
+                self.text(143 + (residue_index - start + .5) * step - 3.3,
+                          base + 42, record["sequence"][residue_index],
+                          min(11, step * .72), font="Courier-Bold")
             self.canvas.setStrokeColor(HexColor("#DDE5EA"))
             self.canvas.setLineWidth(.5)
             self.canvas.line(143, base, 559, base)
@@ -175,8 +179,8 @@ class Report:
                 # Pepsickle display >=.5; ITCell author threshold is strictly >3.
                 candidate = value >= threshold if model.startswith("pepsickle") else value > threshold
                 if candidate:
-                    self.triangle(x, base + 37, 4)
-                    self.text(x - 7, base - 13, "%.2f" % value, 7.5, RED)
+                    self.site_marker(x, base, base + 52)
+                    self.text(x - 7, base - 8, "%.2f" % value, 7.5, RED)
                 previous = (x, y)
         self.text(36, 354, "Pepsickle: native 0-1 output, display >=0.5. Cat B/S: native log2 specificity, >3.", 8.5, GRAY)
         self.text(36, 340, "Cat 240 is the source count profile; all 15/60/240 profiles remain in the native tables.", 8.5, GRAY)
@@ -185,8 +189,10 @@ class Report:
             value = float(h["score"])
             self.text(36, 318, "CATHEPSIN H / INITIAL N-TERMINAL TRIM", 9, GRAY, "Helvetica-Bold")
             self.text(306, 318, "bond 1: %.2f" % value, 10, RED if value > 2 else INK)
+            for offset, residue in enumerate(record["sequence"][:4]):
+                self.text(468 + offset * 24, 318, residue, 14, font="Courier-Bold")
             if value > 2:
-                self.triangle(446, 314, 5)
+                self.site_marker(484, 312, 334)
             self.text(36, 301, "Native log2 specificity; candidate >2. Assumed free N terminus; no repeated trimming.", 8.5, GRAY)
             self.text(36, 277, "SERUM / EXTRACELLULAR PANEL - CONDITIONAL EXPOSURE", 9, GRAY, "Helvetica-Bold")
             y = 256
@@ -206,7 +212,7 @@ class Report:
                 bottom = self.paragraph(208, y + 9, value, width=351, size=8.5,
                                         color=GRAY if unsupported or value == "No motif match" else INK)
                 if any(r["assessment_state"] == "matched" for r in rows):
-                    self.triangle(194, y - 1, 3)
+                    self.site_marker(194, y - 3, y + 10)
                 y = min(y - 18, bottom - 5)
             if y < 40:
                 raise ValueError("Serum panel crosses footer")
@@ -259,14 +265,15 @@ def render(output):
                      "Sequence susceptibility requires actual enzyme exposure, activation and accessible "
                      "substrate. Free termini are an assumption where terminal trimming is assessed. "
                      "Source cores are minimal/candidate annotations; not every vaccine's target is established.", size=11)
-    report.new_page("How to read the models", "Native endpoints stay separate; triangles mark candidate sites.")
+    report.new_page("How to read the models", "Native endpoints stay separate; dashed red lines mark candidate bonds.")
     y = 695
     for text in (
         "CleaveNet / active MMP substrate susceptibility: mean relative cleavage Z-score and five-model "
         "population SD. Higher score means higher predicted source-assay signal. No exact cut, survival "
         "probability or degradation time is supplied. Soluble and membrane MMPs require separate exposure assumptions.",
-        "Human Pepsickle C/I / digestion output: every internal bond is scored. A red triangle uses the "
-        "0.5 display threshold. Human-only models are experimental and use a smaller dataset; organism matching "
+        "Human Pepsickle C/I / digestion output: every internal bond is scored. Each track repeats the sequence; "
+        "a dashed red line between residues uses the 0.5 display threshold. Human-only models are experimental "
+        "and use a smaller dataset; organism matching "
         "is the requested preference, not evidence of higher performance.",
         "ITCell / cathepsin specificity: source pH 6.5, recombinant human enzyme, 228 tetradecapeptides. "
         "Native log2 scores use author thresholds >3 for B/S and >2 for initial H trimming. Profile times are "
