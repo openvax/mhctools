@@ -94,7 +94,7 @@ secretion or extracellular exposure is declared.
   unchanged in CSV. The source model has complete published coefficients for 28 of
   these 40 SLP records; the other 12 show their exact missing-coefficient
   reason. An unavailable score is not zero or resistance.
-- Large filled triangles mark motif matches; hollow circles mark assessed non-matches.
+- Dashed red lines mark motif matches at the labeled bonds; hollow circles mark assessed non-matches.
   FAP N-terminal recognition tests X-Pro|non-Pro only at bond 2; its separate
   internal rule tests Gly-Pro|non-Pro. Each mode matches three SLP records
   in this frozen run. These are partial motif rules, without numerical scores.

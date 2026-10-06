@@ -87,6 +87,8 @@ files without a project license do not satisfy that constraint.
 | [ProsperousPlus](https://github.com/lifuyi774/ProsperousPlus/tree/66a9d08cd5a44febf64950caf9684c81aa0e8807) | Directories C01.060 (CatB), C01.032 (CatL), C01.034 (CatS), C13.004 (animal legumain) are present | GitHub license metadata is null and the root has no project license; excluded under the open-model requirement ([known gaps](../known-gaps.md#cleavage-validation-and-coverage)) |
 | [panCleave](https://gitlab.com/machine-biology-group-public/pancleave) | Author describes a pooled, protease-agnostic random forest | Its output cannot supply enzyme-specific CatS/L/B/AEP coverage |
 | [DIPPS legumain study](https://doi.org/10.15252/embj.201796750) | Experimental pH-dependent specificity evidence | It is not a published fitted AEP predictor; an unconditional cut-after-Asn rule would discard the reported context |
+| [PhageScout](https://doi.org/10.3390/ijms27177593) | [Zenodo 21387981](https://zenodo.org/records/21387981) supplies CC BY 4.0 PWMs, reference scores and trained phage-only/structural XGBoost objects | Reproduce scoring, inferred cut coordinates and exact feature normalization; GitHub code lacks a project license and short-peptide applicability is unverified |
+| [CatS/L/B octamer neural ensembles](https://doi.org/10.3390/ijms20194843) | Published sequence-property/JMP methodology and [CC BY 4.0 observed-product datasets](https://doi.org/10.6084/m9.figshare.9777725) | No trained ensemble parameters or licensed portable inference runtime verified; experimental CSV files are not model weights |
 
 The CatB/L/S files were extracted from the Europe PMC open-access supplement
 archive for PMC10124925 and inspected. Their SHA-256 digests are:
@@ -101,6 +103,12 @@ are supplied here. Completing this open-model runtime and obtaining an openly
 licensed, verified AEP predictor remain concrete blockers ([known gaps](../known-gaps.md#cleavage-validation-and-coverage)). Requests
 for novel-sequence CatL/AEP predictions must continue to report unsupported
 coverage. ITCell B/S/H profiles and experimental source imports are available now.
+
+The [additional candidate audit](candidates.md) distinguishes published
+recognition evidence, released trained artifacts and missing inference inputs.
+The PhageScout Zenodo assets correct an earlier GitHub-only availability audit;
+their availability does not establish successful local inference or validated
+long-peptide predictions.
 
 ## Source-backed long-peptide case study
 
