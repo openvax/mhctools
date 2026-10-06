@@ -1,0 +1,125 @@
+{
+  "model": "Cavaco et al. 2021, published Equation 1 / Table S20",
+  "version": "2021-equation-1",
+  "nonpolar_residues": "ACFILMPVWY",
+  "coefficients": {
+    "intercept": 2.226,
+    "nonpolar_percent": 0.053,
+    "w_present": -1.515,
+    "y_two_or_more": 1.29,
+    "pi_ge_10": -1.052
+  },
+  "pka": {
+    "A": {
+      "alpha_amino": 9.87,
+      "alpha_carboxy": 2.34,
+      "side_chain": 0
+    },
+    "C": {
+      "alpha_amino": 10.78,
+      "alpha_carboxy": 1.71,
+      "side_chain": 8.33
+    },
+    "D": {
+      "alpha_amino": 9.6,
+      "alpha_carboxy": 1.88,
+      "side_chain": 3.65
+    },
+    "E": {
+      "alpha_amino": 9.67,
+      "alpha_carboxy": 2.19,
+      "side_chain": 4.25
+    },
+    "F": {
+      "alpha_amino": 9.24,
+      "alpha_carboxy": 2.58,
+      "side_chain": 0
+    },
+    "G": {
+      "alpha_amino": 9.6,
+      "alpha_carboxy": 2.34,
+      "side_chain": 0
+    },
+    "H": {
+      "alpha_amino": 8.97,
+      "alpha_carboxy": 1.78,
+      "side_chain": 5.97
+    },
+    "I": {
+      "alpha_amino": 9.76,
+      "alpha_carboxy": 2.32,
+      "side_chain": 0
+    },
+    "K": {
+      "alpha_amino": 8.9,
+      "alpha_carboxy": 2.2,
+      "side_chain": 10.28
+    },
+    "L": {
+      "alpha_amino": 9.6,
+      "alpha_carboxy": 2.36,
+      "side_chain": 0
+    },
+    "M": {
+      "alpha_amino": 9.21,
+      "alpha_carboxy": 2.28,
+      "side_chain": 0
+    },
+    "N": {
+      "alpha_amino": 9.09,
+      "alpha_carboxy": 2.18,
+      "side_chain": 13.2
+    },
+    "P": {
+      "alpha_amino": 10.6,
+      "alpha_carboxy": 1.99,
+      "side_chain": 0
+    },
+    "Q": {
+      "alpha_amino": 9.13,
+      "alpha_carboxy": 2.17,
+      "side_chain": 0
+    },
+    "R": {
+      "alpha_amino": 9.09,
+      "alpha_carboxy": 2.18,
+      "side_chain": 12.48
+    },
+    "S": {
+      "alpha_amino": 9.15,
+      "alpha_carboxy": 2.21,
+      "side_chain": 0
+    },
+    "T": {
+      "alpha_amino": 9.12,
+      "alpha_carboxy": 2.15,
+      "side_chain": 0
+    },
+    "V": {
+      "alpha_amino": 9.74,
+      "alpha_carboxy": 2.29,
+      "side_chain": 0
+    },
+    "W": {
+      "alpha_amino": 9.39,
+      "alpha_carboxy": 2.38,
+      "side_chain": 0
+    },
+    "Y": {
+      "alpha_amino": 9.11,
+      "alpha_carboxy": 2.2,
+      "side_chain": 10.07
+    }
+  },
+  "source": {
+    "paper": "https://doi.org/10.1111/cts.12985",
+    "archive": "CTS-14-1349-s002.rar",
+    "archive_sha256": "30abc23827ae6beeab24730589cca5644b17d8c9bc0499e210a5ccc9013fadc8",
+    "asar_sha256": "b4638b8f75872c305f379ccfec1e94991c10114eea954e79495857c516945271",
+    "amino_json_sha256": "e0806f668cc9d98ac8d2163d0516392e3fb3cf349397018698801b1468e39a24",
+    "calc_js_sha256": "e780b0e90e8438fc700ecef1a8b681d97704949eb9b6edf8be630e6c18f19822",
+    "app_package_version": "1.0.0",
+    "app_manifest_license": "CC0-1.0",
+    "app_package_json_sha256": "e00f4372343f8a00eb8880d894ddf34657a2f6f652cd1be2e5d4bd4881e8b5a0"
+  }
+}

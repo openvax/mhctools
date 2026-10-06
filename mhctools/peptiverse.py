@@ -55,9 +55,10 @@ upstream from constructing its unused PeptideCLM and ChemBERTa embedders.
 Provenance and limits
 ---------------------
 Upstream: https://huggingface.co/ChatterjeeLab/PeptiVerse
-Cite: https://pmc.ncbi.nlm.nih.gov/articles/PMC12773018/
+Cite: https://doi.org/10.1038/s41467-026-74167-w
 
-The retrieved version is a January 2026 preprint. The sequence half-life model
+PeptiVerse was published in Nature Communications on July 16, 2026; the pinned
+snapshot predates that publication. The sequence half-life model
 was fit on **130 examples** and evaluated by cross-validation only, with no
 external test set — a weak evidence base for ranking decisions, and untested on
 the long peptides used in vaccine constructs. Upstream's model card declares

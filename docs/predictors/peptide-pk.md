@@ -8,6 +8,7 @@ exposure](../exposure-results.md).
 
 | Predictor | What it estimates | Needs |
 |---|---|---|
+| [Cavaco](#cavaco) | Published-equation baseline; mixed/unknown assay matrix | built in, no extra runtime |
 | [PeptiVerse](#peptiverse) | Parent-peptide half-life in human serum | pinned PeptiVerse + ESM2 snapshots (`PEPTIVERSE_HOME`, `PEPTIVERSE_ESM_HOME`) + a torch/transformers Python |
 | [PlifePred2](#plifepred2) | Parent-peptide half-life, **matrix unknown** | `plifepred2==1.0` (`PLIFEPRED2_HOME`) + pinned Pfeature (`PFEATURE_HOME`) |
 
@@ -20,6 +21,85 @@ dissociation half-life of an assembled peptide-MHC complex (a different
 molecule in a different assay), and from the cleavage kinds, which are
 site-resolved and intracellular. `MeasurementContext` preserves the matrix,
 compartment, analyte, and systemic scope when they are known.
+
+## Cavaco
+
+`CavacoHalfLife` independently implements [Cavaco et al. (2021)](https://doi.org/10.1111/cts.12985)
+Equation 1 / Table S20 with explicit descriptor provenance. No download,
+GUI or additional model runtime is needed. This is a baseline, with
+unestablished accuracy on long vaccine peptides.
+
+```python
+from mhctools import CavacoHalfLife
+
+predictor = CavacoHalfLife()
+prediction = predictor.predict(["SIINFEKL"])[0].peptide_half_life
+prediction.score   # ln(half-life in minutes), higher = longer-lived
+prediction.value   # exp(score) / 60, in hours
+predictor.last_qc  # per-input pI, nonpolar percentage, W/Y counts and status
+
+# Use a separately established pI definition when appropriate; None falls back
+# to the author-app descriptor. The choice and value are recorded per result.
+predictor.predict(["SIINFEKL"], isoelectric_points=[6.2])
+```
+
+On the command line:
+
+```sh
+mhctools predict-table --input peptides.csv --out half-life.csv \
+  --predictor cavaco:half_life_hours:peptide_half_life
+```
+
+The formula is `ln(minutes) = 2.226 + 0.053 * nonpolar_percent - 1.515 *
+I(W >= 1) + 1.290 * I(Y >= 2) - 1.052 * I(pI >= 10)`.
+Nonpolar residues are `ACFILMPVWY`, following the deposited app's descriptor
+data. Default pI reproduces its free-terminal pKa algorithm, including
+first-occurrence summation order and JavaScript rounding. Each prediction
+records the bundled data hash, descriptor choice and exact peptide identity;
+provided pI values also enter the cache fingerprint.
+
+Two source inconsistencies are handled explicitly: the prose after Equation 1
+describes an increased half-life for high pI despite its negative coefficient;
+the equation's description says `>10`, whereas methods and app use `>=10`.
+The adapter uses the negative coefficient from Equation 1/Table S20 and the
+`>=10` boundary. The app's W/Y counting is broken (uppercase residue keys are
+tested as lowercase), so its displayed half-life is **not** the reference
+endpoint. The published equation and app descriptor algorithm are distinct
+choices; this adapter does not claim native app half-life conformance.
+
+The training set contains 129 peptides from heterogeneous stability and
+proteolysis assays, so `measurement_context.matrix` remains `None`. The
+sixteen related 15-residue validation peptides were C-terminal carboxamides
+tested in 50% human serum at 37 C. The sequence-only API accepts canonical
+L-peptides with free termini and explicitly rejects amidation, capping and
+attachments; `on_unsupported="record"` preserves unavailable inputs in place.
+The equation has no length cutoff, which does not establish long-peptide
+accuracy or chemical-form interchangeability. This is neither a per-enzyme
+cleavage model nor a whole-serum survival percentage.
+
+The source oracle covers 31 sequences, using the unmodified app for pI and
+an independent equation calculation. On the sixteen source-panel means,
+the published equation with these descriptors gives log-scale r² = 0.7602,
+log-minute RMSE = 0.9206 and median absolute fold error = 1.808; this is
+source-panel numerical reproduction, not an external long-peptide benchmark.
+For example, panel peptide 4 estimates 568 minutes against an observed mean
+of 89 minutes. App pI also differs from some tabulated source descriptors
+(ABD_CL1: 9.6193 versus 9.83); it is not a reconstruction of all training
+preprocessing. Broader benchmarking remains tracked in
+[#284](https://github.com/openvax/mhctools/issues/284) and
+[#291](https://github.com/openvax/mhctools/issues/291).
+
+The app's root manifest declares CC0-1.0. Only descriptor data, factual
+coefficients, exact source hashes and attribution are bundled; no article
+figures or Electron dependencies are redistributed. The independent adapter
+is Apache-2.0. See `mhctools/data/CAVACO_LICENSE.txt` and the fixed
+`tests/data/cavaco_source_reference.json` source records. To regenerate the
+oracle, statically extract the author app's `calc.js`, `amino.json`,
+`codes.json` and `package.json` (do not execute its installer), then run
+`node scripts/record_cavaco_reference.js APP_SOURCE_DIRECTORY OUTPUT_JSON`.
+The script verifies all four source hashes, executes the unchanged JavaScript
+with a controlled DOM and no external I/O, and retains observed panel data.
+Node is only needed for fixture regeneration, never for prediction or tests.
 
 ## PeptiVerse
 
@@ -62,8 +142,10 @@ consume it, so terminal modifications, attachments, and non-standard residues
 are rejected rather than scored as their unmodified sequence. Pass
 `on_unsupported="record"` to retain unsupported entries in a mixed batch.
 
-The sequence half-life model was fit on 130 examples and evaluated by
-cross-validation only, from a preprint, with no external test set and no
+PeptiVerse was [published in Nature Communications on July 16, 2026](https://doi.org/10.1038/s41467-026-74167-w);
+this adapter retains its explicitly pinned source/model snapshot. The sequence
+half-life model was fit on 130 examples and evaluated by cross-validation
+only, with no external test set and no
 evaluation on long vaccine peptides. Upstream declares Apache-2.0 on its model
 card and MIT in its README. mhctools verifies the exact inference source, model,
 calibration, ESM2 weights, configuration and tokenizer files before launch. The
