@@ -9,7 +9,7 @@ by curated human-peptidase recognition rules?
 Every invocation writes a new date/time-stamped directory under `results/` so
 an earlier analysis is never overwritten. The [generated-run index](results/README.md)
 links the checked-in report, tables, and
-[figure atlas](results/2026-09-18T175125-855754-0400/mhctools-all-figures.pdf).
+[figure atlas](results/2026-10-06T125244-757271-0400/mhctools-all-figures.pdf).
 The complete model/code/weight inventory and checksums travel with that run.
 The PDF begins with a clustered predictor/SLP agreement overview and then
 uses each disclosed SLP sequence as the central visual axis. Large residue
@@ -24,7 +24,7 @@ window; it is binary coverage, not prediction count or probability. Red ticks in
 ligand span show relevant pre-binding internal cleavage evidence; they do not
 claim post-binding cleavage or protection. The 80-aa outlier is split across three
 continuation pages rather than compressed. Use
-[`atlas_sequence_order.csv`](results/2026-09-18T175125-855754-0400/tables/atlas_sequence_order.csv) to jump
+[`atlas_sequence_order.csv`](results/2026-10-06T125244-757271-0400/tables/atlas_sequence_order.csv) to jump
 from a sequence record to its PDF page. Every map page is also exported as a
 vector PDF and 300 dpi PNG; `slp_map_exports.csv` indexes those files.
 
@@ -41,7 +41,7 @@ declared criteria rather than visual preference. Its exact choices and metrics
 are in `manuscript_figure_selection.csv`.
 
 For a compact answer to “which SLP is flagged by which model,” start with
-[`slp_predictor_matrix.csv`](results/2026-09-18T175125-855754-0400/tables/slp_predictor_matrix.csv). Its
+[`slp_predictor_matrix.csv`](results/2026-10-06T125244-757271-0400/tables/slp_predictor_matrix.csv). Its
 column suffixes distinguish within-model fractions above 0.5, native scores,
 and motif-match counts; those unlike quantities must not be combined or
 ranked as though they shared a scale. Exact bond-level outputs remain in the
@@ -63,8 +63,9 @@ proteasome view. The human-only Pepsickle model is species-matched but
 experimental and trained on less data than the all-mammal model; the
 near-redundant all-mammal output remains in the tables. The NetCleave-II track
 has its own primary endolysosomal/class-II section below the sequence, while
-DPP4 and matched MME, FAP, ANPEP, and ENPEP rules each receive a readable
-enzyme-specific extracellular track. FAP is labeled tumor-stroma conditional.
+DPP4, MME, FAP, ANPEP and ENPEP occupy a larger extracellular panel with a
+repeated residue axis. Every row remains visible. FAP internal and N-terminal
+activities are separate; enzyme exposure remains conditional.
 Plasma-oriented ACE, CPB2, and CPN, XPNPEP2, intact-SLP cytosolic aminopeptidase
 motifs, and ERAP1-on-the-intact-SLP are omitted from the map because injection
 does not establish their exposure or substrate state; their raw assessments
@@ -78,6 +79,30 @@ Its manifest distinguishes `synthetic_long_peptide` from `rna_encoded` and
 requires an explicit RNA routing policy. Cytosolic RNA emphasizes endogenous
 proteasome/ER/class-I processing and omits free serum-peptide tracks unless
 secretion or extracellular exposure is declared.
+
+## Reading the enlarged enzyme panel
+
+- DPP4 has a large native log2-depletion score box connected to intact SLP
+  bond 2. The source model has complete published coefficients for 28 of
+  these 40 SLP records; the other 12 show their exact missing-coefficient
+  reason. An unavailable score is not zero or resistance.
+- M blocks mark motif matches; hollow circles mark assessed non-matches.
+  FAP N-terminal recognition tests X-Pro|non-Pro only at bond 2; its separate
+  internal rule tests Gly-Pro|non-Pro. Each mode matches three SLP records
+  in this frozen run. These are partial motif rules, without numerical scores.
+- MME marks a selected hydrophobic preference after the bond. The local rule
+  assesses 2-30-residue inputs, so the 80-aa GLIS3 SLP shows a length abstention.
+  This conservative model scope is not an absolute enzyme size cutoff.
+- Continuation pages explicitly say when an intact N-terminal site lies
+  outside the displayed segment. They do not treat the segment as a new peptide
+  or simulate successive trimming.
+
+Row visibility describes model coverage, not measured enzyme presence or
+biological exposure. A motif non-match does not establish protection. Exact
+scores, assessment reasons and source provenance remain in the frozen tables.
+Primary references: [DPP4 qPISA](https://pmc.ncbi.nlm.nih.gov/articles/PMC11612144/),
+[FAP internal specificity](https://pubmed.ncbi.nlm.nih.gov/16480718/),
+[MME specificity](https://pubmed.ncbi.nlm.nih.gov/6349683/).
 
 ## Site-level scores and mechanisms
 
