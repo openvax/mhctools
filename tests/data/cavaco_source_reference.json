@@ -1,0 +1,418 @@
+{
+  "source": {
+    "paper": "https://doi.org/10.1111/cts.12985",
+    "figure": "3A/B",
+    "app_source_sha256": "e780b0e90e8438fc700ecef1a8b681d97704949eb9b6edf8be630e6c18f19822",
+    "oracle": "original unmodified calc.js in Node vm with DOM/numeric-output instrumentation; free-terminal descriptor inputs; source printed assay means rounded to minutes"
+  },
+  "records": [
+    {
+      "peptide": "GAAQAAGSGAAQAAG",
+      "pi": 6.015625,
+      "np_percent": 53.333333333333336,
+      "ln_app": 5.052666666666667,
+      "app_minutes": "156.439 min",
+      "ln_published": 5.052666666666667,
+      "source_panel_id": 1,
+      "observed_minutes": 48,
+      "observed_ci95_minutes": [
+        28,
+        78
+      ],
+      "observed_chemistry": "C-terminal carboxamide",
+      "observed_matrix": "50% human serum",
+      "observed_temperature_c": 37,
+      "observed_replicates": 3
+    },
+    {
+      "peptide": "GSSQSSGSGSSQSSG",
+      "pi": 6.015625,
+      "np_percent": 0,
+      "ln_app": 2.226,
+      "app_minutes": "9.263 min",
+      "ln_published": 2.226,
+      "source_panel_id": 2,
+      "observed_minutes": 33,
+      "observed_ci95_minutes": [
+        26,
+        41
+      ],
+      "observed_chemistry": "C-terminal carboxamide",
+      "observed_matrix": "50% human serum",
+      "observed_temperature_c": 37,
+      "observed_replicates": 3
+    },
+    {
+      "peptide": "GAARAAGSGAARAAG",
+      "pi": 12.48114013671875,
+      "np_percent": 53.333333333333336,
+      "ln_app": 4.0006666666666675,
+      "app_minutes": "54.635 min",
+      "ln_published": 4.0006666666666675,
+      "source_panel_id": 3,
+      "observed_minutes": 87,
+      "observed_ci95_minutes": [
+        72,
+        107
+      ],
+      "observed_chemistry": "C-terminal carboxamide",
+      "observed_matrix": "50% human serum",
+      "observed_temperature_c": 37,
+      "observed_replicates": 3
+    },
+    {
+      "peptide": "GAAQAYGSGYAQAAG",
+      "pi": 5.8515625,
+      "np_percent": 53.333333333333336,
+      "ln_app": 5.052666666666667,
+      "app_minutes": "156.439 min",
+      "ln_published": 6.342666666666667,
+      "source_panel_id": 4,
+      "observed_minutes": 89,
+      "observed_ci95_minutes": [
+        35,
+        227
+      ],
+      "observed_chemistry": "C-terminal carboxamide",
+      "observed_matrix": "50% human serum",
+      "observed_temperature_c": 37,
+      "observed_replicates": 3
+    },
+    {
+      "peptide": "GAAQAAGWGAAQAAG",
+      "pi": 6.015625,
+      "np_percent": 60,
+      "ln_app": 5.406,
+      "app_minutes": "222.739 min",
+      "ln_published": 3.891,
+      "source_panel_id": 5,
+      "observed_minutes": 67,
+      "observed_ci95_minutes": [
+        44,
+        105
+      ],
+      "observed_chemistry": "C-terminal carboxamide",
+      "observed_matrix": "50% human serum",
+      "observed_temperature_c": 37,
+      "observed_replicates": 3
+    },
+    {
+      "peptide": "GSSRSSGSGSSRSSG",
+      "pi": 12.48114013671875,
+      "np_percent": 0,
+      "ln_app": 1.174,
+      "app_minutes": "3.235 min",
+      "ln_published": 1.174,
+      "source_panel_id": 6,
+      "observed_minutes": 8,
+      "observed_ci95_minutes": [
+        6,
+        11
+      ],
+      "observed_chemistry": "C-terminal carboxamide",
+      "observed_matrix": "50% human serum",
+      "observed_temperature_c": 37,
+      "observed_replicates": 3
+    },
+    {
+      "peptide": "GSSQSYGSGYSQSSG",
+      "pi": 5.8515625,
+      "np_percent": 13.333333333333334,
+      "ln_app": 2.9326666666666665,
+      "app_minutes": "18.778 min",
+      "ln_published": 4.222666666666667,
+      "source_panel_id": 7,
+      "observed_minutes": 48,
+      "observed_ci95_minutes": [
+        35,
+        65
+      ],
+      "observed_chemistry": "C-terminal carboxamide",
+      "observed_matrix": "50% human serum",
+      "observed_temperature_c": 37,
+      "observed_replicates": 3
+    },
+    {
+      "peptide": "GAARAYGSGYARAAG",
+      "pi": 10.227684020996094,
+      "np_percent": 53.333333333333336,
+      "ln_app": 4.0006666666666675,
+      "app_minutes": "54.635 min",
+      "ln_published": 5.290666666666667,
+      "source_panel_id": 8,
+      "observed_minutes": 322,
+      "observed_ci95_minutes": [
+        204,
+        588
+      ],
+      "observed_chemistry": "C-terminal carboxamide",
+      "observed_matrix": "50% human serum",
+      "observed_temperature_c": 37,
+      "observed_replicates": 3
+    },
+    {
+      "peptide": "GSSQSSGWGSSQSSG",
+      "pi": 6.015625,
+      "np_percent": 6.666666666666667,
+      "ln_app": 2.5793333333333335,
+      "app_minutes": "13.188 min",
+      "ln_published": 1.0643333333333336,
+      "source_panel_id": 9,
+      "observed_minutes": 11,
+      "observed_ci95_minutes": [
+        8,
+        15
+      ],
+      "observed_chemistry": "C-terminal carboxamide",
+      "observed_matrix": "50% human serum",
+      "observed_temperature_c": 37,
+      "observed_replicates": 3
+    },
+    {
+      "peptide": "GAARAAGWGAARAAG",
+      "pi": 12.48114013671875,
+      "np_percent": 60,
+      "ln_app": 4.353999999999999,
+      "app_minutes": "77.789 min",
+      "ln_published": 2.839,
+      "source_panel_id": 10,
+      "observed_minutes": 36,
+      "observed_ci95_minutes": [
+        30,
+        43
+      ],
+      "observed_chemistry": "C-terminal carboxamide",
+      "observed_matrix": "50% human serum",
+      "observed_temperature_c": 37,
+      "observed_replicates": 3
+    },
+    {
+      "peptide": "GAAQAYGWGYAQAAG",
+      "pi": 5.8515625,
+      "np_percent": 60,
+      "ln_app": 5.406,
+      "app_minutes": "222.739 min",
+      "ln_published": 5.181,
+      "source_panel_id": 11,
+      "observed_minutes": 289,
+      "observed_ci95_minutes": [
+        127,
+        941
+      ],
+      "observed_chemistry": "C-terminal carboxamide",
+      "observed_matrix": "50% human serum",
+      "observed_temperature_c": 37,
+      "observed_replicates": 3
+    },
+    {
+      "peptide": "GSSRSYGSGYSRSSG",
+      "pi": 10.227684020996094,
+      "np_percent": 13.333333333333334,
+      "ln_app": 1.8806666666666665,
+      "app_minutes": "6.558 min",
+      "ln_published": 3.170666666666667,
+      "source_panel_id": 12,
+      "observed_minutes": 29,
+      "observed_ci95_minutes": [
+        20,
+        41
+      ],
+      "observed_chemistry": "C-terminal carboxamide",
+      "observed_matrix": "50% human serum",
+      "observed_temperature_c": 37,
+      "observed_replicates": 3
+    },
+    {
+      "peptide": "GSSRSAGWGASRSSG",
+      "pi": 12.48114013671875,
+      "np_percent": 20,
+      "ln_app": 2.234,
+      "app_minutes": "9.337 min",
+      "ln_published": 0.7190000000000001,
+      "source_panel_id": 13,
+      "observed_minutes": 10,
+      "observed_ci95_minutes": [
+        5,
+        20
+      ],
+      "observed_chemistry": "C-terminal carboxamide",
+      "observed_matrix": "50% human serum",
+      "observed_temperature_c": 37,
+      "observed_replicates": 3
+    },
+    {
+      "peptide": "GSSQYAGWGAYQSSG",
+      "pi": 5.8515625,
+      "np_percent": 33.33333333333333,
+      "ln_app": 3.9926666666666666,
+      "app_minutes": "54.199 min",
+      "ln_published": 3.767666666666667,
+      "source_panel_id": 14,
+      "observed_minutes": 41,
+      "observed_ci95_minutes": [
+        25,
+        64
+      ],
+      "observed_chemistry": "C-terminal carboxamide",
+      "observed_matrix": "50% human serum",
+      "observed_temperature_c": 37,
+      "observed_replicates": 3
+    },
+    {
+      "peptide": "GAARYAGWGAYRAAG",
+      "pi": 10.227684020996094,
+      "np_percent": 60,
+      "ln_app": 4.353999999999999,
+      "app_minutes": "77.789 min",
+      "ln_published": 4.129,
+      "source_panel_id": 15,
+      "observed_minutes": 55,
+      "observed_ci95_minutes": [
+        43,
+        70
+      ],
+      "observed_chemistry": "C-terminal carboxamide",
+      "observed_matrix": "50% human serum",
+      "observed_temperature_c": 37,
+      "observed_replicates": 3
+    },
+    {
+      "peptide": "GSSRYSGWGSYRSSG",
+      "pi": 10.227684020996094,
+      "np_percent": 20,
+      "ln_app": 2.234,
+      "app_minutes": "9.337 min",
+      "ln_published": 2.009,
+      "source_panel_id": 16,
+      "observed_minutes": 15,
+      "observed_ci95_minutes": [
+        6,
+        35
+      ],
+      "observed_chemistry": "C-terminal carboxamide",
+      "observed_matrix": "50% human serum",
+      "observed_temperature_c": 37,
+      "observed_replicates": 3
+    },
+    {
+      "peptide": "ACDEFGHIKLMNPQRSTVWY",
+      "pi": 7.141845703125,
+      "np_percent": 50,
+      "ln_app": 4.8759999999999994,
+      "app_minutes": "131.105 min",
+      "ln_published": 3.3609999999999998
+    },
+    {
+      "peptide": "SIINFEKL",
+      "pi": 6.685546875,
+      "np_percent": 50,
+      "ln_app": 4.8759999999999994,
+      "app_minutes": "131.105 min",
+      "ln_published": 4.8759999999999994
+    },
+    {
+      "peptide": "LAEAKGCSAKTAKP",
+      "pi": 9.619285583496094,
+      "np_percent": 50,
+      "ln_app": 4.8759999999999994,
+      "app_minutes": "131.105 min",
+      "ln_published": 4.8759999999999994
+    },
+    {
+      "peptide": "A",
+      "pi": 6.125,
+      "np_percent": 100,
+      "ln_app": 7.526,
+      "app_minutes": "1855.668 min",
+      "ln_published": 7.526
+    },
+    {
+      "peptide": "K",
+      "pi": 9.5899658203125,
+      "np_percent": 0,
+      "ln_app": 2.226,
+      "app_minutes": "9.263 min",
+      "ln_published": 2.226
+    },
+    {
+      "peptide": "R",
+      "pi": 10.785400390625,
+      "np_percent": 0,
+      "ln_app": 1.174,
+      "app_minutes": "3.235 min",
+      "ln_published": 1.174
+    },
+    {
+      "peptide": "D",
+      "pi": 2.764923095703125,
+      "np_percent": 0,
+      "ln_app": 2.226,
+      "app_minutes": "9.263 min",
+      "ln_published": 2.226
+    },
+    {
+      "peptide": "E",
+      "pi": 3.219940185546875,
+      "np_percent": 0,
+      "ln_app": 2.226,
+      "app_minutes": "9.263 min",
+      "ln_published": 2.226
+    },
+    {
+      "peptide": "W",
+      "pi": 5.90625,
+      "np_percent": 100,
+      "ln_app": 7.526,
+      "app_minutes": "1855.668 min",
+      "ln_published": 6.011
+    },
+    {
+      "peptide": "YY",
+      "pi": 5.6328125,
+      "np_percent": 100,
+      "ln_app": 7.526,
+      "app_minutes": "1855.668 min",
+      "ln_published": 8.815999999999999
+    },
+    {
+      "peptide": "GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG",
+      "pi": 6.015625,
+      "np_percent": 0,
+      "ln_app": 2.226,
+      "app_minutes": "9.263 min",
+      "ln_published": 2.226
+    },
+    {
+      "peptide": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "pi": 6.125,
+      "np_percent": 100,
+      "ln_app": 7.526,
+      "app_minutes": "1855.668 min",
+      "ln_published": 7.526
+    },
+    {
+      "peptide": "GRKKRRQRRRPQ",
+      "pi": 13.180435180664062,
+      "np_percent": 8.333333333333332,
+      "ln_app": 1.6156666666666664,
+      "app_minutes": "5.031 min",
+      "ln_published": 1.6156666666666664
+    },
+    {
+      "peptide": "GILGFVFTL",
+      "pi": 6.015625,
+      "np_percent": 66.66666666666666,
+      "ln_app": 5.759333333333332,
+      "app_minutes": "317.137 min",
+      "ln_published": 5.759333333333332
+    },
+    {
+      "peptide": "WYRKDE",
+      "pi": 6.80859375,
+      "np_percent": 33.33333333333333,
+      "ln_app": 3.9926666666666666,
+      "app_minutes": "54.199 min",
+      "ln_published": 2.477666666666667
+    }
+  ]
+}

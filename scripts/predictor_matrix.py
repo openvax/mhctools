@@ -252,6 +252,13 @@ ROWS = [
          install="`mhctools[mixtcrpred]` + `mhctools fetch mixtcrpred --accept-license`",
          license="academic", page="predictors/tcr.md#mixtcrpred"),
 
+    dict(family="peptide-pk", name="Cavaco published equation",
+         classes=["CavacoHalfLife"], cli=["cavaco"],
+         kinds=["peptide_half_life"], mhc_class="none",
+         inputs="canonical free-terminal peptides or `PeptideInput`",
+         lengths="(no equation cutoff; long-peptide accuracy unestablished)",
+         artifact=None, install="built in; no extra runtime",
+         license="open", page="predictors/peptide-pk.md#cavaco"),
     dict(family="peptide-pk", name="PeptiVerse",
          classes=["PeptiVerse"], cli=["peptiverse"],
          kinds=["peptide_half_life"], mhc_class="none",

@@ -65,6 +65,7 @@ from .eramer import ERAMER
 from .deepimmuno import DeepImmuno
 from .peptiverse import PeptiVerse
 from .plifepred2 import PlifePred2
+from .cavaco import CavacoHalfLife
 from .cleavage import CleavageInput, CleavageModel, CleavageSite, CleavageResult
 from .cleavage_batch import (
     cleavage_overlays, load_cleavage_batch, normalize_cleavage_input,
@@ -153,7 +154,7 @@ def __getattr__(name):
     raise AttributeError(
         "module %r has no attribute %r" % (__name__, name))
 
-__version__ = "3.47.8"
+__version__ = "3.47.9"
 
 __all__ = [
     "CleaveNet",
@@ -219,6 +220,7 @@ __all__ = [
     "DeepImmuno",
     "PeptiVerse",
     "PlifePred2",
+    "CavacoHalfLife",
     "CleavageInput",
     "CleavageModel",
     "CleavageSite",

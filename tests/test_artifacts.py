@@ -59,6 +59,7 @@ def test_curated_json_files_are_explicit_package_resources():
         resource.name for resource in resources.iterdir()
         if resource.name.endswith(".json")
     } == {
+        "cavaco_published_model.json",
         "cleavage_reference.json",
         "dpp4_qpisa.json",
         "intracellular_cleavage_reference.json",

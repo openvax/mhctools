@@ -343,8 +343,18 @@ See the [peptide half-life guide](predictors/peptide-pk.md) for examples and mod
 
 | Predictor | MHC class | Input |
 |---|---|---|
+| [Cavaco published equation](predictors/peptide-pk.md#cavaco) | none | canonical free-terminal peptides or `PeptideInput` |
 | [PeptiVerse](predictors/peptide-pk.md#peptiverse) | none | peptides or `PeptideInput` |
 | [PlifePred2](predictors/peptide-pk.md#plifepred2) | none | peptides only (12-100 residues, natural) |
+
+### Cavaco published equation
+
+- Python classes: `CavacoHalfLife`
+- CLI names: `cavaco`
+- Prediction kinds: `peptide_half_life`
+- Default scanning lengths: (no equation cutoff; long-peptide accuracy unestablished)
+- Installation: built in; no extra runtime
+- License: open
 
 ### PeptiVerse
 
