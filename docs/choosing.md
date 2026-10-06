@@ -18,7 +18,7 @@ lists every supported class and command-line name.
 | ERAP1 trimming | [ERAMER](predictors/processing.md#eramer) |
 | T-cell immunogenicity | [Calis](predictors/immunogenicity.md#calis), [PRIME](predictors/immunogenicity.md#prime), [BigMHC (IM)](predictors/binding.md#bigmhc), [DeepImmuno](predictors/immunogenicity.md#deepimmuno); [TLimmuno2](predictors/immunogenicity.md#tlimmuno2) for class II |
 | Recognition by a specific TCR | [NetTCR](predictors/tcr.md#nettcr), [Tulip](predictors/tcr.md#tulip), [MixTCRpred](predictors/tcr.md#mixtcrpred) |
-| Free-peptide half-life | [PeptiVerse](predictors/peptide-pk.md#peptiverse), [PlifePred2](predictors/peptide-pk.md#plifepred2) |
+| Free-peptide half-life | [Cavaco](predictors/peptide-pk.md#cavaco), [PeptiVerse](predictors/peptide-pk.md#peptiverse), [PlifePred2](predictors/peptide-pk.md#plifepred2) |
 | Per-bond peptidase evidence | [Peptidase activity](cleavage/index.md) |
 
 The family guides explain each model's output and validation limits.
@@ -35,7 +35,7 @@ See [licensing](licensing.md) before installing a model.
 
 ### Downloads
 
-[Calis](predictors/immunogenicity.md#calis) and `RandomBindingPredictor` need no download. Other models need weights,
+[Calis](predictors/immunogenicity.md#calis), [Cavaco](predictors/peptide-pk.md#cavaco) and `RandomBindingPredictor` need no download. Other models need weights,
 reference data, or an external tool; see [getting models](artifacts.md).
 
 ### Runtime
@@ -48,7 +48,7 @@ and [environment variables](env-vars.md).
 
 ### Inputs
 
-[Calis](predictors/immunogenicity.md#calis), [DeepTAP](predictors/processing.md#deeptap), [ERAMER](predictors/processing.md#eramer), [PeptiVerse](predictors/peptide-pk.md#peptiverse), and [PlifePred2](predictors/peptide-pk.md#plifepred2) accept peptides without
+[Calis](predictors/immunogenicity.md#calis), [DeepTAP](predictors/processing.md#deeptap), [ERAMER](predictors/processing.md#eramer), [Cavaco](predictors/peptide-pk.md#cavaco), [PeptiVerse](predictors/peptide-pk.md#peptiverse), and [PlifePred2](predictors/peptide-pk.md#plifepred2) accept peptides without
 alleles. Cleavage predictors also use flanking residues. See
 [input shapes](predictors/index.md#input-shapes) for the other families.
 

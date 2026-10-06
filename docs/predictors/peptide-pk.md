@@ -142,8 +142,10 @@ consume it, so terminal modifications, attachments, and non-standard residues
 are rejected rather than scored as their unmodified sequence. Pass
 `on_unsupported="record"` to retain unsupported entries in a mixed batch.
 
-The sequence half-life model was fit on 130 examples and evaluated by
-cross-validation only, from a preprint, with no external test set and no
+PeptiVerse was [published in Nature Communications on July 16, 2026](https://doi.org/10.1038/s41467-026-74167-w);
+this adapter retains its explicitly pinned source/model snapshot. The sequence
+half-life model was fit on 130 examples and evaluated by cross-validation
+only, with no external test set and no
 evaluation on long vaccine peptides. Upstream declares Apache-2.0 on its model
 card and MIT in its README. mhctools verifies the exact inference source, model,
 calibration, ESM2 weights, configuration and tokenizer files before launch. The
