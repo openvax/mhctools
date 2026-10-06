@@ -76,6 +76,7 @@ nav:
           - Batch assessments: cleavage/batch.md
           - Validation status: cleavage/validation.md
           - Additional candidates: cleavage/candidates.md
+          - PhageScout sequence profiles: cleavage/phagescout.md
       - Immunogenicity: predictors/immunogenicity.md
       - TCR specificity: predictors/tcr.md
       - Peptide half-life: predictors/peptide-pk.md

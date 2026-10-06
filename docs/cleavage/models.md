@@ -24,7 +24,7 @@ from mhctools import predict_cleavage
 results = predict_cleavage("TSGPNQ", models=["fap-endo-gp", "prep-pro"])
 ```
 
-The default panel evaluates all 29 built-in models and returns separate
+The default panel evaluates all 39 built-in models and returns separate
 results. `--model` and `--sequence` can be repeated. `--list-models` prints a
 compact discovery table; add `--json` for its full machine-readable catalog.
 Nine bundled [ITCell cathepsin profiles](itcell.md) add human B/S internal
@@ -37,6 +37,17 @@ peptide's predicted degradation time.
 | `itcell-catb-15`, `itcell-catb-60`, `itcell-catb-240` | Human cathepsin B internal specificity | Sum of log2 profile/background ratios |
 | `itcell-cats-15`, `itcell-cats-60`, `itcell-cats-240` | Human cathepsin S internal specificity | Sum of log2 profile/background ratios |
 | `itcell-cath-15`, `itcell-cath-60`, `itcell-cath-240` | Human cathepsin H initial N-terminal trimming | Sum of log2 profile/background ratios |
+
+Ten bundled [PhageScout sequence profiles](phagescout.md) add separate human
+ELANE and CTSG native scores. The exact names are
+`phagescout-elane-pwm-deseq2`, `phagescout-elane-pwm-relaxed-unaligned`,
+`phagescout-elane-pwm-relaxed-aligned`, `phagescout-elane-peptide-relaxed-unaligned`,
+`phagescout-elane-peptide-relaxed-aligned`, `phagescout-ctsg-pwm-deseq2`,
+`phagescout-ctsg-pwm-relaxed-unaligned`, `phagescout-ctsg-pwm-relaxed-aligned`,
+`phagescout-ctsg-peptide-relaxed-unaligned` and `phagescout-ctsg-peptide-relaxed-aligned`.
+These are phage-derived recognition features with inferred aligned P1 anchors.
+Sparse profile non-matches are unassessed; neither their native scores nor
+negative PWM values are serum-loss percentages.
 
 The eight optional [Pepsickle](../predictors/processing.md#pepsickle) models cover epitope and C/I digestion families;
 see [proteasome models](#proteasome-models).

@@ -15,18 +15,20 @@ exists. It is reviewed at release time.
   [#281](https://github.com/openvax/mhctools/issues/281)
 - **Serum and extracellular peptidases beyond the current candidates**: activated
   blood and inflammation-associated proteases (thrombin, plasmin, kallikrein,
-  elastase, cathepsin G, proteinase 3), other exopeptidases and
+  proteinase 3), other exopeptidases and
   compartment-specific enzymes. Curate activation, inhibitors, tissue exposure
   and assay conditions before choosing a predictor; a generic Arg/Lys or
   hydrophobic-residue scan would not distinguish these enzymes.
-  [#278](https://github.com/openvax/mhctools/issues/278)
+  [#278](https://github.com/openvax/mhctools/issues/278). Native
+  [PhageScout ELANE/CTSG sequence profiles](cleavage/phagescout.md) are available;
+  independent inflammatory/whole-serum validation remains open.
 - **Concrete additional protease candidates**, from the
-  [primary-source and artifact audit](cleavage/candidates.md). These are open
-  integration tasks, not currently available prediction tracks:
+  [primary-source and artifact audit](cleavage/candidates.md). The remaining
+  tasks supplement the available PhageScout native sequence tracks:
 
   | Candidate | Next step | Tracking |
   |---|---|---|
-  | PhageScout ELANE/CTSG | Reproduce CC BY 4.0 PWMs and released phage-only models; resolve coordinates and feature normalization | [#513](https://github.com/openvax/mhctools/issues/513) |
+  | PhageScout ELANE/CTSG classifiers | Obtain exact training medians and mature-protein normalization context; keep structural models separate | [#521](https://github.com/openvax/mhctools/issues/521) |
   | CatL | Add assay-scoped sequence-recognition and observed-site evidence | [#514](https://github.com/openvax/mhctools/issues/514) |
   | AEP/legumain | Add pH-scoped Asn/Asp recognition and observed sites | [#515](https://github.com/openvax/mhctools/issues/515) |
   | Thrombin | Curate extended cooperative recognition alternatives | [#516](https://github.com/openvax/mhctools/issues/516) |
@@ -34,7 +36,7 @@ exists. It is reviewed at release time.
   | Plasma kallikrein KLKB1 | Add human plasma-enzyme evidence separately from tissue KLKs | [#518](https://github.com/openvax/mhctools/issues/518) |
   | ELANE/PRTN3 | Add distinct inflammatory-enzyme recognition and independent benchmarks | [#519](https://github.com/openvax/mhctools/issues/519) |
 
-  First reproduce the published PhageScout artifacts. Sequence-recognition
+  PhageScout native sequence artifacts are reproduced. Sequence-recognition
   rules can progress independently when their source scope is clear; external
   accuracy and whole-matrix validation depend on the benchmark work below.
 - **MMP substrate predictions** (CleaveNet), which need their own native endpoint
