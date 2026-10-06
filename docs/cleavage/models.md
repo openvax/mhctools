@@ -24,9 +24,20 @@ from mhctools import predict_cleavage
 results = predict_cleavage("TSGPNQ", models=["fap-endo-gp", "prep-pro"])
 ```
 
-The default panel evaluates all 20 built-in models and returns separate
+The default panel evaluates all 29 built-in models and returns separate
 results. `--model` and `--sequence` can be repeated. `--list-models` prints a
 compact discovery table; add `--json` for its full machine-readable catalog.
+Nine bundled [ITCell cathepsin profiles](itcell.md) add human B/S internal
+specificity and H initial N-terminal trimming. Select their 15/60/240-minute
+source profiles explicitly; these times are assay-training scope, not a new
+peptide's predicted degradation time.
+
+| ITCell models | Mechanism | Native score |
+| --- | --- | --- |
+| `itcell-catb-15`, `itcell-catb-60`, `itcell-catb-240` | Human cathepsin B internal specificity | Sum of log2 profile/background ratios |
+| `itcell-cats-15`, `itcell-cats-60`, `itcell-cats-240` | Human cathepsin S internal specificity | Sum of log2 profile/background ratios |
+| `itcell-cath-15`, `itcell-cath-60`, `itcell-cath-240` | Human cathepsin H initial N-terminal trimming | Sum of log2 profile/background ratios |
+
 The eight optional [Pepsickle](../predictors/processing.md#pepsickle) models cover epitope and C/I digestion families;
 see [proteasome models](#proteasome-models).
 Missing assets and uninspected external runtimes are listed as unresolved.

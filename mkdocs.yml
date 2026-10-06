@@ -71,6 +71,7 @@ nav:
           - Peptidase activity: cleavage/index.md
           - Peptidase models: cleavage/models.md
           - CleaveNet MMP substrates: cleavage/cleavenet.md
+          - ITCell cathepsin profiles: cleavage/itcell.md
           - Reading the evidence: cleavage/evidence.md
           - Batch assessments: cleavage/batch.md
           - Validation status: cleavage/validation.md

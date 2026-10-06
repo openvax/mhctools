@@ -11,6 +11,13 @@ an earlier analysis is never overwritten. The [generated-run index](results/READ
 links the checked-in report, tables, and
 [figure atlas](results/2026-10-06T142010-273003-0400/mhctools-all-figures.pdf).
 The complete model/code/weight inventory and checksums travel with that run.
+Additional stability-route inference is available through `stability_route.py`:
+all CleaveNet MMP heads on every ten-mer, human Pepsickle C/I digestion, and
+bundled ITCell B/S/H profiles. It writes patient-specific results to ignored
+`local_results/`; `stability_pdf.py` renders their mechanism-separated supplement.
+The [spec](STABILITY_ROUTE_SPEC.md) and [model availability audit](stability_models.json)
+state endpoints and remaining gaps. Neither MMP window scores nor cathepsin
+specificity scores are serum-survival percentages.
 The PDF begins with a clustered predictor/SLP agreement overview and then
 uses each disclosed SLP sequence as the central visual axis. Large residue
 letters carry bond-aligned cleavage profiles and motif flags, disclosed minimal

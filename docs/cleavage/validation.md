@@ -36,10 +36,14 @@ predictions are not silently substituted.
 
 ## APC endolysosomal enzymes
 
-The current built-in panel has no transferable cathepsin S/L/B or AEP model.
+The built-in panel now includes [ITCell](itcell.md) sequence-specific human
+cathepsin B/S internal profiles and H initial N-terminal trimming, with native
+scores verified against the released author script. These are pH-6.5 assay
+specificity profiles, not independently validated cellular processing or
+serum-stability models. Cathepsin L and AEP predictors remain unavailable.
 IRAP is an exact-substrate source catalog, and [NetCleave](../predictors/processing.md#netcleave)-II is a class-II
 C-terminal processing proxy, not an enzyme-specific cathepsin predictor.
-The absence is explicit in batch coverage reports and tracked in
+The remaining gaps are explicit in batch coverage reports and tracked in
 [known gaps](../known-gaps.md#cleavage-validation-and-coverage).
 
 Primary sources for the next validation block:
@@ -95,8 +99,8 @@ The article describes protein secondary-structure and solvent-exposure inputs.
 No unverified feature values, replacement model, or independent accuracy claim
 are supplied here. Completing this open-model runtime and obtaining an openly
 licensed, verified AEP predictor remain concrete blockers ([known gaps](../known-gaps.md#cleavage-validation-and-coverage)). Requests
-for novel-sequence cathepsin/AEP predictions must continue to report unsupported
-coverage. Experimental source imports remain available now.
+for novel-sequence CatL/AEP predictions must continue to report unsupported
+coverage. ITCell B/S/H profiles and experimental source imports are available now.
 
 ## Source-backed long-peptide case study
 

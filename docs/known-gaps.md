@@ -6,9 +6,10 @@ exists. It is reviewed at release time.
 
 ## Cleavage validation and coverage
 
-- **Cathepsin S/L/B and AEP (legumain) prediction for novel sequences.** The
-  built-in panel has no transferable model; the gap is shown explicitly in batch
-  coverage reports. Experimental observations can be imported now through
+- **Cathepsin L and AEP (legumain), and cellular validation of cathepsin profiles.**
+  Bundled [ITCell B/S/H specificity profiles](cleavage/itcell.md) now score new
+  canonical sequences under their published assay scope. CatL/AEP remain
+  unavailable, and cellular/pH/exposure calibration is still a gap. Experimental observations can be imported through
   `reference_panels`. [#470](https://github.com/openvax/mhctools/issues/470)
 - **ProsperousPlus adapter**, blocked on the open-license requirement.
   [#281](https://github.com/openvax/mhctools/issues/281)
