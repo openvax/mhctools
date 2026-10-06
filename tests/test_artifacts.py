@@ -49,6 +49,7 @@ def no_user_installs(monkeypatch, tmp_path):
         for variable in definition.get("environment_variables", ()):
             monkeypatch.delenv(variable, raising=False)
     monkeypatch.delenv("ERAMER_PWM", raising=False)
+    monkeypatch.delenv("PHAGESCOUT_HOME", raising=False)
     return home
 
 
@@ -76,7 +77,7 @@ def test_list_includes_native_and_packaged_artifacts(no_user_installs):
         "mhcflurry", "mhcflurry-affinity", "mixmhc2pred", "mixmhcpred",
         "mixtcrpred",
         "netchop", "netcleave", "netmhc", "netmhccons", "netmhciipan",
-        "netmhcpan", "netmhcstabpan", "nettcr", "pepsickle", "prime",
+        "netmhcpan", "netmhcstabpan", "nettcr", "pepsickle", "phagescout", "prime",
         "smm", "tlimmuno2", "tulip"}
     assert statuses["calis"].manager == "mhctools package"
     assert statuses["calis"].status == "ready"

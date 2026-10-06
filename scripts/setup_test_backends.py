@@ -143,6 +143,11 @@ def nettcr(root, python, config):
     config["NETTCR_DIR"] = fetch("nettcr", "--accept-license")
 
 
+def phagescout(root, python, config):
+    # Data only: preserve the host interpreter and dependency versions.
+    config["PHAGESCOUT_HOME"] = fetch("phagescout")
+
+
 def gfeller(root, python, config):
     runtime = make_env(root, "gfeller-env", python, [
         "numpy", "pandas<3", "scipy", "logomaker", "matplotlib"])
@@ -299,7 +304,7 @@ def main():
         nargs="+",
         choices=[
             "half-life", "recognition", "gfeller", "keras", "nettcr",
-            "legacy", "smm", "pepsickle", "cleavenet",
+            "legacy", "smm", "pepsickle", "cleavenet", "phagescout",
         ],
     )
     parser.add_argument("--python", default="python3.11", help="Python 3.11 interpreter for isolated runtimes")
@@ -316,7 +321,8 @@ def main():
     config = json.loads(state.read_text()) if state.exists() else {}
     functions = {"half-life": half_life, "recognition": recognition,
                  "gfeller": gfeller, "keras": keras, "nettcr": nettcr,
-                 "legacy": legacy, "smm": smm, "pepsickle": pepsickle, "cleavenet": cleavenet}
+                 "legacy": legacy, "smm": smm, "pepsickle": pepsickle, "cleavenet": cleavenet,
+                 "phagescout": phagescout}
     for group in args.groups:
         functions[group](root, args.python, config)
         state.write_text(json.dumps(config, indent=2) + "\n")

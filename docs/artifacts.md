@@ -26,6 +26,9 @@ mhctools fetch mhcflurry --version 2.2.0
 # Fetch a pinned open-source snapshot (code plus the wrapper's model files).
 mhctools fetch eramer
 
+# Optional full CC BY 4.0 PhageScout ELANE/CTSG peptide tables (data only).
+mhctools fetch phagescout
+
 # Academic licenses must be reviewed and accepted explicitly.
 mhctools fetch nettcr --accept-license
 
@@ -98,6 +101,11 @@ Linux. To put them on shared or scratch storage, set `MHCTOOLS_DATA_DIR`, pass
 Every snapshot lives under `artifacts/<tool>/<git-commit>/` and includes a
 `.mhctools-artifact.json` recording its source repository, exact commit, sparse
 paths, and license provenance.
+
+[PhageScout's optional full peptide tables](cleavage/phagescout.md#optional-full-deseq2-peptide-profiles)
+are data-only assets under `artifacts/phagescout/21387981/`. Their manifest
+records fixed source URLs, byte counts and SHA-256 hashes instead of a git
+commit; both tables, attribution and license are published atomically.
 
 ## Who owns what: the MANAGER column
 

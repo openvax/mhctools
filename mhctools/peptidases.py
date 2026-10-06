@@ -254,9 +254,11 @@ def cleavage_models(include_optional=False):
     models = (DPP4qPISA.model,) + tuple(rule.model for rule in _RULES) + tuple(
         reference.model for reference in substrate_references())
     models += tuple(ITCellCleavage.catalog_model(**settings) for settings in ITCELL_MODELS.values())
-    from .phagescout import PHAGESCOUT_MODELS, PhageScout
+    from .phagescout import PHAGESCOUT_MODELS, PHAGESCOUT_OPTIONAL_MODELS, PhageScout
     models += tuple(PhageScout.catalog_model(**settings) for settings in PHAGESCOUT_MODELS.values())
     if include_optional:
+        models += tuple(PhageScout.catalog_model(**settings)
+                        for settings in PHAGESCOUT_OPTIONAL_MODELS.values())
         # Reading ERAMERCleavage.model (a class attribute) does not load the
         # external PWM asset; only constructing ERAMERCleavage() does that.
         from .eramer_cleavage import ERAMERCleavage
@@ -292,8 +294,9 @@ def get_cleavage_model(name, *, enzyme_state=None):
     is_eramer = name == "eramer-step"
     from .itcell_cleavage import ITCELL_MODELS, ITCellCleavage
     is_itcell = name in ITCELL_MODELS
-    from .phagescout import PHAGESCOUT_MODELS, PhageScout
-    is_phagescout = name in PHAGESCOUT_MODELS
+    from .phagescout import PHAGESCOUT_MODELS, PHAGESCOUT_OPTIONAL_MODELS, PhageScout
+    phagescout_models = {**PHAGESCOUT_MODELS, **PHAGESCOUT_OPTIONAL_MODELS}
+    is_phagescout = name in phagescout_models
     from .pepsickle import PEPSICKLE_MODELS
     is_pepsickle = name in PEPSICKLE_MODELS
     if len(matches) + is_dpp4 + is_eramer + is_pepsickle + is_itcell + is_phagescout > 1:
@@ -306,7 +309,7 @@ def get_cleavage_model(name, *, enzyme_state=None):
         if is_itcell:
             return ITCellCleavage(**ITCELL_MODELS[name])
         if is_phagescout:
-            return PhageScout(**PHAGESCOUT_MODELS[name])
+            return PhageScout(**phagescout_models[name])
         if is_eramer:
             from .eramer_cleavage import ERAMERCleavage
             return ERAMERCleavage()

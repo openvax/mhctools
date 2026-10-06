@@ -282,6 +282,8 @@ jobs:
         include:
           - group: cleavenet
             tests: tests/test_cleavenet.py
+          - group: phagescout
+            tests: tests/test_phagescout.py tests/test_phagescout_artifacts.py tests/test_phagescout_full_profiles.py
           - group: half-life
             tests: tests/test_peptiverse.py tests/test_plifepred2.py
           - group: smm
