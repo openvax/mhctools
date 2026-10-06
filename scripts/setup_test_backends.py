@@ -154,12 +154,10 @@ def gfeller(root, python, config):
     mix = root / "MixMHCpred"
     checkout(mix, "https://github.com/GfellerLab/MixMHCpred.git",
              "0a7f9b9e20d1cf02236f4a0a90d16735be879b38")
-    # Keep the launcher's parent at the checkout root: tests also use the
-    # official sequence-alignment fixture shipped beside the executable.
-    entry = mix / "mhctools-test-launcher"
-    launcher(entry, [mix / "MixMHCpred"],
-             'export PATH=%s:"$PATH"\n' % shlex.quote(str(runtime.parent)))
-    config.update(MIXMHCPRED_PATH=str(entry), MIXMHCPRED_V3_PATH=str(entry))
+    # Exercise the supported runtime configuration, with no custom launcher.
+    config.update(MIXMHCPRED_PATH=str(mix / "MixMHCpred"),
+                  MIXMHCPRED_V3_PATH=str(mix / "MixMHCpred"),
+                  MIXMHCPRED_PYTHON=str(runtime))
     prime = root / "PRIME"
     checkout(prime, "https://github.com/GfellerLab/PRIME.git",
              "7b18d4e11042141e7102f7c69be2b0e03d138dab")

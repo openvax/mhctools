@@ -45,6 +45,7 @@ misconfiguration.
 
 | Backend | Setup group | Command |
 |---|---|---|
+| [MixMHCpred](predictors/binding.md#mixmhcpred), [PRIME](predictors/immunogenicity.md#prime) | `gfeller` | `pytest tests/test_mixmhcpred_runtime_integration.py tests/test_mixmhcpred.py tests/test_prime.py --require-all` |
 | [PhageScout](cleavage/phagescout.md) full DESeq2 tables | `phagescout` | `pytest tests/test_phagescout_full_profiles.py --require-all` |
 | [Pepsickle](predictors/processing.md#pepsickle) gradient-boosted | `pepsickle` | `pytest tests/test_pepsickle_legacy.py tests/test_pepsickle_runtime.py --require-all` |
 | [SMM](predictors/binding.md#smm-and-smm-pmbec), [SMM-PMBEC](predictors/binding.md#smm-and-smm-pmbec) | `smm` | `python -m pytest tests/test_smm.py tests/test_smm_integration.py --require-all` |
@@ -54,6 +55,11 @@ misconfiguration.
 
 Notes on what CI asserts:
 
+- **MixMHCpred and PRIME:** the host uses pandas 3 and the isolated backend
+  uses pandas below 3. Unmodified native launchers provide reference scores
+  for multi-allele rows, duplicate peptides, sequence alignment, motifs/HTML,
+  CLI output and nested PRIME execution. The host interpreter, pandas
+  version and environment are checked before and after inference.
 - **NetTCR** runs with TensorFlow absent from the host and without skips or
   warnings.
 - **DeepImmuno, TLimmuno2 and NetCleave** run through the isolated interpreter

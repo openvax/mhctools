@@ -66,6 +66,7 @@ predictor = PRIME(
     alleles=["HLA-A*02:01", "HLA-B*07:02"],
     program_name="PRIME",                    # or an absolute path
     mixmhcpred_path="/path/to/MixMHCpred",   # v3.0+, optional if on PATH
+    mixmhcpred_python="/path/to/venv/bin/python",  # optional isolated runtime
     timeout=300)
 results = predictor.predict(["GILGFVFTL", "NLVPMVATV"])
 results[0].immunogenicity.score
@@ -74,6 +75,12 @@ results[0].immunogenicity.score
 mhctools verifies MixMHCpred's reported version before PRIME inference and
 rejects versions older than 3.0 or an unparseable version. The timeout covers
 the PRIME process tree, including its nested MixMHCpred call.
+`mixmhcpred_python` overrides `MIXMHCPRED_PYTHON`; `--mixmhcpred-python`
+selects the same interpreter in the CLI. Use the
+[isolated MixMHCpred setup](binding.md#mixmhcpred) to keep pandas 3 in the host.
+`predictor.runtime_info` reports the nested backend and its dependency
+versions. The interpreter selection remains active through PRIME's child
+processes and does not change the host PATH or Python packages.
 
 ## DeepImmuno
 

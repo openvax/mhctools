@@ -43,6 +43,7 @@ from .allele_normalization import normalize_allele_name
 from .base_predictor import BasePredictor, _check_flank_inputs
 from .cleanup_context import CleanupFiles
 from .mixmhcpred import mixmhcpred_version, resolve_mixmhcpred_path
+from .mixmhcpred_runtime import resolve_runtime, runtime_environment
 from .pred import Kind, PeptideResult, Prediction
 from .process_helpers import run_command
 
@@ -65,6 +66,9 @@ class PRIME(BasePredictor):
         ``PATH``.
     timeout : float
         Maximum seconds for one PRIME inference (default 300).
+    mixmhcpred_python : str, optional
+        Isolated Python interpreter for PRIME's nested MixMHCpred stages;
+        overrides ``MIXMHCPRED_PYTHON``. Host dependencies are unchanged.
     """
 
     def __init__(
@@ -73,7 +77,8 @@ class PRIME(BasePredictor):
             default_peptide_lengths=[9],
             program_name=None,
             mixmhcpred_path=None,
-            timeout=300):
+            timeout=300,
+            mixmhcpred_python=None):
         BasePredictor.__init__(
             self,
             alleles=alleles,
@@ -92,6 +97,27 @@ class PRIME(BasePredictor):
             raise ValueError("timeout must be greater than zero")
         self.timeout = timeout
         self._validated_mixmhcpred = None
+        self.mixmhcpred_python = mixmhcpred_python
+        self._mixmhcpred_runtime = None
+        self._runtime_resolved = False
+
+    @property
+    def mixmhcpred_runtime(self):
+        """Resolve the configured nested runtime before PRIME inference."""
+        if not self._runtime_resolved:
+            self._mixmhcpred_runtime = resolve_runtime(self.mixmhcpred_python)
+            self._runtime_resolved = True
+        return self._mixmhcpred_runtime
+
+    @property
+    def runtime_info(self):
+        """Report nested MixMHCpred version and configured dependency versions."""
+        executable, version = self._validate_mixmhcpred()
+        runtime = self.mixmhcpred_runtime
+        return dict(mixmhcpred_executable=executable, mixmhcpred_version=version,
+                    host_pandas_version=pd.__version__,
+                    backend=runtime.to_dict() if runtime else
+                    dict(selection="inherited upstream launcher; interpreter unverified"))
 
     def _validate_mixmhcpred(self):
         """Resolve and require the MixMHCpred generation PRIME supports."""
@@ -153,14 +179,15 @@ class PRIME(BasePredictor):
         with CleanupFiles(
                 filenames=[input_file_path, output_file_path, stdout_file_path],
                 directories=[temp_dir]):
-            with open(stdout_file_path, "w") as stdout_file:
+            with runtime_environment(self.mixmhcpred_runtime) as environment, open(stdout_file_path, "w") as stdout_file:
                 try:
                     run_command(
                         args,
                         suppress_stderr=False,
                         redirect_stdout_file=stdout_file,
                         timeout=self.timeout,
-                        terminate_process_group=True)
+                        terminate_process_group=True,
+                        env=environment)
                 except TimeoutExpired:
                     raise RuntimeError(
                         "PRIME timed out after %s seconds" % self.timeout)
