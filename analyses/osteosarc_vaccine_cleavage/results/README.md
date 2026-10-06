@@ -1,5 +1,12 @@
 # Generated vaccine-cleavage runs
 
+Additional site-level view:
+[`2026-10-06T120823-676672-0400-mechanisms`](2026-10-06T120823-676672-0400-mechanisms/).
+Its [PDF](2026-10-06T120823-676672-0400-mechanisms/cleavage-mechanisms.pdf) and
+[site table](2026-10-06T120823-676672-0400-mechanisms/cleavage_sites.csv)
+separate biological mechanisms, native scores, and motif evidence using the
+verified frozen predictions below. See [interpretation and reproduction](../SCORECARDS.md).
+
 Each invocation of `../analyze.py`, or of `../rerender.py` for a
 visualization-only revision, creates a new date/time-stamped child directory.
 Runs are immutable snapshots rather than a shared directory that later

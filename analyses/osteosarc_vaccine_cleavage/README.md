@@ -79,6 +79,17 @@ requires an explicit RNA routing policy. Cytosolic RNA emphasizes endogenous
 proteasome/ER/class-I processing and omits free serum-peptide tracks unless
 secretion or extracellular exposure is declared.
 
+## Site-level scores and mechanisms
+
+The [mechanism scorecards](SCORECARDS.md) provide an additional PDF and CSV
+view of the verified frozen predictions: exact cleavage sites and native
+scores per model, training endpoints, named enzyme attribution where known,
+internal versus exposed-terminal topology, and exposure assumptions. For this
+human dataset, Pepsickle human is preferred and all-mammal remains a separate
+comparison. The renderer can select all-mammal for other declared organism
+contexts. NetChop Cterm, NetChop 20S, DPP4, and categorical peptidase motifs
+retain their distinct biological meanings. Inference was not repeated.
+
 ## Scope
 
 - Inventory every disclosed vaccine sequence, separating mRNA encoded

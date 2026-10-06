@@ -1,0 +1,48 @@
+sequence_record_id,gene,vaccines,first_bond,last_bond,pdf_page
+ADGRF5-chr6-46856758:vaccine-peptide-1,ADGRF5,JLF V2,1,21,4
+BMP1-chr8-22192067:vaccine-peptide-3,BMP1,JLF V3,1,22,5
+BTD-chr3-15645183:vaccine-peptide-3,BTD,JLF V3;JLF V2;JLF V1,1,22,6
+CD109-chr6-73818405:vaccine-peptide-1,CD109,JLF V3,1,22,7
+CDC40-chr6-110228838:vaccine-peptide-3,CDC40,JLF V3,1,24,8
+CENPL-chr1-173811223:vaccine-peptide-1,CENPL,JLF V3,1,22,9
+CUL9-chr6-43186384:vaccine-peptide-1,CUL9,JLF V2,1,22,10
+DYNC1H1-chr14-101980529:vaccine-peptide-3,DYNC1H1,JLF V3;JLF V2,1,23,11
+DYNC1H1-chr14-101980529:vaccine-peptide-4,DYNC1H1,CeGaT,1,17,12
+EPG5-chr18-45925851:vaccine-peptide-1,EPG5,JLF V2,1,22,13
+EPG5-chr18-45925851:vaccine-peptide-2,EPG5,JLF V1,1,19,14
+EPG5-chr18-45925851:vaccine-peptide-3,EPG5,CeGaT,1,22,15
+EXOC4-chr7-133274996:vaccine-peptide-1,EXOC4,JLF V3;JLF V2,1,22,16
+EXOC4-chr7-133274996:vaccine-peptide-2,EXOC4,CeGaT,1,16,17
+GLIS3-chr9-3856149:vaccine-peptide-1,GLIS3,JLF V3,1,24,18
+GLIS3-chr9-3856149:vaccine-peptide-1,GLIS3,JLF V3,25,48,19
+GLIS3-chr9-3856149:vaccine-peptide-1,GLIS3,JLF V3,49,72,20
+GLIS3-chr9-3856149:vaccine-peptide-1,GLIS3,JLF V3,73,79,21
+H1_2-chr6-26055824:vaccine-peptide-1,H1-2,CeGaT,1,15,22
+KDM3B-chr5-138391529:vaccine-peptide-1,KDM3B,JLF V2;JLF V1,1,24,23
+KDM3B-chr5-138391529:vaccine-peptide-1,KDM3B,JLF V2;JLF V1,25,25,24
+KDM3B-chr5-138391529:vaccine-peptide-2,KDM3B,CeGaT,1,16,25
+KIF1C-chr17-5007293:vaccine-peptide-1,KIF1C,JLF V2;JLF V1,1,20,26
+MAP2-chr2-209694768:vaccine-peptide-3,MAP2,JLF V3,1,22,27
+MAP2-chr2-209694768:vaccine-peptide-4,MAP2,JLF V2;JLF V1,1,23,28
+MT_ND5-chrM-12994:vaccine-peptide-1,MT-ND5,CeGaT,1,16,29
+MYO15B-chr17-75589953:vaccine-peptide-1,MYO15B,JLF V2;JLF V1,1,16,30
+MYO9A-chr15-71994488:vaccine-peptide-1,MYO9A,JLF V2,1,24,31
+NME1-chr17-51154443:vaccine-peptide-1,NME1,CeGaT,1,12,32
+NR2F2-chr15-96332299:vaccine-peptide-1,NR2F2,JLF V2,1,24,33
+NR2F2-chr15-96332299:vaccine-peptide-1,NR2F2,JLF V2,25,25,34
+NR2F2-chr15-96332299:vaccine-peptide-2,NR2F2,CeGaT,1,16,35
+PIP5K1A-chr1-151242178:vaccine-peptide-3,PIP5K1A,JLF V3,1,19,36
+PTH1R-chr3-46898732:vaccine-peptide-1,PTH1R,JLF V3,1,22,37
+SLC25A12-chr2-171813470:vaccine-peptide-3,SLC25A12,JLF V2;JLF V1,1,24,38
+SLC25A12-chr2-171813470:vaccine-peptide-3,SLC25A12,JLF V2;JLF V1,25,25,39
+SLC25A12-chr2-171813470:vaccine-peptide-4,SLC25A12,CeGaT,1,16,40
+SMC5-chr9-70298024:vaccine-peptide-3,SMC5,JLF V3,1,20,41
+TECPR1-chr7-98241127:vaccine-peptide-3,TECPR1,JLF V3;JLF V2;JLF V1,1,21,42
+TECPR1-chr7-98241127:vaccine-peptide-4,TECPR1,JLF V2;JLF V1,1,16,43
+TECPR1-chr7-98241127:vaccine-peptide-5,TECPR1,CeGaT,1,15,44
+VPS13B-chr8-99861923:vaccine-peptide-1,VPS13B,JLF V3,1,20,45
+VPS13B-chr8-99861923:vaccine-peptide-2,VPS13B,CeGaT,1,19,46
+VPS72-chr1-151185547:vaccine-peptide-3,VPS72,JLF V3,1,24,47
+VPS72-chr1-151185547:vaccine-peptide-3,VPS72,JLF V3,25,26,48
+WWC1-chr5-168399513:vaccine-peptide-3,WWC1,JLF V3,1,19,49
+ZNF436-chr1-23362762:vaccine-peptide-3,ZNF436,CeGaT,1,15,50

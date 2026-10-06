@@ -72,10 +72,16 @@ by_protein = predictor.predict_proteins({"TP53": "MEEPQSDPSVEPPLSQETFS"},
 
 Without `c_flanks` the C-terminal position has no downstream context and
 scores 0.0, so a flank-free call is not a prediction that the peptide is not
-cleaved. Use `human_only=True` for the human-trained model, and
+cleaved. For a declared human organism context, prefer
+`Pepsickle(human_only=True)`; use `human_only=False` for nonhuman, mixed, or
+uncertain context. This is a population-selection policy, not an accuracy
+claim: [upstream](https://github.com/pdxgx/pepsickle) labels human-only
+experimental and notes its smaller training set. All-mammal does not establish
+validity for arbitrary non-mammalian organisms. Use
 `isolate_subprocess=True` to run inference in a subprocess (this avoids macOS
-OpenMP crashes). The same models, with explicit constitutive/immunoproteasome
-selection, are exposed per bond through the
+OpenMP crashes). The epitope models are proteasome-type agnostic. The separate
+digestion-trained families support explicit constitutive/immunoproteasome
+selection. These families are exposed per bond through the
 [cleavage API](../cleavage/models.md#proteasome-models).
 
 ## NetChop
@@ -104,6 +110,22 @@ predictor = NetChop()                       # NETCHOP_HOME / NETMHC_BUNDLE_HOME 
 results = predictor.predict(["SIINFEKL"], c_flanks=["GGG"])
 results[0].cleavage.score
 ```
+
+Choose the NetChop model for the endpoint being interpreted:
+
+| Model | Training endpoint | Interpretation |
+|---|---|---|
+| `NetChop(model_variant=0)` / Cterm 3.0 | MHC-I ligand C-termini | Ligand-boundary processing proxy; not an isolated protease assay |
+| `NetChop(model_variant=1)` / 20S 3.0 | In-vitro proteasome degradation | More direct proteasome-digestion model; no individual catalytic-subunit assignment |
+
+[DTU's model documentation](https://services.healthtech.dtu.dk/services/NetChop-3.1/)
+reports that Cterm performs best for CTL epitope boundaries. That performance
+statement does not establish better prediction of extracellular SLP turnover.
+The two scores can disagree because their training endpoints differ. Neither
+predicts DPP4 activity: DPP4's [qPISA model](../cleavage/models.md#human-dpp4-qpisa)
+assesses the exposed N-terminal dipeptide bond and reports log2 substrate
+depletion, rather than a NetChop score. Keep model, native units, bond topology,
+and exposure requirements together in site-level reports.
 
 ## NetCleave
 

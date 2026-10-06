@@ -744,7 +744,7 @@ def pepsickle_rows(
             {
                 "model": model_name,
                 "family": "Pepsickle",
-                "biological_context": "constitutive proteasome; in-vivo epitope-trained model",
+                "biological_context": "MHC-I epitope-trained processing model; proteasome-type agnostic",
                 "evidence_type": "quantitative_model",
                 "input_definition": "one score after each residue; terminal score excluded from internal-bond analysis",
                 "score_units": "native 0-1 cleavage score",
@@ -798,7 +798,7 @@ def netchop_rows(
     models: list[dict[str, Any]] = []
     unique_sequences = list(dict.fromkeys(records["sequence"]))
     for variant, suffix, context in (
-        (0, "cterm-3.0", "C-terminal epitope-trained proteasome model"),
+        (0, "cterm-3.0", "MHC-I ligand C-terminal processing proxy; not a purified-proteasome assay"),
         (1, "20s-3.0", "in-vitro 20S proteasome model"),
     ):
         model_name = f"netchop-3.1-{suffix}"
@@ -834,7 +834,7 @@ def netchop_rows(
                     {
                         "model": model_name,
                         "family": "NetChop",
-                        "biological_context": "proteasome/cytosol",
+                        "biological_context": context,
                         "score": score,
                         "score_units": "native 0-1 cleavage score",
                         "display_threshold": THRESHOLD,

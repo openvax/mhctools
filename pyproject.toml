@@ -71,6 +71,7 @@ mixtcrpred = [
 ]
 vaccine-report = [
   "matplotlib",
+  "reportlab",
 ]
 docs = [
   "mkdocs>=1.6,<2",
