@@ -172,12 +172,22 @@ See the [antigen processing guide](predictors/processing.md) for examples and mo
 
 | Predictor | MHC class | Input |
 |---|---|---|
+| [ITCell cathepsin profiles](cleavage/itcell.md) | none | canonical sequence; B/S internal, H initial N-terminal trimming |
 | [CleaveNet](cleavage/cleavenet.md) | none | whole substrates or ten-residue windows; dedicated native result |
 | [Pepsickle](predictors/processing.md#pepsickle) | none | peptides (flanks recommended) |
 | [NetChop](predictors/processing.md#netchop) | none | peptides (flanks recommended) |
 | [NetCleave](predictors/processing.md#netcleave) | I or II | peptides + C-terminal flank (>= 3 residues) |
 | [DeepTAP](predictors/processing.md#deeptap) | none | peptides only |
 | [ERAMER](predictors/processing.md#eramer) | none (class I context) | peptides only (9-16mer precursors) |
+
+### ITCell cathepsin profiles
+
+- Python classes: `ITCellCleavage`
+- CLI names: (none)
+- Prediction kinds: `endolysosomal_cleavage`
+- Default scanning lengths: 2+; missing flanks contribute zero as in author code
+- Installation: bundled human B/S/H profiles; no external runtime
+- License: open
 
 ### CleaveNet
 

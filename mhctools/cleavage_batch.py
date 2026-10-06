@@ -28,7 +28,7 @@ _COVERAGE_GAPS = {
         "Cytosolic peptidase rules are partial; THOP1/NLN entries are exact-source observations.",
     ],
     "apc": [
-        "No transferable cathepsin S/L/B or legumain/AEP model in the built-in panel (#470).",
+        "ITCell B/S internal and H initial-trimming profiles are assay-scoped; no CatL or legumain/AEP predictor (#470).",
         "IRAP is an exact-substrate reference, not prediction on new vaccine sequences.",
         "No uptake, endosomal escape, pH/activation or primary-DC presentation calibration.",
     ],

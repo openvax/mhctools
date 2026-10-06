@@ -1,0 +1,80 @@
+{
+  "source_repository": "https://github.com/salilab/itcell-lib",
+  "source_revision": "a1a373ae84cc5ebd0a56d07a6bbc83cbbc311bff",
+  "archive_url": "https://salilab.org/itcell-lib/libs.tar.xz",
+  "archive_sha256": "26131aa33ef39c162f893d43701d4c6934a6846137167c4dc3e8ae1ecf97d3b5",
+  "archive_record": "https://doi.org/10.5281/zenodo.3227044",
+  "license": "LGPL-2.1",
+  "copyright": "ITCell is Copyright 2018 Dina Schneidman-Duhovny",
+  "scoring_source": "scripts/predict_multiple_cathepsin_cleavage.pl",
+  "scoring_source_sha256": "408b73b10db1bfb0071307915278d8334f38435a854882723c7be9c7b54f4458",
+  "background_frequencies": {
+    "A": 0.0697,
+    "R": 0.0568,
+    "N": 0.0358,
+    "D": 0.0468,
+    "C": 0.0231,
+    "Q": 0.0471,
+    "E": 0.0695,
+    "G": 0.067,
+    "H": 0.0264,
+    "I": 0.0435,
+    "L": 0.0987,
+    "K": 0.0572,
+    "M": 0.022,
+    "F": 0.0364,
+    "P": 0.0637,
+    "S": 0.0825,
+    "T": 0.0534,
+    "W": 0.0127,
+    "Y": 0.0263,
+    "V": 0.06
+  },
+  "profiles": {
+    "catB_15_count.txt": {
+      "raw_counts": "G\t5\t1\t3\t6\t7\t3\t2\t0\nP\t5\t6\t3\t2\t1\t4\t1\t1\nA\t1\t1\t4\t4\t5\t7\t3\t4\nV\t5\t7\t7\t1\t4\t3\t1\t2\nL\t4\t8\t2\t3\t4\t3\t3\t3\nI\t7\t2\t5\t1\t6\t3\t0\t2\nM\t2\t10\t7\t8\t15\t6\t0\t1\nF\t7\t8\t6\t6\t5\t5\t1\t0\nY\t4\t7\t6\t4\t4\t5\t1\t0\nW\t6\t3\t5\t5\t6\t7\t2\t2\nS\t2\t2\t2\t5\t3\t1\t1\t1\nT\t2\t3\t3\t4\t5\t3\t2\t0\nC\tX\tX\tX\tX\tX\tX\tX\tX\nN\t4\t2\t2\t5\t7\t4\t0\t0\nQ\t7\t3\t5\t5\t8\t6\t1\t1\nD\t1\t1\t0\t3\t2\t3\t1\t0\nE\t0\t2\t4\t3\t0\t2\t2\t1\nK\t3\t3\t6\t8\t1\t0\t2\t0\nR\t7\t4\t8\t9\t0\t7\t3\t1\nH\t3\t3\t1\t5\t4\t5\t1\t2\n",
+      "sha256": "8735997b1e38fc5369d35951c3f36ef8422dc433b98a72ecb0d1c32d917f10a6",
+      "source_path": "libs/cleavage/catB_15_count.txt"
+    },
+    "catB_240_count.txt": {
+      "raw_counts": "G\t12\t7\t7\t16\t11\t10\t7\t2\nP\t13\t14\t8\t3\t3\t10\t4\t7\nA\t5\t6\t9\t11\t14\t11\t6\t8\nV\t11\t13\t20\t6\t13\t6\t6\t3\nL\t13\t16\t9\t10\t20\t12\t7\t5\nI\t14\t9\t14\t3\t12\t9\t2\t5\nM\t5\t20\t11\t26\t26\t17\t7\t4\nF\t12\t17\t13\t15\t19\t8\t8\t2\nY\t11\t14\t17\t9\t13\t10\t1\t0\nW\t13\t10\t11\t6\t14\t16\t6\t9\nS\t7\t6\t13\t10\t11\t7\t5\t1\nT\t10\t7\t9\t16\t11\t9\t8\t2\nC\tX\tX\tX\tX\tX\tX\tX\tX\nN\t7\t5\t8\t13\t13\t14\t3\t8\nQ\t11\t10\t14\t14\t14\t12\t5\t5\nD\t7\t5\t3\t10\t9\t8\t3\t1\nE\t5\t9\t8\t9\t5\t6\t4\t4\nK\t10\t11\t13\t19\t7\t6\t3\t3\nR\t13\t11\t15\t18\t3\t14\t8\t7\nH\t16\t10\t8\t14\t10\t11\t4\t3\n",
+      "sha256": "717bc9e308c9525eaedcb1c1070d71a4acbc87d186d0fc2831c942c1656cbaa5",
+      "source_path": "libs/cleavage/catB_240_count.txt"
+    },
+    "catB_60_count.txt": {
+      "raw_counts": "G\t6\t3\t5\t12\t10\t6\t2\t0\nP\t10\t9\t4\t1\t2\t6\t2\t3\nA\t4\t5\t6\t7\t10\t10\t3\t4\nV\t8\t9\t16\t3\t9\t4\t3\t2\nL\t8\t12\t7\t5\t13\t6\t3\t4\nI\t13\t2\t8\t2\t8\t7\t1\t3\nM\t2\t19\t8\t20\t20\t12\t2\t1\nF\t8\t15\t9\t6\t11\t5\t6\t1\nY\t9\t10\t10\t4\t10\t8\t1\t1\nW\t6\t5\t8\t7\t9\t11\t5\t4\nS\t6\t2\t7\t6\t5\t3\t2\t1\nT\t5\t7\t7\t12\t8\t5\t2\t3\nC\tX\tX\tX\tX\tX\tX\tX\tX\nN\t5\t3\t7\t7\t8\t7\t1\t0\nQ\t10\t8\t7\t9\t9\t9\t4\t4\nD\t3\t2\t3\t5\t4\t7\t1\t1\nE\t3\t4\t5\t5\t1\t4\t3\t2\nK\t8\t7\t7\t14\t3\t3\t2\t1\nR\t10\t8\t13\t15\t1\t8\t5\t3\nH\t7\t4\t2\t8\t7\t8\t1\t3\n",
+      "sha256": "cacee8aaa2fd149ababfe3819b8d7557b1307c376d580fb73e48f6721354b978",
+      "source_path": "libs/cleavage/catB_60_count.txt"
+    },
+    "catH_15_count.txt": {
+      "raw_counts": "G\tX\tX\tX\t6\t4\t5\t4\t6\nP\tX\tX\tX\t2\t5\t2\t5\t5\nA\tX\tX\tX\t3\t7\t5\t3\t4\nV\tX\tX\tX\t3\t2\t4\t4\t5\nL\tX\tX\tX\t6\t2\t6\t9\t1\nI\tX\tX\tX\t1\t3\t5\t2\t1\nM\tX\tX\tX\t5\t5\t6\t5\t4\nF\tX\tX\tX\t4\t2\t9\t6\t4\nY\tX\tX\tX\t4\t4\t2\t2\t3\nW\tX\tX\tX\t8\t5\t4\t2\t3\nS\tX\tX\tX\t2\t4\t6\t6\t3\nT\tX\tX\tX\t4\t3\t3\t5\t5\nC\tX\tX\tX\tX\tX\tX\tX\tX\nN\tX\tX\tX\t6\t6\t2\t4\t5\nQ\tX\tX\tX\t2\t4\t4\t4\t9\nD\tX\tX\tX\t1\t2\t2\t3\t1\nE\tX\tX\tX\t3\t2\t1\t1\t3\nK\tX\tX\tX\t5\t1\t1\t3\t5\nR\tX\tX\tX\t2\t2\t4\t0\t4\nH\tX\tX\tX\t6\t10\t2\t5\t2\n",
+      "sha256": "3d559953fa86961495b9e086b3d16c9436044eb30a46742475b9599f850554f6",
+      "source_path": "libs/cleavage/catH_15_count.txt"
+    },
+    "catH_240_count.txt": {
+      "raw_counts": "G\tX\tX\tX\t8\t5\t10\t3\t10\nP\tX\tX\tX\t2\t4\t4\t6\t7\nA\tX\tX\tX\t8\t10\t8\t5\t4\nV\tX\tX\tX\t4\t4\t7\t5\t7\nL\tX\tX\tX\t11\t6\t8\t10\t2\nI\tX\tX\tX\t2\t5\t6\t5\t3\nM\tX\tX\tX\t9\t8\t9\t8\t4\nF\tX\tX\tX\t6\t4\t8\t8\t7\nY\tX\tX\tX\t6\t7\t4\t5\t5\nW\tX\tX\tX\t10\t6\t6\t3\t9\nS\tX\tX\tX\t3\t6\t8\t9\t6\nT\tX\tX\tX\t5\t5\t3\t9\t7\nC\tX\tX\tX\tX\tX\tX\tX\tX\nN\tX\tX\tX\t7\t7\t5\t5\t6\nQ\tX\tX\tX\t3\t8\t6\t6\t10\nD\tX\tX\tX\t1\t4\t3\t5\t4\nE\tX\tX\tX\t3\t6\t2\t3\t4\nK\tX\tX\tX\t5\t3\t6\t7\t6\nR\tX\tX\tX\t8\t3\t5\t2\t6\nH\tX\tX\tX\t10\t10\t3\t7\t4\n",
+      "sha256": "a86e8d324a35d3b2ce71a4c6ddb08c2016afd9d45366997bc927316def98b9e0",
+      "source_path": "libs/cleavage/catH_240_count.txt"
+    },
+    "catH_60_count.txt": {
+      "raw_counts": "G\tX\tX\tX\t8\t3\t7\t3\t8\nP\tX\tX\tX\t2\t5\t3\t5\t7\nA\tX\tX\tX\t6\t8\t7\t4\t3\nV\tX\tX\tX\t3\t4\t7\t4\t6\nL\tX\tX\tX\t9\t5\t8\t9\t1\nI\tX\tX\tX\t1\t4\t5\t4\t3\nM\tX\tX\tX\t6\t6\t9\t7\t3\nF\tX\tX\tX\t5\t4\t9\t8\t6\nY\tX\tX\tX\t5\t5\t4\t4\t4\nW\tX\tX\tX\t8\t5\t5\t3\t5\nS\tX\tX\tX\t2\t5\t6\t7\t5\nT\tX\tX\tX\t5\t4\t3\t7\t6\nC\tX\tX\tX\tX\tX\tX\tX\tX\nN\tX\tX\tX\t6\t8\t4\t4\t6\nQ\tX\tX\tX\t2\t6\t3\t5\t8\nD\tX\tX\tX\t1\t3\t2\t4\t3\nE\tX\tX\tX\t4\t4\t2\t2\t4\nK\tX\tX\tX\t5\t2\t2\t4\t6\nR\tX\tX\tX\t6\t2\t4\t1\t6\nH\tX\tX\tX\t8\t9\t2\t7\t2\n",
+      "sha256": "ddde847a140a4ab344c85f1b2f1d5f2b2f263a34d4547fdde799746207508b85",
+      "source_path": "libs/cleavage/catH_60_count.txt"
+    },
+    "catS_15_count.txt": {
+      "raw_counts": "G\t7\t6\t3\t15\t15\t16\t10\t6\nP\t14\t14\t2\t0\t2\t11\t19\t16\nA\t10\t12\t5\t8\t14\t14\t14\t12\nV\t4\t5\t26\t0\t5\t8\t6\t16\nL\t4\t17\t52\t12\t18\t2\t13\t8\nI\t11\t10\t11\t2\t13\t16\t9\t10\nM\t6\t16\t36\t21\t18\t10\t12\t4\nF\t10\t12\t20\t9\t9\t13\t15\t6\nY\t9\t13\t16\t3\t13\t11\t16\t7\nW\t11\t14\t8\t10\t10\t16\t12\t10\nS\t9\t7\t3\t12\t13\t13\t4\t4\nT\t5\t10\t4\t20\t15\t13\t6\t8\nC\t0\t0\t0\t0\t0\t0\t0\t0\nN\t8\t9\t2\t13\t6\t8\t8\t5\nQ\t9\t8\t5\t19\t13\t11\t12\t9\nD\t9\t4\t0\t6\t9\t8\t4\t7\nE\t13\t3\t2\t8\t13\t5\t6\t12\nK\t8\t12\t1\t22\t6\t7\t8\t5\nR\t10\t14\t2\t24\t5\t10\t13\t8\nH\t10\t4\t0\t3\t10\t9\t3\t9\n",
+      "sha256": "b779df21cdc5592126135e9df5280349489831729ef325723f70b7cab7418be3",
+      "source_path": "libs/cleavage/catS_15_count.txt"
+    },
+    "catS_240_count.txt": {
+      "raw_counts": "G\t20\t19\t6\t36\t23\t32\t26\t19\nP\t31\t32\t10\t3\t6\t29\t36\t33\nA\t22\t26\t11\t26\t37\t31\t26\t23\nV\t17\t20\t53\t4\t16\t17\t16\t21\nL\t18\t34\t82\t30\t45\t14\t19\t16\nI\t18\t25\t40\t8\t30\t24\t16\t18\nM\t19\t31\t63\t42\t35\t33\t27\t13\nF\t21\t21\t48\t22\t25\t19\t26\t19\nY\t20\t26\t34\t16\t24\t21\t27\t10\nW\t22\t22\t37\t22\t27\t30\t38\t19\nS\t16\t24\t6\t26\t33\t28\t21\t12\nT\t19\t15\t11\t36\t25\t22\t15\t17\nC\t0\t0\t0\t0\t0\t0\t0\t0\nN\t22\t26\t7\t23\t16\t19\t19\t19\nQ\t20\t20\t19\t36\t27\t21\t19\t21\nD\t21\t11\t3\t18\t25\t15\t16\t23\nE\t22\t12\t13\t22\t29\t20\t20\t24\nK\t15\t25\t6\t46\t20\t25\t16\t16\nR\t20\t28\t7\t44\t15\t29\t23\t23\nH\t28\t16\t6\t16\t18\t20\t12\t19\n",
+      "sha256": "631720bd9cde2e8bb82add1416d9cc8c006277575c639cd924628a91ba091b75",
+      "source_path": "libs/cleavage/catS_240_count.txt"
+    },
+    "catS_60_count.txt": {
+      "raw_counts": "G\t13\t9\t3\t25\t21\t25\t15\t11\nP\t21\t21\t3\t0\t3\t16\t30\t25\nA\t15\t19\t5\t14\t29\t20\t22\t18\nV\t10\t11\t43\t1\t6\t12\t9\t16\nL\t7\t23\t65\t17\t25\t8\t15\t11\nI\t11\t15\t24\t3\t23\t20\t10\t15\nM\t13\t21\t48\t34\t24\t18\t19\t8\nF\t16\t16\t35\t17\t13\t16\t16\t14\nY\t13\t20\t24\t9\t14\t13\t20\t8\nW\t16\t17\t16\t12\t16\t19\t25\t15\nS\t11\t14\t6\t16\t20\t20\t16\t6\nT\t15\t12\t8\t26\t19\t17\t9\t14\nC\t0\t0\t0\t0\t0\t0\t0\t0\nN\t12\t18\t6\t19\t11\t15\t12\t11\nQ\t14\t13\t8\t28\t20\t14\t15\t13\nD\t16\t9\t1\t9\t16\t9\t10\t15\nE\t15\t7\t6\t11\t18\t13\t14\t19\nK\t11\t18\t2\t33\t11\t15\t10\t10\nR\t15\t23\t3\t34\t11\t21\t16\t16\nH\t18\t9\t0\t6\t14\t13\t7\t11\n",
+      "sha256": "0edeb753d01003ace6d906e5ad1bc6d663f400eb4d8325f6559c668889271cf3",
+      "source_path": "libs/cleavage/catS_60_count.txt"
+    }
+  }
+}

@@ -67,7 +67,8 @@ def test_compartments_separate_cytosolic_and_endosomal_enzymes():
     cytosolic = {r.model.enzyme for r in predict_cleavage("VPYGSFKHV", compartment="cytosol")}
     assert {"THOP1", "NLN"} <= cytosolic and "LNPEP" not in cytosolic
     endosomal = predict_cleavage("KSLYNTVATL", compartment="endosome")
-    assert [r.model.enzyme for r in endosomal] == ["LNPEP"]
+    assert {r.model.enzyme for r in endosomal} == {"LNPEP", "Cathepsin B", "Cathepsin S", "Cathepsin H"}
+    assert len(endosomal) == 10  # IRAP source lookup plus nine distinct real ITCell profiles.
     assert [s.bond for s in endosomal[0].sites] == [1]
     with pytest.raises(ValueError, match="not annotated"):
         predict_cleavage("KSLYNTVATL", models="thop1-observed", compartment="endosome")

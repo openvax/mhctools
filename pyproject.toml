@@ -7,7 +7,8 @@ name = "mhctools"
 dynamic = ["version"]
 description = "Python interface to MHC binding, presentation, immunogenicity, and antigen processing predictors"
 readme = { file = "README.md", content-type = "text/markdown" }
-license = "Apache-2.0"
+license = "Apache-2.0 AND LGPL-2.1-only"
+license-files = ["LICENSE", "mhctools/data/ITCELL_LICENSE.txt"]
 requires-python = ">=3.9"
 authors = [
   { name = "Alex Rubinsteyn", email = "alex@openvax.org" },
@@ -107,7 +108,7 @@ version = { attr = "mhctools.__version__" }
 packages = ["mhctools", "mhctools.cli", "mhctools.data"]
 
 [tool.setuptools.package-data]
-"mhctools.data" = ["*.json"]
+"mhctools.data" = ["*.json", "ITCELL_LICENSE.txt"]
 
 [tool.ruff]
 # Ruff's default rule selection changes between releases: 0.16 enabled a much

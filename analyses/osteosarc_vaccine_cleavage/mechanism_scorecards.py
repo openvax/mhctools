@@ -20,6 +20,7 @@ from xml.sax.saxutils import escape
 from display_labels import dpp4_loss_label
 from mhctools.eramer_cleavage import ERAMERCleavage
 from mhctools.peptidases import cleavage_models, get_cleavage_model
+from mhctools.itcell_cleavage import ITCELL_MODELS
 
 
 PDF_NAME = "cleavage-mechanisms.pdf"
@@ -133,6 +134,9 @@ def mechanism_catalog(source_catalog, organism):
                 topology, removed = "n_terminal", "2"
             elif name == "eramer-step":
                 topology, removed = "n_terminal", "1"
+            elif name in ITCELL_MODELS:
+                rule = get_cleavage_model(name)
+                topology, removed = rule.topology, str(rule.removed or "")
             else:
                 topology, removed = "whole_substrate_reference", ""
             exposure = "Requires enzyme access in " + route + "; location does not establish exposure"

@@ -54,9 +54,10 @@ C-terminal processing proxy, with at least three downstream residues. Its
 [paper](https://pubmed.ncbi.nlm.nih.gov/34162981/) reports weaker performance for
 class II than class I. It does not identify which cathepsin cuts the bond.
 
-For enzyme-specific APC questions, cathepsins and AEP/legumain are relevant,
-but mhctools currently has no transferable model for their activity on novel
-sequences. [Cathepsin S experiments](https://pubmed.ncbi.nlm.nih.gov/9616206/)
+For enzyme-specific APC questions, [ITCell](itcell.md) now provides human
+cathepsin B/S internal specificity and H initial N-terminal trimming under
+its published pH-6.5 assay scope. Cathepsin L and AEP/legumain prediction
+remain gaps. [Cathepsin S experiments](https://pubmed.ncbi.nlm.nih.gov/9616206/)
 establish a role in class II presentation; they do not validate a generic
 sequence-only predictor. Use the [curated reference panels](validation.md#apc-endolysosomal-enzymes)
 for their measured substrates and conditions. Keep these coverage gaps explicit

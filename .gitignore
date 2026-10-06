@@ -55,3 +55,6 @@ docs/_build/
 # PyBuilder
 target/
 site/
+
+# Patient-specific regenerated reports stay local unless separately published.
+analyses/osteosarc_vaccine_cleavage/local_results/
