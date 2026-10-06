@@ -90,7 +90,7 @@ def test_isolated_multi_allele_rows_motifs_and_cli_match_native(native_runtime, 
 
     csv_path = tmp_path / "cli.csv"
     main(["--mhc-predictor", "mixmhcpred", "--mhc-predictor-path", executable,
-          "--mixmhcpred-python", selected, "--mhc-alleles", *ALLELES,
+          "--mixmhcpred-python", selected, "--mhc-alleles", ",".join(ALLELES),
           "--input-peptides-file", peptide_file, "--output-csv", str(csv_path)])
     csv = pd.read_csv(csv_path)
     assert csv.peptide.tolist() == [peptide for peptide in PEPTIDES for _ in ALLELES]
