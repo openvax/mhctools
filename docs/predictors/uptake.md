@@ -86,6 +86,12 @@ overlap. Broader uptake and benchmark work remains in
 [#303](https://github.com/openvax/mhctools/issues/303) and
 [#291](https://github.com/openvax/mhctools/issues/291).
 
+Use the [released CPP split audit](../benchmarks.md#released-cpp-split-audit-and-reproduction)
+to verify all source IDs, overlap and length coverage, or reproduce native
+scores on the full validation split or an explicitly selected cohort.
+Original cell types, experimental chemical forms and assay conditions remain
+unknown; source-label performance cannot establish primary-DC delivery.
+
 Native source scores are compared within the same runtime at absolute
 tolerance `1e-10`. Saved CPU controls use `1e-5` absolute tolerance across
 platforms because float32 ESM2 embeddings differ slightly between CPU/library

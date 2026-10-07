@@ -1,0 +1,338 @@
+{
+  "schema_version": 1,
+  "notice": "Released source-label reproduction, not independent external validation. The publication reports validation-based model selection. Unknown original assays and chemical forms remain unknown; a CPP label or P(CPP) is not a physical uptake fraction, primary-DC delivery or antigen presentation. Exact-sequence nonoverlap does not certify study/family independence.",
+  "command": "mhctools benchmark --peptiverse-cpp-metadata permeability_meta_with_split.csv --predict-cpp --out cpp-source-reproduction.json",
+  "mhctools_version": "3.47.11",
+  "evaluator_sha256": "84613a42de36ad029de7a22dbe897d776131113bc323aa1434151bd605353982",
+  "runtime": {
+    "python": "3.11.10",
+    "platform": "Darwin",
+    "machine": "arm64",
+    "packages": {
+      "torch": "2.14.0",
+      "transformers": "4.46.0",
+      "scikit-learn": "1.7.2",
+      "numpy": "2.4.6"
+    }
+  },
+  "source_audit": {
+    "source": "https://huggingface.co/ChatterjeeLab/PeptiVerse/resolve/8cf0b21dae356278ae96b414a088e4360357d16c/training_data_cleaned/permeability_penetrance/permeability_meta_with_split.csv",
+    "sha256": "c924f1b92fac14f2007afb1b4b3641047896219a17a5780beb865ee0f4b35ec8",
+    "source_revision": "8cf0b21dae356278ae96b414a088e4360357d16c",
+    "records": 2324,
+    "splits": {
+      "train": {
+        "records": 1859,
+        "unique_sequences": 1859,
+        "labels": {
+          "0": 918,
+          "1": 941
+        },
+        "min_length": 3,
+        "max_length": 61,
+        "length_counts": {
+          "3": 1,
+          "4": 4,
+          "5": 24,
+          "6": 27,
+          "7": 22,
+          "8": 44,
+          "9": 43,
+          "10": 69,
+          "11": 71,
+          "12": 149,
+          "13": 96,
+          "14": 86,
+          "15": 135,
+          "16": 128,
+          "17": 77,
+          "18": 121,
+          "19": 65,
+          "20": 71,
+          "21": 48,
+          "22": 54,
+          "23": 46,
+          "24": 47,
+          "25": 49,
+          "26": 54,
+          "27": 57,
+          "28": 30,
+          "29": 54,
+          "30": 41,
+          "31": 13,
+          "32": 13,
+          "33": 19,
+          "34": 30,
+          "35": 10,
+          "36": 8,
+          "37": 11,
+          "38": 12,
+          "39": 6,
+          "40": 4,
+          "41": 5,
+          "42": 1,
+          "43": 4,
+          "44": 1,
+          "45": 1,
+          "47": 1,
+          "48": 1,
+          "49": 2,
+          "51": 1,
+          "58": 1,
+          "60": 1,
+          "61": 1
+        },
+        "records_with_unknown_metadata": {
+          "study": 1859,
+          "assay": 1859,
+          "chemical_form": 1859,
+          "species": 1859,
+          "matrix": 1859,
+          "cell_type": 1859,
+          "family": 1859,
+          "concentration": 1859,
+          "exposure_time": 1859,
+          "internalization_readout": 1859
+        }
+      },
+      "val": {
+        "records": 465,
+        "unique_sequences": 465,
+        "labels": {
+          "0": 244,
+          "1": 221
+        },
+        "min_length": 3,
+        "max_length": 52,
+        "length_counts": {
+          "3": 1,
+          "4": 2,
+          "5": 6,
+          "6": 11,
+          "7": 11,
+          "8": 7,
+          "9": 18,
+          "10": 20,
+          "11": 17,
+          "12": 34,
+          "13": 29,
+          "14": 16,
+          "15": 35,
+          "16": 30,
+          "17": 22,
+          "18": 18,
+          "19": 11,
+          "20": 21,
+          "21": 13,
+          "22": 8,
+          "23": 8,
+          "24": 15,
+          "25": 14,
+          "26": 7,
+          "27": 11,
+          "28": 16,
+          "29": 8,
+          "30": 15,
+          "31": 2,
+          "32": 1,
+          "33": 9,
+          "34": 9,
+          "35": 2,
+          "36": 2,
+          "37": 1,
+          "38": 5,
+          "39": 1,
+          "40": 2,
+          "42": 2,
+          "43": 1,
+          "45": 1,
+          "47": 2,
+          "52": 1
+        },
+        "records_with_unknown_metadata": {
+          "study": 465,
+          "assay": 465,
+          "chemical_form": 465,
+          "species": 465,
+          "matrix": 465,
+          "cell_type": 465,
+          "family": 465,
+          "concentration": 465,
+          "exposure_time": 465,
+          "internalization_readout": 465
+        }
+      }
+    },
+    "duplicate_source_ids": 0,
+    "duplicate_sequences": 0,
+    "conflicting_label_sequences": 0,
+    "exact_sequence_overlap_count": 0,
+    "study_overlap": "unknown",
+    "family_overlap": "unknown",
+    "chemical_form_overlap": "unknown",
+    "original_assay_metadata": "unknown",
+    "notice": "Released source-label reproduction, not independent external validation. The publication reports validation-based model selection. Unknown original assays and chemical forms remain unknown; a CPP label or P(CPP) is not a physical uptake fraction, primary-DC delivery or antigen presentation. Exact-sequence nonoverlap does not certify study/family independence."
+  },
+  "cohort": {
+    "validation_records": 465,
+    "selected_records": 465,
+    "full_validation_cohort": true,
+    "status_counts": {
+      "scored": 465
+    },
+    "scored_records": 465,
+    "native_threshold": 0.5493,
+    "native_threshold_confusion": {
+      "tp": 203,
+      "tn": 231,
+      "fp": 13,
+      "fn": 18
+    }
+  },
+  "validation_ids_sha256": "d549853e3b524c181e986c70725238b4d6994c5acd1c77fb39863a62cc0c3e82",
+  "model_input_assumption": "Canonical L sequence with free termini for source-model reproduction; original measured chemical form is unknown",
+  "artifact_inventory": {
+    "spec": {
+      "name": "peptiverse-cpp",
+      "endpoint": "canonical_cpp_classification",
+      "developed_against": "peptiverse@8cf0b21dae356278ae96b414a088e4360357d16c+esm2@08e4846e537177426273712802403f7ba8261b6c",
+      "license": "PeptiVerse: Apache-2.0/MIT ambiguity; ESM2: MIT",
+      "serialization": "joblib pickle SVC + safetensors/torch embedding weights",
+      "entry_point": "prediction_only",
+      "supported_platforms": [
+        "linux",
+        "macos"
+      ],
+      "supported_interpreters": [
+        "Python 3.11; scikit-learn 1.7.2"
+      ],
+      "network_policy": "offline"
+    },
+    "settings": {
+      "device": "cpu",
+      "embedding_model": "facebook/esm2_t33_650M_UR50D",
+      "max_peptide_length": "1020",
+      "model_variant": "svm_gpu_wt (CPU sklearn SVC)",
+      "output_semantics": "P(CPP) class score; no physical uptake value",
+      "scikit_learn": "1.7.2",
+      "threshold": "0.5493",
+      "uncertainty": "False"
+    },
+    "artifact_status": "verified",
+    "inference_status": "reproduced",
+    "capability": "inference_reproduced",
+    "identity_sha256": "c736ac84868dc61be2f1b06a23e8613e3a0fb5b2efeac0e057e4243c17bf1f05",
+    "predictor_version": "developed-against=peptiverse@8cf0b21dae356278ae96b414a088e4360357d16c+esm2@08e4846e537177426273712802403f7ba8261b6c;assets-sha256=c736ac84868dc61be2f1b06a23e8613e3a0fb5b2efeac0e057e4243c17bf1f05;status=verified"
+  },
+  "artifacts": [
+    {
+      "name": "peptiverse/inference.py",
+      "role": "inference_and_feature_code",
+      "sha256": "b899369f020cc73f939a7113fd9aff471a923b109e77ae88c22aa706e66d119a",
+      "size": 52872,
+      "expected_sha256": "b899369f020cc73f939a7113fd9aff471a923b109e77ae88c22aa706e66d119a",
+      "status": "verified",
+      "serialization": "python_source"
+    },
+    {
+      "name": "peptiverse/training_classifiers/permeability_penetrance/svm_gpu_wt/best_model.joblib",
+      "role": "cpp_classification_weights",
+      "sha256": "087f7c6aa5545eb6ef555c9de10cd2fd5cc84cd44c31601e2ee6ee017a9c7277",
+      "size": 13750027,
+      "expected_sha256": "087f7c6aa5545eb6ef555c9de10cd2fd5cc84cd44c31601e2ee6ee017a9c7277",
+      "status": "verified",
+      "serialization": "joblib_pickle"
+    },
+    {
+      "name": "peptiverse/best_models.txt",
+      "role": "native_endpoint_thresholds",
+      "sha256": "8a515bd115bcc7a6e4ccd6ecba76ed2b66eaf767e66fa3de5ae1c1111ebb90f9",
+      "size": 668,
+      "expected_sha256": "8a515bd115bcc7a6e4ccd6ecba76ed2b66eaf767e66fa3de5ae1c1111ebb90f9",
+      "status": "verified",
+      "serialization": "text"
+    },
+    {
+      "name": "esm2/config.json",
+      "role": "embedding_model_configuration",
+      "sha256": "539095c22efc52a09d6147074ba4ca119f76a890df5901213b2b55f7d2f96b2b",
+      "size": 724,
+      "expected_sha256": "539095c22efc52a09d6147074ba4ca119f76a890df5901213b2b55f7d2f96b2b",
+      "status": "verified",
+      "serialization": "json"
+    },
+    {
+      "name": "esm2/tokenizer_config.json",
+      "role": "tokenizer_configuration",
+      "sha256": "7e9161ecdb548ec45a41cbc6b24aa4476fdd418461f491c4207baa99419a29ad",
+      "size": 95,
+      "expected_sha256": "7e9161ecdb548ec45a41cbc6b24aa4476fdd418461f491c4207baa99419a29ad",
+      "status": "verified",
+      "serialization": "json"
+    },
+    {
+      "name": "esm2/special_tokens_map.json",
+      "role": "tokenizer_configuration",
+      "sha256": "3aedcd4211c0d43aec4e607ff60a63255f3174ead795e997350f09a5f8cd9ee1",
+      "size": 125,
+      "expected_sha256": "3aedcd4211c0d43aec4e607ff60a63255f3174ead795e997350f09a5f8cd9ee1",
+      "status": "verified",
+      "serialization": "json"
+    },
+    {
+      "name": "esm2/vocab.txt",
+      "role": "tokenizer_vocabulary",
+      "sha256": "0b82cc0a7c7cf9e567b1e5892d793285b9fbae822c964ca48696f7db44598e03",
+      "size": 93,
+      "expected_sha256": "0b82cc0a7c7cf9e567b1e5892d793285b9fbae822c964ca48696f7db44598e03",
+      "status": "verified",
+      "serialization": "text"
+    },
+    {
+      "name": "esm2/model.safetensors",
+      "role": "embedding_model_weights",
+      "sha256": "a08adabb949fa67ad3c14b509d04fd60368b35007b0095e3358f81200c4f4db0",
+      "size": 2609506392,
+      "expected_sha256": "a08adabb949fa67ad3c14b509d04fd60368b35007b0095e3358f81200c4f4db0",
+      "status": "verified",
+      "serialization": "safetensors"
+    }
+  ],
+  "descriptive_metrics": {
+    "brier": 0.06989026758448927
+  },
+  "requested_domains": [
+    {
+      "requested": {
+        "name": "beyond released training lengths",
+        "min_length": 62
+      },
+      "measurement_count": 0,
+      "unique_sequences": 0,
+      "comparable_prediction_count": 0,
+      "evidence": "no_evidence_in_supplied_data"
+    },
+    {
+      "requested": {
+        "name": "primary human DC cytosolic delivery",
+        "species": "Homo sapiens",
+        "cell_type": "primary dendritic cell",
+        "endpoint": "cytosolic_delivery"
+      },
+      "measurement_count": 0,
+      "unique_sequences": 0,
+      "comparable_prediction_count": 0,
+      "evidence": "no_evidence_in_supplied_data"
+    },
+    {
+      "requested": {
+        "name": "productive antigen presentation",
+        "endpoint": "antigen_presentation"
+      },
+      "measurement_count": 0,
+      "unique_sequences": 0,
+      "comparable_prediction_count": 0,
+      "evidence": "no_evidence_in_supplied_data"
+    }
+  ]
+}
