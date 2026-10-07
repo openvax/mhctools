@@ -101,6 +101,10 @@ The script verifies all four source hashes, executes the unchanged JavaScript
 with a controlled DOM and no external I/O, and retains observed panel data.
 Node is only needed for fixture regeneration, never for prediction or tests.
 
+See [target-preserving degradation scenarios](../target-degradation.md) to follow
+an exact epitope through successive fragment cuts, with separate estimators and
+explicit cut-location assumptions.
+
 ## PeptiVerse
 
 [Cell penetration classification](uptake.md#peptiverse-cpp) uses a separate

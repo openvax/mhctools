@@ -67,6 +67,15 @@ from .peptiverse import PeptiVerse
 from .peptiverse_cpp import PeptiVerseCPP
 from .plifepred2 import PlifePred2
 from .cavaco import CavacoHalfLife
+from .serum_degradation import (
+    DegradationTarget as DegradationTarget,
+    TargetFragment as TargetFragment,
+    DegradationStep as DegradationStep,
+    DegradationPath as DegradationPath,
+    target_fragments as target_fragments,
+    simulate_target_degradation as simulate_target_degradation,
+    degradation_curve as degradation_curve,
+)
 from .cleavage import CleavageInput, CleavageModel, CleavageSite, CleavageResult
 from .cleavage_batch import (
     cleavage_overlays, load_cleavage_batch, normalize_cleavage_input,
@@ -155,7 +164,7 @@ def __getattr__(name):
     raise AttributeError(
         "module %r has no attribute %r" % (__name__, name))
 
-__version__ = "3.47.11"
+__version__ = "3.47.12"
 
 __all__ = [
     "CleaveNet",
@@ -223,6 +232,13 @@ __all__ = [
     "PeptiVerseCPP",
     "PlifePred2",
     "CavacoHalfLife",
+    "DegradationTarget",
+    "TargetFragment",
+    "DegradationStep",
+    "DegradationPath",
+    "target_fragments",
+    "simulate_target_degradation",
+    "degradation_curve",
     "CleavageInput",
     "CleavageModel",
     "CleavageSite",
