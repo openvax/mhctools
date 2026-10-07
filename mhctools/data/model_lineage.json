@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "curation_date": "2026-09-09",
+  "curation_date": "2026-10-06",
   "notice": "Relationship inventory, not an independently validated benchmark. Unknown row-level lineage remains unknown. No third-party raw datasets are redistributed.",
   "models": [
     {
@@ -163,6 +163,28 @@
       "unresolved": [
         "Independent assay-level holdout membership",
         "Allotype and chemistry generalization"
+      ]
+    },
+    {
+      "model": "peptiverse-cpp",
+      "source": "https://doi.org/10.1038/s41467-026-74167-w",
+      "provenance": "partial",
+      "datasets": [
+        "PeptiVerse canonical CPP metadata@8cf0b21dae356278ae96b414a088e4360357d16c"
+      ],
+      "endpoints": [
+        "cpp_classification"
+      ],
+      "known_relationships": [
+        "Released metadata supplies 1859 training and 465 validation sequence IDs and labels",
+        "No exact sequence overlap in the pinned splits; publication describes similarity-aware splitting and validation-based model selection",
+        "Source-label reproduction is separate from an independent experimental benchmark"
+      ],
+      "unresolved": [
+        "Original row-level study/assay, chemical-form, species, cell-type and measurement lineage",
+        "Actual CPP family/cluster memberships and reproducible split preprocessing",
+        "Validation on long constructs, primary human DCs, cytosolic delivery and antigen presentation",
+        "Separate raw-dataset redistribution grant; no raw CPP dataset bundled"
       ]
     }
   ]

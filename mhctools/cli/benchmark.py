@@ -31,15 +31,28 @@ def main(argv=None):
                            "inventory and exit")
     mode.add_argument("--reference-cleavage", nargs="?", const="starter", choices=tuple(REFERENCE_PANELS),
                       help="Run a source-linked reproduction panel (default: starter)")
+    mode.add_argument("--peptiverse-cpp-metadata", help="Audit the pinned local CPP split CSV")
+    parser.add_argument("--predict-cpp", action="store_true",
+                        help="Opt into offline native CPP source-label reproduction")
+    parser.add_argument("--source-id", action="append",
+                        help="Select a validation source ID for a partial CPP prediction cohort (repeatable)")
     parser.add_argument("--model", action="append", help="Run an exact cleavage model against site records")
     parser.add_argument("--evaluation", choices=("external_validation", "reproduction"), default="external_validation",
                        help="How to label the run for --input data "
-                            "(default: %(default)s). --reference-cleavage is "
-                            "always reported as reproduction.")
+                            "(default: %(default)s). --reference-cleavage "
+                            "and --peptiverse-cpp-metadata are always reproduction.")
     parser.add_argument("--out", help="Write JSON to this path instead of stdout")
     args = parser.parse_args(argv)
     try:
-        if args.lineage_inventory:
+        if (args.predict_cpp or args.source_id) and not args.peptiverse_cpp_metadata:
+            parser.error("--predict-cpp and --source-id require --peptiverse-cpp-metadata")
+        if args.peptiverse_cpp_metadata:
+            if args.model:
+                parser.error("--model cannot be combined with --peptiverse-cpp-metadata")
+            from mhctools.peptiverse_cpp_benchmark import evaluate_cpp_metadata
+            result = evaluate_cpp_metadata(args.peptiverse_cpp_metadata,
+                                          predict=args.predict_cpp, source_ids=args.source_id)
+        elif args.lineage_inventory:
             if args.model:
                 parser.error("--model cannot be combined with --lineage-inventory")
             result = model_lineage_inventory()

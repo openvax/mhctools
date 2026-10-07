@@ -103,6 +103,73 @@ missing evidence. A length restriction is a user-selected target population,
 not a learned applicability threshold. The supplied reference set reports no
 human serum half-life or primary-DC cytosolic-delivery observations.
 
+## Released CPP split audit and reproduction
+
+The PeptiVerse command consumes a **local** copy of the exact released CPP
+metadata. It verifies SHA-256 before any model is loaded. Obtain it separately;
+the raw dataset is not bundled with mhctools:
+
+```sh
+curl -fL -o permeability_meta_with_split.csv \
+  https://huggingface.co/ChatterjeeLab/PeptiVerse/resolve/8cf0b21dae356278ae96b414a088e4360357d16c/training_data_cleaned/permeability_penetrance/permeability_meta_with_split.csv
+mhctools benchmark --peptiverse-cpp-metadata permeability_meta_with_split.csv \
+  --out cpp-audit.json
+```
+
+The expected file hash is
+`c924f1b92fac14f2007afb1b4b3641047896219a17a5780beb865ee0f4b35ec8`.
+Audit-only mode needs no ML runtime and runs no predictions. For optional
+offline source-label reproduction, provision the
+[CPP runtime and weights](predictors/uptake.md#peptiverse-cpp), then run:
+
+```sh
+mhctools benchmark --peptiverse-cpp-metadata permeability_meta_with_split.csv \
+  --predict-cpp --out cpp-source-reproduction.json
+# A small smoke cohort, explicitly reported as partial:
+mhctools benchmark --peptiverse-cpp-metadata permeability_meta_with_split.csv \
+  --predict-cpp --source-id seq_6 --source-id seq_7 --out cpp-partial.json
+```
+
+All 1,859 training and 465 validation records are audited. The splits have
+no duplicate sequences, conflicting labels or exact sequence overlap.
+Training lengths span 3–61 residues; validation lengths span 3–52, with 56
+validation records at least 30 residues long. Original assay, study, chemical
+form, species, matrix, cell type and family assignments are absent from this
+four-column file. The report leaves them unknown. A generic released split
+script demonstrates non-fouling preprocessing; it does not establish the
+actual CPP cluster assignments. Exact nonoverlap alone cannot certify
+study/family independence.
+
+Every validation ID remains in the report, including rows outside a selected
+cohort, unsupported inputs and runtime failures. Probability metrics reproduce
+the source CPP labels; confusion counts use the native **0.5493** threshold.
+The classifier's canonical/free-terminus input assumption is reported
+separately from unknown experimental chemistry. No score is interpreted as a
+physical uptake fraction, and predictive entropy is not an accuracy interval.
+The output includes source/evaluator hashes, mhctools version and, after
+successful prediction, the adapter's asset inventory.
+
+The [recorded full-split CPU run](https://github.com/openvax/mhctools/blob/master/tests/data/peptiverse_cpp_validation_summary.json)
+scored **465/465** validation records with no failures or unsupported inputs.
+At the native threshold, it produced 203 true positives, 231 true negatives,
+13 false positives and 18 false negatives against the released labels;
+descriptive Brier score was **0.06989**. This aggregate record includes source,
+evaluator and asset hashes and runtime versions, without redistributing raw
+sequences or labels. Routine CI audits the full metadata and scores three
+validation records; it does not repeat the full CPU run. Small cross-platform
+embedding differences can affect scores, so this record is run evidence,
+not a demand for bitwise equality on another CPU stack.
+
+This is **source-label reproduction**, always reported as such, even if
+`--evaluation external_validation` is supplied. The
+[publication](https://doi.org/10.1038/s41467-026-74167-w) describes selection on
+validation performance; this is not a newly untouched experimental test set.
+Requested-domain reports find no verified primary human DC cytosolic-delivery,
+antigen-presentation or beyond-training-length (62+ residue) evidence in these
+metadata. That means evidence is missing, not that these biological processes
+cannot occur. Broad [#291](https://github.com/openvax/mhctools/issues/291) and
+[#302](https://github.com/openvax/mhctools/issues/302) validation work remains open.
+
 ## Dataset/model lineage inventory
 
 The installed [inventory](https://github.com/openvax/mhctools/blob/master/mhctools/data/model_lineage.json) records sources,
@@ -125,6 +192,9 @@ have independent training data:
   sets and adds CPPsite2.0 data. Some negative CPP labels are generated rather
   than experimentally observed. This shared ancestry with POSEIDON requires
   row-level auditing before claiming an independent comparison.
+- [PeptiVerse](https://doi.org/10.1038/s41467-026-74167-w) releases CPP training
+  and validation sequence membership. Its missing assay/chemical-form/family
+  metadata limits the audit above to source-label reproduction.
 - qPISA coefficient reproduction and [ERAMER](predictors/processing.md#eramer) adapter agreement are documented
   in the [peptidase activity guide](cleavage/index.md); their reproduction is separate from
   new assay validation.
