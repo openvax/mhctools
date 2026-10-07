@@ -19,6 +19,7 @@ Each row links to the full explanation in context.
 | [PlifePred2](predictors/peptide-pk.md#plifepred2) | Endpoint semantics are not established; units, transform, species and matrix are all inferred | [notes](predictors/peptide-pk.md#plifepred2) |
 | [Cavaco](predictors/peptide-pk.md#cavaco) | Published equation with explicit app-descriptor choice; mixed assay matrix; source-panel reproduction does not establish long-vaccine accuracy | [notes](predictors/peptide-pk.md#cavaco) |
 | [PeptiVerse](predictors/peptide-pk.md#peptiverse) | Fit on 130 examples, cross-validation only, no external test set; unsafe pickle serialization | [notes](predictors/peptide-pk.md#peptiverse) |
+| [PeptiVerse CPP](predictors/uptake.md#peptiverse-cpp) | Native CPP class score, not delivery fraction; training lengths 3-61, long-vaccine accuracy unestablished; exact sklearn 1.7.2 required | [notes](predictors/uptake.md#peptiverse-cpp) |
 | [NetCleave](predictors/processing.md#netcleave) (class II) | Class-II C-terminal cleavage is a much weaker signal than class I (AUC ~0.66 vs ~0.91) | [notes](predictors/processing.md#netcleave) |
 | [DeepTAP](predictors/processing.md#deeptap) | Self-reported evaluation; no independent TAP benchmark exists for any tool | [notes](predictors/processing.md#deeptap) |
 | [ERAMER](predictors/processing.md#eramer) | Self-reported evaluation; ERAP1 trimming is intrinsically noisy | [notes](predictors/processing.md#eramer) |

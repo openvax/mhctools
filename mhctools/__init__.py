@@ -64,6 +64,7 @@ from .calis import Calis
 from .eramer import ERAMER
 from .deepimmuno import DeepImmuno
 from .peptiverse import PeptiVerse
+from .peptiverse_cpp import PeptiVerseCPP
 from .plifepred2 import PlifePred2
 from .cavaco import CavacoHalfLife
 from .cleavage import CleavageInput, CleavageModel, CleavageSite, CleavageResult
@@ -154,7 +155,7 @@ def __getattr__(name):
     raise AttributeError(
         "module %r has no attribute %r" % (__name__, name))
 
-__version__ = "3.47.9"
+__version__ = "3.47.10"
 
 __all__ = [
     "CleaveNet",
@@ -219,6 +220,7 @@ __all__ = [
     "ERAMER",
     "DeepImmuno",
     "PeptiVerse",
+    "PeptiVerseCPP",
     "PlifePred2",
     "CavacoHalfLife",
     "CleavageInput",

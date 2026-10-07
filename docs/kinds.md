@@ -175,6 +175,7 @@ that `kind_support()` reports for each kind, which can differ by mode.
 | `TLimmuno2` | `immunogenicity` | `single_allele` | `II` |
 | `Calis` | `immunogenicity` | `none` | `I` |
 | `PeptiVerse`, `PlifePred2` | `peptide_half_life` | `none` | `none` |
+| `PeptiVerseCPP` | `cpp_classification` | `none` | `none` |
 
 ## Whole-substrate scores
 

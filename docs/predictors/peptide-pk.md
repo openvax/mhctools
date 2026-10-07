@@ -103,6 +103,9 @@ Node is only needed for fixture regeneration, never for prediction or tests.
 
 ## PeptiVerse
 
+[Cell penetration classification](uptake.md#peptiverse-cpp) uses a separate
+`PeptiVerseCPP` adapter and returns a class score with no physical uptake value.
+
 [PeptiVerse](#peptiverse) wraps one endpoint of the upstream multi-property platform. Its
 dependencies (torch, `transformers==4.46.0`, xgboost, lightning, and ESM2) stay
 out of the mhctools environment: inference runs offline in a subprocess under

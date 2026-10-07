@@ -374,6 +374,23 @@ See the [peptide half-life guide](predictors/peptide-pk.md) for examples and mod
 - Installation: `plifepred2==1.0` + Pfeature (`PLIFEPRED2_HOME`, `PFEATURE_HOME`)
 - License: open
 
+## Cell penetration classification
+
+See the [cell penetration classification guide](predictors/uptake.md) for examples and model notes.
+
+| Predictor | MHC class | Input |
+|---|---|---|
+| [PeptiVerse CPP](predictors/uptake.md#peptiverse-cpp) | none | canonical sequence; native CPP class score |
+
+### PeptiVerse CPP
+
+- Python classes: `PeptiVerseCPP`
+- CLI names: `peptiverse-cpp`
+- Prediction kinds: `cpp_classification`
+- Default scanning lengths: 1-1020 computational capacity; source training lengths 3-61
+- Installation: pinned PeptiVerse/ESM2 snapshots + isolated scikit-learn 1.7.2
+- License: open
+
 ## License tiers
 
 | Tier | Meaning |

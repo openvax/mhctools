@@ -47,6 +47,7 @@ misconfiguration.
 |---|---|---|
 | [MixMHCpred](predictors/binding.md#mixmhcpred), [PRIME](predictors/immunogenicity.md#prime) | `gfeller` | `pytest tests/test_mixmhcpred_runtime_integration.py tests/test_mixmhcpred.py tests/test_prime.py --require-all` |
 | [PhageScout](cleavage/phagescout.md) full DESeq2 tables | `phagescout` | `pytest tests/test_phagescout_full_profiles.py --require-all` |
+| [PeptiVerse half-life](predictors/peptide-pk.md#peptiverse) and [CPP classification](predictors/uptake.md#peptiverse-cpp), [PlifePred2](predictors/peptide-pk.md#plifepred2) | `half-life` | `pytest tests/test_peptiverse.py tests/test_peptiverse_cpp.py tests/test_plifepred2.py --require-all` |
 | [Pepsickle](predictors/processing.md#pepsickle) gradient-boosted | `pepsickle` | `pytest tests/test_pepsickle_legacy.py tests/test_pepsickle_runtime.py --require-all` |
 | [SMM](predictors/binding.md#smm-and-smm-pmbec), [SMM-PMBEC](predictors/binding.md#smm-and-smm-pmbec) | `smm` | `python -m pytest tests/test_smm.py tests/test_smm_integration.py --require-all` |
 | [NetTCR](predictors/tcr.md#nettcr) (LiteRT) | `nettcr` | `python -m pytest tests/test_nettcr.py --require-all -W error` |
@@ -55,6 +56,10 @@ misconfiguration.
 
 Notes on what CI asserts:
 
+- **PeptiVerse CPP:** the original CPU SVC runs under scikit-learn 1.7.2.
+  Direct native API scores, class labels, threshold and entropy agree with
+  the adapter, including duplicates; five fixed source controls are replayed.
+  This is source conformance, not independent biological validation.
 - **MixMHCpred and PRIME:** the host uses pandas 3 and the isolated backend
   uses pandas below 3. Unmodified native launchers provide reference scores
   for multi-allele rows, duplicate peptides, sequence alignment, motifs/HTML,

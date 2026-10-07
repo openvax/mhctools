@@ -84,6 +84,12 @@ weights, configuration, and tokenizer files. Its manifest names
 sidecar replaces the two unused SMILES embedders so prediction cannot trigger
 PeptideCLM or ChemBERTa downloads.
 
+[PeptiVerse CPP](predictors/uptake.md#peptiverse-cpp) shares those source and
+embedding resources but requires only its exact `svm_gpu_wt` CPU SVC and
+original `best_models.txt`. The bridge checks scikit-learn 1.7.2 before
+loading the checkpoint, then verifies the estimator, class orientation and
+native threshold 0.5493. CPP-only installs need no half-life artifacts.
+
 `predictor_version` contains both the revisions mhctools was developed against
 and a path-independent SHA-256 identity of the files actually supplied. After
 a successful call, `artifact_inventory.capability` changes from
@@ -117,6 +123,7 @@ only after that local smoke succeeds.
 | Backend/candidate | Endpoint-specific release | Static artifact gate | Real inference |
 |---|---|---|---|
 | [PeptiVerse](predictors/peptide-pk.md#peptiverse) | Human-serum half-life, exact `transformer_wt_log` | Exact source/model/calibration/ESM2 inventory; automated conformance | Opt-in smoke; no published platform combination yet |
+| [PeptiVerse CPP](predictors/uptake.md#peptiverse-cpp) | Canonical CPP classification, exact CPU `svm_gpu_wt` | Exact source/SVC/threshold/ESM2 inventory; runtime version guard | Direct native API and fixed-source conformance on Linux/macOS, Python 3.11, CPU |
 | [PlifePred2](predictors/peptide-pk.md#plifepred2) | Undocumented blood-half-life native regression | Exact forest/QSO/resources inventory; automated conformance | Reproduced on macOS arm64 / Python 3.12 / CPU; otherwise opt-in |
 | POSEIDON | None established | Blocked: research/training repository is not an inference-complete endpoint release | Not run |
 | PERSEU | None established | Blocked: interactive design path and serialized models do not provide a reviewed prediction-only entry point | Not run |
