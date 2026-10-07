@@ -76,3 +76,12 @@ def test_class_ii_mutant_flank_is_preserved_with_its_binding_core():
     assert targets[0]["kind"] == "predicted class-II core + mutant flank"
     assert candidates[0]["mutant_overlap"] is True
     assert candidates[0]["mutant_binding_core_overlap"] is False
+
+
+def test_whole_construct_class_label_does_not_invent_a_binding_core():
+    record = dict(sequence_record_id="s1", variant_id="v1", gene="test", sequence="ACDEFGHIKLMNPQR",
+                  minimal_epitope="", minimal_epitope_offset="")
+    targets, _, coverage = module.target_inventory(
+        [record], {"v1": {"peptides": {"CeGaT_Class_I": record["sequence"]}}}, [])
+    assert targets == []
+    assert "not localized" in coverage[0]["source_class_I_annotation_unresolved"]

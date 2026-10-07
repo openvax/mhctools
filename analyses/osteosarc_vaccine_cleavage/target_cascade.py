@@ -125,13 +125,17 @@ def target_inventory(records, variants, ligand_rows):
         # variant's single minimal_epitope belongs to another vaccine construct.
         other = variants[record["variant_id"]].get("peptides", {}).get("CeGaT_Class_I")
         matches = positions(record["sequence"], other) if other else []
-        if len(matches) == 1 and other != core:
+        unresolved_source = other == record["sequence"] and other != core
+        if len(matches) == 1 and other != core and not unresolved_source:
             targets.append(add(record, "Source class-I candidate", matches[0], matches[0] + len(other),
                                "source class-I candidate"))
         region, reason = mappings[key]
         coverage.append(dict(sequence_record_id=key, gene=record["gene"],
                              source_core_available=has_core, mutant_region_start=region[0] if region else None,
-                             mutant_region_end=region[1] if region else None, mutation_mapping=reason))
+                             mutant_region_end=region[1] if region else None, mutation_mapping=reason,
+                             source_class_I_annotation_unresolved=(
+                                 "Whole construct labelled class I; binding core not localized"
+                                 if unresolved_source else "")))
 
     for row in ligand_rows:
         if float(row["percentile_rank"]) > float(row["rank_threshold"]):

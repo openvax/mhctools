@@ -19,7 +19,8 @@ retention of the full vaccine peptide.
   and distinct outcomes. Serum prediction alone does not specify either rate.
   Proteasome/cathepsin/CPP outputs do not determine extracellular event rates.
 * Unsupported fragment estimates end in an explicit unknown outcome. Missing
-  targets and ambiguous mutation mappings remain unknown. For class II, assess
+  targets and ambiguous mutation mappings remain unknown. A class-I label on
+  a whole construct does not localize its binding core. For class II, assess
   the mapped binding core separately from the longer predicted ligand. When a
   source-mapped mutation lies in its flank, track a core+mutation span so an
   intact wild-type binding core is not counted as mutant-target retention.

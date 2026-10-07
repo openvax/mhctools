@@ -101,7 +101,9 @@ does not retain the mutant target. Flanking residues can affect TCR recognition
 and mutation retention does not establish unchanged T-cell recognition.
 Validate mutant-position inclusion before
 labeling a predicted binder as mutant. An unknown target or ambiguous alignment
-cannot be labeled protected. Individual-target paths provide marginal retention,
+cannot be labeled protected. A class label on a whole vaccine construct does not
+locate a binding core and must not turn all flank cuts into epitope destruction.
+Individual-target paths provide marginal retention,
 not the probability that **all** alternative targets are lost together.
 
 ## Validation status
