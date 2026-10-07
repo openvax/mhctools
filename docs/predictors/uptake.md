@@ -86,6 +86,14 @@ overlap. Broader uptake and benchmark work remains in
 [#303](https://github.com/openvax/mhctools/issues/303) and
 [#291](https://github.com/openvax/mhctools/issues/291).
 
+Native source scores are compared within the same runtime at absolute
+tolerance `1e-10`. Saved CPU controls use `1e-5` absolute tolerance across
+platforms because float32 ESM2 embeddings differ slightly between CPU/library
+stacks; labels and the threshold must still agree. For SIINFEKL, Linux x86_64
+and macOS arm64 native scores differed by `4.26e-7`
+([#531](https://github.com/openvax/mhctools/issues/531)). This does not change
+or round prediction outputs.
+
 Only canonical L-peptides with free termini are accepted. Exact chemical form,
 context and occurrences are preserved; unsupported modifications are rejected.
 Use `on_unsupported="record"` to keep unavailable entries in a mixed batch.

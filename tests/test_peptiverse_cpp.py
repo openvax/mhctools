@@ -277,15 +277,20 @@ Path(sys.argv[5]).write_text(json.dumps(rows))
     predictor = PeptiVerseCPP(device="cpu", uncertainty=True, **CONFIGURED)
     preds = [r.preds[0] for r in predictor.predict(sequences)]
     assert predictor.artifact_inventory.status == "verified"
+    differences = []
     for i, (pred, direct) in enumerate(zip(preds, native)):
         fixed = REFERENCE["records"][i % len(REFERENCE["records"])]
-        assert pred.score == pytest.approx(direct["score"], abs=1e-10)
-        assert pred.score == pytest.approx(fixed["score"], abs=1e-7)
+        # Same-runtime conformance stays tight. Saved CPU controls also
+        # include float32 ESM2 platform/library rounding (see #531).
+        assert pred.score == pytest.approx(direct["score"], rel=0, abs=1e-10)
+        differences.append((pred.peptide, abs(pred.score - fixed["score"])))
+        assert direct["label"] == fixed["label"]
         assert pred.value is None and pred.percentile_rank is None
         assert pred.measurement_context.class_label == ("CPP" if direct["label"] else "non-CPP")
         qc = predictor.last_qc.iloc[i]
         assert qc.threshold == CPP_THRESHOLD
-        assert qc.predictive_entropy_nats == pytest.approx(direct["uncertainty"], abs=1e-10)
+        assert qc.predictive_entropy_nats == pytest.approx(direct["uncertainty"], rel=0, abs=1e-10)
+    assert all(error <= 1e-5 for _, error in differences), differences
     assert preds[0].cache_key == preds[-1].cache_key
     assert {name: sys.modules.get(name) for name in host_ml} == host_ml
     assert {name: os.environ.get(name) for name in host_offline} == host_offline
