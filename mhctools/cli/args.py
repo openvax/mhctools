@@ -75,6 +75,7 @@ from .. import (
     DeepImmuno,
     TLimmuno2,
     PeptiVerse,
+    PeptiVerseCPP,
     PlifePred2,
     CavacoHalfLife,
 )
@@ -195,6 +196,7 @@ mhc_predictors = {
     "deepimmuno": DeepImmuno,
     "tlimmuno2": TLimmuno2,
     "peptiverse": PeptiVerse,
+    "peptiverse-cpp": PeptiVerseCPP,
     "plifepred2": PlifePred2,
     "cavaco": CavacoHalfLife,
 }

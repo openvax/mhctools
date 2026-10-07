@@ -30,11 +30,19 @@ FAMILIES = [
     ("immunogenicity", "Immunogenicity", "predictors/immunogenicity.md"),
     ("tcr", "TCR specificity", "predictors/tcr.md"),
     ("peptide-pk", "Peptide half-life", "predictors/peptide-pk.md"),
+    ("uptake", "Cell penetration classification", "predictors/uptake.md"),
 ]
 
 # Fields: family, name, classes, cli, kinds, mhc_class, inputs, lengths,
 # artifact (`mhctools fetch` / `ls` name(s), or None), install, license, page.
 ROWS = [
+    dict(family="uptake", name="PeptiVerse CPP",
+         classes=["PeptiVerseCPP"], cli=["peptiverse-cpp"],
+         kinds=["cpp_classification"], mhc_class="none",
+         inputs="canonical sequence; native CPP class score",
+         lengths="1-1020 computational capacity; source training lengths 3-61",
+         artifact=None, install="pinned PeptiVerse/ESM2 snapshots + isolated scikit-learn 1.7.2",
+         license="open", page="predictors/uptake.md#peptiverse-cpp"),
     dict(family="processing", name="PhageScout sequence profiles",
          classes=["PhageScout"], cli=[], kinds=[], mhc_class="none",
          inputs="canonical sequence; human ELANE/CTSG, inferred site contexts",

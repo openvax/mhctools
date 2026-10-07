@@ -1,6 +1,7 @@
 include LICENSE README.md
 include mhctools/data/ITCELL_LICENSE.txt tests/data/itcell_source_reference.json
 include mhctools/data/CAVACO_LICENSE.txt tests/data/cavaco_source_reference.json scripts/record_cavaco_reference.js
+include tests/data/peptiverse_cpp_source_reference.json
 include scripts/osteosarc_fixtures.py scripts/record_smm_fixtures.py scripts/setup_test_backends.py scripts/build_iedb_smm_subset.py scripts/evaluate_wada_cleavage.py
 recursive-include scripts/test-backends Dockerfile.* *.py
 recursive-include tests/data/osteosarc *.json *.txt *.fasta *.stdout *.stderr *.tsv *.md

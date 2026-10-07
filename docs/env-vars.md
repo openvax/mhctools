@@ -25,7 +25,7 @@ mhctools runs in.
 | `MIXTCRPRED_HOME` | [MixTCRpred](predictors/tcr.md#mixtcrpred) | A MixTCRpred checkout. |
 | `NETCLEAVE_DIR` | [NetCleave](predictors/processing.md#netcleave) | A NetCleave clone. |
 | `NETTCR_DIR` | [NetTCR](predictors/tcr.md#nettcr) | A NetTCR checkout. |
-| `PEPTIVERSE_HOME`, `PEPTIVERSE_ESM_HOME` | [PeptiVerse](predictors/peptide-pk.md#peptiverse) | The pinned PeptiVerse snapshot and local ESM2 weights. |
+| `PEPTIVERSE_HOME`, `PEPTIVERSE_ESM_HOME` | [PeptiVerse half-life](predictors/peptide-pk.md#peptiverse), [CPP](predictors/uptake.md#peptiverse-cpp) | The pinned PeptiVerse snapshot and local ESM2 weights. |
 | `PLIFEPRED2_HOME`, `PFEATURE_HOME` | [PlifePred2](predictors/peptide-pk.md#plifepred2) | The `plifepred2` package and the pinned Pfeature checkout. |
 | `TLIMMUNO2_HOME` | [TLimmuno2](predictors/immunogenicity.md#tlimmuno2) | A TLimmuno2 clone. |
 | `TULIP_HOME` | [Tulip](predictors/tcr.md#tulip) | A TULIP-TCR checkout. |
@@ -39,7 +39,7 @@ mhctools runs in.
 | `DEEPTAP_PYTHON` | [DeepTAP](predictors/processing.md#deeptap) | `torch`, `pytorch_lightning`, `numpy`, `pandas` |
 | `MIXTCRPRED_PYTHON` | [MixTCRpred](predictors/tcr.md#mixtcrpred) | `torch`, `torchvision`, `pytorch_lightning`, `numpy`, `pandas`, `scipy`, `sklearn` |
 | `TULIP_PYTHON` | [Tulip](predictors/tcr.md#tulip) | An isolated Python 3.11 with `torch` and `transformers==4.32.1` |
-| `PEPTIVERSE_PYTHON` | [PeptiVerse](predictors/peptide-pk.md#peptiverse) | torch, `transformers==4.46.0`, xgboost, lightning |
+| `PEPTIVERSE_PYTHON` | [PeptiVerse half-life](predictors/peptide-pk.md#peptiverse), [CPP](predictors/uptake.md#peptiverse-cpp) | torch, `transformers==4.46.0`, xgboost, lightning; CPP requires `scikit-learn==1.7.2` |
 | `PLIFEPRED2_PYTHON` | [PlifePred2](predictors/peptide-pk.md#plifepred2) | The `plifepred2` runtime |
 | `NETCLEAVE_PYTHON` | [NetCleave](predictors/processing.md#netcleave) | The NetCleave runtime |
 | `PEPSICKLE_PYTHON` | [Pepsickle](predictors/processing.md#pepsickle) | Interpreter for subprocess-isolated inference |

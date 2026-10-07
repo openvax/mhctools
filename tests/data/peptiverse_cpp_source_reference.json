@@ -1,0 +1,77 @@
+{
+  "source_revision": "8cf0b21dae356278ae96b414a088e4360357d16c",
+  "esm2_revision": "08e4846e537177426273712802403f7ba8261b6c",
+  "source": "https://huggingface.co/ChatterjeeLab/PeptiVerse",
+  "runtime": "Python 3.11; scikit-learn 1.7.2; CPU",
+  "endpoint": "permeability_penetrance/wt/svm_gpu",
+  "training_rows": 1859,
+  "validation_rows": 465,
+  "observed_training_lengths": [
+    3,
+    61
+  ],
+  "training_metadata_sha256": "c924f1b92fac14f2007afb1b4b3641047896219a17a5780beb865ee0f4b35ec8",
+  "artifact_sha256": {
+    "inference.py": "b899369f020cc73f939a7113fd9aff471a923b109e77ae88c22aa706e66d119a",
+    "training_classifiers/permeability_penetrance/svm_gpu_wt/best_model.joblib": "087f7c6aa5545eb6ef555c9de10cd2fd5cc84cd44c31601e2ee6ee017a9c7277",
+    "best_models.txt": "8a515bd115bcc7a6e4ccd6ecba76ed2b66eaf767e66fa3de5ae1c1111ebb90f9"
+  },
+  "scope": "Native source conformance only; controls are not an independent accuracy benchmark.",
+  "records": [
+    {
+      "peptide": "SIINFEKL",
+      "property": "permeability_penetrance",
+      "col": "wt",
+      "score": 0.09021588187425425,
+      "emb_tag": "wt",
+      "label": 0,
+      "threshold": 0.5493,
+      "uncertainty": 0.30303701062338695,
+      "uncertainty_type": "binary_predictive_entropy_single_model"
+    },
+    {
+      "peptide": "GRKKRRQRRRPQ",
+      "property": "permeability_penetrance",
+      "col": "wt",
+      "score": 0.9809467497585665,
+      "emb_tag": "wt",
+      "label": 1,
+      "threshold": 0.5493,
+      "uncertainty": 0.09433130560802225,
+      "uncertainty_type": "binary_predictive_entropy_single_model"
+    },
+    {
+      "peptide": "RRRRRRRR",
+      "property": "permeability_penetrance",
+      "col": "wt",
+      "score": 0.960676531195097,
+      "emb_tag": "wt",
+      "label": 1,
+      "threshold": 0.5493,
+      "uncertainty": 0.16578810314075945,
+      "uncertainty_type": "binary_predictive_entropy_single_model"
+    },
+    {
+      "peptide": "GILGFVFTL",
+      "property": "permeability_penetrance",
+      "col": "wt",
+      "score": 0.30831321466951533,
+      "emb_tag": "wt",
+      "label": 0,
+      "threshold": 0.5493,
+      "uncertainty": 0.6177443773833571,
+      "uncertainty_type": "binary_predictive_entropy_single_model"
+    },
+    {
+      "peptide": "ACDEFGHIKLMNPQRSTVWY",
+      "property": "permeability_penetrance",
+      "col": "wt",
+      "score": 0.004771730012199732,
+      "emb_tag": "wt",
+      "label": 0,
+      "threshold": 0.5493,
+      "uncertainty": 0.030265445260194066,
+      "uncertainty_type": "binary_predictive_entropy_single_model"
+    }
+  ]
+}

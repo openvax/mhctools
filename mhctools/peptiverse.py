@@ -176,7 +176,7 @@ PEPTIVERSE_BACKEND_SPEC = BackendSpec(
 )
 
 
-def _find_peptiverse_home(peptiverse_home=None):
+def _resolve_peptiverse_source(peptiverse_home=None):
     """Resolve the PeptiVerse snapshot directory.
 
     Checks, in order: the *peptiverse_home* argument, ``$PEPTIVERSE_HOME``,
@@ -197,6 +197,12 @@ def _find_peptiverse_home(peptiverse_home=None):
         raise FileNotFoundError(
             "inference.py not found in %r — is this a PeptiVerse snapshot?"
             % candidate)
+    return candidate
+
+
+def _find_peptiverse_home(peptiverse_home=None):
+    """Resolve source and require the exact half-life variant."""
+    candidate = _resolve_peptiverse_source(peptiverse_home)
     weights = Path(candidate) / _MODEL_DIRECTORY
     if not weights.is_dir():
         raise FileNotFoundError(
@@ -240,6 +246,22 @@ def _artifact_inventory(
             expected_sha256=expected_sha256,
             serialization=serialization))
 
+    artifacts.extend(_esm2_artifacts(esm_home))
+    return backend_inventory(
+        spec=PEPTIVERSE_BACKEND_SPEC,
+        artifacts=artifacts,
+        settings={
+            "embedding_model": "facebook/esm2_t33_650M_UR50D",
+            "device": device or "auto",
+            "max_peptide_length": max_peptide_length,
+            "model_variant": "transformer_wt_log",
+            "output_units": "hours",
+        })
+
+
+def _esm2_artifacts(esm_home):
+    """Inventory the shared pinned feature model without loading it."""
+    artifacts = []
     esm_root = Path(esm_home)
     for relative, (role, expected_sha256, serialization) in (
             _ESM2_ARTIFACTS.items()):
@@ -265,16 +287,7 @@ def _artifact_inventory(
         expected_sha256=expected_sha256,
         serialization=serialization))
 
-    return backend_inventory(
-        spec=PEPTIVERSE_BACKEND_SPEC,
-        artifacts=artifacts,
-        settings={
-            "embedding_model": "facebook/esm2_t33_650M_UR50D",
-            "device": device or "auto",
-            "max_peptide_length": max_peptide_length,
-            "model_variant": "transformer_wt_log",
-            "output_units": "hours",
-        })
+    return artifacts
 
 
 def _resolve_python(peptiverse_python=None):

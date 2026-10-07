@@ -67,10 +67,11 @@ def half_life(root, python, config):
     from mhctools.peptiverse import (
         ESM2_REVISION, UPSTREAM_REVISION, _ESM2_ARTIFACTS, _PEPTIVERSE_ARTIFACTS,
     )
+    from mhctools.peptiverse_cpp import _CPP_ARTIFACTS, CPP_SCIKIT_VERSION
 
     runtime = make_env(root, "peptiverse-env", python, [
         "torch>=2.1", "transformers==4.46.0", "lightning==2.5.5", "xgboost",
-        "scikit-learn", "joblib", "mapie", "pandas", "SmilesPE", "rdkit",
+        "scikit-learn==" + CPP_SCIKIT_VERSION, "joblib", "mapie", "pandas", "SmilesPE", "rdkit",
     ], torch=True)
     source = root / "PeptiVerse"
     # Run the download client in its isolated environment as well.
@@ -80,7 +81,7 @@ def half_life(root, python, config):
     capture(runtime, "-c", code, json.dumps(dict(
         repo_id="ChatterjeeLab/PeptiVerse", revision=UPSTREAM_REVISION,
         local_dir=str(source),
-        allow_patterns=list(_PEPTIVERSE_ARTIFACTS) + ["tokenizer/*.py"])))
+        allow_patterns=sorted(set(_PEPTIVERSE_ARTIFACTS) | set(_CPP_ARTIFACTS)) + ["tokenizer/*.py"])))
     esm = capture(runtime, "-c", code, json.dumps(dict(
         repo_id="facebook/esm2_t33_650M_UR50D", revision=ESM2_REVISION,
         allow_patterns=list(_ESM2_ARTIFACTS) + ["model.safetensors"])))

@@ -80,6 +80,7 @@ nav:
       - Immunogenicity: predictors/immunogenicity.md
       - TCR specificity: predictors/tcr.md
       - Peptide half-life: predictors/peptide-pk.md
+      - Cell penetration classification: predictors/uptake.md
       - Results and DataFrames: results.md
       - Recipes: recipes.md
       - Allele names: alleles.md

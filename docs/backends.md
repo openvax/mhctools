@@ -66,7 +66,8 @@ mhctools distributions.
 The script pins model/source revisions, installs the complete MixMHC2pred
 official release (including PWM assets), and installs incompatible Python
 runtimes separately under ignored `env/test-backends/`. Existing environments
-are reused. The wrappers verify their pinned half-life model hashes before
+are reused. The `half-life` group also provisions [PeptiVerse CPP](predictors/uptake.md#peptiverse-cpp)
+with its required scikit-learn 1.7.2. The wrappers verify their pinned model hashes before
 inference. Re-run individual groups to repair or update the local setup.
 
 The script writes `env/test-backends/activate.sh`, which exports the variables
