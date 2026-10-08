@@ -81,6 +81,7 @@ nav:
       - TCR specificity: predictors/tcr.md
       - Peptide half-life: predictors/peptide-pk.md
       - Target-preserving degradation: target-degradation.md
+      - Serum peptidase contributions: serum-contributions.md
       - Cell penetration classification: predictors/uptake.md
       - Results and DataFrames: results.md
       - Recipes: recipes.md
