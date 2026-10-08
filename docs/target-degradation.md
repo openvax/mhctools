@@ -65,7 +65,7 @@ partial motif match must retain different labels. No universal score threshold
 or cross-enzyme sum establishes a serum rate. For conditional fragments,
 `CleavageInput.source_start` preserves original coordinates and new termini.
 
-Use dashed red lines between residues for candidate bonds, highlight the target,
+Use short solid red marks between residues for candidate bonds, highlight the target,
 and list the responsible model and evidence type. Separate extracellular
 digestion from lysosomal, proteasomal and MHC-ligand processing. Prefer the human
 Pepsickle model for human input; the all-mammal model is a separate sensitivity
@@ -105,6 +105,25 @@ python analyses/osteosarc_vaccine_cleavage/focused_stability_report.py \
 It reuses native inference without changing predictor outputs, keeps all target
 annotations in the audit, and separates the primary mutant candidates from
 disclosed source references. Install the `vaccine-report` extra for PDF rendering.
+
+The enzyme guide distinguishes soluble blood activity, cell-surface exposure,
+intracellular processing and inflammation. There is no universal DPP4/FAP/ACE
+strength ranking: a [human-plasma experiment](https://doi.org/10.1152/ajpheart.2000.278.4.H1069)
+found ACE dominated bradykinin degradation at low concentrations while CPN
+dominated at high concentrations. [Blood-specimen experiments](https://doi.org/10.1371/journal.pone.0134427)
+identified DPP4-mediated trimming of particular hormones. Neither observation
+sets relative vaccine cut rates. Fragment-specific inhibitor/LC-MS time courses,
+or applicable catalytic efficiencies plus active enzyme exposure, are needed
+to calibrate contributions. Enzyme abundance alone does not establish activity.
+
+Report curves as the fraction of starting copies retaining the entire displayed
+epitope/span, including in shorter fragments, versus the full vaccine peptide
+remaining intact. A class-II span extended to retain a mutant flank is explicitly
+distinguished from its minimal binding core. Released-sequence estimates start
+with that sequence alone; illustrative epitope-loss times start with the full
+vaccine peptide. All frozen antigen-processing models remain visible separately,
+including cathepsin assay matrices and ERAP1. Matrix time labels are source assay
+conditions, not predicted fragment lifetimes.
 
 Stable cleavage products are biologically possible: the
 [RNase 3 peptide study](https://doi.org/10.1021/acs.jmedchem.1c00795)

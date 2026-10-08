@@ -77,3 +77,11 @@ def test_censored_retention_is_a_bound_not_a_measured_lifetime():
                                      retention_median_lower_bound_hours=72)) == "> 72.0 h"
     assert report.fmt_retention(dict(median_status="unassessed_paths",
                                      retention_median_hours=None)) == "Unavailable"
+
+
+def test_class_two_mutant_flank_is_not_called_a_minimal_epitope():
+    assert "minimal class-I" in report.tracked_description(dict(mhc_class="I"))
+    minimal = dict(mhc_class="II", binding_core="ACDEFGHIK", target_sequence="ACDEFGHIK")
+    assert "minimal class-II" in report.tracked_description(minimal)
+    extended = dict(minimal, target_sequence="PACDEFGHIK")
+    assert report.tracked_description(extended) == "Class-II binding core plus mutant flank"

@@ -46,3 +46,23 @@ No absence of an enzyme flag is evidence that the target is protected. The
 standalone target estimate assumes a free peptide present at time zero, not a
 product's release time or lifetime inside its parent. Individual selected-target
 loss does not establish loss of all possible alternative epitopes or presentation.
+
+## Review corrections
+
+- Show the source protein mutation beside the gene. Remove residue numbering,
+  repeated motif grades and unavailable enzymes from the main cut map; retain
+  exact coordinates and missing-input reasons in the audit/optional coverage.
+  Use one short solid red tick per candidate bond.
+- Define the tracked sequence explicitly: class-I epitope, class-II binding core,
+  or class-II core plus the required mutant flank. Explain curves in terms of
+  100 starting copies retaining this sequence versus the full vaccine peptide.
+  Contrast released-sequence estimates with the successive-cut simulation.
+- Add a front enzyme guide with location and substrate-specific circulation
+  relevance. Restore all frozen antigen-processing models to a visible section,
+  including cathepsin matrices, ERAP1 and qualitative intracellular rules.
+- Relative enzyme contributions require substrate/matrix-specific kinetics.
+  Human plasma ACE/CPN dominance reverses with bradykinin concentration:
+  https://doi.org/10.1152/ajpheart.2000.278.4.H1069
+  DPP4 cleavage of particular hormones is demonstrated in blood specimens:
+  https://doi.org/10.1371/journal.pone.0134427
+  These examples do not supply vaccine-specific hazard weights.
