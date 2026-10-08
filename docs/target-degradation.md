@@ -7,6 +7,10 @@ retains the target-containing product. A cut strictly inside the target destroys
 that exact sequence. The resulting product gets its own half-life estimate and
 cut-location assessment, including its newly exposed termini.
 
+For absolute enzyme-labelled rates and single-enzyme removal comparisons, see
+[peptidase contributions](serum-contributions.md). That model preserves measured
+reference kinetics separately from transferred cut-pattern scenarios.
+
 This is an **exploratory serum-digestion scenario**, not a validated prediction
 of human circulation half-life. The [half-life estimators](predictors/peptide-pk.md)
 describe different assay settings. Each estimator supplies a separate time scale;

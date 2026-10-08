@@ -56,6 +56,7 @@ class DegradationStep:
     event: str
     cut_bond: Optional[int] = None
     reason: str = ""
+    mechanism: Optional[str] = None
 
 
 @dataclass(frozen=True)
@@ -143,6 +144,35 @@ def simulate_target_degradation(
         is followed; products lacking this exact target need not be simulated.
         This marginal lineage cannot give joint survival of multiple targets.
     """
+    def kinetics(fragment):
+        half_life = half_lives.get(fragment)
+        if half_life is not None:
+            half_life = _nonnegative(half_life, "fragment half-life")
+        if not half_life or len(fragment) <= 1:
+            return half_life, None
+        weights = tuple(_nonnegative(w, "cut weight") for w in cut_weights(fragment))
+        if len(weights) != len(fragment) - 1:
+            raise ValueError("cut_weights must provide one weight per internal bond")
+        total = math.fsum(weights)
+        if not math.isfinite(total) or total <= 0:
+            raise ValueError("Positive half-life requires a positive, finite total cut weight")
+        rate = math.log(2) / half_life
+        if not math.isfinite(rate):
+            raise ValueError("Fragment half-life yields a nonfinite rate")
+        return half_life, tuple((b, rate * (w / total), None, "")
+                                for b, w in enumerate(weights, 1) if w > 0)
+
+    return _simulate_target_paths(
+        peptide, target, kinetics, estimator=estimator, scenario=scenario,
+        n_paths=n_paths, horizon_hours=horizon_hours, seed=seed,
+        clearance_rate_per_hour=clearance_rate_per_hour,
+        uptake_rate_per_hour=uptake_rate_per_hour)
+
+
+def _simulate_target_paths(
+        peptide, target, kinetics, *, estimator, scenario, n_paths,
+        horizon_hours, seed, clearance_rate_per_hour, uptake_rate_per_hour):
+    """Shared sampler: channels contain (local bond, rate, mechanism, reason)."""
     peptide_input = _input(peptide)
     sequence = peptide_input.sequence
     target.validate(sequence)
@@ -158,35 +188,25 @@ def simulate_target_degradation(
     rng = random.Random(int(seed))
     cache = {}
 
-    def kinetics(fragment):
+    def assessed(fragment):
         if fragment not in cache:
-            half_life = half_lives.get(fragment)
-            if half_life is not None:
-                half_life = _nonnegative(half_life, "fragment half-life")
-            if half_life and len(fragment) > 1:
-                weights = tuple(_nonnegative(w, "cut weight") for w in cut_weights(fragment))
-                if len(weights) != len(fragment) - 1:
-                    raise ValueError("cut_weights must provide one weight per internal bond")
-                total = math.fsum(weights)
-                if not math.isfinite(total) or total <= 0:
-                    raise ValueError("Positive half-life requires a positive, finite total cut weight")
-                cumulative, running = [], 0.0
-                for weight in weights:
-                    running += weight / total
-                    cumulative.append(running)
-                cumulative[next(i for i in range(len(weights) - 1, -1, -1) if weights[i] > 0)] = 1.0
-                cache[fragment] = (half_life, math.log(2) / half_life, tuple(cumulative))
-                if not math.isfinite(cache[fragment][1]):
-                    raise ValueError("Fragment half-life yields a nonfinite rate")
-            else:
-                cache[fragment] = (half_life, None, ())
+            half_life, channels = kinetics(fragment)
+            cumulative, running = [], 0.0
+            if channels is not None:
+                for bond, rate, mechanism, reason in channels:
+                    running += _nonnegative(rate, "cut rate")
+                    cumulative.append((running, bond, mechanism, reason))
+                if not math.isfinite(running):
+                    raise ValueError("Total cut rate must be finite")
+            cache[fragment] = (half_life, None if channels is None else running,
+                               tuple(cumulative))
         return cache[fragment]
 
     paths = []
     for _ in range(n_paths):
         start, end, time, steps = 0, len(sequence), 0.0, []
         while True:
-            half_life, cleavage_rate, cumulative = kinetics(sequence[start:end])
+            half_life, cleavage_rate, cumulative = assessed(sequence[start:end])
             if cleavage_rate is None:
                 steps.append(DegradationStep(start, end, time, time, half_life, "unknown",
                                              reason="Missing, zero, or unmodeled fragment kinetics; no survival inferred"))
@@ -194,6 +214,9 @@ def simulate_target_degradation(
             total_rate = cleavage_rate + clearance + uptake
             if not math.isfinite(total_rate):
                 raise ValueError("Total event rate must be finite")
+            if total_rate == 0:
+                steps.append(DegradationStep(start, end, time, horizon, half_life, "censored"))
+                break
             event_time = time + rng.expovariate(total_rate)
             if event_time > horizon:
                 steps.append(DegradationStep(start, end, time, horizon, half_life, "censored"))
@@ -205,15 +228,14 @@ def simulate_target_degradation(
             if draw < clearance + uptake:
                 steps.append(DegradationStep(start, end, time, event_time, half_life, "taken_up"))
                 break
-            draw = rng.random()
-            # Last cumulative value can be microscopically below one due to
-            # rounding. It still represents the final supported internal bond.
-            local_bond = next((b for b, value in enumerate(cumulative, 1) if draw < value),
-                              len(cumulative))
+            draw = rng.random() * cleavage_rate
+            _, local_bond, mechanism, reason = next(
+                (channel for channel in cumulative if draw < channel[0]), cumulative[-1])
             bond = start + local_bond
             destroyed = target.start < bond < target.end
             steps.append(DegradationStep(start, end, time, event_time, half_life,
-                                         "target_destroyed" if destroyed else "cut", bond))
+                                         "target_destroyed" if destroyed else "cut", bond,
+                                         reason, mechanism))
             if destroyed:
                 break
             if bond <= target.start:

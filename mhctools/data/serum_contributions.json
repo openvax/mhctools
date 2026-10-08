@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "notice": "Source-linked factual reference observations. No universal human enzyme weights. Reference-substrate kinetics and plasma-library boundary counts have different endpoints and must not be pooled as rate measurements.",
+  "kinetic_reference": {
+    "source": "https://doi.org/10.1074/jbc.M109.035253",
+    "source_location": "Abid et al. 2009, Table 1 and kinetic-parameter methods",
+    "measured_concentration_range_um": [5, 70],
+    "context": {
+      "species": "Homo sapiens",
+      "matrix": "serum diluted in assay buffer",
+      "temperature_c": 37,
+      "pH": 8.0,
+      "buffer": "Tris-HCl; added manganese; see source for mixing volumes",
+      "assay_serum_fraction": 0.1,
+      "substrate_chemistry": "Mono-oxygenated NPY forms; peptide was oxidized with hydrogen peroxide before digestion. These are not unmodified free vaccine peptides.",
+      "rate_units": "Vmax: pmol product / minute / microliter serum; Km: micromolar",
+      "limitations": "Apparent product-specific kinetics in the reported assay. Other products were observed but lack corresponding calibrated rate constants. Km and Vmax are point estimates; no calibrated uncertainty distribution is supplied. No generic aminopeptidase-P isoform is assigned."
+    },
+    "substrates": {
+      "oxidized-NPY-1-36": {
+        "label": "Mono-oxygenated NPY(1-36)",
+        "enzymes": [
+          {"enzyme": "DPP4", "product": "NPY(3-36)", "km_um": 9.4, "vmax_pmol_per_min_per_ul_serum": 19.9},
+          {"enzyme": "aminopeptidase P", "product": "NPY(2-36)", "km_um": 35.4, "vmax_pmol_per_min_per_ul_serum": 3.0}
+        ]
+      },
+      "oxidized-NPY-3-36": {
+        "label": "Mono-oxygenated NPY(3-36)",
+        "enzymes": [
+          {"enzyme": "KLKB1", "product": "NPY(3-35)", "km_um": 28.1, "vmax_pmol_per_min_per_ul_serum": 4.9}
+        ]
+      }
+    }
+  },
+  "plasma_library": {
+    "source": "https://doi.org/10.3390/molecules25184071",
+    "source_location": "Maffioli et al. 2020, Table S1, Cleavage Sites worksheet",
+    "license": "CC-BY-4.0",
+    "supplement_sha256": "c3e6dfb71c8ffe10b1c3d6f0e47b42503760bfe316d6965a43bcc71976ba42e5",
+    "table_s1_sha256": "8e3057fe5e1de07d83348450eeee057b62e99bc3dd0d51fcb542f4089d9daca7",
+    "species": "Sus scrofa",
+    "matrix": "Pooled plasma from six pigs, approximately 50-fold dilution",
+    "temperature": "room temperature",
+    "substrate_count": 228,
+    "substrate_length": 14,
+    "substrate_chemistry": "Synthetic library; no cysteine or methionine; norleucine included. Worksheet M denotes norleucine, not methionine.",
+    "timepoints_minutes": [0, 15, 60],
+    "unique_boundary_context_count": 113,
+    "boundary_context_counts_by_bond": {"1": 46, "2": 30, "3": 12, "4": 6, "5": 4, "10": 1, "12": 7, "13": 7},
+    "immediate_terminal_context_counts": {"n_mono": 46, "n_di": 30, "c_mono": 7, "c_di": 7},
+    "raw_filtered_selected_product_rows": 114,
+    "limitations": "Counts describe unique observed boundary contexts, not numbers of molecular cut events, enzyme abundance, probabilities, or absolute rates. The Filtered worksheet has 114 qualifying product rows; the source Cleavage Sites worksheet has 113 contexts. More distant boundaries can reflect successive terminal trimming. No selective enzyme-inhibitor panel identifies the enzymes. Dilution, sample preservation, species and library chemistry limit transfer. Missing boundaries are not validated negatives."
+  },
+  "human_plasma_product_shares": {
+    "source": "https://doi.org/10.1152/ajpheart.2000.278.4.H1069",
+    "source_location": "Kuoppala et al. 2000, abstract and concentration-dependence results",
+    "substrate": "bradykinin",
+    "sequence": "RPPGFSPFR",
+    "species": "Homo sapiens",
+    "matrix": "Dalteparin-anticoagulated human plasma diluted in assay buffer",
+    "temperature_c": 37,
+    "observations": [
+      {"concentration_regime": "low nanomolar", "pathway": "ACE", "reported_share_lower_bound": 0.9},
+      {"concentration_regime": "high micromolar", "pathway": "CPN-like", "reported_share_lower_bound": 0.9}
+    ],
+    "limitations": "Product-pathway shares for bradykinin under these assay conditions. Not universal enzyme hazard weights, not a vaccine half-life, and not independent estimates that can be averaged with the NPY assay."
+  },
+  "coverage": [
+    {"enzyme": "DPP4", "status": "substrate-specific serum reference kinetics", "vaccine_rate_calibration": false, "source": "https://doi.org/10.1074/jbc.M109.035253"},
+    {"enzyme": "aminopeptidase P", "status": "substrate-specific serum reference kinetics; isoform unresolved", "vaccine_rate_calibration": false, "source": "https://doi.org/10.1074/jbc.M109.035253"},
+    {"enzyme": "KLKB1", "status": "substrate-specific serum reference kinetics on trimmed NPY", "vaccine_rate_calibration": false, "source": "https://doi.org/10.1074/jbc.M109.035253"},
+    {"enzyme": "ACE", "status": "substrate-specific plasma pathway shares; broad substrate evidence", "vaccine_rate_calibration": false, "source": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6693507/"},
+    {"enzyme": "CPN-like", "status": "substrate-specific plasma pathway shares", "vaccine_rate_calibration": false, "source": "https://doi.org/10.1152/ajpheart.2000.278.4.H1069"},
+    {"enzyme": "FAP", "status": "specificity evidence; no applicable serum vaccine rate", "vaccine_rate_calibration": false, "source": "https://pubmed.ncbi.nlm.nih.gov/16480718/"},
+    {"enzyme": "MME", "status": "purified-enzyme specificity; exposure and serum vaccine rate unestablished", "vaccine_rate_calibration": false, "source": "https://pubmed.ncbi.nlm.nih.gov/6349683/"},
+    {"enzyme": "CPB2", "status": "activation-dependent specificity; active exposure and serum vaccine rate unestablished", "vaccine_rate_calibration": false, "source": "https://doi.org/10.1074/jbc.274.49.35046"}
+  ]
+}

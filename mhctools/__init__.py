@@ -78,6 +78,14 @@ from .serum_degradation import (
     summarize_target_degradation as summarize_target_degradation,
 )
 from .target_cleavage import annotate_target_cleavage as annotate_target_cleavage
+from .serum_contributions import (
+    EnzymeCutRate as EnzymeCutRate,
+    serum_contribution_evidence as serum_contribution_evidence,
+    serum_reference_kinetics as serum_reference_kinetics,
+    empirical_terminal_cut_rates as empirical_terminal_cut_rates,
+    simulate_enzyme_degradation as simulate_enzyme_degradation,
+    enzyme_removal_effects as enzyme_removal_effects,
+)
 from .cleavage import CleavageInput, CleavageModel, CleavageSite, CleavageResult
 from .cleavage_batch import (
     cleavage_overlays, load_cleavage_batch, normalize_cleavage_input,
@@ -166,7 +174,7 @@ def __getattr__(name):
     raise AttributeError(
         "module %r has no attribute %r" % (__name__, name))
 
-__version__ = "3.47.13"
+__version__ = "3.47.14"
 
 __all__ = [
     "CleaveNet",
@@ -243,6 +251,12 @@ __all__ = [
     "degradation_curve",
     "summarize_target_degradation",
     "annotate_target_cleavage",
+    "EnzymeCutRate",
+    "serum_contribution_evidence",
+    "serum_reference_kinetics",
+    "empirical_terminal_cut_rates",
+    "simulate_enzyme_degradation",
+    "enzyme_removal_effects",
     "CleavageInput",
     "CleavageModel",
     "CleavageSite",
