@@ -8,7 +8,7 @@ dynamic = ["version"]
 description = "Python interface to MHC binding, presentation, immunogenicity, and antigen processing predictors"
 readme = { file = "README.md", content-type = "text/markdown" }
 license = "Apache-2.0 AND LGPL-2.1-only AND CC-BY-4.0 AND CC0-1.0"
-license-files = ["LICENSE", "mhctools/data/ITCELL_LICENSE.txt", "mhctools/data/PHAGESCOUT_LICENSE.txt", "mhctools/data/CAVACO_LICENSE.txt"]
+license-files = ["LICENSE", "mhctools/data/ITCELL_LICENSE.txt", "mhctools/data/PHAGESCOUT_LICENSE.txt", "mhctools/data/CAVACO_LICENSE.txt", "mhctools/data/SERUM_CALIBRATION_LICENSE.txt"]
 requires-python = ">=3.9"
 authors = [
   { name = "Alex Rubinsteyn", email = "alex@openvax.org" },

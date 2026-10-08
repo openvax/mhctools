@@ -1,0 +1,15 @@
+Reported numerical hormone-stability measurements are transcribed from:
+Yi J, Warunek D, Craft D (2015). Degradation and Stabilization of Peptide
+Hormones in Human Blood Specimens. PLOS ONE 10(7): e0134427, Table 2.
+https://doi.org/10.1371/journal.pone.0134427
+
+The publisher makes the article available under Creative Commons Attribution:
+https://creativecommons.org/licenses/by/4.0/
+
+Changes: source table rowspans were expanded into individual JSON records;
+censoring, donor ranges and replicate standard deviations were separated into
+machine-readable fields. Source measurement labels and uncertainty are retained.
+No article figures or original article prose are redistributed.
+
+The additional study inventory is an attributed factual curation. The source
+licenses and access/inspection limitations are recorded for each study.

@@ -9,6 +9,7 @@ from mhctools.vaccine_report import (
     placement_assessments,
     processing_route_policy,
     select_mhc_windows,
+    compact_target_summary,
 )
 
 
@@ -98,6 +99,48 @@ def test_generate_report_uses_timestamped_directory_and_checksums(tmp_path):
     assert output.name == "2026-09-17T123456-123456+0000"
     assert (output / "vaccine-processing-report.pdf").stat().st_size > 1000
     assert json.loads((output / "SHA256SUMS.json").read_text())["vaccine-processing-report.pdf"]
+    assert json.loads((output / "target-summary.json").read_text())[0]['serum']['status'] == 'not_applicable'
+
+
+def test_compact_summary_keeps_internal_and_release_cuts_and_conditional_routes_separate():
+    construct = VaccineReportInput.from_dict(manifest()).constructs[0]
+    summary, = compact_target_summary(construct)
+    assert summary['target_sequence'] == 'DEFGH'
+    assert summary['mrna_expression']['status'] == 'not_applicable'
+    assert summary['antigen_processing']['status'] == 'candidate_internal_cuts'
+    track, = summary['antigen_processing']['evidence']
+    assert track['relevance'] == 'conditional'
+    assert track['internal_cut_flags'] == [4, 6]
+    assert track['boundary_cut_flags'] == [2]
+    assert track['internal_unassessed_bonds'] == [3]
+    assert track['threshold'] == .5
+    assert summary['antigen_processing']['mhc_loading'] == 'unassessed'
+    assert summary['serum']['target_survival'] is None
+    assert summary['matching_mhc_windows'][0]['allele'] == 'HLA-B*08:01'
+
+
+def test_compact_summary_never_calls_missing_or_below_threshold_scores_protection():
+    value = manifest('rna_encoded')
+    track = value['constructs'][0]['cleavage_tracks'][0]
+    track['scores'] = [.1] * 8
+    summary, = compact_target_summary(VaccineReportInput.from_dict(value).constructs[0])
+    assert summary['mrna_expression']['status'] == 'unassessed'
+    assert summary['antigen_processing']['status'] == 'site_evidence_only'
+    assert summary['serum']['status'] == 'not_applicable'
+    track['scores'] = [None] * 8
+    summary, = compact_target_summary(VaccineReportInput.from_dict(value).constructs[0])
+    assert summary['antigen_processing']['status'] == 'unassessed'
+    assert summary['antigen_processing']['evidence'][0]['internal_unassessed_bonds'] == [3, 4, 5, 6]
+
+
+def test_compact_circulation_summary_requires_rates_even_when_motif_flag_is_present():
+    value = manifest()
+    value['constructs'][0]['exposures'] = ['circulation']
+    summary, = compact_target_summary(VaccineReportInput.from_dict(value).constructs[0])
+    assert summary['serum']['relevance'] == 'conditional'
+    assert summary['serum']['status'] == 'unassessed'
+    assert summary['serum']['evidence'][0]['internal_cut_flags'] == [4]
+    assert summary['serum']['target_survival'] is None
 
 
 def test_figure_lanes_keep_every_selected_window_and_its_audit_rank():

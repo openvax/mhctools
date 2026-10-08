@@ -86,6 +86,10 @@ from .serum_contributions import (
     simulate_enzyme_degradation as simulate_enzyme_degradation,
     enzyme_removal_effects as enzyme_removal_effects,
 )
+from .serum_calibration import (
+    serum_calibration_evidence as serum_calibration_evidence,
+    serum_assay_parent_reference as serum_assay_parent_reference,
+)
 from .cleavage import CleavageInput, CleavageModel, CleavageSite, CleavageResult
 from .cleavage_batch import (
     cleavage_overlays, load_cleavage_batch, normalize_cleavage_input,
@@ -120,6 +124,7 @@ from .vaccine_report import (
     VaccineConstruct as VaccineConstruct,
     VaccineReportInput as VaccineReportInput,
     generate_vaccine_report as generate_vaccine_report,
+    compact_target_summary as compact_target_summary,
     placement_assessments as placement_assessments,
     processing_route_policy as processing_route_policy,
     select_mhc_windows as select_mhc_windows,
@@ -174,7 +179,7 @@ def __getattr__(name):
     raise AttributeError(
         "module %r has no attribute %r" % (__name__, name))
 
-__version__ = "3.47.14"
+__version__ = "3.47.15"
 
 __all__ = [
     "CleaveNet",
@@ -253,6 +258,9 @@ __all__ = [
     "annotate_target_cleavage",
     "EnzymeCutRate",
     "serum_contribution_evidence",
+    "serum_calibration_evidence",
+    "serum_assay_parent_reference",
+    "compact_target_summary",
     "serum_reference_kinetics",
     "empirical_terminal_cut_rates",
     "simulate_enzyme_degradation",

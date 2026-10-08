@@ -58,3 +58,7 @@ site/
 
 # Patient-specific regenerated reports stay local unless separately published.
 analyses/osteosarc_vaccine_cleavage/local_results/
+
+# Local document exports and their visual QA intermediates.
+output/
+tmp/pdfs/
