@@ -481,6 +481,72 @@ def placement_assessments(construct):
     return rows
 
 
+def compact_target_summary(construct):
+    """Summarize each exact target without turning site flags into survival.
+
+    Expression yield, uptake and MHC loading remain unassessed in this schema.
+    Candidate cuts preserve their model, compartment, coverage and production
+    assumptions. A boundary flag concerns possible release; an internal flag
+    concerns disruption of the exact target. Neither supplies a kinetic rate.
+    """
+    construct.validate()
+    policies = {p.context: p for p in processing_route_policy(construct)}
+    placements = placement_assessments(construct)
+    summaries = []
+    for target in construct.intended_epitopes:
+        rows = [r for r in placements if (r["epitope"], r["epitope_start"], r["epitope_end"])
+                == (target.label, target.start, target.end)]
+
+        def evidence(contexts):
+            return [{
+                "model": r["track"], "context": r["context"],
+                "relevance": r["route_relevance"],
+                "internal_cut_flags": r["internal_supported_bonds"],
+                "boundary_cut_flags": r["boundary_supported_bonds"],
+                "internal_assessed_bonds": r["internal_assessed_bonds"],
+                "internal_unassessed_bonds": sorted(
+                    set(range(target.start, target.end)) - set(r["internal_assessed_bonds"])),
+                "conditional_on": r["conditional_on"],
+                "evidence_type": r["evidence_type"],
+                "threshold": r["threshold"], "score_units": r["score_units"],
+            } for r in rows if r["context"] in contexts
+                and r["route_relevance"] != "not_applicable"]
+
+        processing = evidence(("cytosolic_proteasome", "er_trimming", "endolysosomal"))
+        circulation = policies["circulation"]
+        summaries.append({
+            "construct_id": construct.identifier, "target": target.label,
+            "target_sequence": construct.sequence[target.start - 1:target.end],
+            "target_start": target.start, "target_end": target.end,
+            "coordinate_system": "one-based inclusive residues; bond n follows residue n",
+            "delivery": construct.delivery, "routing": construct.routing,
+            "mrna_expression": {
+                "status": "unassessed" if construct.delivery == "rna_encoded" else "not_applicable",
+                "reason": "RNA delivery and translation yield are not supplied"
+                if construct.delivery == "rna_encoded" else "This construct is delivered as peptide",
+            },
+            "antigen_processing": {
+                "status": "candidate_internal_cuts" if any(r["internal_cut_flags"] for r in processing)
+                else "site_evidence_only" if any(r["internal_assessed_bonds"] for r in processing)
+                else "unassessed",
+                "evidence": processing, "uptake": "unassessed", "mhc_loading": "unassessed",
+                "question": "Can a loadable target be generated before destructive trimming?",
+            },
+            "serum": {
+                "relevance": circulation.relevance, "exposure_reason": circulation.rationale,
+                "status": "unassessed" if circulation.relevance != "not_applicable" else "not_applicable",
+                "target_survival": None, "parent_half_life": None,
+                "evidence": evidence(("circulation",)),
+                "reason": "Fragment-specific serum kinetics are not supplied"
+                if circulation.relevance != "not_applicable" else "No circulating free peptide is declared",
+            },
+            "matching_mhc_windows": [asdict(w) for w in construct.mhc_windows
+                                     if (w.start, w.end) == (target.start, target.end)],
+            "interpretation": "Site flags and native MHC ranks do not establish target survival or presentation probability",
+        })
+    return summaries
+
+
 def _timestamped_output_dir(base_dir, generated_at):
     if generated_at.tzinfo is None or generated_at.utcoffset() is None:
         raise ValueError("generated_at must include a timezone")
@@ -719,6 +785,7 @@ def generate_vaccine_report(
     )
     route_rows = []
     placement_rows = []
+    summary_rows = []
     selected_rows = []
     for construct in report.constructs:
         for route in processing_route_policy(construct):
@@ -729,6 +796,7 @@ def generate_vaccine_report(
                 **asdict(route),
             })
         placement_rows.extend(placement_assessments(construct))
+        summary_rows.extend(compact_target_summary(construct))
         for mhc_class in ("I", "II"):
             selected = select_mhc_windows(
                 construct, mhc_class, maximum=maximum_mhc_windows
@@ -753,6 +821,9 @@ def generate_vaccine_report(
     (output_dir / "placement-assessments.json").write_text(
         json.dumps(placement_rows, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
+    (output_dir / "target-summary.json").write_text(
+        json.dumps(summary_rows, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     write_rows(
         output_dir / "selected-mhc-windows.csv", selected_rows,
         ["construct_id", "display_rank", "mhc_class", "allele", "start", "end",
@@ -764,7 +835,10 @@ def generate_vaccine_report(
         "# Vaccine processing report\n\n"
         "This route-aware report preserves model-native scores. It does not calculate "
         "an ensemble probability or claim that a predicted cut occurs in vivo. RNA and "
-        "synthetic-long-peptide delivery use distinct declared processing policies.\n",
+        "synthetic-long-peptide delivery use distinct declared processing policies.\n\n"
+        "[Compact target summary](target-summary.json) separates expression, processing "
+        "and serum availability. Site flags retain their model and route; missing "
+        "uptake, MHC loading and serum kinetics stay unassessed.\n",
         encoding="utf-8",
     )
     checksums = {}

@@ -103,6 +103,11 @@ the normalized input. Every selected window is drawn: the figure adds ligand
 lanes as needed instead of dropping one, and the number on each bar is that
 window's `display_rank` in `selected-mhc-windows.csv`.
 
+`target-summary.json` supplies a compact view per intended target: RNA
+expression applicability, processing flags and coverage, conditional routes,
+and serum kinetics availability. Missing expression, uptake, loading or rate
+evidence stays unassessed. See the [three-route guide](vaccine-target-summary.md).
+
 ## Python and Vaxrank integration
 
 ```python

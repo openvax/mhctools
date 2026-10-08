@@ -30,6 +30,8 @@ FAP, MME and activated CPB2 retain their separate specificity evidence. This
 inventory supplies no applicable vaccine serum-rate calibration for them.
 Enzyme abundance, recognition/enrichment scores, and absence of a motif are
 insufficient to fill that gap. Intracellular processing stays outside this model.
+The [human perturbation audit](serum-calibration.md) adds FAP depletion/rescue
+evidence and reported hormone-stability clocks while preserving these limits.
 
 ## Measured reference calculations
 
