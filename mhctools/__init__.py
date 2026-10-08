@@ -75,7 +75,9 @@ from .serum_degradation import (
     target_fragments as target_fragments,
     simulate_target_degradation as simulate_target_degradation,
     degradation_curve as degradation_curve,
+    summarize_target_degradation as summarize_target_degradation,
 )
+from .target_cleavage import annotate_target_cleavage as annotate_target_cleavage
 from .cleavage import CleavageInput, CleavageModel, CleavageSite, CleavageResult
 from .cleavage_batch import (
     cleavage_overlays, load_cleavage_batch, normalize_cleavage_input,
@@ -164,7 +166,7 @@ def __getattr__(name):
     raise AttributeError(
         "module %r has no attribute %r" % (__name__, name))
 
-__version__ = "3.47.12"
+__version__ = "3.47.13"
 
 __all__ = [
     "CleaveNet",
@@ -239,6 +241,8 @@ __all__ = [
     "target_fragments",
     "simulate_target_degradation",
     "degradation_curve",
+    "summarize_target_degradation",
+    "annotate_target_cleavage",
     "CleavageInput",
     "CleavageModel",
     "CleavageSite",

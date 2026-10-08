@@ -7,6 +7,7 @@ import pytest
 from mhctools import PeptideInput
 from mhctools.serum_degradation import (
     DegradationTarget, degradation_curve, simulate_target_degradation, target_fragments,
+    summarize_target_degradation,
 )
 
 
@@ -90,6 +91,42 @@ def test_uniform_cuts_can_preserve_target_longer_than_parent():
     assert all(a["target_in_circulation"] >= b["target_in_circulation"] for a, b in zip(rows, rows[1:]))
     for row in rows:
         assert row["target_in_circulation"] >= row["parent_remaining"]
+
+
+def test_retention_summary_does_not_equate_competing_removal_with_destruction():
+    paths = run(target=DegradationTarget("whole", 0, 9), n_paths=12000,
+                clearance_rate_per_hour=math.log(2), uptake_rate_per_hour=math.log(2), seed=8)
+    summary = summarize_target_degradation(paths)
+    assert summary["retention_median_hours"] == pytest.approx(1 / 3, abs=0.02)
+    assert summary["parent_half_life_hours"] == 1
+    assert summary["median_status"] == "conditional_estimate"
+    assert summary["calibrated_epitope_half_life_hours"] is None
+    for event in ("target_destroyed", "cleared", "taken_up"):
+        assert summary["outcome_fractions"][event] == pytest.approx(1 / 3, abs=0.02)
+
+
+def test_summary_abstains_for_unknown_and_does_not_cap_long_lifetime():
+    unknown = summarize_target_degradation(run(hours=None, n_paths=2))
+    assert unknown["retention_median_hours"] is None
+    assert unknown["median_status"] == "unassessed_paths"
+    long_lived = summarize_target_degradation(run(hours=1e12, n_paths=2))
+    assert long_lived["retention_median_hours"] is None
+    assert long_lived["median_status"] == "beyond_horizon"
+    assert long_lived["retention_median_lower_bound_hours"] == 24
+    assert long_lived["parent_half_life_hours"] == 1e12
+
+
+def test_summary_uses_first_passage_instead_of_median_of_censored_times():
+    from dataclasses import replace
+    paths = run(n_paths=5, seed=7)
+    template = paths[0].steps[-1]
+    events = [(1, "target_destroyed"), (2, "target_destroyed"),
+              (3, "target_destroyed"), (24, "censored"), (24, "censored")]
+    paths = tuple(replace(p, steps=(replace(template, event_hours=t, event=e),))
+                  for p, (t, e) in zip(paths, events))
+    assert summarize_target_degradation(paths)["retention_median_hours"] == 3
+    with pytest.raises(ValueError, match="At least one"):
+        summarize_target_degradation([])
 
 
 def test_occurrences_and_estimator_identity_are_preserved():

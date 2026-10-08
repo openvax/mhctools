@@ -266,3 +266,54 @@ def degradation_curve(paths, times_hours):
         row["target_in_circulation"] = row["parent_remaining"] + row["target_in_fragment"]
         rows.append(row)
     return rows
+
+
+def summarize_target_degradation(paths):
+    """Summarize conditional target retention without calling it circulation PK.
+
+    Parameters
+    ----------
+    paths : iterable of DegradationPath
+        Lineages for one target occurrence, estimator and scenario.
+
+    Returns
+    -------
+    dict
+        ``retention_median_hours`` is the first time at which at least half
+        the sampled targets have been split, cleared or taken up. Those causes
+        remain separate in ``outcome_fractions``. This is conditional on the
+        supplied kinetics and cut weights, not an experimentally calibrated
+        epitope half-life. Unknown paths cause abstention. If fewer than half
+        have left the tracked compartment by the horizon, report a lower
+        bound rather than replacing their lifetimes with the horizon.
+    """
+    paths = tuple(paths)
+    if not paths:
+        raise ValueError("At least one path is required")
+    first = paths[0]
+    final = degradation_curve(paths, [first.horizon_hours])[0]
+    endings = [p.steps[-1] for p in paths]
+    losses = sorted(step.event_hours for step in endings
+                    if step.event in ("target_destroyed", "cleared", "taken_up"))
+    # Empirical first passage, not a median of truncated observation times.
+    threshold = (len(paths) + 1) // 2
+    median, lower_bound = None, None
+    if final["unknown"]:
+        status = "unassessed_paths"
+    elif len(losses) >= threshold:
+        status, median = "conditional_estimate", losses[threshold - 1]
+    else:
+        status, lower_bound = "beyond_horizon", first.horizon_hours
+    return dict(
+        estimator=first.estimator, scenario=first.scenario,
+        target_label=first.target.label, target_start=first.target.start,
+        target_end=first.target.end, n_paths=len(paths),
+        horizon_hours=first.horizon_hours,
+        parent_half_life_hours=first.steps[0].half_life_hours,
+        retention_median_hours=median, median_status=status,
+        retention_median_lower_bound_hours=lower_bound,
+        outcome_fractions={key: final[key] for key in (
+            "parent_remaining", "target_in_fragment", "target_destroyed",
+            "cleared", "taken_up", "unknown")},
+        calibrated_epitope_half_life_hours=None,
+        interpretation="Conditional target retention; cut locations and event clocks are assumptions")

@@ -1,0 +1,190 @@
+[
+  {
+    "section": "Before uptake",
+    "name": "DPP4 / CD26",
+    "location": "Cell surfaces and soluble blood enzyme",
+    "action": "Removes two residues from an accessible N terminus, often with Pro or Ala second.",
+    "relevance": "Established degradation route for GLP-1 and other selected hormones. For this vaccine, inspect whether repeated trimming reaches the epitope; assay loss does not rank its circulation rate against other enzymes.",
+    "references": [
+      "https://www.uniprot.org/uniprotkb/P27487/entry",
+      "https://doi.org/10.1371/journal.pone.0134427"
+    ]
+  },
+  {
+    "section": "Before uptake",
+    "name": "ACE",
+    "location": "Vascular/tissue cell surfaces; soluble blood form",
+    "action": "Commonly removes a C-terminal dipeptide.",
+    "relevance": "Can dominate degradation of particular short peptides, such as dilute bradykinin. A terminal cut may spare a central epitope. The current partial rule gives a candidate bond, not a rate.",
+    "references": [
+      "https://www.uniprot.org/uniprotkb/P12821/entry",
+      "https://doi.org/10.1152/ajpheart.2000.278.4.H1069"
+    ]
+  },
+  {
+    "section": "Before uptake",
+    "name": "CPN",
+    "location": "Soluble plasma enzyme",
+    "action": "Removes a terminal Lys or Arg.",
+    "relevance": "Direct blood-peptide trimming route when the exposed C terminus is basic. Its contribution versus ACE depends on substrate concentration and sequence.",
+    "references": [
+      "https://www.uniprot.org/uniprotkb/P15169/entry",
+      "https://doi.org/10.1152/ajpheart.2000.278.4.H1069"
+    ]
+  },
+  {
+    "section": "Before uptake",
+    "name": "CPB2 / TAFI",
+    "location": "Circulating precursor, activated during coagulation/fibrinolysis",
+    "action": "The active enzyme removes terminal Lys or Arg.",
+    "relevance": "Conditional contributor: precursor abundance is not active-enzyme activity. No site is asserted here because activation was not supplied; this is a coverage gap, not a predicted event.",
+    "references": [
+      "https://www.uniprot.org/uniprotkb/Q96IY4/entry",
+      "https://doi.org/10.1074/jbc.274.49.35046"
+    ]
+  },
+  {
+    "section": "Before uptake",
+    "name": "Aminopeptidase P2",
+    "location": "GPI-anchored cell-surface enzyme",
+    "action": "Removes the first residue when the next residue is Pro.",
+    "relevance": "Relevant to accessible N-terminal trimming, particularly alternative kinin degradation. It removes one residue, unlike DPP4; membrane access is not represented by a serum motif score.",
+    "references": [
+      "https://www.uniprot.org/uniprotkb/O43895/entry",
+      "https://pubmed.ncbi.nlm.nih.gov/15361070/"
+    ]
+  },
+  {
+    "section": "Before uptake",
+    "name": "FAP",
+    "location": "Activated stromal cell surfaces; soluble blood form",
+    "action": "N-terminal X-Pro trimming and a separate internal Gly-Pro cleavage route.",
+    "relevance": "The internal route can split an epitope; the terminal route can trim a flank. Tissue context and soluble activity matter. Published substrate specificity does not establish a universal strength versus DPP4.",
+    "references": [
+      "https://www.uniprot.org/uniprotkb/Q12884/entry",
+      "https://pubmed.ncbi.nlm.nih.gov/16480718/"
+    ]
+  },
+  {
+    "section": "Before uptake",
+    "name": "MME / neprilysin",
+    "location": "Cell-surface ectopeptidase in multiple tissues",
+    "action": "Internal cleavage with selected hydrophobic preferences.",
+    "relevance": "Important metabolism of selected short peptides at exposed surfaces. This broad preference rule can flag many bonds; it is weak evidence of rate and has a conservative 2-30-residue modeling scope.",
+    "references": [
+      "https://www.uniprot.org/uniprotkb/P08473/entry",
+      "https://pubmed.ncbi.nlm.nih.gov/6349683/"
+    ]
+  },
+  {
+    "section": "Before uptake",
+    "name": "ANPEP / CD13",
+    "location": "Cell-surface enzyme; soluble forms also reported",
+    "action": "N-terminal amino-acid trimming; our rule flags Ala only.",
+    "relevance": "Potential trimming after surface exposure. The limited Ala flag misses other substrates; absence of a flag cannot establish resistance.",
+    "references": [
+      "https://www.uniprot.org/uniprotkb/P15144/entry",
+      "https://pubmed.ncbi.nlm.nih.gov/22932899/"
+    ]
+  },
+  {
+    "section": "Before uptake",
+    "name": "ENPEP / aminopeptidase A",
+    "location": "Cell-surface enzyme",
+    "action": "Prefers removal of an acidic N-terminal residue.",
+    "relevance": "Conditional surface trimming; calcium, access and the newly exposed terminus matter. A sequence flag does not imply a major bulk-serum contribution.",
+    "references": [
+      "https://www.uniprot.org/uniprotkb/Q07075/entry",
+      "https://pubmed.ncbi.nlm.nih.gov/23888046/"
+    ]
+  },
+  {
+    "section": "Before uptake",
+    "name": "PREP / prolyl oligopeptidase",
+    "location": "Mainly cytoplasmic; activity also measured in human plasma",
+    "action": "Post-Pro cleavage in accessible short peptides.",
+    "relevance": "A possible additional internal cut mechanism. Plasma activity is documented, but its contribution to these vaccine peptides is unmeasured; our conservative rule covers 4-30 residues.",
+    "references": [
+      "https://www.uniprot.org/uniprotkb/P48147/entry",
+      "https://pubmed.ncbi.nlm.nih.gov/11012558/"
+    ]
+  },
+  {
+    "section": "After uptake",
+    "name": "Proteasome / MHC-I processing",
+    "location": "Cytosol; subsequent antigen-presentation pathway",
+    "action": "Proteasomal cleavage and MHC-I processing proxies.",
+    "relevance": "Pepsickle human is primary for human input; all-mammal is a sensitivity comparison. NetChop 20S learns purified-proteasome digestion; Cterm and NetCleave-I learn ligand processing. These do not set the circulation clock.",
+    "references": [
+      "https://doi.org/10.1093/bioinformatics/btab628",
+      "https://doi.org/10.1007/s00251-005-0781-7",
+      "https://doi.org/10.1038/s41598-021-92632-y"
+    ]
+  },
+  {
+    "section": "After uptake",
+    "name": "Cathepsins B / H / S; class-II proxy",
+    "location": "Endosomal/lysosomal processing compartments",
+    "action": "Cleavage/trimming after uptake; context and pH matter.",
+    "relevance": "ITCell has separate 15-, 60- and 240-minute assay matrices for each enzyme. NetCleave-II is a class-II processing proxy without enzyme identification. Neither supplies circulating peptide half-life.",
+    "references": [
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC6219782/",
+      "https://doi.org/10.1038/s41598-021-92632-y"
+    ]
+  },
+  {
+    "section": "After uptake",
+    "name": "ERAP1 / ERAP2",
+    "location": "Endoplasmic reticulum",
+    "action": "N-terminal precursor trimming for MHC-I presentation.",
+    "relevance": "ERAMER scores ERAP1's first trimming step on supported short inputs; ERAP2 has a partial basic-terminus rule. Trimming can expose or overtrim an epitope. Long parent input gaps are shown separately.",
+    "references": [
+      "https://pubmed.ncbi.nlm.nih.gov/38925438/",
+      "https://pubmed.ncbi.nlm.nih.gov/12799365/"
+    ]
+  },
+  {
+    "section": "After uptake",
+    "name": "APP1, TPP2, NPEPPS, DPP8 / DPP9",
+    "location": "Cytosol",
+    "action": "Different N-terminal precursor-trimming routes.",
+    "relevance": "Qualitative specificity rules provide conditional processing annotations. Their scores are not blood-enzyme activity or target-loss rates.",
+    "references": [
+      "https://pubmed.ncbi.nlm.nih.gov/11106490/",
+      "https://doi.org/10.4049/jimmunol.169.8.4161",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC3656252/"
+    ]
+  },
+  {
+    "section": "After uptake",
+    "name": "THOP1 / neurolysin; LNPEP / IRAP",
+    "location": "Cytosol (THOP1/NLN); endosomal pathway (LNPEP)",
+    "action": "Intracellular peptide processing.",
+    "relevance": "Current entries are observed-substrate references, not general sequence predictors. A missing reference match cannot establish protection; full original processing evidence remains available.",
+    "references": [
+      "https://doi.org/10.1042/bj3080145",
+      "https://doi.org/10.1038/s41598-024-67639-w",
+      "https://doi.org/10.4049/jimmunol.0902502"
+    ]
+  },
+  {
+    "section": "Inflammation and tissue exposure",
+    "name": "ELANE / cathepsin G",
+    "location": "Neutrophil granules; can be released extracellularly",
+    "action": "Context-dependent inflammatory proteolysis.",
+    "relevance": "PhageScout PWM scores describe site preference, while peptide scores describe substrate enrichment. Only PWM outputs can be attached to a candidate bond. Neither defines a normal-circulation enzyme rate.",
+    "references": [
+      "https://doi.org/10.3390/ijms27177593"
+    ]
+  },
+  {
+    "section": "Inflammation and tissue exposure",
+    "name": "MMPs",
+    "location": "Extracellular/tissue proteases, with activation and inhibitor control",
+    "action": "Substrate-dependent proteolysis during tissue exposure.",
+    "relevance": "Frozen ten-mer substrate Z-scores are supporting evidence. They do not localize an exact cut or measure epitope destruction, so no cut line or circulation rate is assigned to them.",
+    "references": [
+      "https://doi.org/10.1038/s41467-025-67226-1"
+    ]
+  }
+]
