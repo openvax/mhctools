@@ -68,6 +68,7 @@ def test_curated_json_files_are_explicit_package_resources():
         "model_lineage.json",
         "phagescout_profiles.json",
         "serum_cleavage_reference.json",
+        "serum_contributions.json",
     }
 
 
