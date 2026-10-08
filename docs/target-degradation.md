@@ -15,6 +15,97 @@ trajectories. Agreement is informative; disagreement is unresolved model or assa
 uncertainty. PeptiVerse's sequence endpoint has only 130 training examples, and
 neither estimator establishes vaccine-fragment accuracy.
 
+## Lead with the selected epitope
+
+Report the best qualifying mutant candidate per MHC class and vaccine construct,
+with its exact interval, allele, rank and mutation mapping. Class-I and class-II
+ranks have different endpoints; do not use them to invent a single winner.
+Keep disclosed source epitopes as references. If the mutation or target cannot
+be localized, retain that gap instead of selecting a guessed target.
+
+The main question is how long the selected target remains intact **in any
+target-bearing fragment**. A parent-peptide half-life answers when the original
+sequence disappears; one harmless flank cut counts as parent loss. A separate
+estimate for the released target answers how long that exact sequence would
+last if already present as a free peptide. It does not account for when it is
+released, protection inside its parent, or presentation after uptake. Show both
+sequence estimates for each estimator without averaging them.
+
+```python
+from mhctools import summarize_target_degradation
+
+summary = summarize_target_degradation(paths)
+summary["retention_median_hours"]  # conditional first-passage time; may be None
+summary["median_status"]           # conditional_estimate / beyond_horizon / unassessed_paths
+summary["outcome_fractions"]       # target split, clearance and uptake remain distinct
+```
+
+Never label this simulation median as a calibrated epitope half-life. Unknown
+paths cause abstention; surviving past the observation horizon gives a lower
+bound rather than a lifetime capped at 24 hours. Non-cleavage removal is not
+target destruction. In a digestion-only scenario, removal rates are zero and
+all assessed losses are cuts inside the selected target.
+
+## Annotate the bond and its mechanism
+
+```python
+from mhctools import DegradationTarget, annotate_target_cleavage, predict_cleavage
+
+target = DegradationTarget("synthetic target", 2, 6)
+evidence = predict_cleavage("APACDEFG", models=("dpp4-qpisa", "fap-dipeptidyl"))
+annotations = annotate_target_cleavage(target, evidence)
+```
+
+Each annotation retains the enzyme, model version, native score and endpoint,
+assay, limitations and compartment. A cut strictly inside the target splits it;
+a cut exactly at its boundary can release it intact; a flank cut trims its
+precursor. These are consequences **if the cut occurs**, not occurrence
+probabilities. A native substrate score, purified-enzyme depletion estimate and
+partial motif match must retain different labels. No universal score threshold
+or cross-enzyme sum establishes a serum rate. For conditional fragments,
+`CleavageInput.source_start` preserves original coordinates and new termini.
+
+Use dashed red lines between residues for candidate bonds, highlight the target,
+and list the responsible model and evidence type. Separate extracellular
+digestion from lysosomal, proteasomal and MHC-ligand processing. Prefer the human
+Pepsickle model for human input; the all-mammal model is a separate sensitivity
+comparison, not a second independent vote. Display unavailable coefficients or
+model input limits explicitly. A non-match is not proof of protection.
+
+Arbitrary 3x/10x weighting belongs in supporting sensitivity detail. It gives a
+matched bond weight 3 or 10 versus weight 1 at unflagged bonds; enzyme scores do
+not set that multiplier and matches do not stack. An unflagged sampled cut must
+read **assumed cut; no supporting enzyme prediction**, not an unnamed protease.
+
+## Assay and chemistry matter
+
+In a [direct matrix comparison](https://doi.org/10.1371/journal.pone.0178943),
+tested peptides had different degradation profiles in mouse blood, serum and
+anticoagulated plasma. Serum preparation and anticoagulants can change protease
+activity. Therefore, a serum estimate is not a human circulation lifetime.
+
+Constrained structures, terminal chemistry and attachments can change peptide
+persistence. A [cyclotide study](https://doi.org/10.1021/ja405108p) measured
+a human-serum half-life of 55 hours for native MCoTI-I; an engineered cyclotide
+and its linearized/reduced form had very different stabilities. The
+[semaglutide label](https://www.accessdata.fda.gov/drugsatfda_docs/label/2026/209637s038lbl.pdf)
+attributes prolonged circulation principally to albumin binding and separately
+documents DPP4 resistance. These examples do not establish the lifetime of a
+linear vaccine construct. Unknown formulation, attachment, binding and terminal
+chemistry must remain unknown; do not silently score a modified peptide as free.
+
+The focused local exporter is `analyses/osteosarc_vaccine_cleavage/focused_stability_report.py`.
+It reads a frozen target-cascade directory and writes a new report directory:
+
+```sh
+python analyses/osteosarc_vaccine_cleavage/focused_stability_report.py \
+  --input /path/to/frozen-target-cascade --output /path/to/new-focused-report
+```
+
+It reuses native inference without changing predictor outputs, keeps all target
+annotations in the audit, and separates the primary mutant candidates from
+disclosed source references. Install the `vaccine-report` extra for PDF rendering.
+
 Stable cleavage products are biologically possible: the
 [RNase 3 peptide study](https://doi.org/10.1021/acs.jmedchem.1c00795)
 measured stable byproducts after serum digestion. That experiment supports the
