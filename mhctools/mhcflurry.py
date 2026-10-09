@@ -14,6 +14,9 @@ import logging
 import math
 import os
 
+from mhcgnomes import Allele, parse
+from typechecks import require_iterable_of
+
 from .base_predictor import BasePredictor
 from .base_predictor import _check_flank_inputs
 from .binding_prediction import BindingPrediction
@@ -26,6 +29,48 @@ logger = logging.getLogger(__name__)
 # Loaded model and inferred provenance, keyed by (kind, resolved models path).
 _model_cache = {}
 _PERCENT_RANK_SUPPORT_UNKNOWN = object()
+
+
+def _resolve_supported_alleles(
+        alleles, valid_alleles=None, keep_unparseable=False):
+    """Resolve the BasePredictor validation hook to actual MHCflurry keys.
+
+    Exact supported spellings win, including predictor-native names the parser
+    cannot recognize. Otherwise require one nomenclature-equivalent Allele
+    identity, retaining all fields and annotations without historical aliases.
+    Groups and multiple equivalent dictionary keys have no implicit winner.
+    """
+    requests = list(alleles)
+    require_iterable_of(requests, str, "MHC alleles")
+    supported = set(valid_alleles or ())
+    identity_keys = None
+    resolved = []
+    for raw_name in requests:
+        name = raw_name.strip()
+        if name in supported:
+            key = name
+        else:
+            identity = parse(name, use_allele_aliases=False, raise_on_error=False)
+            if not isinstance(identity, Allele):
+                raise UnsupportedAllele("Unsupported MHCflurry allele: %s" % name)
+            if identity_keys is None:
+                identity_keys = {}
+                for candidate in sorted(supported):
+                    parsed = parse(
+                        candidate, use_allele_aliases=False, raise_on_error=False)
+                    if isinstance(parsed, Allele):
+                        identity_keys.setdefault(parsed, []).append(candidate)
+            matches = identity_keys.get(identity, [])
+            if len(matches) > 1:
+                raise UnsupportedAllele(
+                    "Ambiguous MHCflurry allele %s matches supported keys: %s"
+                    % (name, ", ".join(matches)))
+            if not matches:
+                raise UnsupportedAllele("Unsupported MHCflurry allele: %s" % name)
+            key = matches[0]
+        if key not in resolved:
+            resolved.append(key)
+    return resolved
 
 
 def _normalize_models_path(models_path):
@@ -226,6 +271,8 @@ class MHCflurry(BasePredictor):
         "haplotype",
         "per_allele",
     ))
+    # Preserve the loaded model's keys instead of legacy two-field spelling.
+    _check_hla_alleles = staticmethod(_resolve_supported_alleles)
 
     @classmethod
     def fetch(cls, version=None):
@@ -275,23 +322,21 @@ class MHCflurry(BasePredictor):
             ``"auto"`` uses haplotype mode for up to six alleles and
             per-allele mode for larger allele panels.
         """
+        self.predictor, self.predictor_version = _load_predictor(
+            "presentation", predictor, models_path, predictor_version)
         BasePredictor.__init__(
             self,
             alleles=alleles,
+            valid_alleles=self.predictor.supported_alleles,
             default_peptide_lengths=default_peptide_lengths,
             min_peptide_length=8,
             max_peptide_length=15)
-        self.predictor, self.predictor_version = _load_predictor(
-            "presentation", predictor, models_path, predictor_version)
 
         self.include_affinity_percentile_ranks = \
             include_affinity_percentile_ranks
         self.presentation_allele_mode = self._resolve_presentation_allele_mode(
             presentation_allele_mode)
 
-        for allele in self.alleles:
-            if allele not in self.predictor.supported_alleles:
-                raise UnsupportedAllele(allele)
         if self.include_affinity_percentile_ranks:
             _check_affinity_percent_rank_support(
                 self.predictor.affinity_predictor, self.alleles)
@@ -567,6 +612,7 @@ class MHCflurry_Affinity(BasePredictor):
 
     See https://github.com/openvax/mhcflurry
     """
+    _check_hla_alleles = staticmethod(_resolve_supported_alleles)
 
     @classmethod
     def fetch(cls, version=None):
@@ -606,21 +652,19 @@ class MHCflurry_Affinity(BasePredictor):
             percentile-rank calibration, either directly or through an allele
             with the same pseudosequence.
         """
+        self.predictor, self.predictor_version = _load_predictor(
+            "affinity", predictor, models_path, predictor_version)
         BasePredictor.__init__(
             self,
             alleles=alleles,
+            valid_alleles=self.predictor.supported_alleles,
             default_peptide_lengths=default_peptide_lengths,
             min_peptide_length=8,
             max_peptide_length=15)
-        self.predictor, self.predictor_version = _load_predictor(
-            "affinity", predictor, models_path, predictor_version)
 
         self.include_affinity_percentile_ranks = \
             include_affinity_percentile_ranks
 
-        for allele in self.alleles:
-            if allele not in self.predictor.supported_alleles:
-                raise UnsupportedAllele(allele)
         if self.include_affinity_percentile_ranks:
             _check_affinity_percent_rank_support(self.predictor, self.alleles)
 

@@ -15,6 +15,22 @@ you have them. Do not match alleles with string tricks such as
 | `HLA-DPA1*01:03-DPB1*04:01`, `DPA1*01:03/DPB1*04:01`, `DPA1*01:03;DPB1*04:01` | `HLA-DPA1*01:03-DPB1*04:01` |
 | `H-2-Kb`, `H2-Kb` | `H-2-Kb` |
 
+MHCflurry's presentation and affinity adapters preserve an exact key in the
+loaded predictor's supported list. Other spellings must resolve to one
+unambiguous [MHCgnomes Allele identity](https://github.com/pirl-unc/mhcgnomes),
+retaining all allele fields and annotations. These adapters do not choose a
+representative for a serotype such as `A2`, truncate extra fields, or substitute
+a different allele by sequence similarity. Repeated resolved keys are removed
+while preserving requested order. Supported alleles depend on the loaded bundle;
+executability alone does not establish species-specific accuracy or calibration.
+
+For canine `DLA-88*001:01`, `88` is the class-I locus, `001` is the three-digit
+major type and `01` is the subtype. The [canine nomenclature committee report](https://www.georgehapp.com/Refs/Kennedy1999.pdf)
+introduced the three-digit major type; consult [IPD-MHC's canine section](https://www.ebi.ac.uk/ipd/mhc/group/DLA/)
+for official names. MHCgnomes resolves `DLA-88*01:01` to the same identity as
+`DLA-88*001:01`; the adapter forwards whichever actual supported key represents
+that identity. It does not apply a universal two-digit field width.
+
 Write class II DP and DQ molecules as an alpha-beta pair. A single-chain DR
 allele is expanded to the pair automatically.
 
@@ -26,7 +42,7 @@ default allele.
 ## What happens with a bad allele
 
 - A string that mhcgnomes cannot parse (`foo`) raises `mhcgnomes.ParseError`
-  from predictors such as [MHCflurry](predictors/binding.md#mhcflurry). Command-line predictors instead check an
+  from predictors using the shared normalizer. [MHCflurry](predictors/binding.md#mhcflurry) and command-line predictors check an
   unparseable name against the tool's own allele list and raise
   `UnsupportedAllele` when it is not there.
 - An allele that parses but the predictor does not support (`HLA-A*99:99`, or a
@@ -38,8 +54,8 @@ default allele.
 
 Some tools accept names mhcgnomes cannot parse, such as `H-2-Qa1` or
 `BoLA-amani.1`. Command-line predictors validate these against the tool's own
-list, so they can be requested; MHCflurry rejects `H-2-Kb` with
-`UnsupportedAllele`.
+list, so they can be requested. MHCflurry also preserves exact native supported
+keys; an unknown name raises `UnsupportedAllele`.
 
 [TLimmuno2](predictors/immunogenicity.md#tlimmuno2) also accepts its native [NetMHCIIpan](predictors/binding.md#netmhciipan)-style keys (`DRB1_0803`,
 `HLA-DPA10103-DPB10101`), and [MixMHC2pred](predictors/binding.md#mixmhc2pred) accepts its own spelling

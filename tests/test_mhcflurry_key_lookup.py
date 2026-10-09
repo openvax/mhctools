@@ -29,9 +29,14 @@ def _make_fake_predictor(
     """Build a fake mhcflurry Class1PresentationPredictor with configurable
     allele string in the affinity and presentation outputs."""
     predict_calls = []
+    affinity_calls = []
 
     def predict_to_dataframe(
             peptides, alleles, include_percentile_ranks=True):
+        affinity_calls.append({
+            "peptides": list(peptides), "alleles": list(alleles),
+            "include_percentile_ranks": include_percentile_ranks,
+        })
         output_alleles = (
             [aff_allele_str] * len(peptides)
             if aff_allele_str is not None else list(alleles))
@@ -47,6 +52,7 @@ def _make_fake_predictor(
     affinity_predictor = types.SimpleNamespace(
         predict_to_dataframe=predict_to_dataframe,
         supported_alleles=supported,
+        affinity_calls=affinity_calls,
     )
     if percent_rank_transforms is not None:
         affinity_predictor.allele_to_percent_rank_transform = \
@@ -330,3 +336,88 @@ def test_affinity_only_disabled_percentile_ranks_convert_to_none():
 
     assert result.affinity.percentile_rank is None
     assert result.best_affinity_by_rank is None
+
+
+@pytest.fixture(params=[MHCflurry, MHCflurry_Affinity])
+def allele_key_wrapper(request):
+    return request.param
+
+
+def _key_predictor(wrapper, supported, **kwargs):
+    fake = _make_fake_predictor(
+        aff_allele_str=None, pres_allele_str=supported[0],
+        supported=supported, **kwargs)
+    return fake if wrapper is MHCflurry else fake.affinity_predictor
+
+
+@pytest.mark.parametrize('requested,key', [
+    ('DLA-88*001:01', 'DLA-88*001:01'),
+    ('DLA-88*01:01', 'DLA-88*001:01'),
+    ('dla-88*001:01', 'DLA-88*001:01'),
+    ('DLA-88*003:02', 'DLA-88*003:02'),
+    ('DLA-88*03:02', 'DLA-88*003:02'),
+    ('DLA-88*001:01', 'DLA-88*01:01'),
+    ('HLA-A0201', 'HLA-A*02:01'),
+    ('hla-a*02:01', 'HLA-A*02:01'),
+    ('HLA-A*02:01', 'HLA-A0201'),
+    ('H2-Kb', 'H-2-Kb'),
+    ('H-2-Kb', 'H2-Kb'),
+    ('predictor-native-key', 'predictor-native-key'),
+])
+def test_resolves_actual_supported_keys(allele_key_wrapper, requested, key):
+    fake = _key_predictor(allele_key_wrapper, [key])
+    model = allele_key_wrapper(
+        [requested], predictor=fake, include_affinity_percentile_ranks=False)
+    assert model.alleles == [key]
+
+
+@pytest.mark.parametrize('requested', [
+    'DLA-88*999:99', 'HLA-A*99:99', 'foo', 'A2', 'HLA-A*02',
+    'HLA-A*02:01:01', 'HLA-A*02:01N', 'HLA-DQA1*01:01',
+])
+def test_rejects_unknown_or_non_equivalent_identities(allele_key_wrapper, requested):
+    from mhctools.unsupported_allele import UnsupportedAllele
+    fake = _key_predictor(allele_key_wrapper, ['DLA-88*001:01', 'HLA-A*02:01'])
+    with pytest.raises(UnsupportedAllele):
+        allele_key_wrapper(
+            [requested], predictor=fake, include_affinity_percentile_ranks=False)
+
+
+def test_exact_key_wins_but_ambiguous_non_exact_identity_is_rejected(allele_key_wrapper):
+    from mhctools.unsupported_allele import UnsupportedAllele
+    supported = ['DLA-88*001:01', 'DLA-88*01:01']
+    fake = _key_predictor(allele_key_wrapper, supported)
+    for exact in supported:
+        model = allele_key_wrapper(
+            [exact], predictor=fake, include_affinity_percentile_ranks=False)
+        assert model.alleles == [exact]
+    with pytest.raises(UnsupportedAllele, match='Ambiguous'):
+        allele_key_wrapper(
+            ['dla-88*001:01'], predictor=fake,
+            include_affinity_percentile_ranks=False)
+
+
+def test_preserves_requested_order_and_forwards_resolved_keys(allele_key_wrapper):
+    expected = ['DLA-88*003:02', 'H-2-Kb', 'HLA-A*02:01', 'DLA-88*001:01']
+    fake = _key_predictor(allele_key_wrapper, expected)
+    requested = 'DLA-88*03:02,H2-Kb,A0201,DLA-88*01:01,DLA-88*001:01'
+    model = allele_key_wrapper(
+        requested, predictor=fake, include_affinity_percentile_ranks=False)
+    peptides = ['SIINFEKLA', 'SIINFEKLL']
+    results = model.predict(peptides)
+    assert model.alleles == expected
+    affinity = fake.affinity_predictor if allele_key_wrapper is MHCflurry else fake
+    assert affinity.affinity_calls[-1]['alleles'] == [a for a in expected for _ in peptides]
+    assert affinity.affinity_calls[-1]['peptides'] == peptides * len(expected)
+    assert all({p.allele for p in r.filter(kind=Kind.pMHC_affinity)} == set(expected)
+               for r in results)
+    if allele_key_wrapper is MHCflurry:
+        assert fake.predict_calls[-1]['alleles'] == expected
+
+
+def test_percent_rank_support_uses_actual_dla_key(allele_key_wrapper):
+    key = 'DLA-88*001:01'
+    fake = _key_predictor(
+        allele_key_wrapper, [key], percent_rank_transforms={key: object()})
+    model = allele_key_wrapper(['DLA-88*01:01'], predictor=fake)
+    assert model.alleles == [key]
