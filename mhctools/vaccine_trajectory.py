@@ -426,7 +426,10 @@ def simulate_vaccine_trajectory(model, times_hours, cleavage_rates=None, *, max_
                       "sequence": sequence[s:e] if e > s else None} for c, s, e in states]
     audit = [{**asdict(step), "rate": asdict(model.rates[step.name]) if step.name in model.rates else None}
              for step in steps]
+    from . import __version__
+
     output = {"schema_version": 1, "status": "unassessed" if missing else "conditional_scenario",
+              "mhctools_version": __version__, "algorithm": "linear first-order expected copies; uniformization",
               "scenario": model.scenario, "delivery": model.delivery, "administration": "local IM/SC",
               "mhc_class": model.mhc_class, "allele": parse(model.allele).to_string(),
               "target": {**asdict(target), "sequence": sequence[target.start:target.end]},
