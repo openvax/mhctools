@@ -70,6 +70,7 @@ def test_curated_json_files_are_explicit_package_resources():
         "serum_cleavage_reference.json",
         "serum_contributions.json",
         "serum_calibration.json",
+        "vaccine_trajectory_evidence.json",
     }
 
 

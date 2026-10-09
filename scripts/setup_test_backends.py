@@ -123,8 +123,10 @@ def keras(root, python, config):
     config["DEEPIMMUNO_HOME"] = fetch("deepimmuno")
     config["TLIMMUNO2_HOME"] = fetch("tlimmuno2", "--accept-license")
     config["NETCLEAVE_DIR"] = fetch("netcleave", "--accept-license")
+    # PyArrow 26 requires NumPy 2; this TensorFlow runtime needs NumPy 1.
+    # Keep TLimmuno2's Feather reader on the newest compatible Arrow series.
     runtime = make_env(root, "keras-env", python, [
-        "tensorflow==2.17.0", "tf-keras==2.17.0", "numpy<2", "pandas<3", "pyarrow",
+        "tensorflow==2.17.0", "tf-keras==2.17.0", "numpy<2", "pandas<3", "pyarrow<26",
         "scikit-learn", "biopython", "matplotlib",
     ])
     # NetCleave uses modern Keras in the same environment; only the two legacy

@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "interpretation": "Mechanism evidence and compartment limits; no transferable vaccine rate constants",
+  "studies": [
+    {
+      "id": "human-lymph-peptidome-2010",
+      "url": "https://doi.org/10.1371/journal.pone.0009863",
+      "scope": "Human pre-nodal lymph and matched plasma; pooled samples from 18 individuals",
+      "finding": "Lymph carries a distinct tissue-derived peptide repertoire, including extracellular-matrix products",
+      "limit": "Products may be generated upstream in tissue; they do not identify active free-fluid enzymes or vaccine hazards"
+    },
+    {
+      "id": "lymph-derived-mhc-ii-2016",
+      "url": "https://doi.org/10.1074/jbc.M115.655738",
+      "scope": "Experimental dendritic-cell MHC-II peptidome and lymph-derived self-antigens",
+      "finding": "Tissue-processed lymph antigens contribute to MHC-II ligands through pathways beyond endosomal proteolysis",
+      "limit": "No arbitrary-SLP transport, protease or loading rate is identified"
+    },
+    {
+      "id": "mouse-mesenteric-dpp4-2014",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4054822/",
+      "scope": "Anesthetized C57BL/6J mice, mesenteric lymph, GLP-1 and DPP4 activity assay",
+      "finding": "Lymph has measurable DPP4 activity lower than plasma; inhibition increases intact lymph GLP-1",
+      "reported_activity": {
+        "unit": "pmol/min/microliter",
+        "abstract_lymph": {
+          "mean": 4.7,
+          "sem": 0.3,
+          "n": 23
+        },
+        "results_section_3_2_lymph": {
+          "mean": 7.2,
+          "sem": 0.8,
+          "n": 9
+        },
+        "plasma": {
+          "mean": 22.3,
+          "sem": 0.9,
+          "n": 8
+        }
+      },
+      "limit": "Abstract and results give different lymph summaries; neither is an inverse-hour peptide hazard. No human IM/SC or SLP scaling factor is inferred"
+    },
+    {
+      "id": "human-lymphatic-endothelium-dpp4-2008",
+      "url": "https://doi.org/10.1016/j.yexcr.2008.07.024",
+      "scope": "Cultured human dermal lymphatic versus blood endothelial cells; human tissue localization",
+      "finding": "DPP4 activity is higher in cultured lymphatic endothelium; lymphatic expression is observed in tissue",
+      "limit": "Surface exposure differs from soluble-fluid activity; no SLP hazard or universal lymph/plasma ratio"
+    },
+    {
+      "id": "human-slp-cross-presentation-2014",
+      "url": "https://doi.org/10.1371/journal.pone.0089897",
+      "scope": "Melan-A synthetic long peptide and human dendritic cells",
+      "finding": "This SLP uses proteasome/TAP-dependent cytosolic cross-presentation",
+      "limit": "Sequence- and cell-scoped mechanism; not a universal cross-presentation probability"
+    },
+    {
+      "id": "cathepsin-s-vacuolar-2014",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/25378230/",
+      "scope": "Mouse dendritic cells, soluble OVA plus phagocytic stimulation",
+      "finding": "Cathepsin-S-dependent, TAP-independent MHC-I cross-presentation is observed",
+      "limit": "Condition-dependent route; not quantitatively transferable to human SLPs"
+    },
+    {
+      "id": "formulation-lymph-targeting-2018",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6247902/",
+      "scope": "Albumin-binding amphiphile vaccines; mouse trafficking/presentation and human DC processing",
+      "finding": "Formulation changes lymphatic distribution and presentation persistence versus soluble peptides",
+      "limit": "Label/carrier signal is not automatically intact target; amphiphile rates cannot be assigned to free SLPs"
+    },
+    {
+      "id": "rna-secreted-antigen-2017",
+      "url": "https://doi.org/10.1038/s41598-017-11399-3",
+      "scope": "Intravenous RNA-lipoplexes in mice; secretion-tagged antigen and serum detection",
+      "finding": "RNA-transfected cells can express and secrete serum-detectable antigen",
+      "limit": "Different carrier/route from local mRNA-LNP; a signal peptide does not establish secretion yield or timing"
+    },
+    {
+      "id": "mrna-cross-dressing-2026",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC13089314/",
+      "scope": "Mouse mRNA-LNP vaccination with genetically dissected APC pathways",
+      "finding": "Direct presentation, cross-presentation and preformed-pMHC transfer can contribute to CD8 priming",
+      "limit": "Cross-dressing is excluded from the first trajectory model; APC processing alone may miss this contribution"
+    },
+    {
+      "id": "signal-derived-epitope-1995",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/7595234/",
+      "scope": "LCMV gp33 epitope within the viral glycoprotein leader; TAP1-deficient mice, in vitro and in vivo",
+      "finding": "An epitope within a cleaved signal sequence can be presented; this case requires TAP",
+      "limit": "Signal removal is not automatically target destruction. Signal-peptide-derived targets are excluded and rejected in this mature-antigen model"
+    }
+  ]
+}
