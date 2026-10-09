@@ -45,3 +45,9 @@ which fails at TLimmuno2's actual Feather read. Constrain only that runtime to
 PyArrow <26, verify the newest compatible build against the upstream Feather
 artifact and pip check, and rerun the real prediction in CI. Keep host NumPy
 and PyArrow current. File the dependency failure and link its fix from the PR.
+
+Scientific review follow-up: signal removal can release an intact target in the
+leader, which this mature-antigen model does not follow. Require the exact target
+to lie entirely after the supplied signal boundary; reject leader/boundary targets
+instead of treating signal removal as their destruction. Document the excluded
+presentation route and add regressions for intact leader and crossing targets.

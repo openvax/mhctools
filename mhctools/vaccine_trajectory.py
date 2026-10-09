@@ -23,6 +23,7 @@ REGIONS = ("local", "node", "systemic")
 EXCLUSIONS = (
     "Whole-body PBPK, renal/hepatic compartments and recirculation are not resolved",
     "Sequence-derived LNP delivery, endosomal escape and secretion are not predicted",
+    "Signal-peptide-derived targets and intramembrane signal-peptide processing are not modeled",
     "Active enzyme exposure, folding, glycosylation and protein binding are not predicted",
     "APC subsets, changing inflammation and cell-number dynamics are not resolved",
     "MHC saturation, competing ligands, recycling and cross-dressing are not resolved",
@@ -214,6 +215,8 @@ class VaccineTrajectoryInput:
         if self.delivery == "secreted_mrna":
             if self.signal_end is None or self.signal_end >= len(peptide.sequence):
                 raise ValueError("Secreted mRNA needs the full construct and an explicit signal_end")
+            if self.target.start < self.signal_end:
+                raise ValueError("Target must lie entirely in the mature antigen; signal-peptide-derived presentation is not modeled")
         elif self.signal_end is not None:
             raise ValueError("SLP input cannot declare a signal peptide")
         if self.mhc_class == "I" and (self.tap_max_length is None or self.tap_max_length < self.target.end - self.target.start):
@@ -265,8 +268,6 @@ def _destination(model, step, start, end):
     if step.gate == "signal":
         if start != 0:
             raise ValueError("Signal processing requires the full translated N-terminus")
-        if model.signal_end > target.start:
-            return ("target_destroyed", 0, 0)
         start = model.signal_end
     if step.destination in ("antigen_cleared", "rna_lost", "pmhc_lost"):
         return step.destination, 0, 0

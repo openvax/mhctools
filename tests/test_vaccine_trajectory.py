@@ -177,16 +177,16 @@ def test_secreted_rna_removes_signal_and_feeds_interstitium_not_mandatory_blood(
     assert amount(output, 0, "node_cytosol", 2, 9) > 0
     assert amount(output, 0, "blood") == 0
     assert output["curves"][0]["antigen_balance_error"] == pytest.approx(0, abs=1e-10)
-    lost = simulate_vaccine_trajectory(replace(m, target=DegradationTarget("signal target", 0, 2)), [12], no_cuts)
-    assert lost["curves"][0]["target_destroyed_copies"] > 3.9
 
 
 def test_direct_rna_apc_processing_does_not_require_secretion_or_blood():
     m = set_rates(model("secreted_mrna"), local_rna_uptake=2, local_rna_escape=2,
                   local_rna_decay=1, local_translation=3, local_failed_entry=2, local_tap=2,
                   local_er_loading=2, local_surface_export=2)
-    m = replace(m, target=DegradationTarget("whole", 0, 9))
-    output = simulate_vaccine_trajectory(m, [12], no_cuts)
+    m = replace(m, target=DegradationTarget("mature target", 2, 9))
+    def cuts(compartment, fragment):
+        return assessed(cut(1, 2)) if compartment == "local_er" and fragment.start < m.target.start else no_cuts(compartment, fragment)
+    output = simulate_vaccine_trajectory(m, [12], cuts)
     assert output["curves"][0]["surface_pmhc_copies"] > 2.9
     assert output["curves"][0]["extracellular_target_copies"] == 0
 
@@ -205,7 +205,9 @@ def test_secretory_cuts_need_their_own_assessment_and_can_split_target():
 
 @pytest.mark.parametrize("kwargs", [dict(signal_end=None), dict(signal_end=9),
     dict(signal_end=True), dict(tap_max_length=None), dict(allele="HLA-DRB1*04:01"),
-    dict(initial_copies=-1), dict(initial_copies=True), dict(scenario="")])
+    dict(initial_copies=-1), dict(initial_copies=True), dict(scenario=""),
+    dict(target=DegradationTarget("inside signal", 0, 2)),
+    dict(target=DegradationTarget("crossing signal boundary", 1, 5))])
 def test_invalid_mrna_inputs_are_rejected(kwargs):
     with pytest.raises(ValueError):
         simulate_vaccine_trajectory(model("secreted_mrna", **kwargs), [1], no_cuts)

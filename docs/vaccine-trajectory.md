@@ -69,6 +69,12 @@ local mRNA-LNP rates. **Cross-dressing**, transfer of preformed pMHC from other
 cells, is excluded from this first model. It contributed to priming in a recent
 mouse mRNA-LNP experiment ([study](https://pmc.ncbi.nlm.nih.gov/articles/PMC13089314/)).
 
+The chosen mRNA target must lie entirely **after the supplied signal boundary**.
+Signal removal does not necessarily destroy a target inside the released leader;
+signal-derived epitopes can be presented ([primary experiment](https://pubmed.ncbi.nlm.nih.gov/7595234/)).
+Their membrane processing and presentation are outside this model, so overlapping
+targets are rejected rather than labeled destroyed.
+
 ## Which peptidases matter in lymph?
 
 **Separate free fluid, lymphatic/tissue surfaces and enzymes inside APCs.**
