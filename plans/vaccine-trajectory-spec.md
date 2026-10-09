@@ -39,3 +39,9 @@ active-enzyme calibration, saturation/MHC competition, cell-subset heterogeneity
 cross-dressing, antibody/T-cell response and clinical efficacy. These must stay
 visible in the model audit. Synthetic numerical examples validate behavior and
 illustrate sensitivity; they are not Sid or patient forecasts.
+
+CI follow-up: the isolated Keras runtime resolves PyArrow 26 with NumPy 1.26,
+which fails at TLimmuno2's actual Feather read. Constrain only that runtime to
+PyArrow <26, verify the newest compatible build against the upstream Feather
+artifact and pip check, and rerun the real prediction in CI. Keep host NumPy
+and PyArrow current. File the dependency failure and link its fix from the PR.
