@@ -94,6 +94,10 @@ SUBCOMMANDS = (
         "vaccine-report",
         "Generate a route-aware peptide cleavage and MHC-window report",
         ".vaccine_report", "main"),
+    _subcommand(
+        "vaccine-trajectory",
+        "Follow explicit SLP/mRNA rate scenarios through APC pMHC loading",
+        ".vaccine_trajectory", "main"),
 )
 
 

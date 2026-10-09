@@ -137,6 +137,9 @@ validate this simulation or establish antigen presentation by those products.
 
 ## What is assumed
 
+To continue beyond uptake through APC processing, MHC loading and surface pMHC,
+use [SLP/mRNA trajectories](vaccine-trajectory.md) with explicit compartment rates.
+
 The simulation assumes a well-mixed, dilute, first-order degradation process.
 For a fragment with supplied half-life `h` hours, its next cleavage waiting time
 is exponential with rate `ln(2) / h`. These kinetics are an assumption even when

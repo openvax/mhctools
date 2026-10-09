@@ -30,6 +30,10 @@ routes. Expression yield, uptake, MHC loading and serum target lifetime remain
 unassessed when the input has no corresponding evidence. Predicted native MHC
 ranks remain model-specific evidence.
 
+For explicit local SLP/mRNA rate scenarios through loading and surface display,
+see [APC pMHC trajectories](vaccine-trajectory.md). Missing trajectory inputs
+remain unknown; the compact report does not infer rates from site flags.
+
 The compact summary has no combined protection probability. "No flags" means
 no flags in available assessments, with coverage shown; it does not mean
 resistance. MHC-I ligand C-terminal predictors and named-enzyme digestion
