@@ -47,6 +47,11 @@ plugins:
 markdown_extensions:
   - admonition
   - tables
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - toc:
       permalink: true
       toc_depth: 2

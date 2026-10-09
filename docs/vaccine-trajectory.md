@@ -10,7 +10,7 @@ model with no physiological rate defaults. Missing reachable kinetics yield
 ## Branching routes
 
 ```mermaid
-flowchart LR
+flowchart TD
   SLP[Free SLP] --> IS[Injection-site interstitium]
   RNA[mRNA-LNP] --> PROD[Producer-cell RNA uptake and escape]
   PROD --> PROT[Repeated translation]
