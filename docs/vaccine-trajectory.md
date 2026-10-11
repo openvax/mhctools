@@ -9,29 +9,35 @@ model with no physiological rate defaults. Missing reachable kinetics yield
 
 ## Branching routes
 
+**Blue: free SLP. Orange: mRNA-LNP. Teal: shared antigen/APC pathways.**
+Both delivery formats use local IM/SC injection; the colors distinguish the
+formats, not IM from SC. This overview groups steps that the model resolves separately.
+
 ```mermaid
 flowchart TD
-  SLP[Free SLP] --> IS[Injection-site interstitium]
-  RNA[mRNA-LNP] --> PROD[Producer-cell RNA uptake and escape]
-  PROD --> PROT[Repeated translation]
-  PROT --> ER[ER entry and signal removal]
-  ER --> SEC[ER/Golgi secretion]
-  SEC --> IS
-  RNA --> APC[Local or nodal APC transfection]
-  APC --> DIRECT[Translation and direct processing]
-  IS --> LYMPH[Afferent lymph]
-  LYMPH --> LN[Draining-node fluid]
-  IS --> BLOOD[Blood]
-  LN --> BLOOD
-  IS --> LOCAL[Local APC uptake and migration]
-  LN --> NODAL[Nodal APC uptake]
-  BLOOD --> SYSTEMIC[Systemic APC uptake]
-  DIRECT --> PROCESS[Processing versus target loss]
-  LOCAL --> PROCESS
-  NODAL --> PROCESS
-  SYSTEMIC --> PROCESS
-  PROCESS --> LOAD[MHC loading]
-  LOAD --> SURFACE[Surface pMHC and turnover]
+  SLP[Free SLP] --> SITE[Antigen at injection site]
+  RNA[mRNA-LNP] --> EXP[RNA uptake and antigen expression]
+  EXP --> SEC[Signal removal and ER/Golgi secretion]
+  SEC --> SITE
+  EXP -->|in transfected APCs| PROCESS[Target processing and MHC loading]
+  SITE -->|local uptake| APC[APC uptake: local, node or systemic]
+  SITE --> LYMPH[Lymph and draining node]
+  SITE --> BLOOD[Blood exposure]
+  LYMPH --> APC
+  LYMPH -->|outflow| BLOOD
+  BLOOD --> APC
+  APC --> PROCESS
+  PROCESS --> SURFACE[Surface pMHC and turnover]
+
+  classDef slp fill:#DBEAFE,stroke:#1D4ED8,color:#1E3A8A,stroke-width:2px;
+  classDef mrna fill:#FFEDD5,stroke:#C2410C,color:#7C2D12,stroke-width:2px;
+  classDef shared fill:#E6F4F1,stroke:#0F766E,color:#134E4A,stroke-width:2px;
+  class SLP slp;
+  class RNA,EXP,SEC mrna;
+  class SITE,LYMPH,BLOOD,APC,PROCESS,SURFACE shared;
+  linkStyle default stroke:#0F766E,stroke-width:2px;
+  linkStyle 0 stroke:#1D4ED8,stroke-width:3px;
+  linkStyle 1,2,3,4 stroke:#C2410C,stroke-width:3px;
 ```
 
 Local antigen need not enter blood before nodal presentation. Lymph entry,
@@ -39,6 +45,42 @@ vascular absorption, local uptake and loss compete. Local APCs can carry RNA,
 antigen or pMHC into nodes. `systemic` APCs pool blood-accessible uptake separately
 from draining-node APCs. Carrier and antigen drainage have separate rates.
 IM and SC share topology but need tissue-, material- and study-specific rates.
+
+## What the model predicts and its units
+
+There is an implemented kinetic model behind this diagram, available through
+`simulate_vaccine_trajectory` and `mhctools vaccine-trajectory`. Supplied rates
+move antigen between compartments, cut current fragments, clear antigen and
+load/display pMHC. Active RNA repeatedly adds new antigen. The solver calculates
+**expected quantities over time**, including the target retained in shorter
+fragments, target destruction, cumulative loading and current surface pMHC.
+
+| Quantity | Units and meaning |
+|---|---|
+| Observation time | Hours after injection |
+| Transport, uptake, cleavage, loading and loss rates | h⁻¹: a constant hazard per hour, not a percentage or recognition score |
+| Translation rate | Completed antigen copies per active transcript per hour |
+| SLP starting amount | Input peptide copies; defaults to one for normalization |
+| mRNA starting amount | Input carrier-bound transcript copies; defaults to one for normalization |
+| Retained target and surface pMHC | Expected copies present at that time |
+| Cumulative loading | Expected copies ever loaded by that time; differs from current surface display |
+
+For illustration, `surface_pmhc_copies = 0.2` with one input SLP means an
+expected 20 surface complexes per 100 input peptides at that time. With one
+input transcript, a value of 3 means three expected surface complexes per
+transcript; values above one are possible because RNA makes multiple antigens.
+Neither is a clinical response probability or an equal-dose SLP/mRNA comparison.
+
+An isolated loss rate of 1 h⁻¹ gives a half-life of about 42 minutes. The full
+model also has competing transport/loading and, for mRNA, continuing production,
+so one half-life cannot summarize all its curves.
+
+**These are conditional calculations, not sequence-derived physiological
+forecasts.** The model does not estimate missing delivery, enzyme or loading
+rates from sequence. Applicable measurements or explicitly labeled assumptions
+must supply them; missing reachable inputs yield `unassessed` and no curves.
+The supplied examples use synthetic rates. Tests validate the equations and
+bookkeeping, not human vaccine accuracy.
 
 ## Included steps and required assumptions
 
