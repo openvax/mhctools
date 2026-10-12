@@ -293,7 +293,12 @@ def test_python_imports_available_missing_interpreter():
 
 
 def test_python_imports_available_timeout():
-    assert not python_imports_available(sys.executable, ["sys"], timeout=0.001)
+    # Interpreter startup can beat a tiny timeout; exercise the timeout path
+    # deterministically rather than depending on machine scheduling (#556).
+    with patch("mhctools.process_helpers.subprocess.run",
+               side_effect=TimeoutExpired("python", 7)) as run:
+        assert not python_imports_available(sys.executable, ["sys"], timeout=7)
+    assert run.call_args.kwargs["timeout"] == 7
 
 
 def test_python_imports_available_empty_is_trivially_true():

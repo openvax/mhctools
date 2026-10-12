@@ -436,6 +436,7 @@ def simulate_vaccine_trajectory(model, times_hours, cleavage_rates=None, *, max_
               "target": {**asdict(target), "sequence": sequence[target.start:target.end]},
               "coordinate_system": "zero-based half-open on full input; cut bonds local to current fragment",
               "source_units": "input peptide copies" if model.delivery == "slp" else "input carrier-bound RNA copies",
+              "exposure_units": "copy-hours integrated from injection (time zero) to each observation",
               "initial_copies": model.initial_copies, "signal_end": model.signal_end,
               "peptide_input": peptide.to_dict(),
               "tap_max_length": model.tap_max_length, "class_ii_max_length": model.class_ii_max_length,
@@ -454,14 +455,20 @@ def simulate_vaccine_trajectory(model, times_hours, cleavage_rates=None, *, max_
                               "Systemic APCs pool blood-accessible uptake separately from draining-node APCs"]}
     if missing:
         return output
-    values = np.zeros(len(states))
+    # Observers integrate copies without consuming antigen. Keep their copy-hour
+    # units separate from the physical/cumulative-copy states exposed to callers.
+    observed_compartments = tuple(region + "_surface" for region in REGIONS) + EXTRACELLULAR
+    observer_index = {name: len(states) + i for i, name in enumerate(observed_compartments)}
+    solver_channels = channels + [(i, observer_index[c], 1.0)
+                                  for i, (c, _, _) in enumerate(states) if c in observer_index]
+    values = np.zeros(len(states) + len(observed_compartments))
     values[0] = model.initial_copies
-    diagonal = np.zeros(len(states))
+    diagonal = np.zeros_like(values)
     for origin, rate in consumed:
         diagonal[origin] -= rate
     previous, rows = 0.0, {}
     for time in sorted(set(times)):
-        values = _advance(values, diagonal, channels, time - previous)
+        values = _advance(values, diagonal, solver_channels, time - previous)
         previous = time
         amounts = {state: float(values[i]) for i, state in enumerate(states)}
 
@@ -475,14 +482,20 @@ def simulate_vaccine_trajectory(model, times_hours, cleavage_rates=None, *, max_
         retained = total(lambda c, s, e: e > s)
         destroyed, cleared, pmhc_lost = (counter(name) for name in ("target_destroyed", "antigen_cleared", "pmhc_lost"))
         surface = {region: total(lambda c, s, e: c == region + "_surface") for region in REGIONS}
+        surface_auc = {region: float(values[observer_index[region + "_surface"]]) for region in REGIONS}
+        extracellular_auc = {c: float(values[observer_index[c]]) for c in EXTRACELLULAR}
         rows[time] = {"time_hours": time, "antigen_copies_supplied": produced,
                       "target_retained_copies": retained, "extracellular_target_copies": total(lambda c, s, e: c in EXTRACELLULAR),
                       "extracellular_parent_copies": total(lambda c, s, e: c in EXTRACELLULAR and (s, e) == (0 if model.delivery == "slp" else model.signal_end, len(sequence))),
                       "target_destroyed_copies": destroyed, "antigen_cleared_copies": cleared,
                       "pmhc_lost_copies": pmhc_lost, "cumulative_loaded_copies": counter("loaded"),
                       "surface_pmhc_copies": sum(surface.values()), "surface_pmhc_by_apc_location": surface,
+                      "surface_pmhc_auc_copy_hours": math.fsum(surface_auc.values()),
+                      "surface_pmhc_auc_by_apc_location": surface_auc,
+                      "extracellular_target_auc_copy_hours": math.fsum(extracellular_auc.values()),
+                      "extracellular_target_auc_by_compartment": extracellular_auc,
                       "cumulative_surface_export_copies": counter("surface_exported"),
                       "antigen_balance_error": produced - retained - destroyed - cleared - pmhc_lost,
-                      "state_copies": list(map(float, values))}
+                      "state_copies": list(map(float, values[:len(states)]))}
     output["curves"] = [rows[time] for time in times]
     return output

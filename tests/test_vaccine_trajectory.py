@@ -249,3 +249,64 @@ def test_cli_json_roundtrip_preserves_cut_assumptions_and_refuses_overwrite(tmp_
     assert result["curves"][1]["target_retained_copies"] == pytest.approx(1)
     with pytest.raises(SystemExit):
         main(["--input", str(source), "--output", str(output)])
+
+
+def test_target_exposure_integrates_decay_from_injection_without_sampling_bias():
+    m = set_rates(model(), interstitium_clearance=2)
+    coarse = simulate_vaccine_trajectory(m, [4], no_cuts)
+    dense = simulate_vaccine_trajectory(m, [i / 10 for i in range(41)], no_cuts)
+    expected = (1 - math.exp(-8)) / 2
+    assert coarse["curves"][0]["extracellular_target_auc_copy_hours"] == pytest.approx(expected)
+    assert dense["curves"][-1]["extracellular_target_auc_copy_hours"] == pytest.approx(expected)
+    assert len(coarse["curves"][0]["state_copies"]) == len(coarse["states"])
+
+
+def test_target_exposure_retains_flank_cut_products_and_scales_with_input():
+    def cuts(compartment, fragment):
+        return assessed(cut(2)) if fragment.start == 0 else assessed(cut(3, 2))
+    output = simulate_vaccine_trajectory(model(initial_copies=7), [0, 2, 2], cuts)
+    expected = 7 * (2 * (1 - math.exp(-2)) - (1 - math.exp(-4)) / 2)
+    assert output["curves"][0]["extracellular_target_auc_copy_hours"] == 0
+    assert output["curves"][1]["extracellular_target_auc_copy_hours"] == pytest.approx(expected)
+    assert output["curves"][1] == output["curves"][2]
+
+
+def test_surface_exposure_integrates_transit_and_turnover_not_cumulative_loading():
+    m = model(target=DegradationTarget("whole", 0, 9))
+    m = set_rates(m, local_antigen_uptake=1, local_vacuolar_loading=1,
+                  local_surface_export=1, local_surface_loss=1)
+    output = simulate_vaccine_trajectory(m, [3], no_cuts)
+    row = output["curves"][0]
+    # Surface occupancy is exp(-t)*t**3/6; its integral is the Erlang-4 CDF.
+    assert row["surface_pmhc_auc_copy_hours"] == pytest.approx(erlang_cdf(4, 3))
+    assert row["surface_pmhc_auc_by_apc_location"]["local"] == pytest.approx(erlang_cdf(4, 3))
+    assert row["surface_pmhc_auc_by_apc_location"]["node"] == 0
+
+
+def test_migration_partitions_surface_exposure_without_double_counting():
+    m = model(target=DegradationTarget("whole", 0, 9))
+    m = set_rates(m, local_antigen_uptake=1, local_vacuolar_loading=1,
+                  local_surface_export=1, migration_surface=1)
+    row = simulate_vaccine_trajectory(m, [3], no_cuts)["curves"][0]
+    # Once exported, complexes persist: integrate Erlang-3 arrival CDF.
+    total = 3 * erlang_cdf(3, 3) - 3 * erlang_cdf(4, 3)
+    assert row["surface_pmhc_auc_copy_hours"] == pytest.approx(total)
+    assert row["surface_pmhc_auc_by_apc_location"]["local"] == pytest.approx(erlang_cdf(4, 3))
+    assert row["surface_pmhc_auc_by_apc_location"]["node"] == pytest.approx(total - erlang_cdf(4, 3))
+
+
+def test_persistent_target_exposure_and_missing_kinetics():
+    output = simulate_vaccine_trajectory(model(initial_copies=5), [10], no_cuts)
+    assert output["curves"][0]["extracellular_target_auc_by_compartment"]["interstitium"] == pytest.approx(50)
+    missing = simulate_vaccine_trajectory(model(), [10])
+    assert missing["status"] == "unassessed" and missing["curves"] == []
+
+
+def test_mrna_exposure_integrates_repeated_births_and_secretory_transit():
+    m = set_rates(model("secreted_mrna"), producer_rna_uptake=1, producer_rna_escape=1,
+                  producer_rna_decay=1, producer_translation=2, producer_signal_entry=1,
+                  producer_secretion=1, interstitium_clearance=1)
+    row = simulate_vaccine_trajectory(m, [3], no_cuts)["curves"][0]
+    # Six sequential unit-loss compartments, with a factor-two birth channel.
+    assert row["extracellular_target_copies"] == pytest.approx(2 * math.exp(-3) * 3**5 / 120)
+    assert row["extracellular_target_auc_copy_hours"] == pytest.approx(2 * erlang_cdf(6, 3))

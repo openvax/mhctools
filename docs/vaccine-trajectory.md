@@ -172,12 +172,35 @@ label transfers calibrated blood/lymph kinetics.
 
 ## Outputs and interpretation
 
+- `surface_pmhc_auc_copy_hours`: time-integrated surface display, from injection
+  to the observation time; `surface_pmhc_auc_by_apc_location` separates local,
+  draining-node (`node`) and systemic APCs.
+- `extracellular_target_auc_copy_hours`: time-integrated extracellular availability
+  of the exact target, including shorter target-bearing fragments;
+  `extracellular_target_auc_by_compartment` separates interstitium, afferent lymph,
+  node fluid and blood. This is an amount-time integral, not concentration AUC.
 - `extracellular_parent_copies`: intact free SLP or mature secreted antigen.
 - `extracellular_target_copies`: exact target in any extracellular fragment.
 - `cumulative_loaded_copies`: ever loaded, without recounting APC migration.
 - `surface_pmhc_copies`: current display with local/node/systemic totals.
 - `target_destroyed_copies`, `antigen_cleared_copies`, `pmhc_lost_copies`: distinct outcomes.
 - `antigen_balance_error`: supplied/translated antigen minus retained/lost antigen.
+
+For surface display `P(t)`, the exposure is `AUC(T) = integral_0^T P(t) dt`,
+in complex-hours. One complex present for two hours contributes the same area
+as two complexes present for one hour; the time courses can still differ
+biologically. Divide by `initial_copies` for exposure per input peptide or
+carrier-bound transcript, or by `T > 0` for mean displayed copies over `[0,T]`.
+The solver integrates these observables directly alongside the kinetic system:
+requesting fewer observation times does not replace the integral with coarse
+trapezoids. Integrals start at injection even if the first requested time is later.
+
+These quantities describe conditional antigen availability and presentation
+exposure. **They are not a validated effective dose, immune-response probability
+or universal half-life.** In particular, the mRNA source keeps producing antigen,
+and an epitope may survive after cleavage of the original SLP. Retain the full
+curves, dose identity, horizon and rate provenance when comparing scenarios.
+No AUC is returned when reachable kinetics are missing.
 
 The nonnegative exponential solver follows a linear, first-order, time-invariant
 expected-copy system. Translation is antigen birth. SLP starts with peptide
