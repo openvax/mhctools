@@ -31,6 +31,8 @@ units and the [comparison workflow](vaccine-comparison.md) for interpretation.
 
 ::: mhctools.summarize_vaccine_trajectory
 
+::: mhctools.summarize_core_exposure
+
 ::: mhctools.format_vaccine_trajectory_report
 
 ::: mhctools.compare_vaccine_trajectories

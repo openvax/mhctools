@@ -91,6 +91,7 @@ nav:
       - Vaccine target summary: vaccine-target-summary.md
       - SLP/mRNA pMHC trajectories: vaccine-trajectory.md
       - Comparing vaccine exposure: vaccine-comparison.md
+      - Core delivery and blood exposure: vaccine-core-exposure.md
       - Cell penetration classification: predictors/uptake.md
       - Results and DataFrames: results.md
       - Recipes: recipes.md
