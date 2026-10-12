@@ -89,3 +89,28 @@ fate or MHC competition. No automatic winner or ranking change is imposed.
 For IM mRNA mechanisms, primary evidence, cross-dressing and direct APC
 expression, see [core delivery and blood exposure](vaccine-core-exposure.md).
 For calibration requirements, see [comparing exposure](vaccine-comparison.md).
+
+## Explicit sensitivity scenarios
+
+To run complete illustrative SLP, cytosolic mRNA and secreted mRNA cases:
+
+```sh
+python examples/vaccine_sensitivity_scenarios.py --output-dir sensitivity
+```
+
+Or apply the same declared assumptions to an exported candidate request:
+
+```sh
+python examples/vaccine_sensitivity_scenarios.py \
+  --input windows.json --output-dir sensitivity
+```
+
+The script writes three sets of JSON, CSV and Markdown results. It changes all
+unproductive loss/clearance rates together (0.1, 1 and 10 per hour), while keeping
+transport, explicit boundary-cut cascades and RNA production assumptions fixed.
+This is a joint scenario comparison, not an estimated biological range or a
+one-parameter causal attribution. The chosen sequences are not validated binders;
+the example signal boundary and transcript mass are hypothetical. Supplying
+an input replaces its kinetic profiles with the stated synthetic profiles, while
+preserving its candidates, scored target occurrences and dose/chemistry records.
+Missing RNA doses and unsupported chemistry remain unassessed.
