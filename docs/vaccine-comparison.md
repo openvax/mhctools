@@ -117,3 +117,5 @@ endpoint limits and calibration requirements. Biological calibration remains
 [independent benchmarks](https://github.com/openvax/mhctools/issues/291),
 [uptake/presentation validation](https://github.com/openvax/mhctools/issues/303)
 and [node-exposure evidence](https://github.com/openvax/mhctools/issues/306).
+For primary mRNA mechanism studies and reported calibration observations, see
+the [mRNA antigen-presentation bibliography](evidence/mrna-antigen-presentation.md).

@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "purpose": "Reported observations for assay-matched calibration or model checking; no transferable mhctools rate defaults",
+  "studies": [
+    {
+      "id": "hassett-2024",
+      "source": "https://doi.org/10.1016/j.omtn.2023.102083",
+      "species": "Macaca fascicularis",
+      "route": "intramuscular",
+      "formulation": "nucleoside-modified reporter mRNA in study-specific LNP",
+      "rna_assay": {
+        "construct": "firefly luciferase reporter",
+        "dose_ug_per_site": 300,
+        "assay": "branched-DNA hybridization for reporter RNA in sampled tissue or plasma",
+        "source_locator": "Results, Figure 3A-B and Methods, NHP studies",
+        "sampling_hours": {"tissue": [8, 24, 72, 168], "plasma": [0, 2, 4, 6, 8, 16, 24, 72, 96, 168]},
+        "observations": [
+          {"endpoint": "first_observed_maximum", "site": "injection_site", "time_hours": 8, "value": 98, "unit": "ng/g"},
+          {"endpoint": "first_observed_maximum", "site": "draining_lymph_node", "time_hours": 8, "value": 155, "unit": "ng/g"},
+          {"endpoint": "first_observed_maximum", "site": "spleen", "time_hours": 8, "value": 854, "unit": "ng/g"},
+          {"endpoint": "first_observed_maximum", "site": "liver", "time_hours": 8, "value": 35, "unit": "ng/g"},
+          {"endpoint": "first_observed_maximum", "site": "plasma", "time_hours": 2, "value": 80, "unit": "ng/mL"},
+          {"endpoint": "AUC_to_last_quantifiable", "site": "injection_site", "value": 1352, "unit": "ng*h/g"},
+          {"endpoint": "AUC_to_last_quantifiable", "site": "draining_lymph_node", "value": 2169, "unit": "ng*h/g"},
+          {"endpoint": "AUC_to_last_quantifiable", "site": "spleen", "value": 16146, "unit": "ng*h/g"},
+          {"endpoint": "AUC_to_last_quantifiable", "site": "plasma", "value": 905, "unit": "ng*h/mL"},
+          {"endpoint": "reported_apparent_terminal_half_life", "site": "spleen", "value": 36, "unit": "h"},
+          {"endpoint": "reported_apparent_terminal_half_life", "site": "plasma", "value": 29, "unit": "h"}
+        ],
+        "interpretation": "Pooled concentration summaries; first collections may miss peaks. Hybridization signal does not count active cytosolic transcripts or encoded pMHC. Tissue mass and plasma volume are different denominators."
+      },
+      "protein_assay": {
+        "construct": "EGFP reporter, measured in a separate macaque experiment",
+        "dose_ug_per_site": 300,
+        "assay": "flow cytometry, EGFP-positive fraction of each node cell subset",
+        "source_locator": "Results, Figure 6B and Methods, separate NHP cell study",
+        "observations": [
+          {"endpoint": "EGFP_positive_within_subset", "cell_type": "macrophage", "time_hours": 24, "value": 36.2, "unit": "%"},
+          {"endpoint": "EGFP_positive_within_subset", "cell_type": "monocyte", "time_hours": 24, "value": 19.7, "unit": "%"},
+          {"endpoint": "EGFP_positive_within_subset", "cell_type": "conventional_dendritic_cell", "time_hours": 24, "value": 9.1, "unit": "%"},
+          {"endpoint": "EGFP_positive_within_subset", "cell_type": "plasmacytoid_dendritic_cell", "time_hours": 24, "value": 4.0, "unit": "%"}
+        ],
+        "interpretation": "Reporter-positive cell prevalence is neither injected-dose recovery nor core-specific surface pMHC."
+      }
+    },
+    {
+      "id": "kent-2024",
+      "source": "https://doi.org/10.1021/acsnano.4c11652",
+      "species": "Homo sapiens",
+      "route": "intramuscular",
+      "formulation": "bivalent Moderna SPIKEVAX mRNA-1273 booster",
+      "participants": 19,
+      "assays": "short-amplicon plasma ddPCR for total vaccine RNA; two-amplicon linkage for relative integrity; plasma lipid mass spectrometry",
+      "source_locator": "Results, Figures 1-3 and Methods, RNA and lipid decay fits",
+      "observations": [
+        {"endpoint": "total_vaccine_RNA_at_4h_range", "analyte": "short-amplicon_plasma_RNA", "time_hours": 4, "min": 6.5, "max": 112, "unit": "copies/uL"},
+        {"endpoint": "highest_reported_total_RNA_peak", "analyte": "short-amplicon_plasma_RNA", "time_days": "1-2", "value": 731, "unit": "copies/uL"},
+        {"endpoint": "reported_mean_peak_time", "analyte": "short-amplicon_plasma_RNA", "value": 1.3, "unit": "d"},
+        {"endpoint": "intact_linkage_fraction_upper_bound", "analyte": "two_amplicon_linked_plasma_RNA", "time_hours": "4-24", "value": 20, "unit": "%", "relation": "less_than"},
+        {"endpoint": "reported_postpeak_decay_slope", "analyte": "two_amplicon_linked_plasma_RNA", "value": 0.608, "unit": "1/d"},
+        {"endpoint": "reported_postpeak_half_decline", "analyte": "two_amplicon_linked_plasma_RNA", "value": 1.14, "unit": "d"},
+        {"endpoint": "reported_postpeak_decay_slope", "analyte": "plasma_SM-102_lipid", "value": 0.607, "unit": "1/d"},
+        {"endpoint": "reported_postpeak_half_decline", "analyte": "plasma_SM-102_lipid", "value": 1.14, "unit": "d"}
+      ],
+      "interpretation": "Blood observables after a booster; two-amplicon linkage does not prove full-length translation-competent RNA. Post-peak circulating signal includes previous input and is not intracellular RNA loss, antigen clearance or core half-life."
+    }
+  ]
+}
