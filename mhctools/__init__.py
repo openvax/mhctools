@@ -88,6 +88,8 @@ from .vaccine_trajectory import (
     simulate_vaccine_trajectory as simulate_vaccine_trajectory,
 )
 from .vaccine_trajectory_report import (
+    compare_vaccine_trajectories as compare_vaccine_trajectories,
+    format_vaccine_comparison_report as format_vaccine_comparison_report,
     summarize_vaccine_trajectory as summarize_vaccine_trajectory,
     format_vaccine_trajectory_report as format_vaccine_trajectory_report,
 )
@@ -192,7 +194,7 @@ def __getattr__(name):
     raise AttributeError(
         "module %r has no attribute %r" % (__name__, name))
 
-__version__ = "3.50.0"
+__version__ = "3.51.0"
 
 __all__ = [
     "CleaveNet",
@@ -278,6 +280,8 @@ __all__ = [
     "simulate_vaccine_trajectory",
     "summarize_vaccine_trajectory",
     "format_vaccine_trajectory_report",
+    "compare_vaccine_trajectories",
+    "format_vaccine_comparison_report",
     "EnzymeCutRate",
     "serum_contribution_evidence",
     "serum_calibration_evidence",

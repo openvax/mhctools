@@ -98,6 +98,10 @@ SUBCOMMANDS = (
         "vaccine-trajectory",
         "Follow explicit SLP/mRNA rate scenarios through APC pMHC loading",
         ".vaccine_trajectory", "main"),
+    _subcommand(
+        "vaccine-compare",
+        "Compare matched vaccine trajectory results with explicit dose bases",
+        ".vaccine_compare", "main"),
 )
 
 

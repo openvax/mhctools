@@ -1,13 +1,14 @@
 """Reproducible synthetic SLP/secreted-mRNA scenarios, not vaccine forecasts."""
 
 import argparse
-from dataclasses import asdict
+from dataclasses import asdict, replace
 import json
 from pathlib import Path
 
 from mhctools import (
     DegradationTarget, EnzymeCutRate, VaccineCleavageRates, VaccineRate,
     VaccineTrajectoryInput, simulate_vaccine_trajectory, vaccine_route_steps,
+    format_vaccine_trajectory_report, compare_vaccine_trajectories, format_vaccine_comparison_report,
 )
 
 
@@ -75,12 +76,13 @@ def example(delivery):
     return model, cleavage
 
 
-def write_examples(output):
+def write_examples(output, plot=False):
     output.mkdir(parents=True, exist_ok=False)
     results = []
     times = [i/4 for i in range(193)]
     for name, delivery in (("slp", "slp"), ("mrna", "secreted_mrna")):
         model, cleavage = example(delivery)
+        model = replace(model, scenario="Synthetic " + name.upper() + ": assumed rates, one-input normalization")
         result = simulate_vaccine_trajectory(model, times, cleavage)
         if result["status"] != "conditional_scenario":
             raise RuntimeError("Synthetic example is missing required kinetics")
@@ -92,7 +94,30 @@ def write_examples(output):
                    "cleavage_assessments": result["cuts"]}
         for filename, value in ((name + "-input.json", payload), (name + "-trajectory.json", result)):
             (output / filename).write_text(json.dumps(value, indent=2, allow_nan=False) + "\n")
+        (output / (name + "-report.md")).write_text(format_vaccine_trajectory_report(result))
         results.append(result)
+    comparison = compare_vaccine_trajectories(results)
+    (output / "comparison.json").write_text(json.dumps(comparison, indent=2, allow_nan=False) + "\n")
+    (output / "comparison.md").write_text(format_vaccine_comparison_report(comparison))
+    if plot:
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+        figure, axes = plt.subplots(1, 2, figsize=(10, 4), sharex=True)
+        for axis, result in zip(axes, results):
+            times = [row["time_hours"] for row in result["curves"]]
+            for region, label in (("local", "Injection site"), ("node", "Draining node"), ("systemic", "Systemic")):
+                axis.plot(times, [row["surface_pmhc_by_apc_location"][region] / result["initial_copies"]
+                                 for row in result["curves"]], label=label)
+            axis.set(title="Free SLP" if result["delivery"] == "slp" else "Secreted mRNA",
+                     xlabel="Hours after injection",
+                     ylabel="Surface complexes per input " + ("peptide" if result["delivery"] == "slp" else "transcript"))
+            axis.set_ylim(bottom=0)
+            axis.legend(frameon=False)
+        figure.suptitle("Synthetic rates · different source units · no efficacy comparison")
+        figure.tight_layout()
+        figure.savefig(output / "surface-display.png", dpi=160)
+        plt.close(figure)
     (output / "README.txt").write_text(
         "SYNTHETIC SCENARIOS, NOT SID OR HUMAN VACCINE FORECASTS\n\n"
         "Local IM/SC free SLP versus secretion-tagged mRNA-LNP. Each numerical rate\n"
@@ -107,8 +132,9 @@ def write_examples(output):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", required=True, type=Path, help="New directory for synthetic inputs/results")
+    parser.add_argument("--plot", action="store_true", help="Also plot display curves (requires the vaccine-report extra)")
     args = parser.parse_args()
-    results = write_examples(args.output)
+    results = write_examples(args.output, plot=args.plot)
     for result in results:
         print(result["delivery"], "states:", len(result["states"]),
               "max balance error:", max(abs(row["antigen_balance_error"]) for row in result["curves"]))

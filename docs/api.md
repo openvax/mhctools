@@ -10,10 +10,32 @@ first prediction, start with [getting started](getting-started.md).
 | Add predictions to a table | [Table annotation](#annotating-tables) | [Annotation recipe](recipes.md) |
 | Download or inspect models | [Models and artifacts](#models-and-artifacts) | [Getting models](artifacts.md) |
 | Assess individual peptide bonds | [Peptidase activity](#peptidase-activity) | [Activity guide](cleavage/index.md) |
+| Model conditional vaccine exposure | [Vaccine trajectories](#vaccine-trajectories) | [Run, report and compare](vaccine-comparison.md) |
 
 Predictor-specific setup and examples are in the [family guides](predictors/index.md).
 The [predictor matrix](predictor-matrix.md) lists Python classes and command-line
 names for every supported model.
+
+## Vaccine trajectories
+
+Supply explicit rates and current-fragment cleavage assessments, then summarize
+or compare matched endpoints. These are conditional calculations with no fitted
+physiological defaults. See the [trajectory guide](vaccine-trajectory.md) for
+units and the [comparison workflow](vaccine-comparison.md) for interpretation.
+
+::: mhctools.VaccineDose
+
+::: mhctools.VaccineTrajectoryInput
+
+::: mhctools.simulate_vaccine_trajectory
+
+::: mhctools.summarize_vaccine_trajectory
+
+::: mhctools.format_vaccine_trajectory_report
+
+::: mhctools.compare_vaccine_trajectories
+
+::: mhctools.format_vaccine_comparison_report
 
 ## Results
 
