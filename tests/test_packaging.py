@@ -58,7 +58,8 @@ def test_every_runtime_dependency_is_imported(pyproject):
     unused = []
     for requirement in pyproject["project"]["dependencies"]:
         name = _distribution_name(requirement)
-        if name not in imported:
+        import_name = {"biopython": "Bio"}.get(name, name)
+        if import_name not in imported:
             unused.append(name)
     assert not unused, (
         "dependency declared but never imported: %s" % ", ".join(unused))

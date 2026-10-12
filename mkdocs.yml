@@ -92,6 +92,7 @@ nav:
       - SLP/mRNA pMHC trajectories: vaccine-trajectory.md
       - Comparing vaccine exposure: vaccine-comparison.md
       - Core delivery and blood exposure: vaccine-core-exposure.md
+      - Candidate window exposure: vaccine-windows.md
       - Cell penetration classification: predictors/uptake.md
       - Results and DataFrames: results.md
       - Recipes: recipes.md

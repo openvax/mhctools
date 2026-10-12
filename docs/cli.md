@@ -13,6 +13,7 @@ for every option.
 | `mhctools cleavage` | Per-bond peptidase evidence | [cleavage](cleavage/index.md) |
 | `mhctools vaccine-report` | Route-aware vaccine construct report | [vaccine reports](vaccine-reports.md) |
 | `mhctools vaccine-trajectory` | Simulate explicit SLP/mRNA kinetics and write a readable report | [trajectory guide](vaccine-trajectory.md) |
+| `mhctools vaccine-windows` | Dose-normalized per-core candidate window exposure | [window guide](vaccine-windows.md) |
 | `mhctools vaccine-compare` | Compare matched trajectory results with dose and evidence context | [comparison guide](vaccine-comparison.md) |
 | `mhctools benchmark` | Assay-aware model evaluation | [benchmarks](benchmarks.md) |
 | `mhctools mixtcrpred` | Score paired TCRs against a fixed target | [TCR predictors](predictors/tcr.md#mixtcrpred) |
