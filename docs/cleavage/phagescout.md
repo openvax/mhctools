@@ -1,5 +1,9 @@
 # PhageScout sequence profiles
 
+The name refers to **phage display used to scout protease sequence
+preferences**. It is not a bacteriophage vaccine platform, a pharmacokinetic
+model, or an estimate of what fraction of a vaccine dose reaches APCs.
+
 PhageScout supplies separate native recognition scores for **human neutrophil
 elastase (ELANE)** and **human cathepsin G (CTSG)**. These are extracellular
 and inflammatory enzyme candidates under active-enzyme exposure. A sequence

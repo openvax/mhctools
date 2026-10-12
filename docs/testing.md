@@ -28,7 +28,22 @@ python -m pytest tests/test_osteosarc_fixtures.py --require-all
 The fixture README documents source provenance, experimental-label caveats,
 predictor versions, and the explicit regeneration commands.
 
-## Optional backends in tests
+## Real-model backend tests
+
+“Optional” describes the extra software or model assets needed for a local
+installation. It does **not** mean the backend lacks tests or is allowed to
+disappear from CI. The four public Python jobs run offline wrapper and fixture
+tests; dedicated CI jobs provision Pepsickle, SMM/SMM-PMBEC, and the
+Keras-backed DeepImmuno/TLimmuno2/NetCleave models, then run real inference
+with `--require-all`. That flag makes a skipped model test fail its job.
+Different jobs are necessary because some upstream weights have separate
+licenses and older runtime requirements, and TensorFlow is deliberately kept
+out of the main interpreter.
+
+“Setup group” is simply the name passed to `scripts/setup_test_backends.py`
+to provision one bundle. For example, `gfeller` provisions the Gfeller lab's
+MixMHCpred, MixMHC2pred and PRIME implementations; it is not a scientific
+category of predictor.
 
 `./test.sh` sources `env/test-backends/activate.sh` when it exists, so the
 isolated runtimes set up by `scripts/setup_test_backends.py` are found
@@ -48,7 +63,7 @@ misconfiguration.
 | [MixMHCpred](predictors/binding.md#mixmhcpred), [PRIME](predictors/immunogenicity.md#prime) | `gfeller` | `pytest tests/test_mixmhcpred_runtime_integration.py tests/test_mixmhcpred.py tests/test_prime.py --require-all` |
 | [PhageScout](cleavage/phagescout.md) full DESeq2 tables | `phagescout` | `pytest tests/test_phagescout_full_profiles.py --require-all` |
 | [PeptiVerse half-life](predictors/peptide-pk.md#peptiverse) and [CPP classification](predictors/uptake.md#peptiverse-cpp), [PlifePred2](predictors/peptide-pk.md#plifepred2) | `half-life` | `pytest tests/test_peptiverse.py tests/test_peptiverse_cpp.py tests/test_plifepred2.py --require-all` |
-| [Pepsickle](predictors/processing.md#pepsickle) gradient-boosted | `pepsickle` | `pytest tests/test_pepsickle_legacy.py tests/test_pepsickle_runtime.py --require-all` |
+| [Pepsickle](predictors/processing.md#pepsickle) neural and gradient-boosted models | `pepsickle` | `pytest tests/test_pepsickle_legacy.py tests/test_pepsickle_runtime.py --require-all` |
 | [SMM](predictors/binding.md#smm-and-smm-pmbec), [SMM-PMBEC](predictors/binding.md#smm-and-smm-pmbec) | `smm` | `python -m pytest tests/test_smm.py tests/test_smm_integration.py --require-all` |
 | [NetTCR](predictors/tcr.md#nettcr) (LiteRT) | `nettcr` | `python -m pytest tests/test_nettcr.py --require-all -W error` |
 | [DeepImmuno](predictors/immunogenicity.md#deepimmuno), [TLimmuno2](predictors/immunogenicity.md#tlimmuno2), [NetCleave](predictors/processing.md#netcleave) | `keras` | `python -m pytest tests/test_deepimmuno.py tests/test_tlimmuno2.py tests/test_netcleave.py --require-all -W error` |

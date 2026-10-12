@@ -53,6 +53,7 @@ how to use another predictor.
 - [User guide](predictors/index.md): supported predictors, inputs, and examples.
 - [Recipes](recipes.md): scan proteins, run multiple samples, and annotate tables.
 - [API reference](api.md): Python classes and functions.
+- [Research and evidence](research/index.md): primary studies, measurements, validation audits and open calibration questions.
 
 ## Choose and evaluate models
 

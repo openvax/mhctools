@@ -15,6 +15,8 @@ guide and API reference for detail. Follow that progression here:
 - Getting started takes a reader from installation to a first result.
 - User guides explain a task or predictor family, including its limitations.
 - Reference pages provide complete fields, classes, commands, and metadata.
+- Research pages trace primary observations, assay context, model applicability
+  and unresolved calibration; they do not provide default biological rates.
 
 Use descriptive headings such as “Predict for peptides” or “Read the results”.
 The [pandas tutorials](https://pandas.pydata.org/docs/getting_started/intro_tutorials/index.html)
