@@ -78,6 +78,11 @@ from .serum_degradation import (
     summarize_target_degradation as summarize_target_degradation,
 )
 from .target_cleavage import annotate_target_cleavage as annotate_target_cleavage
+from .vaccine_windows import (
+    assess_vaccine_windows as assess_vaccine_windows,
+    vaccine_window_rows as vaccine_window_rows,
+    format_vaccine_window_report as format_vaccine_window_report,
+)
 from .vaccine_exposure import summarize_core_exposure as summarize_core_exposure
 from .vaccine_trajectory import (
     VaccineDose as VaccineDose,
@@ -195,7 +200,7 @@ def __getattr__(name):
     raise AttributeError(
         "module %r has no attribute %r" % (__name__, name))
 
-__version__ = "3.52.0"
+__version__ = "3.53.0"
 
 __all__ = [
     "CleaveNet",
@@ -280,6 +285,9 @@ __all__ = [
     "vaccine_trajectory_evidence",
     "simulate_vaccine_trajectory",
     "summarize_core_exposure",
+    "assess_vaccine_windows",
+    "vaccine_window_rows",
+    "format_vaccine_window_report",
     "summarize_vaccine_trajectory",
     "format_vaccine_trajectory_report",
     "compare_vaccine_trajectories",

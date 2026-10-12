@@ -32,6 +32,7 @@ dependencies = [
   "numpy>=1.26.0,<2.0.0; python_version < '3.10'",
   "numpy>=2.0.0,<3.0.0; python_version >= '3.10'",
   "pandas>=0.13.1",
+  "biopython>=1.83",
   "pyensembl>=2.3.0,<3.0.0",
   "sercol>=0.0.2",
   "mhcflurry>=2.0.0",
