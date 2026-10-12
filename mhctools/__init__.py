@@ -79,12 +79,17 @@ from .serum_degradation import (
 )
 from .target_cleavage import annotate_target_cleavage as annotate_target_cleavage
 from .vaccine_trajectory import (
+    VaccineDose as VaccineDose,
     VaccineRate as VaccineRate,
     VaccineCleavageRates as VaccineCleavageRates,
     VaccineTrajectoryInput as VaccineTrajectoryInput,
     vaccine_route_steps as vaccine_route_steps,
     vaccine_trajectory_evidence as vaccine_trajectory_evidence,
     simulate_vaccine_trajectory as simulate_vaccine_trajectory,
+)
+from .vaccine_trajectory_report import (
+    summarize_vaccine_trajectory as summarize_vaccine_trajectory,
+    format_vaccine_trajectory_report as format_vaccine_trajectory_report,
 )
 from .serum_contributions import (
     EnzymeCutRate as EnzymeCutRate,
@@ -187,7 +192,7 @@ def __getattr__(name):
     raise AttributeError(
         "module %r has no attribute %r" % (__name__, name))
 
-__version__ = "3.49.0"
+__version__ = "3.50.0"
 
 __all__ = [
     "CleaveNet",
@@ -265,11 +270,14 @@ __all__ = [
     "summarize_target_degradation",
     "annotate_target_cleavage",
     "VaccineRate",
+    "VaccineDose",
     "VaccineCleavageRates",
     "VaccineTrajectoryInput",
     "vaccine_route_steps",
     "vaccine_trajectory_evidence",
     "simulate_vaccine_trajectory",
+    "summarize_vaccine_trajectory",
+    "format_vaccine_trajectory_report",
     "EnzymeCutRate",
     "serum_contribution_evidence",
     "serum_calibration_evidence",
