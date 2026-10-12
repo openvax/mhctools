@@ -90,6 +90,7 @@ nav:
       - Human serum calibration evidence: serum-calibration.md
       - Vaccine target summary: vaccine-target-summary.md
       - SLP/mRNA pMHC trajectories: vaccine-trajectory.md
+      - Comparing vaccine exposure: vaccine-comparison.md
       - Cell penetration classification: predictors/uptake.md
       - Results and DataFrames: results.md
       - Recipes: recipes.md

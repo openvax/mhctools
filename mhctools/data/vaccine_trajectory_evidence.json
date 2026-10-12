@@ -1,7 +1,28 @@
 {
   "schema_version": 1,
   "interpretation": "Mechanism evidence and compartment limits; no transferable vaccine rate constants",
+  "calibration_requirements": [
+    {"stage": "Starting material", "measurement": "Document the actual free-peptide or carrier-bound transcript amount, chemical form, route, organism and formulation; distinguish it from total formulation mass."},
+    {"stage": "Transport and target retention", "measurement": "Measure intact parent and identified target-bearing fragments over time in injection-site fluid, lymph, node and blood; carrier or fluorescent-label signal alone does not identify intact target."},
+    {"stage": "RNA expression", "measurement": "Pair intracellular active RNA with completed antigen production and secretion for the actual transcript, carrier and cell context; uptake alone does not identify productive expression."},
+    {"stage": "Processing and display", "measurement": "Pair target-fragment measurements with allele-specific surface pMHC time courses, APC location and cell counts; quantify loading and turnover separately where identifiable."},
+    {"stage": "Independent validation", "measurement": "Hold out relevant constructs, donors or studies after checking source overlap. Test timing as well as amount; connecting pMHC exposure to immune response requires its own matched validation."}
+  ],
   "studies": [
+    {
+      "id": "mrna-apc-uptake-expression-2017",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/28958578/",
+      "scope": "Modified mRNA-LNP vaccination in rhesus macaques; injection-site and draining-node APCs",
+      "finding": "LNP uptake and mRNA translation were assessed in APC populations in the injection site and draining nodes",
+      "limit": "Uptake, expression and immune responses are distinct endpoints; this study does not directly calibrate absolute target-specific surface-pMHC copies for arbitrary human SLP or secretion-tagged mRNA constructs"
+    },
+    {
+      "id": "mrna-qsp-model-2025",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC12256567/",
+      "scope": "Published multiscale mRNA-vaccine QSP model with molecular and tissue layers, macaque APC data and human antibody data",
+      "finding": "Modeled MHC-II surface exposure connects molecular processing to cell-level antigen presentation; vaccine-specific calibration is described",
+      "limit": "Model-derived presentation is not a measured pMHC calibration dataset. Parameters are not imported as transferable SLP/mRNA hazards; antibody validation does not independently validate every latent processing rate"
+    },
     {
       "id": "human-lymph-peptidome-2010",
       "url": "https://doi.org/10.1371/journal.pone.0009863",

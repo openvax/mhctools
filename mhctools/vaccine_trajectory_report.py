@@ -1,6 +1,7 @@
 """Readable summaries of explicit vaccine scenarios, without efficacy scores."""
 
 from collections import Counter
+import math
 
 
 def summarize_vaccine_trajectory(result):
@@ -120,4 +121,96 @@ def format_vaccine_trajectory_report(result):
               "Dose scaling assumes the same dilute, linear kinetics. It does not establish equal-dose efficacy or a clinical dose-response relationship.",
               "The JSON retains all rates, fragment assessments, curves and mechanism evidence.", "",
               "Model exclusions:", ""] + ["- " + item for item in result["exclusions"]]
+    return "\n".join(lines) + "\n"
+
+
+def compare_vaccine_trajectories(results):
+    """Compare matched endpoints without ranking efficacy or equating RNA/SLP.
+
+    Require the same exact target sequence, allele, MHC class and horizon.
+    Known organism differences are rejected. Route differences and unspecified
+    context stay visible. Unassessed scenarios remain rows with absent outcomes.
+    Results keep their input order; there is no winner or combined score.
+    """
+    results = list(results)
+    if len(results) < 2:
+        raise ValueError("A comparison requires at least two trajectory results")
+    for result in results:
+        if result.get("schema_version") != 1 or result.get("status") not in ("conditional_scenario", "unassessed"):
+            raise ValueError("Expected vaccine trajectory result JSON")
+    first = results[0]
+    def identity(result):
+        return (result["target"]["sequence"], result["allele"], result["mhc_class"], max(result["times_hours"]))
+    if any(identity(result) != identity(first) for result in results[1:]):
+        raise ValueError("Compare the same target sequence, allele, MHC class and observation horizon")
+    organisms = {r["organism"] for r in results if r.get("organism") is not None}
+    if len(organisms) > 1:
+        raise ValueError("Known organism contexts differ; do not pool cross-species exposures")
+    notes = ["Conditional scenarios; presentation exposure is not a calibrated immune dose.",
+             "Equal area can hide different timing; retain the original time courses.",
+             "One peptide and one carrier-bound transcript are different source units."]
+    if any(not r.get("organism") or r["administration"] == "unspecified" for r in results):
+        notes.append("Organism or administration context is unspecified in at least one scenario.")
+    if len({r["administration"] for r in results}) > 1:
+        notes.append("Administration routes differ; route-specific rates and evidence require separate review.")
+    if any(r["dose_basis"] == "one_input_normalization" for r in results):
+        basis = "Includes one-input normalization; no equal administered-dose comparison is established"
+    elif all(r.get("dose") and r["dose"]["unit"] == "ug" for r in results) and all(
+            math.isclose(r["dose"]["amount"], first["dose"]["amount"], rel_tol=1e-12) for r in results):
+        basis = "Equal documented starting-material mass; formulation delivery and efficacy remain conditional"
+    elif all(math.isclose(r["initial_copies"], first["initial_copies"], rel_tol=1e-12) for r in results):
+        basis = "Equal starting molecule counts; peptide and transcript identities remain distinct"
+    else:
+        basis = "Unequal specified starting amounts; absolute exposure includes this dose difference"
+    scenarios = []
+    for result in results:
+        scenarios.append({"scenario": result["scenario"], "delivery": result["delivery"],
+                          "administration": result["administration"], "organism": result.get("organism"),
+                          "dose": result.get("dose"), "dose_basis": result["dose_basis"],
+                          "mhctools_version": result["mhctools_version"],
+                          "summary": summarize_vaccine_trajectory(result),
+                          "missing_kinetics": result["missing_kinetics"],
+                          "rates": {s["name"]: s["rate"] for s in result["steps"]},
+                          "cleavage_sources": sorted({c["source"] for c in result["cuts"]} |
+                                                     {v["source"] for c in result["cuts"] for v in c["channels"]})})
+    return {"schema_version": 1, "target_sequence": first["target"]["sequence"],
+            "allele": first["allele"], "mhc_class": first["mhc_class"],
+            "horizon_hours": max(first["times_hours"]), "dose_comparison": basis,
+            "scenarios": scenarios, "interpretation": notes,
+            "calibration_requirements": first["mechanism_evidence"].get("calibration_requirements", [])}
+
+
+def format_vaccine_comparison_report(comparison):
+    """Render the matched endpoint comparison in supplied scenario order."""
+    lines = ["# Vaccine scenario comparison", "",
+             "Target %s; %s, MHC-%s; horizon 0–%s hours." % (
+                 comparison["target_sequence"], comparison["allele"], comparison["mhc_class"],
+                 _number(comparison["horizon_hours"])), "", comparison["dose_comparison"] + ".", "",
+             "| Scenario | Delivery / route | Starting copies | Node exposure (complex-hours) | Node exposure per input copy | Status |",
+             "|---|---|---:|---:|---:|---|"]
+    for scenario in comparison["scenarios"]:
+        summary = scenario["summary"]
+        node = summary["presentation"]["node"] if summary["presentation"] is not None else None
+        lines += ["| %s | %s / %s | %s | %s | %s | %s |" % (
+            _text(scenario["scenario"]), scenario["delivery"], scenario["administration"],
+            _number(summary["initial_copies"]), _number(node["auc_copy_hours"]) if node else "unassessed",
+            _number(node["auc_copy_hours_per_input_copy"]) if node else "unassessed", summary["status"])]
+    lines += ["", "## Interpretation", ""] + ["- " + item for item in comparison["interpretation"]]
+    lines += ["", "## Scenario inputs", ""]
+    for index, scenario in enumerate(comparison["scenarios"], 1):
+        lines += ["%s. %s" % (index, _text(scenario["scenario"])),
+                  "   Organism: %s; amount basis: %s; package: %s." % (
+                      _text(scenario["organism"] or "unspecified"), scenario["dose_basis"], scenario["mhctools_version"])]
+        dose = scenario["dose"]
+        if dose:
+            lines += ["   Starting amount: %s %s (%s); source: %s." % (
+                _number(dose["amount"]), dose["unit"], dose["basis"], _text(dose["source"]))]
+        if scenario["missing_kinetics"]:
+            lines += ["   Missing kinetics: " + ", ".join(scenario["missing_kinetics"]) + "."]
+        lines.append("")
+    lines += ["The comparison JSON preserves each scenario's rate values and sources. Individual trajectory reports explain all fragment assessments and exclusions.", ""]
+    if comparison["calibration_requirements"]:
+        lines += ["## Evidence needed to calibrate these quantities", ""]
+        for item in comparison["calibration_requirements"]:
+            lines += ["- **%s:** %s" % (item["stage"], item["measurement"])]
     return "\n".join(lines) + "\n"

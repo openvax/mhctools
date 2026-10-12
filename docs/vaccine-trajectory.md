@@ -7,6 +7,9 @@ versus secretion-tagged mRNA-LNP**. It is an explicitly parameterized scenario
 model with no physiological rate defaults. Missing reachable kinetics yield
 `unassessed` and no numerical curves.
 
+For a complete run/report/compare workflow and its evidence limits, see
+[Interpreting SLP and mRNA exposure](vaccine-comparison.md).
+
 ## Branching routes
 
 **Blue: free SLP. Orange: mRNA-LNP. Teal: shared antigen/APC pathways.**
