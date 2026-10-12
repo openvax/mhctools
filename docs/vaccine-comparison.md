@@ -51,6 +51,8 @@ mhctools vaccine-compare --input slp-trajectory.json mrna-trajectory.json \
 ```
 
 Inputs are **result JSON files**, not scenario input files. The comparison
+uses results from mhctools 3.50.0 or newer; rerun older scenario inputs to obtain
+integrated exposure and explicit dose accounting. The comparison
 requires matching target sequence, allele, MHC class and observation horizon.
 Original target coordinates can differ between constructs. Known organism
 differences are rejected; unknown context and route differences remain visible.

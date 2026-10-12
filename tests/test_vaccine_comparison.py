@@ -78,3 +78,10 @@ def test_cli_comparison_preserves_input_hashes_and_outputs(tmp_path):
     assert report.read_text() == before
     with pytest.raises(ValueError, match="at least two"):
         compare_vaccine_trajectories([result()])
+
+
+def test_old_results_request_recomputation_instead_of_inventing_exposure():
+    old = result()
+    del old["times_hours"]
+    with pytest.raises(ValueError, match="Rerun the original scenario"):
+        compare_vaccine_trajectories([old, result()])

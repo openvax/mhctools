@@ -11,6 +11,8 @@ def summarize_vaccine_trajectory(result):
     leave numerical summaries absent. Means at a zero-hour horizon are undefined.
     Source normalization is per peptide or per transcript, never per APC.
     """
+    if not result.get("times_hours") or "dose_basis" not in result:
+        raise ValueError("Rerun the original scenario with mhctools 3.50.0 or newer to report dose and integrated exposure")
     summary = {"status": result["status"], "horizon_hours": max(result["times_hours"]),
                "initial_copies": result["initial_copies"], "source_units": result["source_units"],
                "presentation": None, "antigen_fates": None}
@@ -138,6 +140,7 @@ def compare_vaccine_trajectories(results):
     for result in results:
         if result.get("schema_version") != 1 or result.get("status") not in ("conditional_scenario", "unassessed"):
             raise ValueError("Expected vaccine trajectory result JSON")
+        summarize_vaccine_trajectory(result)
     first = results[0]
     def identity(result):
         return (result["target"]["sequence"], result["allele"], result["mhc_class"], max(result["times_hours"]))
