@@ -221,7 +221,7 @@ not human presentation accuracy.
 python scripts/vaccine_trajectory_example.py --output /tmp/vaccine-trajectories
 mhctools vaccine-trajectory \
   --input /tmp/vaccine-trajectories/slp-input.json \
-  --output /tmp/slp-recomputed.json
+  --output /tmp/slp-recomputed.json --report /tmp/slp-report.md
 ```
 
 The script writes inputs, outputs and a readable SLP/mRNA comparison. **Every
@@ -231,3 +231,57 @@ by compartment and original `[start,end)` interval, including exact sequence,
 channels, basis and source. Outputs are never overwritten. This complements the
 evidence-oriented [`target-summary.json`](vaccine-target-summary.md) without
 inventing missing inputs.
+
+## Starting amount and readable reports
+
+Omitting both `initial_copies` and `dose` normalizes to one input peptide or
+carrier-bound transcript. This is explicitly labeled `one_input_normalization`.
+Legacy `initial_copies` remains supported. To document a physical starting amount,
+use **either** `initial_copies` **or** `dose`, never both:
+
+```python
+from dataclasses import replace
+from mhctools import VaccineDose, format_vaccine_trajectory_report
+
+# model is an otherwise fully specified VaccineTrajectoryInput.
+model = replace(model, initial_copies=None,
+                dose=VaccineDose(2, "pmol", "assumed", "Illustrative starting amount"),
+                administration="SC", organism="Homo sapiens")
+result = simulate_vaccine_trajectory(model, [0, 1, 4, 24], cleavage_rates)
+print(format_vaccine_trajectory_report(result))
+```
+
+`dose` supports `copies`, `pmol` and `ug`. Conversion uses the exact SI Avogadro
+constant, [6.02214076 × 10²³ mol⁻¹](https://www.bipm.org/en/si-base-units/mole). A mass amount additionally requires
+`molecular_weight_g_per_mol` and its justification in `source`. For RNA this is
+the full transcript including its actual chemical form, UTRs and tail—not the
+encoded antigen. No sequence-based molecular-weight estimate is substituted.
+
+The amount describes **material entering the model at injection**: released
+free SLP or carrier-bound RNA. It is not total formulation mass. If a reported
+administered amount requires encapsulation, release or recovery adjustments,
+establish those separately and document the resulting starting amount. The
+conversion does not infer bioavailability or any kinetic parameter.
+
+Set `administration` to `IM` or `SC` and supply `organism` when known. Omitted
+context remains unspecified; naming a route or organism never supplies rates.
+For JSON, add for example:
+
+```json
+"dose": {"amount": 2, "unit": "pmol", "basis": "assumed",
+         "source": "Illustrative starting amount"},
+"administration": "SC",
+"organism": "Homo sapiens"
+```
+
+`--report` writes a readable Markdown companion to the full JSON. It includes
+finite-horizon exposure, mean and current display, per-input normalization,
+antigen accounting, rate provenance and missing-input explanations. Means are
+totals across modeled APC compartments, not copies per APC. At a zero-hour
+horizon a mean is undefined. Missing kinetics produce an input checklist rather
+than a table of zeros. Existing output files are never overwritten.
+
+`summarize_vaccine_trajectory(result)` exposes the same numerical summary to
+Python callers. Neither the summary nor the report fits a universal half-life
+or predicts immune efficacy. Dose scaling retains the model's linear, unsaturated
+assumption; it does not establish a biological dose-response curve.

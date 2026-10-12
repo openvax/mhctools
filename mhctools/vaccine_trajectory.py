@@ -68,6 +68,47 @@ class VaccineRate:
 
 
 @dataclass(frozen=True)
+class VaccineDose:
+    """Documented amount of the modeled starting peptide or carrier-bound RNA.
+
+    ``ug`` requires the molecular weight of the actual starting material in
+    g/mol. For RNA this includes the full transcript, not the encoded protein.
+    This conversion does not estimate encapsulation, release or bioavailability.
+    """
+
+    amount: float
+    unit: str
+    basis: str
+    source: str
+    molecular_weight_g_per_mol: float = None
+
+    def __post_init__(self):
+        if self.unit not in ("copies", "pmol", "ug"):
+            raise ValueError("Dose unit must be copies, pmol or ug")
+        object.__setattr__(self, "amount", _nonnegative(self.amount, "dose amount"))
+        if self.amount <= 0:
+            raise ValueError("Dose amount must be positive")
+        if self.basis not in ("measured", "assumed") or not isinstance(self.source, str) or not self.source.strip():
+            raise ValueError("Dose requires measured/assumed basis and a source")
+        if self.unit == "ug":
+            if self.molecular_weight_g_per_mol is None or _nonnegative(self.molecular_weight_g_per_mol, "molecular weight") <= 0:
+                raise ValueError("Mass dose requires a positive molecular_weight_g_per_mol for the actual material")
+            object.__setattr__(self, "molecular_weight_g_per_mol", float(self.molecular_weight_g_per_mol))
+        elif self.molecular_weight_g_per_mol is not None:
+            raise ValueError("Molecular weight is only used with a ug dose")
+        if not math.isfinite(self.copies):
+            raise ValueError("Converted dose exceeds numerical range")
+
+    @property
+    def copies(self):
+        """Starting copies using the exact SI Avogadro constant."""
+        if self.unit == "copies":
+            return float(self.amount)
+        moles = self.amount * 1e-12 if self.unit == "pmol" else self.amount * 1e-6 / self.molecular_weight_g_per_mol
+        return moles * 6.02214076e23
+
+
+@dataclass(frozen=True)
 class RouteStep:
     """One effective biological channel; rate key is its unique name."""
 
@@ -192,10 +233,23 @@ class VaccineTrajectoryInput:
     delivery: str
     scenario: str
     rates: dict
-    initial_copies: float = 1.0
+    initial_copies: float = None
     signal_end: int = None
     tap_max_length: int = None
     class_ii_max_length: int = None
+    dose: VaccineDose = None
+    administration: str = "unspecified"
+    organism: str = None
+
+    def source_copies(self):
+        """Resolve explicit dose or legacy copies; otherwise normalize to one."""
+        if self.dose is not None:
+            if not isinstance(self.dose, VaccineDose):
+                raise TypeError("dose must be a VaccineDose")
+            if self.initial_copies is not None:
+                raise ValueError("Specify dose or initial_copies, not both")
+            return self.dose.copies
+        return 1.0 if self.initial_copies is None else _nonnegative(self.initial_copies, "initial_copies")
 
     def validate(self):
         peptide = _input(self.peptide)
@@ -206,8 +260,12 @@ class VaccineTrajectoryInput:
         identity = parse(self.allele, raise_on_error=False)
         if identity is None or not (identity.is_class1 if self.mhc_class == "I" else identity.is_class2):
             raise ValueError("Allele must parse with MHCgnomes and match the MHC class")
-        if _nonnegative(self.initial_copies, "initial_copies") <= 0:
+        if self.source_copies() <= 0:
             raise ValueError("initial_copies must be positive")
+        if self.administration not in ("IM", "SC", "unspecified"):
+            raise ValueError("administration must be IM, SC or unspecified (local injection)")
+        if self.organism is not None and (not isinstance(self.organism, str) or not self.organism.strip()):
+            raise ValueError("organism must be a nonempty description or None")
         for name in ("signal_end", "tap_max_length", "class_ii_max_length"):
             value = getattr(self, name)
             if value is not None and (isinstance(value, bool) or not isinstance(value, Integral) or value < 1):
@@ -241,8 +299,10 @@ class VaccineTrajectoryInput:
             target=DegradationTarget(**value["target"]), allele=value["allele"],
             mhc_class=value["mhc_class"], delivery=value["delivery"], scenario=value["scenario"],
             rates={name: VaccineRate.from_dict(rate) for name, rate in value.get("rates", {}).items()},
-            initial_copies=value.get("initial_copies", 1.0), signal_end=value.get("signal_end"),
-            tap_max_length=value.get("tap_max_length"), class_ii_max_length=value.get("class_ii_max_length"))
+            initial_copies=value.get("initial_copies"), signal_end=value.get("signal_end"),
+            tap_max_length=value.get("tap_max_length"), class_ii_max_length=value.get("class_ii_max_length"),
+            dose=VaccineDose(**value["dose"]) if value.get("dose") is not None else None,
+            administration=value.get("administration", "unspecified"), organism=value.get("organism"))
         result.validate()
         return result
 
@@ -349,6 +409,7 @@ def simulate_vaccine_trajectory(model, times_hours, cleavage_rates=None, *, max_
     if not isinstance(model, VaccineTrajectoryInput):
         raise TypeError("model must be VaccineTrajectoryInput")
     peptide = model.validate()
+    initial_copies = model.source_copies()
     times = tuple(_nonnegative(t, "time") for t in times_hours)
     if not times:
         raise ValueError("At least one observation time is required")
@@ -431,13 +492,17 @@ def simulate_vaccine_trajectory(model, times_hours, cleavage_rates=None, *, max_
 
     output = {"schema_version": 1, "status": "unassessed" if missing else "conditional_scenario",
               "mhctools_version": __version__, "algorithm": "linear first-order expected copies; uniformization",
-              "scenario": model.scenario, "delivery": model.delivery, "administration": "local IM/SC",
+              "scenario": model.scenario, "delivery": model.delivery, "administration": model.administration,
+              "organism": model.organism, "times_hours": list(times),
               "mhc_class": model.mhc_class, "allele": parse(model.allele).to_string(),
               "target": {**asdict(target), "sequence": sequence[target.start:target.end]},
               "coordinate_system": "zero-based half-open on full input; cut bonds local to current fragment",
               "source_units": "input peptide copies" if model.delivery == "slp" else "input carrier-bound RNA copies",
               "exposure_units": "copy-hours integrated from injection (time zero) to each observation",
-              "initial_copies": model.initial_copies, "signal_end": model.signal_end,
+              "initial_copies": initial_copies, "signal_end": model.signal_end,
+              "dose": asdict(model.dose) if model.dose is not None else None,
+              "dose_basis": "documented_amount" if model.dose is not None else (
+                  "explicit_copies" if model.initial_copies is not None else "one_input_normalization"),
               "peptide_input": peptide.to_dict(),
               "tap_max_length": model.tap_max_length, "class_ii_max_length": model.class_ii_max_length,
               "steps": audit, "cuts": cut_audit, "states": state_records,
@@ -462,7 +527,7 @@ def simulate_vaccine_trajectory(model, times_hours, cleavage_rates=None, *, max_
     solver_channels = channels + [(i, observer_index[c], 1.0)
                                   for i, (c, _, _) in enumerate(states) if c in observer_index]
     values = np.zeros(len(states) + len(observed_compartments))
-    values[0] = model.initial_copies
+    values[0] = initial_copies
     diagonal = np.zeros_like(values)
     for origin, rate in consumed:
         diagonal[origin] -= rate
@@ -478,7 +543,7 @@ def simulate_vaccine_trajectory(model, times_hours, cleavage_rates=None, *, max_
         def counter(name):
             return amounts.get((name, 0, 0), 0.0)
 
-        produced = (model.initial_copies if model.delivery == "slp" else 0.0) + counter("translated")
+        produced = (initial_copies if model.delivery == "slp" else 0.0) + counter("translated")
         retained = total(lambda c, s, e: e > s)
         destroyed, cleared, pmhc_lost = (counter(name) for name in ("target_destroyed", "antigen_cleared", "pmhc_lost"))
         surface = {region: total(lambda c, s, e: c == region + "_surface") for region in REGIONS}
