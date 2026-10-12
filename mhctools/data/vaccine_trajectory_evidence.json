@@ -1,14 +1,45 @@
 {
   "schema_version": 1,
   "interpretation": "Mechanism evidence and compartment limits; no transferable vaccine rate constants",
+  "identifiability": {
+    "free_slp_node_apc_first_arrival_fraction_per_core_occurrence": {
+      "identified_from_reviewed_evidence": false,
+      "logical_bounds": {"lower": 0, "upper": 1},
+      "limit": "One dosed peptide lineage with one specified core occurrence is counted at first arrival; the bound is physical, not a calibrated interval"
+    },
+    "mrna_antigen_arrivals_per_input_transcript": {
+      "identified_from_reviewed_evidence": false,
+      "logical_bounds": {"lower": 0, "upper": null},
+      "limit": "Repeated translation can yield more than one antigen per transcript; no finite upper bound follows without construct-specific production data"
+    },
+    "intrinsic_blood_core_half_life_hours": {
+      "identified_from_reviewed_evidence": false,
+      "logical_bounds": null,
+      "limit": "Blood input can continue after injection; a post-peak half-decline is not an elimination half-life"
+    },
+    "surface_pmhc_lifetime_hours": {
+      "identified_from_reviewed_evidence": false,
+      "logical_bounds": null,
+      "limit": "Presentation time courses combine continuing loading, cross-dressing, APC turnover and complex loss"
+    }
+  },
   "calibration_requirements": [
     {"stage": "Starting material", "measurement": "Document the actual free-peptide or carrier-bound transcript amount, chemical form, route, organism and formulation; distinguish it from total formulation mass."},
     {"stage": "Transport and target retention", "measurement": "Measure intact parent and identified target-bearing fragments over time in injection-site fluid, lymph, node and blood; carrier or fluorescent-label signal alone does not identify intact target."},
     {"stage": "RNA expression", "measurement": "Pair intracellular active RNA with completed antigen production and secretion for the actual transcript, carrier and cell context; uptake alone does not identify productive expression."},
     {"stage": "Processing and display", "measurement": "Pair target-fragment measurements with allele-specific surface pMHC time courses, APC location and cell counts; quantify loading and turnover separately where identifiable."},
+    {"stage": "Preformed pMHC transfer", "measurement": "Distinguish complexes acquired from producer cells from newly loaded APC complexes using donor and recipient alleles, pathway perturbations and matched surface time courses."},
+    {"stage": "Enzyme exposure and competition", "measurement": "Separate soluble from cell-surface enzyme exposure; test current-fragment uptake, processing and loading at multiple concentrations with competing MHC ligands rather than assuming one shared first-order rate."},
     {"stage": "Independent validation", "measurement": "Hold out relevant constructs, donors or studies after checking source overlap. Test timing as well as amount; connecting pMHC exposure to immune response requires its own matched validation."}
   ],
   "studies": [
+    {
+      "id": "mouse-im-mrna-surface-pmhc-2026",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC13378541/",
+      "scope": "Mouse IM OVA and GFP reporter mRNA-LNP, 1 microgram RNA each; 25D1.16 SIINFEKL/H-2Kb flow-cytometry ratio on GFP-positive draining-node cDC2",
+      "finding": "Relative surface pMHC peaked on day 1, remained above control through day 5 and was not detected on day 7",
+      "limit": "Relative MFI is not absolute pMHC copies; continued expression/loading and changing APCs prevent an intrinsic complex lifetime or transferable human rate"
+    },
     {
       "id": "mrna-endogenous-mhc-ii-2026",
       "url": "https://pubmed.ncbi.nlm.nih.gov/41545353/",

@@ -116,6 +116,7 @@ nav:
           - Antigen processing and T-cell responses: research/processing-t-cell-responses.md
           - Human serum peptidase calibration: serum-calibration.md
       - Evidence and model audits:
+          - Vaccine core calibration and identifiability: research/vaccine-calibration.md
           - Cleavage coverage and validation: cleavage/validation.md
           - Protease candidates: cleavage/candidates.md
   - Development:

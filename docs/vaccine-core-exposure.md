@@ -59,6 +59,9 @@ human pathway proportions.
 The [mRNA antigen-presentation bibliography](evidence/mrna-antigen-presentation.md)
 summarizes these and related primary studies and provides an assay-scoped
 measurement extract for future calibration.
+The [core-specific calibration audit](research/vaccine-calibration.md)
+separates measured pMHC time courses from intrinsic complex lifetimes and
+gives the physical bounds on first-arrival fractions.
 
 - `secreted_mrna` follows a supplied signal boundary, ER entry, secretory
   residence/cuts, secretion, uptake and subsequent APC processing. Failed ER

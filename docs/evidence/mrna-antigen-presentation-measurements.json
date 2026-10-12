@@ -63,6 +63,22 @@
         {"endpoint": "reported_postpeak_half_decline", "analyte": "plasma_SM-102_lipid", "value": 1.14, "unit": "d"}
       ],
       "interpretation": "Blood observables after a booster; two-amplicon linkage does not prove full-length translation-competent RNA. Post-peak circulating signal includes previous input and is not intracellular RNA loss, antigen clearance or core half-life."
+    },
+    {
+      "id": "muro-2026",
+      "source": "https://doi.org/10.1126/sciadv.aec7827",
+      "species": "Mus musculus",
+      "route": "intramuscular",
+      "formulation": "study-specific BNT162b2-type LNP containing OVA or GFP reporter mRNA",
+      "dose_ug_rna_each": 1,
+      "assay": "25D1.16 SIINFEKL/H-2Kb flow-cytometry MFI divided by total H-2Kb MFI on GFP-positive draining-node cDC2",
+      "source_locator": "Results and Figure 5E-I",
+      "observations": [
+        {"endpoint": "relative_surface_pmhc_timecourse", "time_days": 1, "status": "observed_peak_in_series"},
+        {"endpoint": "relative_surface_pmhc_timecourse", "time_days": 5, "status": "above_control"},
+        {"endpoint": "relative_surface_pmhc_timecourse", "time_days": 7, "status": "not_detected"}
+      ],
+      "interpretation": "Categorical time points transcribed from the authors' comparison, not digitized MFI values. No absolute pMHC copy count, source shutoff, or intrinsic complex lifetime is identified."
     }
   ]
 }

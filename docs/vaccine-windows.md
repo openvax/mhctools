@@ -88,7 +88,8 @@ fate or MHC competition. No automatic winner or ranking change is imposed.
 
 For IM mRNA mechanisms, primary evidence, cross-dressing and direct APC
 expression, see [core delivery and blood exposure](vaccine-core-exposure.md).
-For calibration requirements, see [comparing exposure](vaccine-comparison.md).
+For physical bounds and the measured gaps behind these scenarios, see the
+[vaccine calibration audit](research/vaccine-calibration.md).
 
 ## Explicit sensitivity scenarios
 
