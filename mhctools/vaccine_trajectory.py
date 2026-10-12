@@ -20,13 +20,18 @@ from .serum_degradation import DegradationTarget, _input, _nonnegative
 
 EXTRACELLULAR = ("interstitium", "afferent_lymph", "node_fluid", "blood")
 REGIONS = ("local", "node", "systemic")
+NODE_ANTIGEN = tuple("node_" + phase for phase in (
+    "endosome", "cytosol", "er", "protein", "secretory_er", "loaded", "surface"))
+NODE_ENTRY_ROUTES = ("node_fluid_uptake", "local_apc_migration", "node_apc_translation", "cross_dressing")
 EXCLUSIONS = (
     "Whole-body PBPK, renal/hepatic compartments and recirculation are not resolved",
     "Sequence-derived LNP delivery, endosomal escape and secretion are not predicted",
     "Signal-peptide-derived targets and intramembrane signal-peptide processing are not modeled",
     "Active enzyme exposure, folding, glycosylation and protein binding are not predicted",
     "APC subsets, changing inflammation and cell-number dynamics are not resolved",
-    "MHC saturation, competing ligands, recycling and cross-dressing are not resolved",
+    "MHC saturation, competing ligands and recycling are not resolved",
+    "Cross-dressing is an effective MHC-I transfer rate, not a prediction of donor compatibility or contact",
+    "Membrane-anchored antigens, cell debris and extracellular vesicles are not separately resolved",
     "T-cell activation, costimulation, antibodies and clinical efficacy are not predicted",
 )
 
@@ -147,12 +152,13 @@ def vaccine_route_steps(delivery, mhc_class):
     Parameters
     ----------
     delivery : str
-        ``slp`` for a free peptide or ``secreted_mrna`` for mRNA-LNP.
+        ``slp``, ``secreted_mrna`` or ``cytosolic_mrna``. RNA routes include
+        direct APC expression; secretion is specific to secreted constructs.
     mhc_class : str
         ``I`` or ``II``; each target/allele is modeled separately.
     """
-    if delivery not in ("slp", "secreted_mrna") or mhc_class not in ("I", "II"):
-        raise ValueError("Choose slp/secreted_mrna and MHC class I/II")
+    if delivery not in ("slp", "secreted_mrna", "cytosolic_mrna") or mhc_class not in ("I", "II"):
+        raise ValueError("Choose slp/secreted_mrna/cytosolic_mrna and MHC class I/II")
     steps = []
 
     def add(name, origin, destination, mechanism, gate="always", kind="transfer"):
@@ -188,7 +194,7 @@ def vaccine_route_steps(delivery, mhc_class):
         add("migration_" + compartment, "local_" + compartment, "node_" + compartment,
             "Antigen/pMHC carried by a migrating local APC into the draining node")
 
-    if delivery == "secreted_mrna":
+    if delivery != "slp":
         add("carrier_drainage", "rna_carrier", "node_rna_carrier", "LNP-associated RNA drainage to node")
         add("producer_rna_uptake", "rna_carrier", "producer_rna_endosome", "RNA-carrier uptake by local non-APC producer cells")
         add("local_rna_uptake", "rna_carrier", "local_rna_endosome", "RNA-carrier uptake by local APCs")
@@ -199,19 +205,34 @@ def vaccine_route_steps(delivery, mhc_class):
             add(cell + "_rna_escape", cell + "_rna_endosome", cell + "_rna", "RNA endosomal escape into cytosol")
             add(cell + "_endosomal_rna_loss", cell + "_rna_endosome", "rna_lost", "RNA disposal before cytosolic delivery")
             add(cell + "_rna_decay", cell + "_rna", "rna_lost", "Loss of translation-competent RNA")
-            add(cell + "_translation", cell + "_rna", cell + "_protein", "Completed antigen synthesis per active transcript; RNA remains", kind="birth")
+            product = cell + ("_protein" if delivery == "secreted_mrna" else "_cytosol")
+            add(cell + "_translation", cell + "_rna", product, "Completed antigen synthesis per active transcript; RNA remains", kind="birth")
+            if delivery == "cytosolic_mrna":
+                continue
             add(cell + "_signal_entry", cell + "_protein", cell + "_secretory_er",
                 "Effective ER translocation and removal of the supplied signal peptide", "signal")
             add(cell + "_secretion", cell + "_secretory_er", "node_fluid" if cell == "node" else "interstitium",
                 "ER/Golgi trafficking and secretion of mature antigen")
             add(cell + "_secretory_loss", cell + "_secretory_er", "antigen_cleared", "Unproductive secretory-pathway loss")
-            add(cell + "_failed_entry", cell + "_protein", "antigen_cleared" if cell == "producer" else cell + "_cytosol",
-                "Failed ER entry/defective products; APC products can undergo direct processing")
-            if cell != "producer":
-                add(cell + "_erad", cell + "_secretory_er", cell + "_cytosol", "ER-associated retrotranslocation for direct APC processing")
-                if mhc_class == "II":
-                    add(cell + "_secretory_to_endosome", cell + "_secretory_er", cell + "_endosome", "Conditional intracellular secretory-antigen delivery to endolysosomes")
-        for compartment in ("rna_endosome", "rna", "protein", "secretory_er"):
+            add(cell + "_failed_entry", cell + "_protein", cell + "_cytosol",
+                "Failed ER entry/defective products enter cytosolic processing")
+            add(cell + "_erad", cell + "_secretory_er", cell + "_cytosol", "ER-associated retrotranslocation for endogenous processing")
+            if cell != "producer" and mhc_class == "II":
+                add(cell + "_secretory_to_endosome", cell + "_secretory_er", cell + "_endosome", "Conditional intracellular secretory-antigen delivery to endolysosomes")
+        add("producer_cytosol_loss", "producer_cytosol", "antigen_cleared", "Unproductive producer-cell antigen disposal")
+        add("producer_antigen_release", "producer_cytosol", "interstitium", "Effective release of core-bearing antigen from producer cells; not active secretion")
+        if mhc_class == "I":
+            add("producer_tap", "producer_cytosol", "producer_er", "Producer-cell TAP transport", "tap")
+            add("producer_er_loading", "producer_er", "producer_loaded", "Producer-cell MHC-I loading on the specified allele", "exact")
+            add("producer_er_loss", "producer_er", "antigen_cleared", "Producer-cell ER precursor disposal")
+            add("producer_surface_export", "producer_loaded", "producer_surface", "Producer-cell pMHC surface export")
+            add("producer_loaded_loss", "producer_loaded", "pmhc_lost", "Producer-cell loaded-complex disposal")
+            add("producer_surface_loss", "producer_surface", "pmhc_lost", "Producer-cell surface pMHC loss")
+            for region in ("local", "node"):
+                add("cross_dressing_" + region, "producer_surface", region + "_surface",
+                    "Effective transfer of preformed producer pMHC-I to APCs; no new loading")
+        migrating = ("rna_endosome", "rna") + (("protein", "secretory_er") if delivery == "secreted_mrna" else ())
+        for compartment in migrating:
             add("migration_" + compartment, "local_" + compartment, "node_" + compartment,
                 "Local APC migration with RNA or intracellular antigen")
     return tuple(steps)
@@ -276,7 +297,7 @@ class VaccineTrajectoryInput:
             if self.target.start < self.signal_end:
                 raise ValueError("Target must lie entirely in the mature antigen; signal-peptide-derived presentation is not modeled")
         elif self.signal_end is not None:
-            raise ValueError("SLP input cannot declare a signal peptide")
+            raise ValueError("Only secreted_mrna input can declare a signal peptide")
         if self.mhc_class == "I" and (self.tap_max_length is None or self.tap_max_length < self.target.end - self.target.start):
             raise ValueError("MHC-I requires an explicit TAP precursor length bound covering the target")
         if self.mhc_class == "II" and (self.class_ii_max_length is None or self.class_ii_max_length < self.target.end - self.target.start):
@@ -312,7 +333,7 @@ def _rna(compartment):
 
 
 def _cuts_apply(compartment):
-    return compartment in EXTRACELLULAR or compartment == "producer_secretory_er" or any(
+    return compartment in EXTRACELLULAR or compartment in ("producer_secretory_er", "producer_cytosol", "producer_er") or any(
         compartment == region + "_" + phase
         for region in REGIONS for phase in ("endosome", "cytosol", "er", "secretory_er"))
 
@@ -379,6 +400,39 @@ def _advance(values, diagonal, channels, duration):
     return current
 
 
+def _node_entry_system(states, events, initial_copies):
+    """Absorb each antigen lineage on its first entry into a nodal APC.
+
+    RNA remains a repeatable source, including inside nodal APCs. Absorbed
+    antigen cannot be recounted on secretion and reuptake. This observer is a
+    separate linear system and does not remove antigen from the main trajectory.
+    """
+    size = len(states)
+    values = np.zeros(size + len(NODE_ENTRY_ROUTES))
+    values[0] = initial_copies
+    diagonal = np.zeros_like(values)
+    channels = []
+    for origin, destination, rate, birth, name in events:
+        if states[origin][0] in NODE_ANTIGEN:
+            continue
+        if not birth:
+            diagonal[origin] -= rate
+        if states[destination][0] in NODE_ANTIGEN:
+            if name == "node_antigen_uptake":
+                route = "node_fluid_uptake"
+            elif name == "node_translation":
+                route = "node_apc_translation"
+            elif name == "cross_dressing_node":
+                route = "cross_dressing"
+            elif name and name.startswith("migration_"):
+                route = "local_apc_migration"
+            else:
+                raise ValueError("Unclassified node APC entry: %s" % name)
+            destination = size + NODE_ENTRY_ROUTES.index(route)
+        channels.append((origin, destination, rate))
+    return values, diagonal, channels
+
+
 def simulate_vaccine_trajectory(model, times_hours, cleavage_rates=None, *, max_states=10000):
     """Follow a target to APC loading using explicitly supplied rate channels.
 
@@ -423,6 +477,7 @@ def simulate_vaccine_trajectory(model, times_hours, cleavage_rates=None, *, max_
         by_origin.setdefault(step.origin, []).append(step)
     initial = ("interstitium", 0, len(sequence)) if model.delivery == "slp" else ("rna_carrier", 0, 0)
     states, index, channels, consumed, missing, cut_audit = [initial], {initial: 0}, [], [], set(), []
+    events = []
 
     def state_index(state):
         if state not in index:
@@ -432,10 +487,12 @@ def simulate_vaccine_trajectory(model, times_hours, cleavage_rates=None, *, max_
             states.append(state)
         return index[state]
 
-    def channel(origin, destination, rate, *, birth=False, counter=None):
+    def channel(origin, destination, rate, *, birth=False, counter=None, name=None):
         if not rate:
             return
-        channels.append((origin, state_index(destination), rate))
+        destination_index = state_index(destination)
+        channels.append((origin, destination_index, rate))
+        events.append((origin, destination_index, rate, birth, name))
         if not birth:
             consumed.append((origin, rate))
         if counter:
@@ -457,12 +514,12 @@ def simulate_vaccine_trajectory(model, times_hours, cleavage_rates=None, *, max_
             if step.kind == "birth":
                 counter = "translated"
             elif step.destination.endswith("_loaded") and not step.origin.endswith("_loaded"):
-                counter = "loaded"
+                counter = "producer_loaded_count" if step.destination == "producer_loaded" else "loaded"
             elif step.destination.endswith("_surface") and step.origin.endswith("_loaded"):
-                counter = "surface_exported"
+                counter = "producer_exported_count" if step.destination == "producer_surface" else "surface_exported"
             else:
                 counter = None
-            channel(cursor, destination, record.value_per_hour, birth=step.kind == "birth", counter=counter)
+            channel(cursor, destination, record.value_per_hour, birth=step.kind == "birth", counter=counter, name=step.name)
         if _cuts_apply(compartment):
             fragment = TargetFragment(sequence[start:end], start, end)
             cuts = None if cleavage_rates is None else cleavage_rates(compartment, fragment)
@@ -477,7 +534,7 @@ def simulate_vaccine_trajectory(model, times_hours, cleavage_rates=None, *, max_
                 for cut in cuts.channels:
                     if cut.bond >= end - start:
                         raise ValueError("Cleavage bond lies outside current fragment")
-                    if compartment in tuple(region + "_er" for region in REGIONS) and cut.bond != 1:
+                    if compartment in tuple(region + "_er" for region in (*REGIONS, "producer")) and cut.bond != 1:
                         raise ValueError("APC ER peptide processing supports N-terminal trimming only")
                     bond = start + cut.bond
                     destination = ("target_destroyed", 0, 0) if target.start < bond < target.end else (
@@ -499,6 +556,7 @@ def simulate_vaccine_trajectory(model, times_hours, cleavage_rates=None, *, max_
               "coordinate_system": "zero-based half-open on full input; cut bonds local to current fragment",
               "source_units": "input peptide copies" if model.delivery == "slp" else "input carrier-bound RNA copies",
               "exposure_units": "copy-hours integrated from injection (time zero) to each observation",
+              "node_entry_definition": "First presence of each core-bearing antigen lineage in a draining-node APC; includes endogenous production and preformed pMHC transfer",
               "initial_copies": initial_copies, "signal_end": model.signal_end,
               "dose": asdict(model.dose) if model.dose is not None else None,
               "dose_basis": "documented_amount" if model.dose is not None else (
@@ -510,6 +568,7 @@ def simulate_vaccine_trajectory(model, times_hours, cleavage_rates=None, *, max_
               "mechanism_evidence": vaccine_trajectory_evidence(),
               "assumptions": ["Dilute, well-mixed, time-invariant first-order compartments",
                               "One exact target occurrence and at most one loaded pMHC per produced antigen copy",
+                              "Producer-cell pMHC uses the specified allele; cross-dressing transfers that complex without new loading",
                               "Translation is repeated antigen production, not RNA consumption",
                               "Each cut retains only the target-bearing daughter; an internal cut destroys this exact target",
                               "Loading competes with cuts; bound target leaves free-peptide cleavage and has its own turnover",
@@ -531,9 +590,11 @@ def simulate_vaccine_trajectory(model, times_hours, cleavage_rates=None, *, max_
     diagonal = np.zeros_like(values)
     for origin, rate in consumed:
         diagonal[origin] -= rate
+    entry_values, entry_diagonal, entry_channels = _node_entry_system(states, events, initial_copies)
     previous, rows = 0.0, {}
     for time in sorted(set(times)):
         values = _advance(values, diagonal, solver_channels, time - previous)
+        entry_values = _advance(entry_values, entry_diagonal, entry_channels, time - previous)
         previous = time
         amounts = {state: float(values[i]) for i, state in enumerate(states)}
 
@@ -549,9 +610,23 @@ def simulate_vaccine_trajectory(model, times_hours, cleavage_rates=None, *, max_
         surface = {region: total(lambda c, s, e: c == region + "_surface") for region in REGIONS}
         surface_auc = {region: float(values[observer_index[region + "_surface"]]) for region in REGIONS}
         extracellular_auc = {c: float(values[observer_index[c]]) for c in EXTRACELLULAR}
+        node_entry = dict(zip(NODE_ENTRY_ROUTES, map(float, entry_values[len(states):])))
+        arrived = math.fsum(node_entry.values())
+        blood_core = total(lambda c, s, e: c == "blood" and (s, e) == (target.start, target.end))
+        blood_total = total(lambda c, s, e: c == "blood")
         rows[time] = {"time_hours": time, "antigen_copies_supplied": produced,
                       "target_retained_copies": retained, "extracellular_target_copies": total(lambda c, s, e: c in EXTRACELLULAR),
-                      "extracellular_parent_copies": total(lambda c, s, e: c in EXTRACELLULAR and (s, e) == (0 if model.delivery == "slp" else model.signal_end, len(sequence))),
+                      "extracellular_parent_copies": total(lambda c, s, e: c in EXTRACELLULAR and (s, e) == (model.signal_end or 0, len(sequence))),
+                      "blood_target_copies": blood_total, "blood_free_core_copies": blood_core,
+                      "blood_precursor_copies": blood_total - blood_core,
+                      "node_apc_target_copies": total(lambda c, s, e: c in NODE_ANTIGEN),
+                      "cumulative_node_apc_entry_copies": arrived,
+                      "cumulative_node_apc_entry_by_route": node_entry,
+                      "node_apc_entry_fraction_of_dosed_peptide": arrived / initial_copies if model.delivery == "slp" else None,
+                      "node_apc_entry_copies_per_input": arrived / initial_copies,
+                      "node_apc_entry_fraction_of_supplied_antigen": arrived / produced if produced > 0 else None,
+                      "producer_surface_pmhc_copies": total(lambda c, s, e: c == "producer_surface"),
+                      "cumulative_producer_loaded_copies": counter("producer_loaded_count"),
                       "target_destroyed_copies": destroyed, "antigen_cleared_copies": cleared,
                       "pmhc_lost_copies": pmhc_lost, "cumulative_loaded_copies": counter("loaded"),
                       "surface_pmhc_copies": sum(surface.values()), "surface_pmhc_by_apc_location": surface,

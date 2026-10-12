@@ -3,6 +3,8 @@
 from collections import Counter
 import math
 
+from .vaccine_exposure import summarize_core_exposure
+
 
 def summarize_vaccine_trajectory(result):
     """Summarize the last observation and finite-horizon presentation exposure.
@@ -48,7 +50,8 @@ def format_vaccine_trajectory_report(result):
     lines = ["# Vaccine trajectory", "", _text(result["scenario"]), "",
              "Status: **%s**. All numerical results are conditional on supplied rates." % result["status"], "",
              "- Delivery: %s; local administration: %s; organism: %s." % (
-                 "free SLP" if result["delivery"] == "slp" else "secretion-tagged mRNA-LNP",
+                 {"slp": "free SLP", "secreted_mrna": "secretion-tagged mRNA-LNP",
+                  "cytosolic_mrna": "cytosolic-antigen mRNA-LNP"}[result["delivery"]],
                  _text(result["administration"]), _text(result.get("organism") or "unspecified")),
              "- Target: %s (%s), [%s, %s) in the input; %s, MHC-%s." % (
                  _text(target["label"]), target["sequence"], target["start"], target["end"],
@@ -64,6 +67,27 @@ def format_vaccine_trajectory_report(result):
             lines += ["- Starting-material molecular weight: %s g/mol." % _number(dose["molecular_weight_g_per_mol"])]
     else:
         lines += ["- No administered mass or molar amount is documented."]
+    if "node_entry_definition" in result and result["status"] != "unassessed":
+        exposure = summarize_core_exposure(result)
+        entry, blood = exposure["node_apc_entry"], exposure["blood"]
+        lines += ["", "## Core delivery and blood exposure", "",
+                  "Core-bearing antigen first present in draining-node APCs by the horizon: %s copies." % _number(entry["cumulative_core_bearing_copies"]),
+                  "This includes all fragments retaining the core. Each antigen lineage is counted once; arrival is separate from current residence and surface presentation.", ""]
+        if result["delivery"] == "slp":
+            lines += ["Fraction of dosed peptide copies delivering this core to node APCs: %s." % _number(entry["fraction_of_dosed_peptide_copies"])]
+        else:
+            lines += ["Node-APC antigen copies per input transcript: %s; fraction of antigen produced by this horizon: %s." % (
+                _number(entry["copies_per_input_molecule"]), _number(entry["fraction_of_antigen_supplied_by_horizon"])),
+                "Endogenous production inside a node APC counts as first presence. These copies per transcript are not an injected-RNA dose fraction."]
+        lines += ["", "| First presence route | Core-bearing copies |", "|---|---:|"]
+        labels = ("Uptake from node fluid", "Carried by a migrating APC", "Produced in a node APC", "Preformed pMHC transfer")
+        for label, value in zip(labels, entry["by_route"].values()):
+            lines += ["| %s | %s |" % (label, _number(value))]
+        interval = blood["post_peak_half_decline"]["hours_after_sampled_peak_interval"]
+        lines += ["", "Blood at the horizon: %s exact free-core copies and %s copies in longer core-bearing precursors; integrated blood exposure: %s copy-hours." % (
+            _number(blood["exact_free_core_copies_at_horizon"]), _number(blood["longer_precursor_copies_at_horizon"]), _number(blood["auc_copy_hours"])),
+            "Post-peak half-decline: %s. Continued absorption, secretion and precursor processing prevent this observation from identifying an intrinsic circulation half-life." % (
+                "%s–%s hours after the sampled peak (observation-grid bracket)" % tuple(map(_number, interval)) if interval else blood["post_peak_half_decline"]["status"])]
     lines += ["", "## Presentation", ""]
     if summary["presentation"] is None:
         lines += ["No numerical prediction: reachable kinetics are missing.", "",

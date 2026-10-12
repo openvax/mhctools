@@ -2,7 +2,9 @@
 
 The workflow answers a conditional question: **given this starting material and
 these rates, how much of this target reaches APC surface MHC, where, and for how
-long?** It supports free SLP and secretion-tagged mRNA-LNP after local injection.
+long?** It supports free SLP, secretion-tagged mRNA-LNP and cytosolic-antigen
+mRNA-LNP after local injection. See [core delivery and blood exposure](vaccine-core-exposure.md)
+for first-arrival fractions, endogenous expression and preformed pMHC transfer.
 It does not infer an effective immune dose from a peptide sequence.
 
 ## Three quantities to read together

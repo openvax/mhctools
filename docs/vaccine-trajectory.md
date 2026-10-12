@@ -3,12 +3,14 @@
 **Follow the chosen target until loading, then report surface pMHC.** Parent
 disappearance, target destruction, uptake, loading and display differ.
 `simulate_vaccine_trajectory` combines mechanisms for **local IM/SC free SLP
-versus secretion-tagged mRNA-LNP**. It is an explicitly parameterized scenario
+and secreted or cytosolic-antigen mRNA-LNP**. It is an explicitly parameterized scenario
 model with no physiological rate defaults. Missing reachable kinetics yield
 `unassessed` and no numerical curves.
 
 For a complete run/report/compare workflow and its evidence limits, see
 [Interpreting SLP and mRNA exposure](vaccine-comparison.md).
+For first nodal-APC entry, blood core persistence and the expanded mRNA routes,
+see [Core delivery and blood exposure](vaccine-core-exposure.md).
 
 ## Branching routes
 
@@ -213,7 +215,9 @@ exact target occurrence produces at most one modeled pMHC per antigen copy.
 Different alleles/targets and MHC-II core/flank mutations need separately mapped runs.
 
 Excluded: whole-body PBPK, sequence-derived delivery, folding/glycosylation/binding,
-cell-subset dynamics, MHC saturation/competition, cross-dressing and immune response.
+cell-subset dynamics, MHC saturation/competition and immune response.
+Cross-dressing is represented only by supplied effective producer-pMHC-I
+transfer rates; membrane topology and vesicle/cell-debris transport are unresolved.
 Every result preserves exclusions and primary-source evidence. Sensitivity ranges
 are not biological confidence intervals. Tests validate equations/bookkeeping,
 not human presentation accuracy.
