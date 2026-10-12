@@ -56,6 +56,10 @@ endogenous APC antigen in MHC-II responses, and
 MHC-I cross-dressing contribution. These findings do not identify universal
 human pathway proportions.
 
+The [mRNA antigen-presentation bibliography](evidence/mrna-antigen-presentation.md)
+summarizes these and related primary studies and provides an assay-scoped
+measurement extract for future calibration.
+
 - `secreted_mrna` follows a supplied signal boundary, ER entry, secretory
   residence/cuts, secretion, uptake and subsequent APC processing. Failed ER
   entry and ER-associated retrotranslocation can also feed cytosolic processing.
