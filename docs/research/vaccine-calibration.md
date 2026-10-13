@@ -8,6 +8,8 @@ construct, can they identify antigen production, transfer, processing and
 surface peptide–MHC (pMHC) kinetics? **The reviewed experiments do not identify
 transferable rates for those endpoints.** The [window workflow](../vaccine-windows.md)
 therefore computes them only under supplied, labeled sensitivity scenarios.
+For related whole-node percent-of-dose measurements, see the
+[delivery literature review](vaccine-node-delivery.md).
 
 ## The endpoint and its defensible bounds
 

@@ -29,8 +29,11 @@ examples, not biological predictions for those sequences. Both windows contain
 two scored core occurrences, which remain separate in the output.
 
 The JSON retains each complete trajectory and its kinetic sources. The CSV has
-one row per core occurrence/allele. The Markdown report explains dose, missing
-inputs, arrival and presentation endpoints. Existing files are never overwritten.
+one row per core occurrence/allele. The Markdown report leads with percent of
+starting SLP molecules reaching nodal APCs, arrivals per input molecule, and
+dimensionless time-averaged blood-core and nodal-pMHC amounts. The CSV and JSON
+also retain raw copies and copy-hours for audit. Existing files are never
+overwritten.
 
 ## Input contract
 
@@ -68,13 +71,18 @@ attachments are preserved but remain unassessed by the current trajectory engine
 - **Nodal APC fraction of dosed peptide:** cumulative first presence of the
   core-bearing lineage in a draining-node APC, divided by starting SLP molecules.
   This includes local APC migration. It is not the residual peptide mass fraction.
+  The report displays this fraction as a percentage: 0.0155 becomes 1.55%.
 - **Arrivals per input RNA:** antigen copies first appearing in nodal APCs per
   input transcript; translation can make this exceed one. The JSON also provides
   arrivals divided by antigen copies produced by the observation horizon.
-- **Nodal pMHC copy-hours:** integrated surface presentation in nodal APCs.
-  Delivery does not imply successful loading, presentation or T-cell priming.
-- **Blood core copy-hours:** integrated exact core plus longer core-bearing
-  fragments. Exact free core and longer precursor counts are also separate.
+- **Mean nodal pMHC per input:** surface-pMHC copy-hours divided by both
+  starting molecule count and the observation horizon in hours. This is a
+  dimensionless, time-averaged amount per input molecule, not a probability;
+  the mean is undefined at a zero-hour horizon. Delivery does not imply
+  successful loading, presentation or T-cell priming.
+- **Mean blood core per input:** core-bearing blood copy-hours divided by the
+  same dose and horizon. It includes exact core plus longer core-bearing
+  fragments; their horizon counts and the raw AUC are also separate.
 - **Post-peak half-decline bracket:** sampled time interval for the blood
   core-bearing pool to fall to half its observed maximum. Continued absorption
   or production prevents interpreting this as an intrinsic circulation half-life.
@@ -90,6 +98,9 @@ For IM mRNA mechanisms, primary evidence, cross-dressing and direct APC
 expression, see [core delivery and blood exposure](vaccine-core-exposure.md).
 For physical bounds and the measured gaps behind these scenarios, see the
 [vaccine calibration audit](research/vaccine-calibration.md).
+The [dose-normalized node-delivery literature review](research/vaccine-node-delivery.md)
+collects observed scale checks without treating carrier or whole-node label
+as core arrival inside APCs.
 
 ## Explicit sensitivity scenarios
 
@@ -115,3 +126,13 @@ the example signal boundary and transcript mass are hypothetical. Supplying
 an input replaces its kinetic profiles with the stated synthetic profiles, while
 preserving its candidates, scored target occurrences and dose/chemistry records.
 Missing RNA doses and unsupported chemistry remain unassessed.
+
+With the script's synthetic free-SLP assumptions, a 1 µg 25-mer has roughly
+**1.55%** cumulative core-bearing nodal-APC arrivals by 48 hours in the
+central scenario. Jointly changing the assumed unproductive loss/clearance
+rates from 0.1 to 10 per hour moves that result from roughly **4.56%** to
+**0.049%**. These are calculations under declared rates, not measured IM
+peptide fractions or confidence limits. The report's pMHC and blood columns
+then average each modeled copy trajectory over the same 48 hours per input
+molecule. For mRNA, arrival copies per input transcript can exceed one because
+one transcript may produce multiple antigen copies.

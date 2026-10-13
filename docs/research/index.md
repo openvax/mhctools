@@ -20,6 +20,10 @@ Use the rest of the documentation according to the question at hand:
   [measurement extract](../evidence/mrna-antigen-presentation-measurements.json)
   retains the assay context of 23 macaque and human quantitative observations
   and a mouse pMHC time course.
+- [Dose-normalized lymph-node delivery](vaccine-node-delivery.md) collects
+  primary SC and IM antigen, carrier and RNA measurements with their route,
+  sampled time and denominator. It explains why whole-node percent of dose
+  cannot directly calibrate core-bearing arrival inside APCs.
 - [Epitope position and peptide flanks](epitope-position.md) asks whether a
   core near a protein or SLP end is presented more often. It separates
   controlled terminal-placement experiments from a universal position rule.

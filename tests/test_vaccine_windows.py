@@ -54,6 +54,12 @@ def test_one_microgram_uses_actual_window_mass_and_marginal_fractions():
         for core in window["cores"]:
             assert core["exposure"]["node_apc_entry"]["fraction_of_dosed_peptide_copies"] == pytest.approx(1)
     assert rows[0]["node_apc_entry_copies"] > rows[2]["node_apc_entry_copies"]
+    assert rows[0]["node_apc_percent_of_dosed_peptide"] == pytest.approx(100)
+    assert rows[0]["node_pmhc_mean_copies_per_input"] == pytest.approx(
+        rows[0]["node_pmhc_auc_copy_hours"] / (rows[0]["initial_copies"] * rows[0]["horizon_hours"]))
+    assert rows[0]["blood_core_mean_copies_per_input"] == pytest.approx(
+        rows[0]["blood_core_auc_copy_hours"] / (rows[0]["initial_copies"] * rows[0]["horizon_hours"]))
+    assert "Nodal APC arrivals (% SLP dose)" in format_vaccine_window_report(out)
     assert rows[0]["intrinsic_circulation_half_life_hours"] is None
 
 
@@ -80,6 +86,7 @@ def test_rna_needs_its_own_dose_and_can_produce_multiple_antigen_copies():
     rows = vaccine_window_rows(assess_vaccine_windows(data))
     assert rows[0]["node_apc_entries_per_input"] == pytest.approx(5)
     assert rows[0]["node_apc_fraction_of_dosed_peptide"] is None
+    assert rows[0]["node_apc_percent_of_dosed_peptide"] is None
     assert rows[0]["initial_copies"] == pytest.approx(6.02214076e11)
 
 
@@ -91,9 +98,18 @@ def test_missing_core_kinetics_never_become_zero_or_partial_weighted_score():
     assert window["status"] == "unassessed"
     assert window["aggregate"]["score_weighted_mean_node_entry_per_input"] is None
     assert all(r["node_apc_entry_copies"] is None for r in vaccine_window_rows(out))
+    assert all(r["node_pmhc_mean_copies_per_input"] is None for r in vaccine_window_rows(out))
     assert "lymph_entry" in format_vaccine_window_report(out)
     del data["candidates"][0]["kinetics"]
     assert "tap_max_length" in assess_vaccine_windows(data)["candidates"][0]["cores"][0]["missing_inputs"][0]
+
+
+def test_zero_hour_report_has_no_time_averaged_amount():
+    data = request()
+    data["times_hours"] = [0]
+    rows = vaccine_window_rows(assess_vaccine_windows(data))
+    assert rows[0]["node_pmhc_mean_copies_per_input"] is None
+    assert rows[0]["blood_core_mean_copies_per_input"] is None
 
 
 def test_repeated_sequence_occurrences_and_alleles_are_not_collapsed():

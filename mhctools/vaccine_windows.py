@@ -192,6 +192,7 @@ def assess_vaccine_windows(request):
 def vaccine_window_rows(result):
     """Flatten to one row per core occurrence/allele; preserve absent estimates."""
     rows = []
+    horizon = result["horizon_hours"]
     for window in result["candidates"]:
         for core in window["cores"]:
             exposure = core["exposure"] or {}
@@ -200,18 +201,28 @@ def vaccine_window_rows(result):
             interval = decline.get("hours_after_sampled_peak_interval") or [None, None]
             presentation = (core["presentation"] or {}).get("node", {})
             dose = window["dose"] or {}
+            initial = window["initial_copies"]
+            denominator = initial * horizon if initial is not None and horizon > 0 else None
+            slp_fraction = node.get("fraction_of_dosed_peptide_copies")
             rows.append({
                 "candidate_id": window["id"], "window_sequence": window["peptide_input"]["sequence"],
                 "delivery": window["delivery"], "core_label": core["label"], "core_sequence": core["sequence"],
                 "core_start": core["start"], "core_end": core["end"], "allele": core["allele"],
                 "score_contribution": core.get("score_contribution"), "status": core["status"],
-                "horizon_hours": result["horizon_hours"], "dose_amount": dose.get("amount"), "dose_unit": dose.get("unit"),
-                "initial_copies": window["initial_copies"],
+                "horizon_hours": horizon, "dose_amount": dose.get("amount"), "dose_unit": dose.get("unit"),
+                "initial_copies": initial,
                 "node_apc_entry_copies": node.get("cumulative_core_bearing_copies"),
-                "node_apc_fraction_of_dosed_peptide": node.get("fraction_of_dosed_peptide_copies"),
+                "node_apc_fraction_of_dosed_peptide": slp_fraction,
+                "node_apc_percent_of_dosed_peptide": 100 * slp_fraction if slp_fraction is not None else None,
                 "node_apc_entries_per_input": node.get("copies_per_input_molecule"),
                 "node_pmhc_auc_copy_hours": presentation.get("auc_copy_hours"),
+                "node_pmhc_mean_copies_per_input": (
+                    presentation["auc_copy_hours"] / denominator
+                    if denominator is not None and presentation.get("auc_copy_hours") is not None else None),
                 "blood_core_auc_copy_hours": blood.get("auc_copy_hours"),
+                "blood_core_mean_copies_per_input": (
+                    blood["auc_copy_hours"] / denominator
+                    if denominator is not None and blood.get("auc_copy_hours") is not None else None),
                 "blood_free_core_copies_at_horizon": blood.get("exact_free_core_copies_at_horizon"),
                 "blood_precursor_copies_at_horizon": blood.get("longer_precursor_copies_at_horizon"),
                 "blood_half_decline_status": decline.get("status"),
@@ -228,14 +239,16 @@ def format_vaccine_window_report(result):
              "Observation horizon: %s hours after injection." % _number(result["horizon_hours"]), "",
              "Each core includes the exact free peptide and all longer fragments retaining that exact occurrence. "
              "Arrival counts first presence in a draining-node APC, including migration, endogenous production and cross-dressing.", "",
-             "| Window | Core [start, end) / allele | Status | Nodal APC fraction of SLP dose | Arrivals per input molecule | Nodal pMHC copy-hours | Blood core copy-hours |",
+             "| Window | Core [start, end) / allele | Status | Nodal APC arrivals (% SLP dose) | Arrivals per input molecule | Mean nodal pMHC per input | Mean blood core per input |",
              "| --- | --- | --- | ---: | ---: | ---: | ---: |"]
     for row in vaccine_window_rows(result):
         lines.append("| %s | %s [%s, %s) / %s | %s | %s | %s | %s | %s |" % (
             _text(row["candidate_id"]), row["core_sequence"], row["core_start"], row["core_end"], _text(row["allele"]),
-            row["status"], _number(row["node_apc_fraction_of_dosed_peptide"]), _number(row["node_apc_entries_per_input"]),
-            _number(row["node_pmhc_auc_copy_hours"]), _number(row["blood_core_auc_copy_hours"])))
-    lines += ["", "RNA arrivals per input transcript can exceed one. SLP fractions refer to administered molecule count, not residual fragment mass. "
+            row["status"], _number(row["node_apc_percent_of_dosed_peptide"]), _number(row["node_apc_entries_per_input"]),
+            _number(row["node_pmhc_mean_copies_per_input"]), _number(row["blood_core_mean_copies_per_input"])))
+    lines += ["", "Means are copy-hours divided by input molecule count and observation hours; they are dimensionless time-averaged amounts. "
+              "At a zero-hour horizon they are undefined. RNA arrivals per input transcript can exceed one. "
+              "SLP percentages refer to administered molecule count, not residual fragment mass. "
               "Separate cores/alleles are marginal scenarios; do not sum them as a unique-molecule delivery fraction.", "",
               "The blood curve follows core-bearing material after IM/SC input. Its sampled post-peak half-decline bracket is in the CSV/JSON. "
               "An intrinsic circulation elimination half-life is not identified by this model.", ""]
