@@ -7,8 +7,10 @@ otherwise select the lowest-percentile predicted class-I ligand from the
 frozen table. Preserve its source rank and the selection basis; do not call
 either a validated presented epitope or combine distinct cores.
 
-For that same encoded amino-acid sequence, compare IM 1 µg free SLP with a
-counterfactual cytosolic mRNA. Normalize RNA outputs per input transcript and
+Compare IM 1 µg of the disclosed free SLP with a counterfactual cytosolic mRNA
+product containing a retained N-terminal initiator Met; shift the target-core
+coordinates accordingly. Methionine excision is not modeled. Normalize RNA
+outputs per input transcript and
 per antigen copy produced; the full transcript, formulation, and RNA molecular
 weight are unknown, so do not infer an equal-mass RNA comparison. Apply the
 existing declared synthetic kinetics and three joint loss scenarios without

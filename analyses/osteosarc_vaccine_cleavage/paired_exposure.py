@@ -56,19 +56,28 @@ def _records(inventory_path, ligand_path):
 
 def _candidate(row, ligand, start, end, disclosed_core, delivery, loss):
     peptide_id = row["sequence_record_id"]
+    # Translation initiates with methionine. Keep the published SLP unchanged,
+    # and model a retained initiator Met in the counterfactual RNA product.
+    initiator_added = delivery == "cytosolic_mrna" and not row["sequence"].startswith("M")
+    peptide = ("M" if initiator_added else "") + row["sequence"]
+    offset = int(initiator_added)
+    if peptide[start + offset:end + offset] != ligand["peptide"]:
+        raise ValueError("Target core does not match translated antigen for " + peptide_id)
     candidate = {
         "id": peptide_id + ":" + delivery,
-        "peptide": row["sequence"],
+        "peptide": peptide,
         "delivery": delivery,
         "cores": [{
             "label": "disclosed minimal epitope" if disclosed_core else "top frozen MHCflurry class-I ligand",
-            "start": start, "end": end, "sequence": ligand["peptide"],
+            "start": start + offset, "end": end + offset, "sequence": ligand["peptide"],
             "allele": ligand["allele"], "mhc_class": "I",
         }],
         "metadata": {
             "sequence_record_id": peptide_id, "gene": row["gene"],
             "vaccines": row["vaccines"], "source_url": row["source_url"],
             "sequence_sha256": row["sequence_sha256"],
+            "disclosed_slp_sequence": row["sequence"],
+            "initiator_methionine_added": initiator_added,
             "ligand_percentile_rank": float(ligand["percentile_rank"]),
             "ligand_score": float(ligand["score"]),
             "disclosed_minimal_epitope": row["minimal_epitope"] or None,
@@ -78,7 +87,7 @@ def _candidate(row, ligand, start, end, disclosed_core, delivery, loss):
     if delivery == "cytosolic_mrna":
         candidate["dose"] = {
             "amount": 1, "unit": "copies", "basis": "assumed",
-            "source": "One hypothetical input transcript encoding exactly the displayed SLP amino-acid sequence; no transcript mass or formulation is known",
+            "source": "One hypothetical input transcript encoding the displayed SLP with a retained N-terminal initiator Met; no transcript mass or formulation is known",
         }
     candidate["kinetics"] = synthetic_kinetics(candidate, loss)
     return candidate
@@ -118,7 +127,9 @@ def _flat(result, loss):
             "gene": meta["gene"], "vaccines": meta["vaccines"],
             "source_url": meta["source_url"],
             "sequence_sha256": meta["sequence_sha256"],
-            "sequence": window["peptide_input"]["sequence"],
+            "disclosed_slp_sequence": meta["disclosed_slp_sequence"],
+            "modeled_antigen_sequence": window["peptide_input"]["sequence"],
+            "initiator_methionine_added": meta["initiator_methionine_added"],
             "delivery": window["delivery"], "loss_per_hour": loss,
             "core": core["sequence"], "core_start_zero_based": core["start"],
             "core_end_exclusive": core["end"], "allele": core["allele"],
@@ -154,8 +165,12 @@ def _report(selected, scenarios, inputs, figure_name):
         "For each, the target is the disclosed minimal epitope if it occurs in",
         "that SLP and has an exact frozen MHCflurry row; otherwise it is the",
         "lowest-percentile class-I ligand in that table. These are candidate",
-        "ligands, **not observed presented epitopes**. The same amino-acid sequence",
-        "is then modeled as a free SLP or as a hypothetical cytosolic mRNA product.", "",
+        "ligands, **not observed presented epitopes**. Each disclosed sequence is",
+        "modeled as a free SLP; the hypothetical mRNA product has a retained",
+        "N-terminal initiator methionine, with the core coordinate shifted one",
+        "residue. [Eukaryotic translation starts with methionine](https://www.ncbi.nlm.nih.gov/books/NBK9849/),",
+        "but that residue is [removed from many proteins](https://www.ncbi.nlm.nih.gov/books/NBK9843/).",
+        "This model does not account for such removal or its downstream effects.", "",
         "[Log-scale core-retention time courses](%s) summarize all 40 peptides." % figure_name,
         "The SLP panel is the percent of dosed peptide molecules with this exact",
         "core still present in any modeled fragment or pMHC state. The RNA panel",
@@ -165,7 +180,7 @@ def _report(selected, scenarios, inputs, figure_name):
         "## What the two routes mean", "",
         "- **SLP:** 1 µg of each unmodified free peptide, using its sequence-derived",
         "  molecular weight. Nodal APC arrival is a percent of input peptide copies.",
-        "- **mRNA:** one input transcript encoding the same peptide sequence. RNA",
+        "- **mRNA:** one input transcript encoding the SLP plus an initiator Met. RNA",
         "  arrival is antigen copies per input transcript, and also a percent of",
         "  antigen copies produced by 48 hours. The real transcript, UTRs, signal",
         "  peptide, LNP, and mass are unknown. Do not read it as an equal-µg comparison.",
