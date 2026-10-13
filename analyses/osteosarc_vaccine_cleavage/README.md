@@ -11,6 +11,14 @@ an earlier analysis is never overwritten. The [generated-run index](results/READ
 links the checked-in report, tables, and
 [figure atlas](results/2026-10-06T142010-273003-0400/mhctools-all-figures.pdf).
 The complete model/code/weight inventory and checksums travel with that run.
+The [paired SLP versus cytosolic-mRNA scenario report](results/2026-10-13-sid-paired-exposure/REPORT.md)
+compares all 40 disclosed SLP sequences under explicitly synthetic rates, with
+[per-sequence CSV](results/2026-10-13-sid-paired-exposure/paired-exposure.csv)
+and [log-scale core-retention plots](results/2026-10-13-sid-paired-exposure/core-retention-log.pdf).
+The paired route comparison is per input peptide or transcript and does not
+calibrate a human dose fraction or rank the sequences by measured persistence.
+To reproduce it from the repository root, install `.[vaccine-report]` and run
+`PYTHONPATH=examples python analyses/osteosarc_vaccine_cleavage/paired_exposure.py --output-dir analyses/osteosarc_vaccine_cleavage/results/NEW_RUN`.
 Additional stability-route inference is available through `stability_route.py`:
 all CleaveNet MMP heads on every ten-mer, human Pepsickle C/I digestion, and
 bundled ITCell B/S/H profiles. It writes patient-specific results to ignored
