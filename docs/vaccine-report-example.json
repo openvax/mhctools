@@ -5,7 +5,6 @@
       "id": "example-injected-slp",
       "sequence": "RISVTPGEKIILNFTTLDLYRSR",
       "delivery": "synthetic_long_peptide",
-      "exposures": ["tumor_stroma"],
       "intended_epitopes": [
         {"label": "mutant target", "start": 9, "end": 17}
       ],
@@ -62,15 +61,6 @@
           "scores": [null, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6],
           "threshold": 0.5,
           "units": "dimensionless native output",
-          "provenance": "example only"
-        },
-        {
-          "name": "should not display for cytosolic RNA",
-          "context": "circulation",
-          "evidence_type": "motif_rule",
-          "scores": [null, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-          "threshold": 1,
-          "units": "binary motif decision",
           "provenance": "example only"
         }
       ]
