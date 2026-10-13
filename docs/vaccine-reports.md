@@ -20,8 +20,10 @@ then run:
 ```sh
 pip install "mhctools[vaccine-report]"
 curl -L -o vaccine-report-example.json \
-  https://raw.githubusercontent.com/openvax/mhctools/master/docs/vaccine-report-example.json
-mhctools vaccine-report --input vaccine-report-example.json --output-dir reports
+  https://openvax.github.io/mhctools/vaccine-report-example.json
+mhctools vaccine-report \
+  --input vaccine-report-example.json \
+  --output-dir reports
 ```
 
 The command prints a timestamped directory inside `reports/`. Open
