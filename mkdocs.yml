@@ -112,6 +112,7 @@ nav:
       - Overview: research/index.md
       - Literature reviews:
           - mRNA vaccine antigen presentation: evidence/mrna-antigen-presentation.md
+          - Dose-normalized lymph-node delivery: research/vaccine-node-delivery.md
           - Epitope position and peptide flanks: research/epitope-position.md
           - Antigen processing and T-cell responses: research/processing-t-cell-responses.md
           - Human serum peptidase calibration: serum-calibration.md
