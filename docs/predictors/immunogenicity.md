@@ -27,7 +27,6 @@ cancer-testis antigens, with only ~129 (v1) / ~596 (v2) true immunogenic
 neoepitopes, and its higher self-reported numbers are partly explained by
 train/test overlap (IMPROVE flagged ~70% overlap with its evaluation set).
 
-
 ## Calis
 
 [Calis](#calis) is the classic sequence-only IEDB class-I immunogenicity model (Calis
@@ -85,8 +84,8 @@ processes and does not change the host PATH or Python packages.
 ## DeepImmuno
 
 [DeepImmuno](#deepimmuno) predicts class-I CD8+ immunogenicity from the peptide and its
-HLA-A/B/C allele with a small CNN (Li et al. 2021). It scores **9- and 10-mers
-only** and supports a fixed set of ~62 alleles, snapping anything else to the
+HLA-A/B/C allele with a small CNN (Li et al. 2021). It scores 9- and 10-mers
+only, and supports a fixed set of ~62 alleles, snapping anything else to the
 nearest it knows. It emits one `immunogenicity` prediction per (peptide,
 allele); `score` is in 0–1 (higher = more immunogenic).
 

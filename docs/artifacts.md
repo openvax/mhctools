@@ -11,54 +11,59 @@ Predictors that ship their own download manager keep using it. mhctools reports
 which manager owns the files and where they landed, rather than copying them
 into a second cache.
 
-## The three commands
+## See what is installed
+
+`mhctools ls` lists packaged and optional artifacts, where they live, and who
+manages them. Status and manager fields go in a compact table, with installed
+paths and missing-artifact notes below it.
 
 ```sh
-# Show packaged and optional artifacts, where they live, and who manages them.
-mhctools ls
-
-# Fetch the upstream package's default compatible release.
-mhctools fetch mhcflurry
-
-# Reproducibility runs may request an explicit artifact release.
-mhctools fetch mhcflurry --version 2.2.0
-
-# Fetch a pinned open-source snapshot (code plus the wrapper's model files).
-mhctools fetch eramer
-
-# Optional full CC BY 4.0 PhageScout ELANE/CTSG peptide tables (data only).
-mhctools fetch phagescout
-
-# Academic licenses must be reviewed and accepted explicitly.
-mhctools fetch nettcr --accept-license
-
-# NetCleave and TLimmuno2 publish no license at all. mhctools can still fetch a
-# pinned snapshot, but only when you confirm your own use is authorized;
-# --accept-license records that acknowledgement, it does not grant rights
-# mhctools does not have.
-mhctools fetch netcleave --accept-license
-mhctools fetch tlimmuno2 --accept-license
-
-# MixTCRpred includes two upstream checkpoints; fetch another by model name.
-mhctools fetch mixtcrpred --accept-license
-mhctools fetch mixtcrpred --model A0201_NLVPMVATV
+mhctools ls                               # every artifact
+mhctools ls mixtcrpred                    # one artifact
 mhctools ls mixtcrpred --models --downloaded
-
-# Machine-readable inventory, optionally rooted somewhere else.
-mhctools ls --json
-mhctools ls --data-dir /shared/models
-
-# Verify launchability without confusing it with reproduced inference.
-mhctools predictors
-
-# Run registered reference-inference probes and fail if either backend does
-# not reproduce its reference (unknown/not-checked also fails strictly).
-mhctools predictors calis netchop --check reproduced --strict --json
+mhctools ls --json                        # full structured records
+mhctools ls --data-dir /shared/models     # inventory rooted somewhere else
 ```
 
-`mhctools ls` keeps status and manager fields in a compact table, then lists
-installed paths and missing-artifact notes below it. Use `mhctools ls NAME`
-to inspect one artifact or `--json` for full structured records.
+## Download an artifact
+
+```sh
+mhctools fetch mhcflurry                    # the upstream package's default compatible release
+mhctools fetch mhcflurry --version 2.2.0    # an explicit release, for a reproducibility run
+mhctools fetch eramer                       # pinned snapshot: code plus the wrapper's model files
+mhctools fetch phagescout                   # optional CC BY 4.0 peptide tables (data only)
+```
+
+Academic licenses must be reviewed and accepted explicitly:
+
+```sh
+mhctools fetch nettcr --accept-license
+mhctools fetch mixtcrpred --accept-license
+mhctools fetch mixtcrpred --model A0201_NLVPMVATV   # MixTCRpred ships two checkpoints; name others
+```
+
+NetCleave and TLimmuno2 publish no license at all. mhctools can still fetch a
+pinned snapshot, but only when you confirm that your own use is authorized.
+Here `--accept-license` records that acknowledgement; it does not grant rights
+mhctools does not have.
+
+```sh
+mhctools fetch netcleave --accept-license
+mhctools fetch tlimmuno2 --accept-license
+```
+
+## Check what can run
+
+`mhctools predictors` reports launchability, which is not the same as
+reproduced inference:
+
+```sh
+mhctools predictors
+
+# Run the registered reference-inference probes and fail if either backend does
+# not reproduce its reference (unknown and not-checked also fail here).
+mhctools predictors calis netchop --check reproduced --strict --json
+```
 
 ## How `fetch` behaves
 
@@ -73,10 +78,11 @@ each one. Naming a different destination or revision with `--data-dir` or
 an install found elsewhere; `--version` still errors if it disagrees with what
 a foreign manager already has.
 
-**Missing and unfetchable fails with one shape of message**: what to install,
-then the environment variable or `PATH` entry the wrapper actually reads.
+An artifact that is missing and cannot be fetched fails with one shape of
+message: what to install, then the environment variable or `PATH` entry the
+wrapper actually reads.
 
-**`--json` writes only JSON to stdout.** Downloader and git progress go to
+With `--json`, only JSON goes to stdout. Downloader and git progress go to
 stderr, so `mhctools fetch <name> --json | jq` is always safe.
 
 ## The same thing from Python

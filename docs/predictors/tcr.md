@@ -1,7 +1,7 @@
 # TCR specificity predictors
 
 Predictors of whether a T-cell receptor recognises a peptide-MHC complex. Their
-input is a **peptide plus a `TCR`** (the CDR loops, optionally V/J genes), not
+input is a peptide plus a `TCR` (the CDR loops, optionally V/J genes), not
 an allele, and they emit `pMHC_TCR_binding`, read with `result.tcr_binding`.
 
 | Predictor | Input | Needs |
@@ -54,7 +54,7 @@ results = predictor.predict(["GILGFVFTL"], [tcr], mhc="HLA-A*02:01")
 results[0].preds[0].score                 # higher = more likely binding
 ```
 
-[TULIP-TCR](https://github.com/barthelemymp/TULIP-TCR) is **GPLv3** and pinned
+[TULIP-TCR](https://github.com/barthelemymp/TULIP-TCR) is GPLv3 and pinned
 to `transformers==4.32.1`; mhctools is Apache-2.0 and depends on neither torch
 nor transformers. The [Tulip](#tulip) wrapper therefore vendors none of TULIP. It runs
 an upstream checkout out-of-process, in an isolated interpreter, via TULIP's own

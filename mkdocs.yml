@@ -83,19 +83,20 @@ nav:
       - Immunogenicity: predictors/immunogenicity.md
       - TCR specificity: predictors/tcr.md
       - Peptide half-life: predictors/peptide-pk.md
-      - Target-preserving degradation: target-degradation.md
-      - Serum peptidase contributions: serum-contributions.md
-      - Vaccine target summary: vaccine-target-summary.md
-      - SLP/mRNA pMHC trajectories: vaccine-trajectory.md
-      - Comparing vaccine exposure: vaccine-comparison.md
-      - Core delivery and blood exposure: vaccine-core-exposure.md
-      - Candidate window exposure: vaccine-windows.md
       - Cell penetration classification: predictors/uptake.md
       - Results and DataFrames: results.md
       - Recipes: recipes.md
       - Allele names: alleles.md
       - Command line: cli.md
-      - Vaccine reports: vaccine-reports.md
+      - Vaccine and exposure modeling:
+          - Target-preserving degradation: target-degradation.md
+          - Serum peptidase contributions: serum-contributions.md
+          - Vaccine target summary: vaccine-target-summary.md
+          - SLP/mRNA pMHC trajectories: vaccine-trajectory.md
+          - Comparing vaccine exposure: vaccine-comparison.md
+          - Core delivery and blood exposure: vaccine-core-exposure.md
+          - Candidate window exposure: vaccine-windows.md
+          - Vaccine reports: vaccine-reports.md
       - Benchmarks: benchmarks.md
   - Reference:
       - API reference: api.md

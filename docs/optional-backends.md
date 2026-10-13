@@ -1,17 +1,24 @@
 # Optional backend conformance
 
-Optional peptide pharmacokinetics and uptake adapters use a deliberately small
-contract. It records what a wrapper was developed against separately from the
-files it actually resolved, and it does not fetch models during prediction.
+The optional peptide pharmacokinetics and uptake adapters
+([PeptiVerse](predictors/peptide-pk.md#peptiverse),
+[PeptiVerse CPP](predictors/uptake.md#peptiverse-cpp) and
+[PlifePred2](predictors/peptide-pk.md#plifepred2)) share one small conformance
+contract. It records what the wrapper was developed against separately from
+the files it actually resolved on this machine, and it never downloads a model
+during prediction.
 
-`BackendSpec` declares the endpoint, upstream compatibility target, license,
-serialization format, prediction-only entry point, and reviewed platform and
-interpreter support. `ArtifactIdentity` records the role, size, and SHA-256 of
-each exact code, weight, preprocessing, or auxiliary file. `BackendInventory`
-combines those records with output-affecting settings into a path-independent
-identity suitable for prediction metadata and cache keys.
+Three records carry that information:
 
-Artifact state and runtime capability are intentionally separate:
+- `BackendSpec` declares the endpoint, upstream compatibility target, license,
+  serialization format, prediction-only entry point, and reviewed platform and
+  interpreter support.
+- `ArtifactIdentity` records the role, size, and SHA-256 of each exact code,
+  weight, preprocessing, or auxiliary file.
+- `BackendInventory` combines those records with output-affecting settings into
+  a path-independent identity suitable for prediction metadata and cache keys.
+
+Artifact state and runtime capability are reported separately:
 
 | Artifact status | Meaning |
 |---|---|
@@ -33,9 +40,10 @@ service, or checkpoint for another endpoint cannot satisfy this contract.
 
 ## Exact input and cache identity
 
-The pre-existing fields were intentionally split across several surfaces:
+Input, output, and backend identity stay on separate records, each with its own
+role:
 
-| Existing surface | Fields retained before this contract | Remaining role |
+| Record | Fields | Role |
 |---|---|---|
 | `Prediction` | peptide, flanks, source name/offset, allele/TCR, predictor name/version | output and source-occurrence projection |
 | `CleavageInput` | sequence, terminal chemistry, source name/start | cleavage-specific linear peptide input |

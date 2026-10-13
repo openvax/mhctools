@@ -1,5 +1,11 @@
 # Assay-aware benchmarks
 
+`mhctools benchmark` compares predictions with experimental measurements
+without discarding the assay context of either. It reads a JSON file of
+measurements, optional predictions and optional model lineages, and writes a
+JSON report whose metrics are stratified by endpoint, units, study, assay,
+species, matrix, cell type and enzyme.
+
 ```sh
 mhctools benchmark --reference-cleavage --out reference-report.json
 mhctools benchmark --reference-cleavage serum --out serum-reference-report.json
@@ -72,15 +78,18 @@ stated nominal coverage. Model disagreement is not an uncertainty interval.
 Counts distinguish measurements, source measurements, unique sequences and
 chemical forms. Missing predictions, unsupported chemistry, runtime failures,
 unassessed sites and incompatible/censored records retain their reasons.
-The optional `serum` panel adds 17 source observations, including two experimental
-non-cleavages and two unsupported ACE/amide examples; its activation conditions
-are applied separately to each CPB2 measurement.
-The source-linked starter set reproduces four positive observations (two
-CPN-like plasma observations for bradykinin, aminopeptidase P on RPP and DPP9
-on the RU1 epitope). Eight model/observation combinations are off-enzyme and
-unassessed. This small, positive-only set cannot estimate specificity,
-calibration or independent predictive performance. CPN attribution is to
-CPN-like inhibitor-sensitive plasma activity, not an isolated purified enzyme.
+
+The built-in reference panels are small. The source-linked starter set
+reproduces four positive observations: two CPN-like plasma observations for
+bradykinin, aminopeptidase P on RPP, and DPP9 on the RU1 epitope. Eight
+model/observation combinations are off-enzyme and unassessed. A positive-only
+set of this size cannot estimate specificity, calibration or independent
+predictive performance. CPN attribution is to CPN-like inhibitor-sensitive
+plasma activity, not an isolated purified enzyme.
+
+The optional `serum` panel adds 17 source observations, including two
+experimental non-cleavages and two unsupported ACE/amide examples. Its
+activation conditions are applied separately to each CPB2 measurement.
 
 ## Training overlap and applicability
 
@@ -105,7 +114,7 @@ human serum half-life or primary-DC cytosolic-delivery observations.
 
 ## Released CPP split audit and reproduction
 
-The PeptiVerse command consumes a **local** copy of the exact released CPP
+The PeptiVerse command consumes a local copy of the exact released CPP
 metadata. It verifies SHA-256 before any model is loaded. Obtain it separately;
 the raw dataset is not bundled with mhctools:
 
@@ -133,16 +142,17 @@ mhctools benchmark --peptiverse-cpp-metadata permeability_meta_with_split.csv \
 All 1,859 training and 465 validation records are audited. The splits have
 no duplicate sequences, conflicting labels or exact sequence overlap.
 Training lengths span 3–61 residues; validation lengths span 3–52, with 56
-validation records at least 30 residues long. Original assay, study, chemical
-form, species, matrix, cell type and family assignments are absent from this
-four-column file. The report leaves them unknown. A generic released split
-script demonstrates non-fouling preprocessing; it does not establish the
-actual CPP cluster assignments. Exact nonoverlap alone cannot certify
-study/family independence.
+validation records at least 30 residues long.
+
+Original assay, study, chemical form, species, matrix, cell type and family
+assignments are absent from this four-column file, so the report leaves them
+unknown. A generic released split script demonstrates non-fouling
+preprocessing; it does not establish the actual CPP cluster assignments. Exact
+nonoverlap alone cannot certify study/family independence.
 
 Every validation ID remains in the report, including rows outside a selected
 cohort, unsupported inputs and runtime failures. Probability metrics reproduce
-the source CPP labels; confusion counts use the native **0.5493** threshold.
+the source CPP labels; confusion counts use the native `0.5493` threshold.
 The classifier's canonical/free-terminus input assumption is reported
 separately from unknown experimental chemistry. No score is interpreted as a
 physical uptake fraction, and predictive entropy is not an accuracy interval.
@@ -150,17 +160,17 @@ The output includes source/evaluator hashes, mhctools version and, after
 successful prediction, the adapter's asset inventory.
 
 The [recorded full-split CPU run](https://github.com/openvax/mhctools/blob/master/tests/data/peptiverse_cpp_validation_summary.json)
-scored **465/465** validation records with no failures or unsupported inputs.
+scored all 465 validation records with no failures or unsupported inputs.
 At the native threshold, it produced 203 true positives, 231 true negatives,
 13 false positives and 18 false negatives against the released labels;
-descriptive Brier score was **0.06989**. This aggregate record includes source,
+descriptive Brier score was 0.06989. This aggregate record includes source,
 evaluator and asset hashes and runtime versions, without redistributing raw
 sequences or labels. Routine CI audits the full metadata and scores three
 validation records; it does not repeat the full CPU run. Small cross-platform
 embedding differences can affect scores, so this record is run evidence,
 not a demand for bitwise equality on another CPU stack.
 
-This is **source-label reproduction**, always reported as such, even if
+This is source-label reproduction, always reported as such, even if
 `--evaluation external_validation` is supplied. The
 [publication](https://doi.org/10.1038/s41467-026-74167-w) describes selection on
 validation performance; this is not a newly untouched experimental test set.

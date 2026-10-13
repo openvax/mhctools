@@ -10,7 +10,7 @@ exposure](../exposure-results.md).
 |---|---|---|
 | [Cavaco](#cavaco) | Published-equation baseline; mixed/unknown assay matrix | built in, no extra runtime |
 | [PeptiVerse](#peptiverse) | Parent-peptide half-life in human serum | pinned PeptiVerse + ESM2 snapshots (`PEPTIVERSE_HOME`, `PEPTIVERSE_ESM_HOME`) + a torch/transformers Python |
-| [PlifePred2](#plifepred2) | Parent-peptide half-life, **matrix unknown** | `plifepred2==1.0` (`PLIFEPRED2_HOME`) + pinned Pfeature (`PFEATURE_HOME`) |
+| [PlifePred2](#plifepred2) | Parent-peptide half-life, matrix unknown | `plifepred2==1.0` (`PLIFEPRED2_HOME`) + pinned Pfeature (`PFEATURE_HOME`) |
 
 `peptide_half_life` records how long the parent peptide persists, in hours. Its
 context distinguishes a defined solution, serum/plasma/whole blood, cellular
@@ -58,15 +58,6 @@ first-occurrence summation order and JavaScript rounding. Each prediction
 records the bundled data hash, descriptor choice and exact peptide identity;
 provided pI values also enter the cache fingerprint.
 
-Two source inconsistencies are handled explicitly: the prose after Equation 1
-describes an increased half-life for high pI despite its negative coefficient;
-the equation's description says `>10`, whereas methods and app use `>=10`.
-The adapter uses the negative coefficient from Equation 1/Table S20 and the
-`>=10` boundary. The app's W/Y counting is broken (uppercase residue keys are
-tested as lowercase), so its displayed half-life is **not** the reference
-endpoint. The published equation and app descriptor algorithm are distinct
-choices; this adapter does not claim native app half-life conformance.
-
 The training set contains 129 peptides from heterogeneous stability and
 proteolysis assays, so `measurement_context.matrix` remains `None`. The
 sixteen related 15-residue validation peptides were C-terminal carboxamides
@@ -76,6 +67,17 @@ attachments; `on_unsupported="record"` preserves unavailable inputs in place.
 The equation has no length cutoff, which does not establish long-peptide
 accuracy or chemical-form interchangeability. This is neither a per-enzyme
 cleavage model nor a whole-serum survival percentage.
+
+### What the adapter reproduces
+
+Two source inconsistencies are handled explicitly: the prose after Equation 1
+describes an increased half-life for high pI despite its negative coefficient;
+the equation's description says `>10`, whereas methods and app use `>=10`.
+The adapter uses the negative coefficient from Equation 1/Table S20 and the
+`>=10` boundary. The app's W/Y counting is broken (uppercase residue keys are
+tested as lowercase), so its displayed half-life is not the reference
+endpoint. The published equation and app descriptor algorithm are distinct
+choices; this adapter does not claim native app half-life conformance.
 
 The source oracle covers 31 sequences, using the unmodified app for pI and
 an independent equation calculation. On the sixteen source-panel means,
@@ -88,6 +90,8 @@ of 89 minutes. App pI also differs from some tabulated source descriptors
 preprocessing. Broader benchmarking remains tracked in
 [#284](https://github.com/openvax/mhctools/issues/284) and
 [#291](https://github.com/openvax/mhctools/issues/291).
+
+### Bundled data and fixture regeneration
 
 The app's root manifest declares CC0-1.0. Only descriptor data, factual
 coefficients, exact source hashes and attribution are bundled; no article
@@ -181,24 +185,31 @@ opted_in = PlifePred2(assume_log10_seconds=True)
 opted_in.predict(["SIINFEKLGGALQAKKY"])[0].peptide_half_life.value # hours
 ```
 
-**What is known.** Both shipped models are `RandomForestRegressor`, verified by
+### What is known
+
+Both shipped models are `RandomForestRegressor`, verified by
 loading them. So the output is not a class probability. Upstream's docs
 ("Halflife … Predicted probability") and its CLI's `predict_proba` branch are
 both wrong, and the branch is dead code. Being monotone in half-life, the
 output ranks correctly whatever the transform turns out to be.
 
-**What is inferred.** `log10(half-life in seconds)` is the strongest reading:
-inverting the forests' extreme leaf values under it gives round durations:
-exactly 7.000 days for the natural model and 95.0 days for the modified one, to
-about seven significant figures, where log2 and ln both invert the whole
-training range to a few seconds up to a couple of minutes. The minimum also
-lands on 20.2 s, matching the 20-second floor in the lineage paper. That last
-point is corroboration rather than proof: the same forests hold targets past
-that paper's 24-hour ceiling, so [PlifePred2](#plifepred2) was trained on a different dataset
-and the old filter cannot establish the new target. Note also that the lineage
-paper states log2, not log10.
+### What is inferred
 
-**What is not established.** The species and assay matrix. The result therefore
+`log10(half-life in seconds)` is the strongest reading. Inverting the forests'
+extreme leaf values under it gives round durations: exactly 7.000 days for the
+natural model and 95.0 days for the modified one, to about seven significant
+figures. Under log2 or ln the same range inverts instead to between a few
+seconds and a couple of minutes. The minimum lands on 20.2 s, matching the
+20-second floor in the lineage paper.
+
+That last point is corroboration rather than proof: the same forests hold
+targets past that paper's 24-hour ceiling, so [PlifePred2](#plifepred2) was
+trained on a different dataset, and the old filter cannot establish the new
+target. The lineage paper also states log2, not log10.
+
+### What is not established
+
+The species and assay matrix are not established. The result therefore
 uses generic `peptide_half_life` with `matrix=None`; do not report it as a
 measured whole-blood property or treat it as interchangeable with [PeptiVerse](#peptiverse)'s
 human-serum endpoint.
