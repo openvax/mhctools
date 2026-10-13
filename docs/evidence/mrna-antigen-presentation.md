@@ -37,6 +37,13 @@ their original species, formulation, dose and assay context.
   Direct APC expression mattered for the tested MHC-II and CD4 responses, while
   reducing muscle expression had a smaller effect; their [source data](https://static-content.springer.com/esm/art%3A10.1038%2Fs41467-025-68080-x/MediaObjects/41467_2025_68080_MOESM4_ESM.xlsx)
   contain assay-level comparisons, not a universal route fraction.
+- [Muro et al., 2026](https://doi.org/10.1126/sciadv.aec7827) gave mice IM
+  OVA mRNA–LNP together with reporter mRNA–LNP and stained draining-node
+  cDC2 for surface SIINFEKL/H-2Kᵇ. The relative pMHC signal peaked at day 1,
+  remained above control through day 5 and was not detected at day 7, while
+  reporter expression followed a different time course; continuing production
+  means this is not an intrinsic pMHC half-life
+  ([full text](https://pmc.ncbi.nlm.nih.gov/articles/PMC13378541/)).
 
 ## Antigen made elsewhere and transferred to APCs
 
@@ -90,13 +97,16 @@ to fitting one rate to a reported peak or half-life.
 | Hassett 2024, separate macaque EGFP cohort at 24 h | EGFP-positive node cells: macrophages 36.2%, monocytes 19.7%, conventional DCs 9.1%, plasmacytoid DCs 4.0% | Cell-specific reporter prevalence, not the fraction of the injected dose or the fraction of cells displaying a chosen epitope. |
 | Kent 2024, 19 people after a bivalent mRNA-1273 booster | At 4 h, plasma RNA 6.5–112 copies/µL; peak up to 731 copies/µL around day 1–2 | Human blood RNA signal for a specific formulation and booster setting; short-amplicon PCR includes fragmented RNA. |
 | Kent 2024, post-peak plasma | Assay-linked RNA slope 0.608/day and reported half-decline 1.14 days; ionizable lipid slope 0.607/day and reported half-decline 1.14 days | Check a modeled blood RNA/carrier tail. Continuing input and assay linkage prevent treating this as intracellular active-RNA decay or epitope half-life. |
+| Muro 2026, mice, IM OVA and GFP mRNA–LNP, 1 µg RNA each | Relative SIINFEKL/H-2Kᵇ staining on GFP-positive node cDC2 peaked at day 1, remained above control through day 5 and was not detected by day 7 | Checks a mouse surface-pMHC *time pattern* for that construct and assay. The MFI ratio is not absolute pMHC copies or a measured complex-loss rate. |
 
 Liang's flow-cytometry time points at 4 and 24 hours and day 9 distinguish
 LNP-positive from translating cells, but do not establish absolute antigen
 copies or surface pMHC per cell. Rood's measured presentation and perturbations
 inform the direction of a **relative route contribution** for the tested mouse
 constructs and assays. Jo's T-cell priming result identifies cross-dressing as
-a route to include in relevant scenarios, not its transfer rate.
+a route to include in relevant scenarios, not its transfer rate. The
+[calibration audit](../research/vaccine-calibration.md) gives the
+non-identifiability argument and the matched assays still needed.
 
 For mhctools, match each observation to its modeled analyte before fitting:
 extracellular carrier/RNA, active intracellular RNA, completed antigen,

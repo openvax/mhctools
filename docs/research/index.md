@@ -18,7 +18,8 @@ Use the rest of the documentation according to the question at hand:
 - [mRNA vaccine antigen presentation](../evidence/mrna-antigen-presentation.md)
   compares direct APC expression, antigen transfer and cross-dressing. Its
   [measurement extract](../evidence/mrna-antigen-presentation-measurements.json)
-  retains the assay context of 23 macaque and human observations.
+  retains the assay context of 23 macaque and human quantitative observations
+  and a mouse pMHC time course.
 - [Epitope position and peptide flanks](epitope-position.md) asks whether a
   core near a protein or SLP end is presented more often. It separates
   controlled terminal-placement experiments from a universal position rule.
@@ -36,6 +37,9 @@ and experimental recognition evidence. These are focused evidence and model
 audits rather than standalone reviews of all antigen processing. The
 [assay-aware benchmark guide](../benchmarks.md) explains how to evaluate new
 measurements without conflating source reproduction with independent testing.
+The [vaccine calibration audit](vaccine-calibration.md) gives physical bounds
+and shows why published RNA, label and pMHC time courses do not identify
+core-specific IM transport or intrinsic clearance rates.
 
 ## Reviews needed for quantitative vaccine exposure
 
@@ -59,7 +63,6 @@ measurements without conflating source reproduction with independent testing.
    identify both epitope generation and destruction
    ([coverage issue](https://github.com/openvax/mhctools/issues/470)).
 
-The immediate modeling dependency is the [SLP/mRNA calibration audit](https://github.com/openvax/mhctools/issues/549):
-existing data must be tested for whether they identify a core-specific APC
-delivery fraction or pMHC lifetime. If they do not, report explicit bounds
-and missing measurements rather than substituting guessed physiological rates.
+The [SLP/mRNA calibration audit](vaccine-calibration.md) resolves the current
+identifiability question for the reviewed sources. Source-matched experiments
+remain necessary before fitted human IM rates can replace explicit scenarios.

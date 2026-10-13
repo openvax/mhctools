@@ -112,8 +112,10 @@ independent constructs/donors/studies after checking source overlap. The
 discipline; it does not calibrate lymph or APC kinetics.
 
 The machine-readable `vaccine_trajectory_evidence()` inventory preserves these
-endpoint limits and calibration requirements. Biological calibration remains
-[#549](https://github.com/openvax/mhctools/issues/549), supported by
+endpoint limits and calibration requirements. The
+[calibration audit](research/vaccine-calibration.md) establishes the current
+non-identifiability and minimal matched measurements. Future biological
+calibration remains supported by
 [independent benchmarks](https://github.com/openvax/mhctools/issues/291),
 [uptake/presentation validation](https://github.com/openvax/mhctools/issues/303)
 and [node-exposure evidence](https://github.com/openvax/mhctools/issues/306).
