@@ -20,7 +20,7 @@ for every option.
 
 The default command takes `--mhc-predictor` (one or more names, space or comma
 separated), `--mhc-alleles` or `--mhc-alleles-file`, and one input. The
-accepted names are listed by `mhctools --help` and in the **CLI names** column
+accepted names are listed by `mhctools --help` and in the CLI names column
 of the [predictor matrix](predictor-matrix.md). TCR predictors have no name
 here because their input is a peptide plus a TCR.
 
@@ -73,13 +73,20 @@ the field is dimensionless or predictor-specific.
 
 ## Output conventions
 
-CLI prediction tables follow one convention across every predictor. Plain
-peptide inputs get an empty `source_sequence_name` and offset `0`, while FASTA
-and subsequence inputs keep their source and zero-based offset and are ordered
-by those coordinates. `prediction_method_name` is the exact CLI predictor name
-you selected, including version and mode. `affinity` is IC50 in nM,
-`percentile_rank` is a 0–100 percentile, and `score` stays
-predictor-specific. CSV floats are serialized with six significant digits.
+Prediction tables use the same columns and units for every predictor:
+
+| Column | Convention |
+|---|---|
+| `prediction_method_name` | the exact CLI predictor name you selected, including version and mode |
+| `affinity` | IC50 in nM |
+| `percentile_rank` | a 0–100 percentile |
+| `score` | predictor-specific |
+| `source_sequence_name`, `offset` | the source sequence and its zero-based offset |
+
+Plain peptide inputs get an empty `source_sequence_name` and offset `0`. FASTA
+and subsequence inputs keep their source and zero-based offset, and their rows
+are ordered by those coordinates. CSV floats are serialized with six
+significant digits.
 
 Default stdout is streamed as tab-separated values, so an empty source name
 survives as an empty field and large tables don't need a second formatted copy

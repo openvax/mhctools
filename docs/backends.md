@@ -5,7 +5,7 @@ routes:
 
 - `mhctools fetch <name>` installs what mhctools can legally and safely
   fetch. This is the route for most users; see [getting models](artifacts.md).
-- **The repository's `scripts/setup_test_backends.py`** provisions the heavier
+- The repository's `scripts/setup_test_backends.py` provisions the heavier
   backends (isolated Python runtimes, pinned snapshots) from a source checkout.
   It is the route CI uses and what you want if you are running the full test
   suite. If you installed from PyPI, use `fetch` and the
@@ -24,14 +24,16 @@ It supplements the other predictors listed in the [predictor reference](predicto
 `mhctools ls` reports their availability. This is several GB of downloads,
 including ESM2's 2.6 GB weights.
 
-Prerequisites: Python 3.11, git, Perl, and MAFFT on macOS or Linux x86-64.
-The official macOS MixMHC2pred binary needs Rosetta on Apple Silicon.
-Linux also needs g++ to build PRIME's supplied C++ source.
-CapHLA runs in the main interpreter and requires `pip install -e '.[caphla]'`.
-NetTCR also runs in the main interpreter and requires `pip install -e '.[nettcr]'`
-for LiteRT. Neither extra requires TensorFlow; the `keras` group below keeps
-TensorFlow in a separate environment for the predictors that use it.
-On Linux a CPU-only torch wheel can be installed first from
+Prerequisites:
+
+- Python 3.11, git, Perl, and MAFFT, on macOS or Linux x86-64.
+- Rosetta on Apple Silicon, for the official macOS MixMHC2pred binary.
+- g++ on Linux, to build PRIME's supplied C++ source.
+- The `caphla` and `nettcr` extras, because CapHLA and NetTCR run in the main
+  interpreter. Neither extra requires TensorFlow; the `keras` group below keeps
+  TensorFlow in a separate environment for the predictors that use it.
+
+On Linux you can install a CPU-only torch wheel first from
 `https://download.pytorch.org/whl/cpu`.
 
 ```sh
@@ -117,7 +119,7 @@ MixMHCpred call uses the same selected interpreter.
 ## DeepTAP and MixTCRpred (torch sidecars)
 
 Both run out-of-process under an interpreter that defaults to the one running
-mhctools, which need not have their dependencies. 
+mhctools, which need not have their dependencies.
 `MIXTCRPRED_PYTHON` is provisioned by the `recognition` group above. Its
 sidecar additionally runs with `PYTHONNOUSERSITE=1`, so packages installed with
 `pip install --user` are not visible to it, so install into the interpreter
@@ -151,7 +153,7 @@ The existing `nettcr` extra supplies `ai-edge-litert` in the host interpreter.
 The adapter prefers it over its compatibility TensorFlow Lite fallback, whose
 deprecated interpreter emitted the warning in [#479](https://github.com/openvax/mhctools/issues/479).
 Installing TensorFlow to
-run another predictor is not needed to enable NetTCR. 
+run another predictor is not needed to enable NetTCR.
 
 ## DeepImmuno, TLimmuno2, and NetCleave (isolated TensorFlow)
 
@@ -173,7 +175,7 @@ the pair matters: a mismatched pair imports `tensorflow` successfully and then r
 
 An explicit NetCleave `python_executable` argument overrides `NETCLEAVE_PYTHON`;
 without either it uses the current interpreter. The same precedence applies to
-the other two wrappers with their respective environment variables. 
+the other two wrappers with their respective environment variables.
 
 ## Pepsickle gradient-boosted digestion models
 

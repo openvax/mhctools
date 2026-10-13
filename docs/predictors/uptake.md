@@ -37,7 +37,7 @@ export PEPTIVERSE_PYTHON=/models/peptiverse-env/bin/python
 
 For development, `python scripts/setup_test_backends.py half-life` provisions
 both PeptiVerse endpoints and PlifePred2. CPP-only installations need no
-half-life weights. The serialized SVC requires **scikit-learn 1.7.2**; another
+half-life weights. The serialized SVC requires scikit-learn 1.7.2 exactly; another
 version fails before source import or checkpoint loading. The adapter verifies
 the exact source, model, original threshold manifest and ESM2 resources. Only
 the sequence CPP head is loaded; unused SMILES models are disabled.
@@ -66,7 +66,7 @@ mhctools predict-table --input peptides.csv --out cpp.csv \
   --predictor peptiverse-cpp:cpp_probability:score
 ```
 
-Scores at or above the native threshold **0.5493** are classified as CPP.
+Scores at or above the native threshold `0.5493` are classified as CPP.
 The score is the SVC's positive-class output, not a calibrated percentage of
 peptide delivered. No cell type, matrix, delivery route or exposure time is
 inferred. With `uncertainty=True`, `last_qc.predictive_entropy_nats` contains
@@ -75,7 +75,7 @@ variation, an accuracy estimate or a physical error bar; it stays outside
 the prediction's score/value fields.
 
 The pinned source metadata contains 1,859 training and 465 validation rows;
-training sequences span **3-61 residues**. Those limits describe the observed
+training sequences span 3-61 residues. Those limits describe the observed
 training domain, not absolute biological cutoffs. Each result flags lengths
 outside it. The tokenizer's independent computational capacity is 1,020
 residues; longer inputs fail rather than being truncated. Accuracy on long

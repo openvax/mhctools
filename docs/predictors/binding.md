@@ -5,7 +5,7 @@ presentation, and complex stability. Every row of the
 [predictor matrix](../predictor-matrix.md#mhc-binding-and-presentation) links
 to the section here that explains it.
 
-All of these take **peptides plus alleles** and return one prediction per
+All of these take peptides plus alleles and return one prediction per
 peptide-allele pair (or one per peptide for [MHCflurry](#mhcflurry)'s haplotype mode). Spell
 alleles any way [mhcgnomes](../alleles.md) understands, for example
 `HLA-A*02:01`. The default scanning window is narrow (9 residues for class I,
@@ -226,7 +226,7 @@ research predictor, not a default and not an independent validation.
 
 ## MixMHCpred
 
-[MixMHCpred](#mixmhcpred) 3.0 predicts **class-I presentation** for peptides of length 8-14.
+[MixMHCpred](#mixmhcpred) 3.0 predicts class-I presentation for peptides of length 8-14.
 Version 3.0 adds pan-allele inference, MHC-I sequence alignment and
 sequence-driven prediction, and optional binding-motif/peptide-length plots.
 
@@ -314,7 +314,7 @@ MixMHCpred's upstream version; isolation does not change model scores.
 
 ## MixMHC2pred
 
-[MixMHC2pred](#mixmhc2pred) is a pan-allele **class-II** presentation predictor and a strong
+[MixMHC2pred](#mixmhc2pred) is a pan-allele class-II presentation predictor and a strong
 complement to [NetMHCIIpan](#netmhciipan). The two were independently co-best in the
 *Frontiers in Immunology* 2024 class-II benchmark.
 
@@ -372,8 +372,8 @@ results = RandomBindingPredictor(alleles=["HLA-A*02:01"]).predict(["SIINFEKL"])
 Every predictor runs locally. The historical Python names
 `IedbNetMHCpan`, `IedbNetMHCcons`, `IedbNetMHCIIpan`, `IedbSMM`, and
 `IedbSMM_PMBEC` (and their `*-iedb` CLI names) remain as local compatibility
-wrappers. They require installed [NetMHCpan](#netmhcpan) **4.1 BA**, [NetMHCcons](#netmhccons), [NetMHCIIpan](#netmhciipan)
-**4.3 BA**, [SMM](#smm-and-smm-pmbec), or [SMM-PMBEC](#smm-and-smm-pmbec) respectively.
+wrappers. They require installed [NetMHCpan](#netmhcpan) 4.1 BA, [NetMHCcons](#netmhccons), [NetMHCIIpan](#netmhciipan)
+4.3 BA, [SMM](#smm-and-smm-pmbec), or [SMM-PMBEC](#smm-and-smm-pmbec) respectively.
 
 A few differences are worth knowing before you rely on them:
 

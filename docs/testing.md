@@ -31,7 +31,7 @@ predictor versions, and the explicit regeneration commands.
 ## Real-model backend tests
 
 “Optional” describes the extra software or model assets needed for a local
-installation. It does **not** mean the backend lacks tests or is allowed to
+installation. It does not mean the backend lacks tests or is allowed to
 disappear from CI. The four public Python jobs run offline wrapper and fixture
 tests; dedicated CI jobs provision Pepsickle, SMM/SMM-PMBEC, and the
 Keras-backed DeepImmuno/TLimmuno2/NetCleave models, then run real inference

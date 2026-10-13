@@ -129,8 +129,8 @@ and exposure requirements together in site-level reports.
 
 ## NetCleave
 
-[NetCleave](#netcleave) works differently from [Pepsickle](#pepsickle) and [NetChop](#netchop): it emits a **single
-C-terminal cleavage score per peptide**, and it covers **both** the MHC-I
+[NetCleave](#netcleave) works differently from [Pepsickle](#pepsickle) and [NetChop](#netchop): it emits a single
+C-terminal cleavage score per peptide, and it covers both the MHC-I
 proteasomal (`NetCleave_I` → `proteasome_cleavage`) and MHC-II endolysosomal
 (`NetCleave_II` → `endolysosomal_cleavage`) pathways.
 
@@ -204,7 +204,7 @@ specificity over each residue trimmed off as it is cut toward a target epitope
 length. It is allele-independent, emitting one `erap_trimming` prediction per
 peptide, with `score` roughly −1…1 (higher = more likely trimmed).
 
-ERAMER is **GPLv3** and its PWM ships in a GPL-licensed `PWM.xlsx`, so mhctools
+ERAMER is GPLv3 and its PWM ships in a GPL-licensed `PWM.xlsx`, so mhctools
 vendors neither. This is a clean-room Python-3 reimplementation of the
 (Python-2.7) tool's trimming-cascade average, loading the PWM from an upstream
 ERAMER checkout at runtime. Run `mhctools fetch eramer`, or point at a manual
