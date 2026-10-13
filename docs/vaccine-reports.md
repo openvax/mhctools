@@ -1,112 +1,88 @@
-# Route-aware vaccine processing reports
+# Vaccine construct processing report
 
-`mhctools vaccine-report` turns a structured vaccine-construct manifest into a
-timestamped PDF and machine-readable audit files. The same entry point is
-available in Python as `generate_vaccine_report`.
+Use `mhctools vaccine-report` to inspect where proposed cuts fall relative to an
+intended epitope in a synthetic long peptide (SLP) or an RNA-encoded protein.
+It produces a PDF sequence map and files you can audit. A cut beside a target
+may help release it; a cut inside the target may destroy it. The report keeps
+those observations separate by model and processing route.
 
-The report distinguishes two delivery modalities:
+This report **does not estimate** the fraction of an injected dose that reaches
+lymph-node APCs, the half-life of an intact core, or the fraction of APCs that
+present it. For a clearly labeled, uncalibrated dose sensitivity analysis, use
+[candidate window exposure](vaccine-windows.md). For the report's per-target
+evidence summary, see [vaccine target summary](vaccine-target-summary.md).
 
-- `synthetic_long_peptide`: free peptide is first exposed extracellularly and
-  during uptake. Endolysosomal processing is a primary display context.
-  Cytosolic proteasome and ER trimming remain a separate, conditional route
-  because human and mouse dendritic-cell studies found proteasome- and
-  TAP-dependent SLP cross-presentation after uptake and cytosolic export.
-- `rna_encoded`: `routing` is required semantically and defaults to
-  `cytosolic`. Cytosolic translation makes proteasome/ER/class-I processing
-  primary. Endolysosomal/class-II processing is conditional for a cytosolic
-  construct because autophagy can deliver endogenous antigen to MHC-II loading
-  compartments. `secreted` and `lysosomal_targeted` make those routes explicit.
+## Run the example
 
-Serum, plasma, and free-peptide exopeptidase tracks are not shown for a
-cytosolic RNA construct. They become relevant only when secretion or another
-extracellular exposure is declared. Likewise, an injected SLP does not imply
-circulation; add `"exposures": ["circulation"]` only when that route is part of
-the intended experiment or formulation.
-
-Primary route evidence:
-
-- SLP uptake and cross-presentation in human dendritic cells:
-  <https://pmc.ncbi.nlm.nih.gov/articles/PMC3937416/>
-- SLP class-I and class-II processing in mouse and human dendritic cells:
-  <https://pubmed.ncbi.nlm.nih.gov/23836147/>
-- Endogenous antigen delivery to MHC-II compartments by autophagy:
-  <https://pubmed.ncbi.nlm.nih.gov/17182262/>
-
-These papers establish possible processing routes, not that every construct
-uses each route or that a native predictor score is an in-vivo probability.
-
-## Input schema
-
-Coordinates are one-based and inclusive for intended epitopes and MHC windows.
-Cleavage arrays contain exactly `length - 1` internal-bond values; array index
-zero is bond 1 (`sequence[:1] | sequence[1:]`). `null` means unassessed. An
-endpoint sentinel must never be supplied.
-
-```json
-{
-  "schema_version": 1,
-  "constructs": [
-    {
-      "id": "example-slp",
-      "sequence": "RISVTPGEKIILNFTTLDLYRSR",
-      "delivery": "synthetic_long_peptide",
-      "exposures": ["tumor_stroma"],
-      "intended_epitopes": [
-        {"label": "mutant target", "start": 9, "end": 17}
-      ],
-      "mhc_windows": [
-        {
-          "mhc_class": "I",
-          "allele": "HLA-A*02:01",
-          "start": 9,
-          "end": 17,
-          "percentile_rank": 0.4,
-          "predictor": "example predictor with exact version"
-        }
-      ],
-      "cleavage_tracks": [
-        {
-          "name": "example proteasome model",
-          "context": "cytosolic_proteasome",
-          "evidence_type": "quantitative_model",
-          "scores": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.8,
-                     0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.2, 0.3, 0.4,
-                     0.5, 0.6],
-          "threshold": 0.5,
-          "units": "dimensionless native model output",
-          "provenance": "package/model/weights identity"
-        }
-      ]
-    },
-    {
-      "id": "example-rna",
-      "sequence": "MALWMRLLPLLALLALWGPDPAAA",
-      "delivery": "rna_encoded",
-      "routing": "cytosolic"
-    }
-  ]
-}
-```
+Install the PDF dependency and download the [example manifest](vaccine-report-example.json),
+then run:
 
 ```sh
-mhctools vaccine-report \
-  --input docs/vaccine-report-example.json \
-  --output-dir reports \
-  --max-mhc-windows 10
+pip install "mhctools[vaccine-report]"
+curl -L -o vaccine-report-example.json \
+  https://raw.githubusercontent.com/openvax/mhctools/master/docs/vaccine-report-example.json
+mhctools vaccine-report --input vaccine-report-example.json --output-dir reports
 ```
 
-Each run contains `vaccine-processing-report.pdf`, normalized input,
-`processing-routes.csv`, `selected-mhc-windows.csv`, placement assessments,
-and checksums. Selection retains the strongest intended-target overlap, then
-allele diversity, then native percentile rank. All supplied windows remain in
-the normalized input. Every selected window is drawn: the figure adds ligand
-lanes as needed instead of dropping one, and the number on each bar is that
-window's `display_rank` in `selected-mhc-windows.csv`.
+The command prints a timestamped directory inside `reports/`. Open
+`vaccine-processing-report.pdf` there. The example compares an injected SLP
+with a cytosolic RNA construct containing the same nine-residue target,
+`KIILNFTTL`. **Its cleavage scores and MHC ranks are invented to demonstrate
+report behavior; they are not predictions for that sequence.**
 
-`target-summary.json` supplies a compact view per intended target: RNA
-expression applicability, processing flags and coverage, conditional routes,
-and serum kinetics availability. Missing expression, uptake, loading or rate
-evidence stays unassessed. See the [three-route guide](vaccine-target-summary.md).
+## Read the result
+
+In the SLP example, the target spans residues 9–17. The endolysosomal track
+flags a possible cut after residue 13, *inside* the target. It also flags the
+bond after residue 8, immediately *before* the target. The first flag suggests
+possible destruction; the second suggests possible release. Neither tells us
+which event wins, how much intact target survives, or whether it loads onto MHC.
+The RNA construct has an initiator methionine, so the same target is at
+residues 10–18. Coordinates always refer to the complete sequence supplied
+for that construct.
+
+| Output file | What to inspect |
+|---|---|
+| `vaccine-processing-report.pdf` | Sequence map, intended target, MHC windows, and cleavage tracks grouped by route. |
+| `target-summary.json` | Per-target flags, assessed and unassessed bonds, and missing expression, uptake, loading, or serum evidence. |
+| `placement-assessments.json` | Cuts at target boundaries versus cuts within the target, separately for each track. |
+| `processing-routes.csv` | Which processing contexts are primary, conditional, or not applicable for the declared delivery. These labels are not probabilities. |
+| `selected-mhc-windows.csv` | MHC windows drawn in the PDF. `display_rank` identifies each bar; the supplied percentile rank is a predictor output, not a presentation probability. |
+| `normalized-input.json`, `SHA256SUMS.json` | Exact inputs used and checksums for the run. |
+
+A supported cut means a track crossed *its own* declared threshold. Native
+scores from different models cannot be multiplied or compared as calibrated
+probabilities. An unassessed bond or missing route is not evidence of survival.
+
+## Prepare a manifest
+
+The [complete example manifest](vaccine-report-example.json) shows both
+delivery types, intended epitopes, MHC windows, and per-bond tracks. Supply the
+full delivered peptide sequence for an SLP. For `rna_encoded`, supply the
+**amino-acid sequence of the translated construct**, including any relevant
+signal peptide, linkers, and junctions; this field does not accept nucleotide
+sequence. Declare `routing` as `cytosolic`, `secreted`, or
+`lysosomal_targeted`. The example's added initial methionine is a schematic
+translation product, not a validated vaccine ORF.
+
+Target and MHC-window `start`/`end` coordinates are **one-based, inclusive
+residue positions**. A cleavage track has one value per internal bond, so a
+sequence of length 23 needs 22 values. Bond 8 is between residues 8 and 9;
+`null` means that bond was not assessed. Do not add a terminal-bond value.
+For each track, name the model, route `context`, evidence type, units,
+provenance, and threshold if it has one. Retain the model's native scale and
+version instead of relabeling its score as a probability.
+
+For an injected SLP, extracellular exposure and uptake are relevant;
+endolysosomal processing is a primary display context. Cytosolic
+cross-presentation is conditional. For a cytosolic RNA construct, endogenous
+proteasome/ER processing is primary; endolysosomal access is conditional.
+Secreted or lysosome-targeted constructs need their declared route. The
+report does not assume that IM injection puts free peptide in blood: declare
+`"exposures": ["circulation"]` only when appropriate. These are route
+assumptions for displaying evidence, not measured route weights. See the
+[primary evidence on mRNA antigen presentation](evidence/mrna-antigen-presentation.md)
+and [SLP cross-presentation in human dendritic cells](https://pmc.ncbi.nlm.nih.gov/articles/PMC3937416/).
 
 ## Python and Vaxrank integration
 
@@ -117,10 +93,8 @@ request = VaccineReportInput.from_dict(manifest)
 run_directory = generate_vaccine_report(request, "reports")
 ```
 
-Vaxrank can build one `VaccineConstruct` for each final translated construct,
-including linkers and junctions, and call `placement_assessments` before any
-ranking change. The result reports internal cuts (candidate target disruption)
-and boundary cuts (candidate liberation) separately for every model and route.
-It deliberately has no aggregate “good placement” number. A future Vaxrank
-policy can compare placements only after choosing which routes, models, and
-failure semantics are admissible; unassessed bonds must remain unassessed.
+When assembling a manifest from Vaxrank, use each final translated construct,
+including linkers and junctions, so target and cut coordinates refer to the
+sequence actually delivered. `placement_assessments` exposes boundary and
+internal cuts separately. It does not produce an overall placement score or
+change Vaxrank ranking on its own.
