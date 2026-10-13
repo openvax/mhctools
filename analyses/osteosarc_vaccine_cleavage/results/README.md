@@ -1,5 +1,11 @@
 # Generated vaccine-cleavage runs
 
+Paired route scenario: [Sid SLP versus cytosolic-mRNA report](2026-10-13-sid-paired-exposure/REPORT.md),
+[CSV](2026-10-13-sid-paired-exposure/paired-exposure.csv), and
+[log-scale core-retention figure](2026-10-13-sid-paired-exposure/core-retention-log.pdf).
+It uses synthetic sensitivity rates for all 40 disclosed SLP sequences and
+does not infer sequence-specific human pharmacokinetics.
+
 Additional site-level view:
 [`2026-10-06T142004-779643-0400-mechanisms`](2026-10-06T142004-779643-0400-mechanisms/).
 Its [PDF](2026-10-06T142004-779643-0400-mechanisms/cleavage-mechanisms.pdf) and
