@@ -23,7 +23,7 @@ from .errors import CLI_ERROR_TYPES, cli_error_message
 
 
 def _print_table(statuses):
-    headers = ("NAME", "STATUS", "MANAGER", "VERSION", "FETCHABLE", "PATH")
+    headers = ("NAME", "STATUS", "MANAGER", "VERSION", "FETCHABLE")
     rows = [
         (
             status.name,
@@ -31,7 +31,6 @@ def _print_table(statuses):
             status.manager,
             _display_version(status.version),
             "yes" if status.fetchable else "no",
-            status.path if status.status == "ready" and status.path else "-",
         )
         for status in statuses
     ]
@@ -39,13 +38,19 @@ def _print_table(statuses):
         max(len(headers[i]), *(len(row[i]) for row in rows))
         for i in range(len(headers))
     ]
-    print("  ".join(value.ljust(widths[i]) for i, value in enumerate(headers)))
+    print("  ".join(value.ljust(widths[i]) for i, value in enumerate(headers)).rstrip())
     for row in rows:
-        print("  ".join(value.ljust(widths[i]) for i, value in enumerate(row)))
+        print("  ".join(value.ljust(widths[i]) for i, value in enumerate(row)).rstrip())
+    installed = [status for status in statuses
+                 if status.status == "ready" and status.path]
+    if installed:
+        print("\nInstalled paths")
+        for status in installed:
+            print("%s: %s" % (status.name, status.path))
     notes = [status for status in statuses
              if status.status != "ready" and status.detail]
     if notes:
-        print()
+        print("\nMissing artifacts")
         for status in notes:
             print("%s: %s" % (status.name, status.detail))
 

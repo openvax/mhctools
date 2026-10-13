@@ -56,6 +56,10 @@ mhctools predictors
 mhctools predictors calis netchop --check reproduced --strict --json
 ```
 
+`mhctools ls` keeps status and manager fields in a compact table, then lists
+installed paths and missing-artifact notes below it. Use `mhctools ls NAME`
+to inspect one artifact or `--json` for full structured records.
+
 ## How `fetch` behaves
 
 `fetch` works the same way for every artifact, whichever tier it belongs to.

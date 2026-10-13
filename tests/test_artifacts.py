@@ -507,6 +507,8 @@ def test_ls_cli_table(monkeypatch, capsys):
     assert result is None
     assert "NAME" in output
     assert "MANAGER" in output
+    assert "Installed paths\nexample: /models/example" in output
+    assert "PATH" not in output.splitlines()[0]
     assert "/models/example" in output
 
 
@@ -531,6 +533,7 @@ def test_ls_cli_missing_artifact_shows_note_not_destination(monkeypatch, capsys)
     assert revision[:12] in output
     assert revision not in output
     assert destination not in output
+    assert "Missing artifacts" in output
     assert "bigmhc: Run mhctools fetch bigmhc --accept-license" in output
 
 

@@ -11,6 +11,8 @@
 # limitations under the License.
 
 import sys
+from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -57,6 +59,36 @@ def test_runtime_selection(constructor, argument, environment, expected, tmp_pat
         netcleave_path=str(tmp_path), model_path=str(model),
         python_executable=argument)
     assert predictor.python_executable == expected
+
+
+def test_prediction_uses_writable_scratch_not_model_checkout(tmp_path, monkeypatch):
+    checkout = tmp_path / "netcleave"
+    checkout.mkdir()
+    (checkout / "NetCleave.py").touch()
+    model = checkout / "model"
+    model.mkdir()
+    (model / "model_model.h5").touch()
+    predictor = NetCleave(netcleave_path=str(checkout), model_path=str(model))
+    workdirs = []
+
+    def fake_run(command, *, cwd, capture_output, timeout):
+        workdir = Path(cwd)
+        workdirs.append(workdir)
+        assert workdir != checkout
+        assert Path(command[1]) == checkout / "NetCleave.py"
+        input_csv = Path(command[command.index("--predict") + 1])
+        output_dir = workdir / "output"
+        output_dir.mkdir()
+        (output_dir / (input_csv.stem + "_NetCleave.csv")).write_text(
+            "uniprot_id,epitope,cleavage_site,prediction\n"
+            "0,SIINFEKL,FEKLDGH,0.75\n"
+        )
+        return SimpleNamespace(returncode=0, stdout=b"", stderr=b"")
+
+    monkeypatch.setattr("mhctools.netcleave.subprocess.run", fake_run)
+    assert predictor._run_netcleave([("SIINFEKL", "SIINFEKLDGH", "FEKLDGH")]) == [0.75]
+    assert not workdirs[0].exists()
+    assert not (checkout / "output").exists()
 
 
 # ---------------------------------------------------------------------------

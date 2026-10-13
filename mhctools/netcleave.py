@@ -42,6 +42,7 @@ its training-data generation and is **not** used for prediction.
 
 import logging
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -234,14 +235,14 @@ class NetCleave(object):
         if not requests:
             return []
         self._call_counter += 1
-        # Basename must be unique (a shared NetCleave output/ dir is used by
-        # every instance) and contain no '.' before the extension — NetCleave
-        # derives the output filename via ``basename.split('.')[0]``.
+        # NetCleave derives the output filename via ``basename.split('.')[0]``.
+        # Run in a private writable directory: managed model snapshots and
+        # user checkouts may be read-only.
         basename = "mhctools_netcleave_%d_%s" % (os.getpid(), uuid.uuid4().hex)
         tmp_dir = tempfile.mkdtemp(prefix="mhctools_netcleave_")
         input_csv = os.path.join(tmp_dir, basename + ".csv")
         output_csv = os.path.join(
-            self.netcleave_dir, "output", basename + "_NetCleave.csv")
+            tmp_dir, "output", basename + "_NetCleave.csv")
 
         pd.DataFrame({
             "epitope": [r[0].upper() for r in requests],
@@ -256,7 +257,7 @@ class NetCleave(object):
                      "--predict", input_csv, "--pred_input", "3",
                      "--model_path", self.model_path,
                      "--mhc_class", self.mhc_class],
-                    cwd=self.netcleave_dir,
+                    cwd=tmp_dir,
                     capture_output=True,
                     timeout=self.subprocess_timeout,
                 )
@@ -312,15 +313,7 @@ class NetCleave(object):
                 scores.append(by_row.get(key, {}).get(expected_site.upper()))
             return scores
         finally:
-            for path in (input_csv, output_csv):
-                try:
-                    os.remove(path)
-                except OSError:
-                    pass
-            try:
-                os.rmdir(tmp_dir)
-            except OSError:
-                pass
+            shutil.rmtree(tmp_dir, ignore_errors=True)
 
     @staticmethod
     def _expected_site(peptide, c_flank):
