@@ -38,6 +38,8 @@ dependencies = [
   "mhcflurry>=2.0.0",
   "mhcgnomes>=3.4.0",
   "platformdirs>=3.0.0",
+  "matplotlib",
+  "reportlab",
 ]
 
 [project.optional-dependencies]
@@ -50,7 +52,6 @@ mixmhcpred = [
   "pandas<3",
   "scipy",
   "logomaker",
-  "matplotlib",
 ]
 nettcr = [
   # A TFLite runtime for NetTCR's bundled models. ai-edge-litert is the
@@ -72,8 +73,7 @@ mixtcrpred = [
   "scikit-learn",
 ]
 vaccine-report = [
-  "matplotlib",
-  "reportlab",
+  # Compatibility alias: PDF rendering is included in the base install.
 ]
 docs = [
   "mkdocs>=1.6,<2",

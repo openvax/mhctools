@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "constructs": [{
+    "id": "slp-demo",
+    "sequence": "AAAKIILNFTTLAAA",
+    "delivery": "synthetic_long_peptide",
+    "intended_epitopes": [
+      {"label": "KIILNFTTL", "start": 4, "end": 12}
+    ],
+    "mhc_windows": [
+      {"mhc_class": "I", "allele": "HLA-A*02:01", "start": 4, "end": 12,
+       "percentile_rank": 0.4, "predictor": "illustrative"}
+    ],
+    "cleavage_tracks": [{
+      "name": "illustrative endolysosomal cuts",
+      "context": "endolysosomal",
+      "evidence_type": "quantitative_model",
+      "scores": [null, null, 0.8, null, null, null, 0.9,
+                 null, null, null, null, 0.7, null, null],
+      "threshold": 0.5,
+      "units": "illustrative score",
+      "provenance": "synthetic tutorial data; not a sequence prediction"
+    }]
+  }]
+}

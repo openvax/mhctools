@@ -589,7 +589,8 @@ def _render_report_pdf(report, path, maximum_mhc_windows):
         from matplotlib.patches import FancyBboxPatch, Rectangle
     except ImportError as error:
         raise ImportError(
-            "vaccine report PDFs require matplotlib; install mhctools[vaccine-report]"
+            "vaccine report PDFs require matplotlib, a core mhctools dependency; "
+            "reinstall mhctools with dependencies"
         ) from error
 
     colors = {"I": "#1769aa", "II": "#6a3d9a"}

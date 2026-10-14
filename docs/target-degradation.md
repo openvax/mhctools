@@ -108,7 +108,7 @@ python analyses/osteosarc_vaccine_cleavage/focused_stability_report.py \
 
 It reuses native inference without changing predictor outputs, keeps all target
 annotations in the audit, and separates the primary mutant candidates from
-disclosed source references. Install the `vaccine-report` extra for PDF rendering.
+disclosed source references. PDF rendering is included in the base install.
 
 The enzyme guide distinguishes soluble blood activity, cell-surface exposure,
 intracellular processing and inflammation. There is no universal DPP4/FAP/ACE

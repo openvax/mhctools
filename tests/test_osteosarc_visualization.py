@@ -7,7 +7,6 @@ from types import SimpleNamespace
 import pytest
 
 
-pytest.importorskip("matplotlib")
 np = pytest.importorskip("numpy")
 pd = pytest.importorskip("pandas")
 pytest.importorskip("scipy")
