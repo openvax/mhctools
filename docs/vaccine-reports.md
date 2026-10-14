@@ -31,7 +31,9 @@ cat > vaccine-report.json <<'JSON'
     ],
     "mhc_windows": [
       {"mhc_class": "I", "allele": "HLA-A*02:01", "start": 4, "end": 12,
-       "percentile_rank": 0.4, "predictor": "illustrative"}
+       "percentile_rank": 0.4, "predictor": "illustrative"},
+      {"mhc_class": "II", "allele": "HLA-DRB1*03:01", "start": 1, "end": 15,
+       "percentile_rank": 1.8, "predictor": "illustrative"}
     ],
     "cleavage_tracks": [{
       "name": "illustrative endolysosomal cuts",
@@ -54,7 +56,7 @@ mhctools vaccine-report \
 The command prints a timestamped directory inside `reports/`. Open
 `vaccine-processing-report.pdf` there. The input is also available as a
 [downloadable JSON file](vaccine-report-simple.json). **The cleavage scores
-and MHC rank are invented to demonstrate report behavior; they are not
+and MHC ranks are invented to demonstrate report behavior; they are not
 predictions for this sequence.** The report does not run those predictors.
 
 ## Read the result

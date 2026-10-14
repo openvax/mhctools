@@ -9,7 +9,9 @@
     ],
     "mhc_windows": [
       {"mhc_class": "I", "allele": "HLA-A*02:01", "start": 4, "end": 12,
-       "percentile_rank": 0.4, "predictor": "illustrative"}
+       "percentile_rank": 0.4, "predictor": "illustrative"},
+      {"mhc_class": "II", "allele": "HLA-DRB1*03:01", "start": 1, "end": 15,
+       "percentile_rank": 1.8, "predictor": "illustrative"}
     ],
     "cleavage_tracks": [{
       "name": "illustrative endolysosomal cuts",

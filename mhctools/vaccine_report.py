@@ -711,7 +711,15 @@ def _render_report_pdf(report, path, maximum_mhc_windows):
                         xs = [x for x, score in assessed]
                         ys = [y + direction * 0.48 * ((score - low) / span)
                               for x, score in assessed]
-                        ax.plot(xs, ys, color=color, linewidth=1.8)
+                        # Keep unassessed bonds as gaps; joining only scored
+                        # points would imply evidence across missing bonds.
+                        curve_y = [
+                            math.nan if score is None else
+                            y + direction * 0.48 * ((score - low) / span)
+                            for score in track.scores
+                        ]
+                        ax.plot([bond + 0.5 for bond in range(1, length)],
+                                curve_y, color=color, linewidth=1.8)
                         ax.scatter(xs, ys, color=color, s=11)
                         if track.threshold is not None:
                             threshold_y = y + direction * 0.48 * (
