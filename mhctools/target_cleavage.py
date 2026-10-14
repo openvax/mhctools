@@ -49,6 +49,8 @@ def annotate_target_cleavage(target, results):
             assay=model.assay, limitations=model.limitations,
             references=model.references, conditions=result.conditions,
             substrate_observation=result.substrate_observation)
+        common = {key: value for key, value in common.items()
+                  if value is not None and value != ()}
         if not result.sites:
             rows.append(dict(
                 **common, bond=None, source_bond=None, bond_label=None,
@@ -63,7 +65,9 @@ def annotate_target_cleavage(target, results):
             label = "%s%d|%s%d" % (
                 peptide.sequence[site.bond - 1], bond,
                 peptide.sequence[site.bond], bond + 1)
+            site_evidence = (
+                {"match": site.match} if model.evidence == "motif_rule" else
+                {"status": site.status, "score": site.score, "reason": site.reason})
             rows.append(dict(**common, bond=site.bond, source_bond=bond,
-                             bond_label=label, target_effect=effect,
-                             status=site.status, score=site.score, reason=site.reason))
+                             bond_label=label, target_effect=effect, **site_evidence))
     return tuple(rows)

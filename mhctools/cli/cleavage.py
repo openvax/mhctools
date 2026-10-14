@@ -1,7 +1,6 @@
 """JSON reporting for per-bond cleavage evidence."""
 
 import argparse
-from dataclasses import asdict
 import json
 from pathlib import Path
 
@@ -37,7 +36,7 @@ def _format_models(models):
 
 
 def _compact_report(predictions):
-    """Build schema v2 with model metadata stored once per model name."""
+    """Build schema v3 with model metadata stored once per model name."""
     models = {}
     results = []
     for prediction in predictions:
@@ -49,7 +48,7 @@ def _compact_report(predictions):
         models[name] = model
         peptide = row.pop("peptide")
         results.append({"peptide": peptide, "model": name, **row})
-    return {"schema_version": 2, "models": models, "results": results}
+    return {"schema_version": 3, "models": models, "results": results}
 
 
 def _round_floats(value):
@@ -141,8 +140,8 @@ def main(argv=None):
         # Preserve the original machine-readable catalog shape. ``--out``
         # implies JSON, matching its longstanding "Write JSON" contract.
         result = {
-            "models": [asdict(model) for model in models],
-            "schema_version": 1,
+            "models": [model.to_dict() for model in models],
+            "schema_version": 2,
         }
     else:
         if not args.sequence:

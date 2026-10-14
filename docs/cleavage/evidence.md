@@ -5,9 +5,11 @@ that a peptide survives or is presented.
 
 ## Interpreting rule-based evidence
 
-The shared result contract also supports `motif_rule` evidence, reported as
-`matched` or `not_matched` with no numerical score. A rule match indicates a
-known recognition pattern; a non-match does not establish resistance.
+The shared result contract also supports `motif_rule` evidence. The Python
+site status is `matched` or `not_matched`; serialized motif sites use `match: 1`
+or `match: 0` with the documented rule in model metadata. This indicator is a
+pattern decision, not a cleavage probability or native score. A non-match
+does not establish resistance.
 `unsupported_reason` means the input could not be assessed and carries no
 score. These states must remain separate in downstream displays and ranking.
 
@@ -24,7 +26,10 @@ track = {}
 for result in predict_cleavage(peptide, compartment="cytosol"):
     for site in result.to_dict()["sites"]:
         track.setdefault(site["source_bond"], []).append(
-            {"model": result.model.name, "status": site["status"], "score": site["score"]})
+            {"model": result.model.name, "match": site["match"]}
+            if result.model.evidence == "motif_rule" else
+            {"model": result.model.name, "score": site.get("score"),
+             "status": site["status"]})
 ```
 
 Two model shapes contribute to that track differently, and a caller building

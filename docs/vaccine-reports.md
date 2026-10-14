@@ -49,8 +49,8 @@ mhctools vaccine-report \
 The command prints a timestamped directory inside `reports/`. Open
 `vaccine-processing-report.pdf` there. The manifest is also available as a
 [downloadable JSON file](vaccine-report-simple.json); run the `cleavage`
-command above beside it first. The report reads the CLI's schema-v2 output and
-copies its model identity, evidence type, site decisions, and provenance into
+command above beside it first. The report reads the CLI's schema-v3 output and
+copies its model identity, evidence type, motif matches, and provenance into
 `normalized-input.json`. You need only declare `context`: the biological route
 in which you want to inspect that evidence. A model's enzyme-location
 annotation alone does not establish exposure after vaccination. `name` is
@@ -66,15 +66,22 @@ MHC-window bars.
 ## Inspect `cleavage.json`
 
 The `mhctools cleavage` command above writes this complete JSON. `models`
-holds the model identity, evidence type, source references, and limits;
-`results` holds the assessed sequence and each internal bond. Here, every
-`score` is `null` because this is categorical motif evidence; `matched` and
-`not_matched` are the actual site decisions. `source_bond` equals `bond`
+holds the model identity, specificity rule, evidence type, source references,
+and limits; `results` holds the assessed sequence and each internal bond.
+For this motif rule, `match: 1` means the selected P1′ residue preference
+matched and `match: 0` means it did not. Both are **pattern indicators**, not
+probabilities of cleavage or resistance. The same rule is recorded once in
+the model, rather than as a repeated reason at every bond. Quantitative
+models use a separate native `score` field. `source_bond` equals `bond`
 because this input has `source_start: 0`.
+
+There is no `core` field in this generic cleavage output. The vaccine-report
+manifest above identifies the intended core as residues 4–12; the report
+uses those coordinates to classify candidate cuts inside versus beside it.
 
 ```json
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "models": {
     "mme-hydrophobic": {
       "name": "mme-hydrophobic",
@@ -93,11 +100,9 @@ because this input has `source_start: 0`.
       ],
       "assay": "Purified human kidney neprilysin cleavage of enkephalin, kinins and angiotensins",
       "limitations": "Incomplete preference flag; whole sequence affects site selection. Other residues can be cleaved. The 2-30-residue input scope is conservative, not an absolute enzyme size cutoff. Membrane exposure and circulating activity are unmodeled. Partial specificity rule; no kinetic or matrix calibration.",
-      "score_name": null,
-      "score_units": null,
-      "scored_endpoint": null,
       "motif_strictness": "preferred",
-      "strictness_basis": "The source reports a preference for hydrophobic residues after the scissile bond, and other residues are also cleaved, so a non-match is weak evidence."
+      "strictness_basis": "The source reports a preference for hydrophobic residues after the scissile bond, and other residues are also cleaved, so a non-match is weak evidence.",
+      "rule": "Selected hydrophobic P1-prime preference: Phe/Ile/Leu/Tyr"
     }
   },
   "results": [
@@ -106,113 +111,81 @@ because this input has `source_start: 0`.
         "sequence": "AAAKIILNFTTLAAA",
         "n_term": "free",
         "c_term": "free",
-        "source_id": null,
         "source_start": 0
       },
       "model": "mme-hydrophobic",
       "sites": [
         {
           "bond": 1,
-          "status": "not_matched",
-          "reason": "Selected hydrophobic P1-prime preference: Phe/Ile/Leu/Tyr",
-          "score": null,
+          "match": 0,
           "source_bond": 1
         },
         {
           "bond": 2,
-          "status": "not_matched",
-          "reason": "Selected hydrophobic P1-prime preference: Phe/Ile/Leu/Tyr",
-          "score": null,
+          "match": 0,
           "source_bond": 2
         },
         {
           "bond": 3,
-          "status": "not_matched",
-          "reason": "Selected hydrophobic P1-prime preference: Phe/Ile/Leu/Tyr",
-          "score": null,
+          "match": 0,
           "source_bond": 3
         },
         {
           "bond": 4,
-          "status": "matched",
-          "reason": "Selected hydrophobic P1-prime preference: Phe/Ile/Leu/Tyr",
-          "score": null,
+          "match": 1,
           "source_bond": 4
         },
         {
           "bond": 5,
-          "status": "matched",
-          "reason": "Selected hydrophobic P1-prime preference: Phe/Ile/Leu/Tyr",
-          "score": null,
+          "match": 1,
           "source_bond": 5
         },
         {
           "bond": 6,
-          "status": "matched",
-          "reason": "Selected hydrophobic P1-prime preference: Phe/Ile/Leu/Tyr",
-          "score": null,
+          "match": 1,
           "source_bond": 6
         },
         {
           "bond": 7,
-          "status": "not_matched",
-          "reason": "Selected hydrophobic P1-prime preference: Phe/Ile/Leu/Tyr",
-          "score": null,
+          "match": 0,
           "source_bond": 7
         },
         {
           "bond": 8,
-          "status": "matched",
-          "reason": "Selected hydrophobic P1-prime preference: Phe/Ile/Leu/Tyr",
-          "score": null,
+          "match": 1,
           "source_bond": 8
         },
         {
           "bond": 9,
-          "status": "not_matched",
-          "reason": "Selected hydrophobic P1-prime preference: Phe/Ile/Leu/Tyr",
-          "score": null,
+          "match": 0,
           "source_bond": 9
         },
         {
           "bond": 10,
-          "status": "not_matched",
-          "reason": "Selected hydrophobic P1-prime preference: Phe/Ile/Leu/Tyr",
-          "score": null,
+          "match": 0,
           "source_bond": 10
         },
         {
           "bond": 11,
-          "status": "matched",
-          "reason": "Selected hydrophobic P1-prime preference: Phe/Ile/Leu/Tyr",
-          "score": null,
+          "match": 1,
           "source_bond": 11
         },
         {
           "bond": 12,
-          "status": "not_matched",
-          "reason": "Selected hydrophobic P1-prime preference: Phe/Ile/Leu/Tyr",
-          "score": null,
+          "match": 0,
           "source_bond": 12
         },
         {
           "bond": 13,
-          "status": "not_matched",
-          "reason": "Selected hydrophobic P1-prime preference: Phe/Ile/Leu/Tyr",
-          "score": null,
+          "match": 0,
           "source_bond": 13
         },
         {
           "bond": 14,
-          "status": "not_matched",
-          "reason": "Selected hydrophobic P1-prime preference: Phe/Ile/Leu/Tyr",
-          "score": null,
+          "match": 0,
           "source_bond": 14
         }
-      ],
-      "unsupported_reason": null,
-      "conditions": [],
-      "substrate_observation": null
+      ]
     }
   ]
 }
@@ -280,9 +253,9 @@ Target and MHC-window `start`/`end` coordinates are **one-based, inclusive
 residue positions**. A hand-written numerical track has one value per internal
 bond, so a sequence of length 23 needs 22 values. Bond 8 is between residues
 8 and 9; `null` means that bond was not numerically assessed. Do not add a
-terminal-bond value. Imported categorical results keep their `matched`,
-`not_matched`, or `reported` site statuses in canonical evidence even though
-their numerical scores are all `null`.
+terminal-bond value. Imported motif results keep `match: 0|1` indicators in
+canonical evidence; source observations retain `reported` status. Neither
+gets a native quantitative score.
 For a hand-written numerical track, supply its model `name`, route `context`,
 `evidence_type`, native score `units`, provenance, and an optional threshold.
 For a `cleavage_json` reference, the tool output supplies the model fields and

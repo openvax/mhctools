@@ -13,6 +13,9 @@ The example uses only built-in models. Add exact optional model names from
 `mhctools cleavage --list-models` to a scenario to run proteasome or ERAP1
 models. Missing assets and failed runtimes produce visible failed records.
 Python callers can set `raise_on_error=True` to fail immediately.
+The request file uses schema version 1; saved batch assessments use version 2.
+Motif sites and epitope overlays contain `match: 0|1` with the rule in model
+metadata. Version-1 assessment files remain readable.
 
 ```python
 from mhctools import predict_cleavage_batch, write_cleavage_batch, load_cleavage_batch

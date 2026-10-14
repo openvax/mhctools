@@ -129,6 +129,11 @@ class CleavageModel:
     scored_endpoint: Optional[str] = None
     motif_strictness: Optional[str] = None
     strictness_basis: Optional[str] = None
+    rule: Optional[str] = None
+
+    def to_dict(self):
+        """Keep only metadata applicable to this evidence type."""
+        return {key: value for key, value in asdict(self).items() if value is not None}
 
     def __post_init__(self):
         object.__setattr__(self, "compartments", tuple(self.compartments))
@@ -155,8 +160,13 @@ class CleavageModel:
                     "Motif rules must grade strictness as required, preferred or permissive")
             if not self.strictness_basis:
                 raise ValueError("A strictness grade requires the source observation behind it")
+            if self.rule is not None and (
+                    not isinstance(self.rule, str) or not self.rule.strip()):
+                raise ValueError("A motif rule description must be nonempty")
         elif self.motif_strictness is not None or self.strictness_basis is not None:
             raise ValueError("Only motif rules carry a strictness grade")
+        elif self.rule is not None:
+            raise ValueError("Only motif rules carry a rule description")
 
 
 @dataclass(frozen=True)
@@ -167,6 +177,13 @@ class CleavageSite:
     status: str
     reason: str
     score: Optional[float] = None
+
+    @property
+    def match(self):
+        """Binary motif-rule indicator, distinct from a cleavage probability."""
+        if self.status in ("matched", "not_matched"):
+            return int(self.status == "matched")
+        return None
 
     def __post_init__(self):
         if not _integer(self.bond) or self.bond < 1:
@@ -228,12 +245,25 @@ class CleavageResult:
                 raise ValueError("Site values must agree with model evidence semantics")
 
     def to_dict(self):
-        """Return JSON-compatible data including original source bond offsets."""
+        """Return JSON-compatible evidence with compact binary motif sites."""
         result = asdict(self)
-        result["sites"] = [
-            dict(asdict(site), source_bond=self.peptide.source_start + site.bond)
-            for site in self.sites]
-        return result
+        result["model"] = self.model.to_dict()
+        if self.peptide.source_id is None:
+            result["peptide"].pop("source_id")
+        if self.model.evidence == "motif_rule":
+            result["sites"] = []
+            for site in self.sites:
+                row = dict(bond=site.bond, match=site.match,
+                           source_bond=self.peptide.source_start + site.bond)
+                if site.reason != self.model.rule:
+                    row["reason"] = site.reason
+                result["sites"].append(row)
+        else:
+            result["sites"] = [
+                dict(asdict(site), source_bond=self.peptide.source_start + site.bond)
+                for site in self.sites]
+        return {key: value for key, value in result.items()
+                if value is not None and value != ()}
 
     @classmethod
     def from_dict(cls, value):
@@ -247,5 +277,15 @@ class CleavageResult:
             expected = peptide.source_start + record["bond"]
             if record.pop("source_bond", expected) != expected:
                 raise ValueError("Serialized source_bond contradicts peptide offset")
+            if "match" in record:
+                if model.evidence != "motif_rule" or "status" in record or "score" in record:
+                    raise ValueError("Binary match belongs only to motif-rule sites")
+                match = record.pop("match")
+                if type(match) is not int or match not in (0, 1):
+                    raise ValueError("Motif match must be exactly 0 or 1")
+                record["status"] = "matched" if match else "not_matched"
+                record.setdefault("reason", model.rule)
+                if record["reason"] is None:
+                    raise ValueError("Motif match needs a model rule or site reason")
             sites.append(CleavageSite(**record))
         return cls(peptide, model, tuple(sites), **value)
