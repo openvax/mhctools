@@ -141,6 +141,7 @@ def test_complete_source_manifest_is_verified_and_paths_cannot_escape(tmp_path):
 
 
 def test_scorecard_pages_cover_every_internal_bond_exactly_once(frozen_report, tmp_path):
+    pytest.importorskip("reportlab")
     records, _, _, catalog, rows = frozen_report
     pdf = tmp_path / "scorecards.pdf"
     index = REPORT.render_pdf(pdf, records, rows, catalog, "human", SOURCE.name)

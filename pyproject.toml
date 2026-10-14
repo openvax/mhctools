@@ -39,7 +39,6 @@ dependencies = [
   "mhcgnomes>=3.4.0",
   "platformdirs>=3.0.0",
   "matplotlib",
-  "reportlab",
 ]
 
 [project.optional-dependencies]
@@ -73,7 +72,8 @@ mixtcrpred = [
   "scikit-learn",
 ]
 vaccine-report = [
-  # Compatibility alias: PDF rendering is included in the base install.
+  # Retained for ReportLab-based research exporters outside the installed API.
+  "reportlab",
 ]
 docs = [
   "mkdocs>=1.6,<2",
