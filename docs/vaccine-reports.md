@@ -63,6 +63,181 @@ hydrophobic residue after a bond; it is **not** a measured cut, cleavage rate,
 or probability. No MHC predictions are supplied, so the report does not draw
 MHC-window bars.
 
+## Inspect `cleavage.json`
+
+The `mhctools cleavage` command above writes this complete JSON. `models`
+holds the model identity, evidence type, source references, and limits;
+`results` holds the assessed sequence and each internal bond. Here, every
+`score` is `null` because this is categorical motif evidence; `matched` and
+`not_matched` are the actual site decisions. `source_bond` equals `bond`
+because this input has `source_start: 0`.
+
+```json
+{
+  "schema_version": 2,
+  "models": {
+    "mme-hydrophobic": {
+      "name": "mme-hydrophobic",
+      "version": "1",
+      "enzyme": "MME",
+      "uniprot": "P08473",
+      "species": "Homo sapiens",
+      "compartments": [
+        "extracellular"
+      ],
+      "evidence": "motif_rule",
+      "references": [
+        "https://pubmed.ncbi.nlm.nih.gov/6349683/",
+        "https://pubmed.ncbi.nlm.nih.gov/2417254/",
+        "https://www.uniprot.org/uniprotkb/P08473/entry"
+      ],
+      "assay": "Purified human kidney neprilysin cleavage of enkephalin, kinins and angiotensins",
+      "limitations": "Incomplete preference flag; whole sequence affects site selection. Other residues can be cleaved. The 2-30-residue input scope is conservative, not an absolute enzyme size cutoff. Membrane exposure and circulating activity are unmodeled. Partial specificity rule; no kinetic or matrix calibration.",
+      "score_name": null,
+      "score_units": null,
+      "scored_endpoint": null,
+      "motif_strictness": "preferred",
+      "strictness_basis": "The source reports a preference for hydrophobic residues after the scissile bond, and other residues are also cleaved, so a non-match is weak evidence."
+    }
+  },
+  "results": [
+    {
+      "peptide": {
+        "sequence": "AAAKIILNFTTLAAA",
+        "n_term": "free",
+        "c_term": "free",
+        "source_id": null,
+        "source_start": 0
+      },
+      "model": "mme-hydrophobic",
+      "sites": [
+        {
+          "bond": 1,
+          "status": "not_matched",
+          "reason": "Selected hydrophobic P1-prime preference: Phe/Ile/Leu/Tyr",
+          "score": null,
+          "source_bond": 1
+        },
+        {
+          "bond": 2,
+          "status": "not_matched",
+          "reason": "Selected hydrophobic P1-prime preference: Phe/Ile/Leu/Tyr",
+          "score": null,
+          "source_bond": 2
+        },
+        {
+          "bond": 3,
+          "status": "not_matched",
+          "reason": "Selected hydrophobic P1-prime preference: Phe/Ile/Leu/Tyr",
+          "score": null,
+          "source_bond": 3
+        },
+        {
+          "bond": 4,
+          "status": "matched",
+          "reason": "Selected hydrophobic P1-prime preference: Phe/Ile/Leu/Tyr",
+          "score": null,
+          "source_bond": 4
+        },
+        {
+          "bond": 5,
+          "status": "matched",
+          "reason": "Selected hydrophobic P1-prime preference: Phe/Ile/Leu/Tyr",
+          "score": null,
+          "source_bond": 5
+        },
+        {
+          "bond": 6,
+          "status": "matched",
+          "reason": "Selected hydrophobic P1-prime preference: Phe/Ile/Leu/Tyr",
+          "score": null,
+          "source_bond": 6
+        },
+        {
+          "bond": 7,
+          "status": "not_matched",
+          "reason": "Selected hydrophobic P1-prime preference: Phe/Ile/Leu/Tyr",
+          "score": null,
+          "source_bond": 7
+        },
+        {
+          "bond": 8,
+          "status": "matched",
+          "reason": "Selected hydrophobic P1-prime preference: Phe/Ile/Leu/Tyr",
+          "score": null,
+          "source_bond": 8
+        },
+        {
+          "bond": 9,
+          "status": "not_matched",
+          "reason": "Selected hydrophobic P1-prime preference: Phe/Ile/Leu/Tyr",
+          "score": null,
+          "source_bond": 9
+        },
+        {
+          "bond": 10,
+          "status": "not_matched",
+          "reason": "Selected hydrophobic P1-prime preference: Phe/Ile/Leu/Tyr",
+          "score": null,
+          "source_bond": 10
+        },
+        {
+          "bond": 11,
+          "status": "matched",
+          "reason": "Selected hydrophobic P1-prime preference: Phe/Ile/Leu/Tyr",
+          "score": null,
+          "source_bond": 11
+        },
+        {
+          "bond": 12,
+          "status": "not_matched",
+          "reason": "Selected hydrophobic P1-prime preference: Phe/Ile/Leu/Tyr",
+          "score": null,
+          "source_bond": 12
+        },
+        {
+          "bond": 13,
+          "status": "not_matched",
+          "reason": "Selected hydrophobic P1-prime preference: Phe/Ile/Leu/Tyr",
+          "score": null,
+          "source_bond": 13
+        },
+        {
+          "bond": 14,
+          "status": "not_matched",
+          "reason": "Selected hydrophobic P1-prime preference: Phe/Ile/Leu/Tyr",
+          "score": null,
+          "source_bond": 14
+        }
+      ],
+      "unsupported_reason": null,
+      "conditions": [],
+      "substrate_observation": null
+    }
+  ]
+}
+```
+
+## Choose an extracellular context
+
+The cleavage tool labels this MME model `extracellular` in its
+`compartments` metadata. That is an enzyme-location annotation. The PDF
+manifest uses a more specific **vaccine exposure route**:
+
+| Report `context` | What it represents for an SLP |
+|---|---|
+| `extracellular_interstitial` | Free peptide around the injection site and other interstitial spaces before uptake; the simple IM SLP example uses this route. |
+| `tumor_stroma` | Extracellular exposure in tumor tissue. For an SLP, declare `"exposures": ["tumor_stroma"]` only if that exposure is part of the scenario. |
+| `circulation` | Free peptide in blood/plasma. For an SLP, declare `"exposures": ["circulation"]` only if systemic exposure is part of the scenario; IM injection alone does not establish it. |
+
+The other report contexts—`endolysosomal`, `cytosolic_proteasome`, and
+`er_trimming`—are intracellular. There is currently no separate
+extracellular lymphatic-transit or draining-node context. Neither
+`extracellular_interstitial` nor `circulation` measures peptide arrival at
+lymph-node APCs; see the [delivery evidence review](research/vaccine-node-delivery.md).
+A model compatible with an extracellular location still does not establish
+that its enzyme is present or active along a particular vaccine route.
+
 ## Read the result
 
 In this SLP example, the target spans residues 4–12. All five MME motif

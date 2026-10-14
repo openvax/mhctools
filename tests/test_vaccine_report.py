@@ -115,6 +115,9 @@ def test_documented_simple_manifest_uses_actual_tool_output(tmp_path, capsys):
     manifest_path.write_text(source.read_text())
     cleavage_main(["--sequence", "AAAKIILNFTTLAAA", "--model", "mme-hydrophobic",
                    "--out", str(tmp_path / "cleavage.json")])
+    inline_output = guide.split("## Inspect `cleavage.json`\n", 1)[1].split(
+        "```json\n", 1)[1].split("\n```", 1)[0]
+    assert inline_output + "\n" == (tmp_path / "cleavage.json").read_text()
     report_main(["--input", str(manifest_path), "--output-dir", str(tmp_path)])
     output = Path(capsys.readouterr().out.strip())
     assert output.parent == tmp_path
