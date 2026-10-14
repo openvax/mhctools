@@ -521,7 +521,6 @@ def placement_assessments(construct):
                     b for b in boundary_bonds if categories.get(b) in ("matched", "reported")]),
                 "score_units": track.units,
                 "evidence_type": track.evidence_type,
-                "categorical_sites": categories,
                 "conditional_on": track.conditional_on,
                 "canonical_evidence": track.evidence.to_dict() if track.evidence else None,
             })

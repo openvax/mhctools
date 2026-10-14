@@ -126,6 +126,7 @@ def test_documented_simple_manifest_uses_actual_tool_output(tmp_path, capsys):
     assert summary["internal_supported_bonds"] == [4, 5, 6, 8, 11]
     assert summary["boundary_supported_bonds"] == []
     assert summary["route_relevance"] == "primary"
+    assert "categorical_sites" not in summary
     normalized = json.loads((output / "normalized-input.json").read_text())
     serialized_track = normalized["constructs"][0]["cleavage_tracks"][0]
     assert "scores" not in serialized_track
