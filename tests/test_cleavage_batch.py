@@ -72,6 +72,26 @@ def test_mixed_context_evidence_round_trip_and_cli_agree(tmp_path, monkeypatch):
     assert "imported-table" in text and "lnpep-observed" in text
 
 
+def test_legacy_batch_output_still_loads(tmp_path):
+    from dataclasses import asdict
+    from mhctools.cleavage_batch import cleavage_overlays
+
+    legacy = deepcopy(run_request(request()))
+    legacy["schema_version"] = 1
+    inputs = {item["id"]: item for item in legacy["inputs"]}
+    for row in legacy["assessments"]:
+        if row["result"] is None:
+            continue
+        result = CleavageResult.from_dict(row["result"])
+        row["result"] = asdict(result)
+        row["overlays"] = cleavage_overlays(
+            inputs[row["input_id"]], result, fragment=row["fragment"], legacy=True)
+    legacy = json.loads(json.dumps(legacy))
+    path = tmp_path / "legacy.json"
+    path.write_text(json.dumps(legacy))
+    assert load_cleavage_batch(path) == legacy
+
+
 def test_native_window_does_not_become_a_free_peptide():
     report = run_request(request())
     native = [r for r in report["assessments"] if r["input_id"] == "native-a"]
@@ -81,12 +101,12 @@ def test_native_window_does_not_become_a_free_peptide():
                   and r["model"] == "app1-xp" and r["fragment"] is None)
     fragment = next(r for r in report["assessments"] if r["input_id"] == "vaccine"
                     and r["model"] == "app1-xp" and r["fragment"] is not None)
-    assert parent["result"]["sites"][0]["status"] == "not_matched"
-    assert fragment["result"]["sites"][0]["status"] == "matched"
+    assert parent["result"]["sites"][0]["match"] == 0
+    assert fragment["result"]["sites"][0]["match"] == 1
     overlay = fragment["overlays"][0]
     assert overlay["conditional_on"]["assumption"]
     assert overlay["internal"][0]["bond"] == 3
-    assert overlay["internal"][0]["status"] == "matched"
+    assert overlay["internal"][0]["match"] == 1
     assert overlay["n_boundary"]["status"] == "unassessed"
     assert overlay["c_boundary"]["status"] == "unassessed"
 
@@ -115,7 +135,8 @@ def test_duplicate_inference_retains_occurrences_and_offsets():
     assert [r["result"]["sites"][0]["source_bond"] for r in rows] == [8, 38]
     assert [r["input_id"] for r in rows] == ["a", "b"]
     assert rows[0]["overlays"][0]["n_boundary"]["status"] == "sequence_endpoint"
-    assert rows[0]["overlays"][0]["internal"][-1]["score"] is None
+    assert rows[0]["overlays"][0]["internal"][-1]["match"] in (0, 1)
+    assert "score" not in rows[0]["overlays"][0]["internal"][-1]
 
 
 def test_failed_backend_is_visible_and_can_raise():

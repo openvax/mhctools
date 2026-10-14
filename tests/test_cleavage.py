@@ -1,6 +1,6 @@
 """Coordinate, chemistry and evidence contract regressions."""
 
-from dataclasses import FrozenInstanceError, replace
+from dataclasses import FrozenInstanceError, asdict, replace
 import json
 
 import pytest
@@ -41,6 +41,7 @@ def test_only_real_peptide_bonds(bond):
 def test_evidence_types_do_not_convert_to_probabilities():
     with pytest.raises(ValueError, match="numerical"):
         CleavageSite(1, "matched", "rule", 1.0)
+    assert CleavageSite(1, "scored", "model", 0.0).match is None
     for value in (float("nan"), float("inf"), True, None):
         with pytest.raises(ValueError, match="finite"):
             CleavageSite(1, "scored", "model", value)
@@ -52,6 +53,30 @@ def test_evidence_types_do_not_convert_to_probabilities():
     with pytest.raises(ValueError, match="semantics"):
         CleavageResult(CleavageInput("HAP"), motif,
                        (CleavageSite(1, "scored", "model", 2.0),))
+
+
+def test_motif_match_serialization_is_binary_and_legacy_results_still_load():
+    from mhctools import get_cleavage_model
+    result = get_cleavage_model("mme-hydrophobic").predict("AAAKIILNFTTLAAA")
+    value = result.to_dict()
+    assert value["model"]["rule"] == "Selected hydrophobic P1-prime preference: Phe/Ile/Leu/Tyr"
+    assert [site["match"] for site in value["sites"] if site["bond"] in (3, 4)] == [0, 1]
+    assert all(set(site) == {"bond", "match", "source_bond"} for site in value["sites"])
+    assert CleavageResult.from_dict(value) == result
+    assert result.sites[2].match == 0 and result.sites[3].match == 1
+
+    legacy = asdict(result)
+    legacy["model"].pop("rule")
+    restored = CleavageResult.from_dict(legacy)
+    assert [(site.bond, site.status) for site in restored.sites] == [
+        (site.bond, site.status) for site in result.sites]
+    for invalid in (2, -1, True, 0.5, "1"):
+        corrupted = result.to_dict()
+        corrupted["sites"][0]["match"] = invalid
+        with pytest.raises(ValueError, match="exactly 0 or 1"):
+            CleavageResult.from_dict(corrupted)
+    with pytest.raises(ValueError, match="Only motif rules"):
+        replace(DPP4qPISA.model, rule="not applicable")
 
 
 def test_duplicate_and_unsupported_sites_rejected():

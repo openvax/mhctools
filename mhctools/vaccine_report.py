@@ -80,6 +80,15 @@ class CleavageTrack:
     start: int = 0
     conditional_on: str = None
 
+    def to_dict(self):
+        """Serialize canonical evidence without repeating derived motif scores."""
+        value = asdict(self)
+        if self.evidence is not None:
+            value["evidence"] = self.evidence.to_dict()
+            if self.evidence_type == "motif_rule":
+                value.pop("scores")
+        return value
+
     @classmethod
     def from_result(cls, result, context, sequence, *, start=0, name=None,
                     conditional_on=None, threshold=None):
@@ -276,8 +285,8 @@ class VaccineReportInput:
                         % ", ".join(sorted(extra)))
                 source = path.parent / track["cleavage_json"]
                 output = json.loads(source.read_text(encoding="utf-8"))
-                if output.get("schema_version") != 2:
-                    raise ValueError("Cleavage output must use schema_version 2")
+                if output.get("schema_version") not in (2, 3):
+                    raise ValueError("Cleavage output must use schema_version 2 or 3")
                 matches = [
                     result for result in output["results"]
                     if result["peptide"]["sequence"] == construct["sequence"]
@@ -297,10 +306,10 @@ class VaccineReportInput:
                 result = CleavageResult.from_dict({
                     **selected, "model": output["models"][model],
                 })
-                construct["cleavage_tracks"][index] = asdict(CleavageTrack.from_result(
+                construct["cleavage_tracks"][index] = CleavageTrack.from_result(
                     result, track["context"], construct["sequence"],
                     name=track.get("name"), threshold=track.get("threshold"),
-                ))
+                ).to_dict()
         return cls.from_dict(value)
 
     def to_dict(self):
@@ -315,7 +324,7 @@ class VaccineReportInput:
                     "exposures": list(construct.exposures),
                     "intended_epitopes": [asdict(item) for item in construct.intended_epitopes],
                     "mhc_windows": [asdict(item) for item in construct.mhc_windows],
-                    "cleavage_tracks": [asdict(item) for item in construct.cleavage_tracks],
+                    "cleavage_tracks": [item.to_dict() for item in construct.cleavage_tracks],
                 }
                 for construct in self.constructs
             ],
@@ -512,7 +521,6 @@ def placement_assessments(construct):
                     b for b in boundary_bonds if categories.get(b) in ("matched", "reported")]),
                 "score_units": track.units,
                 "evidence_type": track.evidence_type,
-                "categorical_sites": categories,
                 "conditional_on": track.conditional_on,
                 "canonical_evidence": track.evidence.to_dict() if track.evidence else None,
             })

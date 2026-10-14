@@ -140,7 +140,7 @@ def _normalize_scenarios(scenarios):
     return result
 
 
-def cleavage_overlays(value, result, *, fragment=None):
+def cleavage_overlays(value, result, *, fragment=None, legacy=False):
     """Map native evidence to epitope interiors and separate N/C boundaries.
 
     No threshold or aggregate probability is applied. A fragment boundary is
@@ -148,7 +148,10 @@ def cleavage_overlays(value, result, *, fragment=None):
     on every overlay. Unreturned bonds remain explicit unassessed entries.
     """
     offset = result.peptide.source_start - value["source_start"]
-    by_bond = {site["bond"] + offset: site for site in result.to_dict()["sites"]}
+    sites = (result.to_dict()["sites"] if not legacy else [
+        dict(asdict(site), source_bond=result.peptide.source_start + site.bond)
+        for site in result.sites])
+    by_bond = {site["bond"] + offset: site for site in sites}
 
     def observation(bond):
         row = {"bond": bond, "source_bond": value["source_start"] + bond}
@@ -238,7 +241,7 @@ def predict_cleavage_batch(inputs, scenarios, *, predictors=None, reference_pane
                     groups.setdefault(model_key, {}).setdefault(model_input, None)
                     row = dict(input_id=value["id"], scenario_id=scenario["id"],
                                model=name, fragment=deepcopy(fragment), result=None,
-                               requested_model=asdict(catalog[name]),
+                               requested_model=catalog[name].to_dict(),
                                overlays=[], error=None,
                                context_application="Compartments filter locations; scenario labels and "
                                "extra annotations do not change model parameters or establish assay calibration")
@@ -285,7 +288,7 @@ def predict_cleavage_batch(inputs, scenarios, *, predictors=None, reference_pane
                 raise
             row.update(status="failed", error="%s: %s" % (type(error).__name__, error))
         assessments.append(row)
-    return _json_copy(dict(schema_version=1, inputs=inputs, scenarios=scenarios,
+    return _json_copy(dict(schema_version=2, inputs=inputs, scenarios=scenarios,
                           reference_panels=reference_panels,
                           assessments=assessments, coverage_gaps={
                               s["id"]: _COVERAGE_GAPS[s["context"]] for s in scenarios}))
@@ -294,7 +297,7 @@ def predict_cleavage_batch(inputs, scenarios, *, predictors=None, reference_pane
 def load_cleavage_batch(path):
     """Read a saved assessment without inference, validating result coordinates."""
     value = json.loads(Path(path).read_text(encoding="utf-8"))
-    if value.get("schema_version") != 1:
+    if value.get("schema_version") not in (1, 2):
         raise ValueError("Unsupported cleavage batch schema version")
     inputs = {v["id"]: normalize_cleavage_input(v) for v in value["inputs"]}
     scenarios = {s["id"]: s for s in _normalize_scenarios(value["scenarios"])}
@@ -331,7 +334,8 @@ def load_cleavage_batch(path):
         status = "unsupported" if result.unsupported_reason else "assessed"
         if row["status"] != status or row["error"] is not None:
             raise ValueError("Saved assessment status contradicts evidence")
-        if row["overlays"] != _json_copy(cleavage_overlays(source, result, fragment=fragment)):
+        if row["overlays"] != _json_copy(cleavage_overlays(
+                source, result, fragment=fragment, legacy=value["schema_version"] == 1)):
             raise ValueError("Saved overlays contradict cleavage evidence")
     expected_count = sum(len(s["models"]) * sum(1 + len(v["fragments"]) for v in inputs.values())
                          for s in scenarios.values())
@@ -381,7 +385,9 @@ def write_cleavage_batch(report, path, *, html_path=None):
                                       ("C boundary", [overlay["c_boundary"]])):
                     for site in sites:
                         parts.append("<tr><td>%s</td><td>%d</td><td>%s</td><td>%s</td></tr>" % (
-                            region, site["bond"], escape(site["status"]),
+                            region, site["bond"],
+                            escape(("matched motif (1)" if site["match"] else "not matched motif (0)")
+                                   if "match" in site else site["status"]),
                             escape(site.get("score") if site.get("score") is not None else "—")))
                 parts.append("</table>")
             parts.append("<details><summary>Full evidence, conditions and provenance</summary><pre>%s</pre>"

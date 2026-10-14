@@ -59,13 +59,18 @@ see [proteasome models](#proteasome-models).
 Missing assets and uninspected external runtimes are listed as unresolved.
 Predictions carry SHA-256 identities for the actual runtime's weights,
 inference code, feature code and dependency metadata.
-Prediction JSON uses schema version 2: its top-level `models` object stores each
+Prediction JSON uses schema version 3: its top-level `models` object stores each
 full provenance record once, keyed by model name, and each item in `results`
-references that name in its `model` field. The output retains unmatched and
+references that name in its `model` field. Motif sites carry `match: 0|1`,
+with the rule documented once in model metadata; this is a binary pattern
+indicator, not a cleavage probability. The output retains non-matches and
 unsupported results, source coordinates and chemistry. Numerical scores are
 written with six significant digits. `--source-start` is a zero-based offset
 shared by the supplied inputs; use separate calls when fragments have different
 offsets.
+The `--list-models --json` catalog uses schema version 2 and omits metadata
+fields that do not apply to a model. Schema-v2 prediction JSON remains readable
+by the vaccine-report command.
 
 Compartment filtering uses exact, conservative enzyme-location annotations.
 `serum`, `plasma`, `extracellular`, `cytosol`, `endosome` and `er` are

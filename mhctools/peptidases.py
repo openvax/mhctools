@@ -83,7 +83,7 @@ def _rule(*, name, enzyme, accession, compartments, papers, topology, removed,
             "https://www.uniprot.org/uniprotkb/%s/entry" % accession,),
         assay=assay,
         limitations=limitations + " Partial specificity rule; no kinetic or matrix calibration.",
-        motif_strictness=strictness, strictness_basis=basis)
+        motif_strictness=strictness, strictness_basis=basis, rule=description)
     return PeptidaseMotif(metadata, topology, removed, left, right, description, **kwargs)
 
 

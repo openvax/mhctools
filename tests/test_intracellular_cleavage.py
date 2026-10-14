@@ -128,7 +128,7 @@ def test_intracellular_cli_reports_observations_and_missing_domains(capsys):
     result = prediction_report["results"][0]
     assert result["substrate_observation"] == "cleavage_reported"
     assert result["sites"][0]["bond"] == 5
-    assert prediction_report["models"][result["model"]]["motif_strictness"] is None
+    assert "motif_strictness" not in prediction_report["models"][result["model"]]
     main(["cleavage", "--list-models", "--json"])
     listed = json.loads(capsys.readouterr().out)["models"]
     assert {m["name"] for m in listed} >= {"thop1-observed", "nln-observed", "lnpep-observed"}

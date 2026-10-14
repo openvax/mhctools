@@ -126,14 +126,40 @@ def test_documented_simple_manifest_uses_actual_tool_output(tmp_path, capsys):
     assert summary["internal_supported_bonds"] == [4, 5, 6, 8, 11]
     assert summary["boundary_supported_bonds"] == []
     assert summary["route_relevance"] == "primary"
-    saved = VaccineReportInput.from_dict(json.loads(
-        (output / "normalized-input.json").read_text()))
+    assert "categorical_sites" not in summary
+    normalized = json.loads((output / "normalized-input.json").read_text())
+    serialized_track = normalized["constructs"][0]["cleavage_tracks"][0]
+    assert "scores" not in serialized_track
+    assert set(serialized_track["evidence"]["sites"][0]) == {
+        "bond", "match", "source_bond"}
+    saved = VaccineReportInput.from_dict(normalized)
     track, = saved.constructs[0].cleavage_tracks
     assert track.name == "mme-hydrophobic"
     assert track.evidence_type == "motif_rule"
     assert track.evidence.model.name == "mme-hydrophobic"
     assert track.evidence.model.references
     assert track.scores == (None,) * 14
+
+
+def test_vaccine_manifest_reads_legacy_cleavage_json(tmp_path):
+    from dataclasses import asdict
+    from mhctools import get_cleavage_model
+
+    result = get_cleavage_model("mme-hydrophobic").predict("AAAKIILNFTTLAAA")
+    old = asdict(result)
+    model = old.pop("model")
+    model.pop("rule")
+    for site in old["sites"]:
+        site["source_bond"] = site["bond"]
+    old["model"] = model["name"]
+    (tmp_path / "cleavage.json").write_text(json.dumps({
+        "schema_version": 2, "models": {model["name"]: model}, "results": [old]}))
+    manifest = tmp_path / "vaccine-report.json"
+    manifest.write_text((Path(__file__).parents[1] / "docs" /
+                         "vaccine-report-simple.json").read_text())
+    report = VaccineReportInput.from_json(manifest)
+    track, = report.constructs[0].cleavage_tracks
+    assert track.categorical_sites[4] == "matched"
 
 
 def test_cleavage_json_reference_requires_a_unique_matching_result(tmp_path):
@@ -265,7 +291,8 @@ def test_canonical_categorical_tracks_survive_report_round_trip(tmp_path):
     assert construct.cleavage_tracks[0].evidence == result
     row = placement_assessments(construct)[0]
     assert row["internal_supported_bonds"] == [10]
-    assert row["canonical_evidence"]["sites"][0]["score"] is None
+    assert row["canonical_evidence"]["sites"][0]["match"] == 1
+    assert "score" not in row["canonical_evidence"]["sites"][0]
     assert row["conditional_on"]
     assert not any(score is not None for score in track.scores)
     report = VaccineReportInput.from_dict(dict(schema_version=1, constructs=[value]))

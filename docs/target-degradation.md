@@ -60,10 +60,11 @@ evidence = predict_cleavage("APACDEFG", models=("dpp4-qpisa", "fap-dipeptidyl"))
 annotations = annotate_target_cleavage(target, evidence)
 ```
 
-Each annotation retains the enzyme, model version, native score and endpoint,
-assay, limitations and compartment. A cut strictly inside the target splits it;
-a cut exactly at its boundary can release it intact; a flank cut trims its
-precursor. These are consequences **if the cut occurs**, not occurrence
+Each annotation retains the enzyme, model version, assay, limitations and
+compartment. Quantitative models retain their native score and endpoint;
+motif models expose a separate `match: 0|1` indicator. A cut strictly inside
+the target splits it; a cut exactly at its boundary can release it intact;
+a flank cut trims its precursor. These are consequences **if the cut occurs**, not occurrence
 probabilities. A native substrate score, purified-enzyme depletion estimate and
 partial motif match must retain different labels. No universal score threshold
 or cross-enzyme sum establishes a serum rate. For conditional fragments,

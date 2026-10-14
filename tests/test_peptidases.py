@@ -103,7 +103,7 @@ def test_cli_json_preserves_scores_chemistry_and_provenance(capsys, tmp_path):
           "--source-start", "10", "--source-id", "construct"])
     data = json.loads(capsys.readouterr().out)
     result = data["results"][0]
-    assert data["schema_version"] == 2
+    assert data["schema_version"] == 3
     assert result["sites"][0]["score"] == pytest.approx(2.1694)
     assert result["sites"][0]["source_bond"] == 12
     assert result["model"] == "dpp4-qpisa"
@@ -154,10 +154,12 @@ def test_cli_lists_optional_models_as_json(capsys, monkeypatch):
     monkeypatch.setenv("ERAMER_HOME", "/does-not-exist")
     main(["cleavage", "--list-models", "--json"])
     data = json.loads(capsys.readouterr().out)
-    assert data["schema_version"] == 1
+    assert data["schema_version"] == 2
     assert len(data["models"]) == 50
     assert any(m["name"] == "eramer-step" for m in data["models"])
     assert any(m["name"] == "pepsickle-in-vivo-human-only" for m in data["models"])
+    assert all("rule" in m for m in data["models"] if m["evidence"] == "motif_rule")
+    assert all("score_name" not in m for m in data["models"] if m["evidence"] == "motif_rule")
 
 
 def test_cli_list_models_can_write_json(capsys, tmp_path):
@@ -165,7 +167,7 @@ def test_cli_list_models_can_write_json(capsys, tmp_path):
     main(["cleavage", "--list-models", "--out", str(output)])
 
     assert capsys.readouterr().out == ""
-    assert json.loads(output.read_text())["schema_version"] == 1
+    assert json.loads(output.read_text())["schema_version"] == 2
 
 
 @pytest.mark.parametrize("prediction_option", [
@@ -236,16 +238,16 @@ def test_position_track_spans_internal_scan_and_fragment_cascade():
 
     def record(result):
         for site in result.to_dict()["sites"]:
-            track.setdefault(site["source_bond"], []).append((result.model.name, site["status"]))
+            track.setdefault(site["source_bond"], []).append((result.model.name, site["match"]))
 
     # Mode 1: internal topology scans the whole input directly.
     internal = get_cleavage_model("mme-hydrophobic").predict(parent)
     assert internal.unsupported_reason is None
     assert len(internal.sites) == len(parent.sequence) - 1
     record(internal)
-    assert track[4] == [("mme-hydrophobic", "matched")]
-    assert track[7] == [("mme-hydrophobic", "matched")]
-    assert track[1] == [("mme-hydrophobic", "not_matched")]
+    assert track[4] == [("mme-hydrophobic", 1)]
+    assert track[7] == [("mme-hydrophobic", 1)]
+    assert track[1] == [("mme-hydrophobic", 0)]
 
     # Mode 2: terminal topology requires an explicit fragment cascade step.
     # Here, a hypothesized prior trimming exposes residues 10-13 (SSRQ).
@@ -256,7 +258,7 @@ def test_position_track_spans_internal_scan_and_fragment_cascade():
     # The fragment's local bond 3 (its own last internal bond) lands on the
     # parent's absolute position 12 -- the same coordinate space as mode 1.
     assert trimmed.sites[0].bond == 3
-    assert track[12] == [("mme-hydrophobic", "not_matched"), ("cpn-basic", "not_matched")]
+    assert track[12] == [("mme-hydrophobic", 0), ("cpn-basic", 0)]
 
     # One combined track, addressable by absolute parent position, carrying
     # evidence from models with entirely different assessment strategies.

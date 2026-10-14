@@ -33,7 +33,8 @@ def test_native_dpp4_score_and_motif_have_separate_semantics():
     assert scored["scored_endpoint"] == "substrate_depletion"
     assert scored["score_units"] == results[0].model.score_units
     assert scored["target_effect"] == motif["target_effect"] == "boundary_release"
-    assert motif["score"] is None and motif["status"] == "matched"
+    assert motif["match"] == 1 and "score" not in motif
+    assert "score_name" not in motif and "scored_endpoint" not in motif
     assert "probability" not in scored and "rate" not in scored
 
 
@@ -46,7 +47,7 @@ def test_missing_scope_and_nonmatch_do_not_become_protection():
     assert unavailable["status"] == "unavailable"
     assert unavailable["source_bond"] is None and unavailable["target_effect"] is None
     assert "30" in unavailable["reason"]
-    assert nonmatch["status"] == "not_matched"
+    assert nonmatch["match"] == 0
     assert nonmatch["target_effect"] == "flank_trim"
 
 
