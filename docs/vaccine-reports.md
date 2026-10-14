@@ -14,34 +14,59 @@ evidence summary, see [vaccine target summary](vaccine-target-summary.md).
 
 ## Run the example
 
-Install the PDF dependency and download the [example manifest](vaccine-report-example.json),
-then run:
+PDF generation is included in a standard install. Copy and run this complete
+example; it saves the visible JSON as `vaccine-report.json`:
 
 ```sh
-pip install "mhctools[vaccine-report]"
-curl -L -o vaccine-report-example.json \
-  https://openvax.github.io/mhctools/vaccine-report-example.json
+pip install mhctools
+cat > vaccine-report.json <<'JSON'
+{
+  "schema_version": 1,
+  "constructs": [{
+    "id": "slp-demo",
+    "sequence": "AAAKIILNFTTLAAA",
+    "delivery": "synthetic_long_peptide",
+    "intended_epitopes": [
+      {"label": "KIILNFTTL", "start": 4, "end": 12}
+    ],
+    "mhc_windows": [
+      {"mhc_class": "I", "allele": "HLA-A*02:01", "start": 4, "end": 12,
+       "percentile_rank": 0.4, "predictor": "illustrative"},
+      {"mhc_class": "II", "allele": "HLA-DRB1*03:01", "start": 1, "end": 15,
+       "percentile_rank": 1.8, "predictor": "illustrative"}
+    ],
+    "cleavage_tracks": [{
+      "name": "illustrative endolysosomal cuts",
+      "context": "endolysosomal",
+      "evidence_type": "quantitative_model",
+      "scores": [null, null, 0.8, null, null, null, 0.9,
+                 null, null, null, null, 0.7, null, null],
+      "threshold": 0.5,
+      "units": "illustrative score",
+      "provenance": "synthetic tutorial data; not a sequence prediction"
+    }]
+  }]
+}
+JSON
 mhctools vaccine-report \
-  --input vaccine-report-example.json \
+  --input vaccine-report.json \
   --output-dir reports
 ```
 
 The command prints a timestamped directory inside `reports/`. Open
-`vaccine-processing-report.pdf` there. The example compares an injected SLP
-with a cytosolic RNA construct containing the same nine-residue target,
-`KIILNFTTL`. **Its cleavage scores and MHC ranks are invented to demonstrate
-report behavior; they are not predictions for that sequence.**
+`vaccine-processing-report.pdf` there. The input is also available as a
+[downloadable JSON file](vaccine-report-simple.json). **The cleavage scores
+and MHC ranks are invented to demonstrate report behavior; they are not
+predictions for this sequence.** The report does not run those predictors.
 
 ## Read the result
 
-In the SLP example, the target spans residues 9–17. The endolysosomal track
-flags a possible cut after residue 13, *inside* the target. It also flags the
-bond after residue 8, immediately *before* the target. The first flag suggests
-possible destruction; the second suggests possible release. Neither tells us
-which event wins, how much intact target survives, or whether it loads onto MHC.
-The RNA construct has an initiator methionine, so the same target is at
-residues 10–18. Coordinates always refer to the complete sequence supplied
-for that construct.
+In this SLP example, the target spans residues 4–12. The endolysosomal track
+flags a possible cut after residue 7, *inside* the target, and after residues
+3 and 12, at its *boundaries*. The internal flag suggests possible destruction;
+the boundary flags suggest possible release. Neither tells us which event wins,
+how much intact target survives, or whether it loads onto MHC. Coordinates
+always refer to the complete sequence supplied for that construct.
 
 | Output file | What to inspect |
 |---|---|
@@ -58,8 +83,10 @@ probabilities. An unassessed bond or missing route is not evidence of survival.
 
 ## Prepare a manifest
 
-The [complete example manifest](vaccine-report-example.json) shows both
-delivery types, intended epitopes, MHC windows, and per-bond tracks. Supply the
+The [larger SLP and RNA example](vaccine-report-example.json) shows both
+delivery types, intended epitopes, MHC windows, and per-bond tracks. In that
+example, the RNA construct has an initiator methionine, so its target is at
+residues 10–18 rather than the SLP's residues 9–17. Supply the
 full delivered peptide sequence for an SLP. For `rna_encoded`, supply the
 **amino-acid sequence of the translated construct**, including any relevant
 signal peptide, linkers, and junctions; this field does not accept nucleotide
@@ -91,7 +118,7 @@ and [SLP cross-presentation in human dendritic cells](https://pmc.ncbi.nlm.nih.g
 ```python
 from mhctools import VaccineReportInput, generate_vaccine_report
 
-request = VaccineReportInput.from_dict(manifest)
+request = VaccineReportInput.from_json("vaccine-report.json")
 run_directory = generate_vaccine_report(request, "reports")
 ```
 
@@ -99,4 +126,5 @@ When assembling a manifest from Vaxrank, use each final translated construct,
 including linkers and junctions, so target and cut coordinates refer to the
 sequence actually delivered. `placement_assessments` exposes boundary and
 internal cuts separately. It does not produce an overall placement score or
-change Vaxrank ranking on its own.
+change Vaxrank ranking on its own. Vaxrank's own PDF reports use its separately
+installed PDF backends; this mhctools report needs no extra install group.

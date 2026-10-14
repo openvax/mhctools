@@ -1,5 +1,7 @@
 from datetime import datetime, timezone
 import json
+import math
+from pathlib import Path
 
 import pytest
 
@@ -91,7 +93,6 @@ def test_placement_keeps_internal_boundary_and_route_separate():
 
 
 def test_generate_report_uses_timestamped_directory_and_checksums(tmp_path):
-    pytest.importorskip("matplotlib")
     generated_at = datetime(2026, 9, 17, 12, 34, 56, 123456, tzinfo=timezone.utc)
     output = generate_vaccine_report(
         manifest(), tmp_path, generated_at=generated_at, maximum_mhc_windows=2
@@ -100,6 +101,38 @@ def test_generate_report_uses_timestamped_directory_and_checksums(tmp_path):
     assert (output / "vaccine-processing-report.pdf").stat().st_size > 1000
     assert json.loads((output / "SHA256SUMS.json").read_text())["vaccine-processing-report.pdf"]
     assert json.loads((output / "target-summary.json").read_text())[0]['serum']['status'] == 'not_applicable'
+
+
+def test_documented_simple_manifest_matches_file_and_cli_runs(tmp_path, capsys,
+                                                              monkeypatch):
+    from mhctools.cli.vaccine_report import main
+    from matplotlib.axes import Axes
+
+    docs = Path(__file__).parents[1] / "docs"
+    guide = (docs / "vaccine-reports.md").read_text()
+    inline = guide.split("cat > vaccine-report.json <<'JSON'\n", 1)[1].split("\nJSON\n", 1)[0]
+    source = docs / "vaccine-report-simple.json"
+    assert json.loads(inline) == json.loads(source.read_text())
+
+    plotted_curves = []
+    original_plot = Axes.plot
+
+    def record_plot(self, x, y, *args, **kwargs):
+        if len(x) == 14:
+            plotted_curves.append(y)
+        return original_plot(self, x, y, *args, **kwargs)
+
+    monkeypatch.setattr(Axes, "plot", record_plot)
+    main(["--input", str(source), "--output-dir", str(tmp_path)])
+    output = Path(capsys.readouterr().out.strip())
+    assert output.parent == tmp_path
+    assert (output / "vaccine-processing-report.pdf").read_bytes().startswith(b"%PDF-")
+    summary, = json.loads((output / "placement-assessments.json").read_text())
+    assert summary["internal_supported_bonds"] == [7]
+    assert summary["boundary_supported_bonds"] == [3, 12]
+    assert len(plotted_curves) == 1
+    assert {bond for bond, value in enumerate(plotted_curves[0], start=1)
+            if not math.isnan(value)} == {3, 7, 12}
 
 
 def test_compact_summary_keeps_internal_and_release_cuts_and_conditional_routes_separate():

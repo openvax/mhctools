@@ -86,7 +86,7 @@ mhctools vaccine-compare \
 ```
 
 The script writes input files, full results, individual readable reports, a
-comparison and optionally a plot (`--plot` requires the `vaccine-report` extra).
+comparison and optionally a plot (Matplotlib is included in the base install).
 **Every rate is synthetic.** Each panel labels its peptide/transcript denominator;
 the panels do not establish equal-dose efficacy. Use new output paths on each run.
 
