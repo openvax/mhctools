@@ -14,11 +14,16 @@ evidence summary, see [vaccine target summary](vaccine-target-summary.md).
 
 ## Run the example
 
-PDF generation is included in a standard install. Copy and run this complete
-example; it saves the visible JSON as `vaccine-report.json`:
+PDF generation is included in a standard install. This example first runs a
+built-in cleavage rule, then gives its actual JSON output to the PDF report.
+Copy and run it from one directory:
 
 ```sh
 pip install mhctools
+mhctools cleavage \
+  --sequence AAAKIILNFTTLAAA \
+  --model mme-hydrophobic \
+  --out cleavage.json
 cat > vaccine-report.json <<'JSON'
 {
   "schema_version": 1,
@@ -29,21 +34,9 @@ cat > vaccine-report.json <<'JSON'
     "intended_epitopes": [
       {"label": "KIILNFTTL", "start": 4, "end": 12}
     ],
-    "mhc_windows": [
-      {"mhc_class": "I", "allele": "HLA-A*02:01", "start": 4, "end": 12,
-       "percentile_rank": 0.4, "predictor": "illustrative"},
-      {"mhc_class": "II", "allele": "HLA-DRB1*03:01", "start": 1, "end": 15,
-       "percentile_rank": 1.8, "predictor": "illustrative"}
-    ],
     "cleavage_tracks": [{
-      "name": "illustrative endolysosomal cuts",
-      "context": "endolysosomal",
-      "evidence_type": "quantitative_model",
-      "scores": [null, null, 0.8, null, null, null, 0.9,
-                 null, null, null, null, 0.7, null, null],
-      "threshold": 0.5,
-      "units": "illustrative score",
-      "provenance": "synthetic tutorial data; not a sequence prediction"
+      "context": "extracellular_interstitial",
+      "cleavage_json": "cleavage.json"
     }]
   }]
 }
@@ -54,19 +47,31 @@ mhctools vaccine-report \
 ```
 
 The command prints a timestamped directory inside `reports/`. Open
-`vaccine-processing-report.pdf` there. The input is also available as a
-[downloadable JSON file](vaccine-report-simple.json). **The cleavage scores
-and MHC ranks are invented to demonstrate report behavior; they are not
-predictions for this sequence.** The report does not run those predictors.
+`vaccine-processing-report.pdf` there. The manifest is also available as a
+[downloadable JSON file](vaccine-report-simple.json); run the `cleavage`
+command above beside it first. The report reads the CLI's schema-v2 output and
+copies its model identity, evidence type, site decisions, and provenance into
+`normalized-input.json`. You need only declare `context`: the biological route
+in which you want to inspect that evidence. A model's enzyme-location
+annotation alone does not establish exposure after vaccination. `name` is
+optional and defaults to the model name. If the cleavage JSON contains several
+results for the same sequence, add `"model": "mme-hydrophobic"` to select one.
+
+For this input, the tool reports `motif_rule` evidence with matched bonds 4, 5,
+6, 8, and 11. The rule flags a partial extracellular MME preference for a
+hydrophobic residue after a bond; it is **not** a measured cut, cleavage rate,
+or probability. No MHC predictions are supplied, so the report does not draw
+MHC-window bars.
 
 ## Read the result
 
-In this SLP example, the target spans residues 4–12. The endolysosomal track
-flags a possible cut after residue 7, *inside* the target, and after residues
-3 and 12, at its *boundaries*. The internal flag suggests possible destruction;
-the boundary flags suggest possible release. Neither tells us which event wins,
-how much intact target survives, or whether it loads onto MHC. Coordinates
-always refer to the complete sequence supplied for that construct.
+In this SLP example, the target spans residues 4–12. All five MME motif
+matches are *inside* the target, so they flag possible damage during
+extracellular exposure. The rule did not match at boundary bonds 3 and 12;
+those non-matches do not prove the target is protected or cannot be released.
+The report cannot tell us how much intact target survives, whether it enters
+an APC, or whether it loads onto MHC. Coordinates refer to the complete
+sequence supplied for that construct.
 
 | Output file | What to inspect |
 |---|---|
@@ -74,12 +79,14 @@ always refer to the complete sequence supplied for that construct.
 | `target-summary.json` | Per-target flags, assessed and unassessed bonds, and missing expression, uptake, loading, or serum evidence. |
 | `placement-assessments.json` | Cuts at target boundaries versus cuts within the target, separately for each track. |
 | `processing-routes.csv` | Which processing contexts are primary, conditional, or not applicable for the declared delivery. These labels are not probabilities. |
-| `selected-mhc-windows.csv` | MHC windows drawn in the PDF. `display_rank` identifies each bar; the supplied percentile rank is a predictor output, not a presentation probability. |
+| `selected-mhc-windows.csv` | Supplied MHC windows drawn in the PDF, if any. `display_rank` identifies each bar; a percentile rank is a predictor output, not a presentation probability. |
 | `normalized-input.json`, `SHA256SUMS.json` | Exact inputs used and checksums for the run. |
 
-A supported cut means a track crossed *its own* declared threshold. Native
-scores from different models cannot be multiplied or compared as calibrated
-probabilities. An unassessed bond or missing route is not evidence of survival.
+A numerical site flag means a score crossed *that model's* declared threshold;
+a categorical flag records a motif match or source-reported site. Neither
+establishes that a cut occurs in vivo. Native scores from different models
+cannot be multiplied or compared as calibrated probabilities. An unassessed
+bond or missing route is not evidence of survival.
 
 ## Prepare a manifest
 
@@ -95,12 +102,20 @@ sequence. Declare `routing` as `cytosolic`, `secreted`, or
 translation product, not a validated vaccine ORF.
 
 Target and MHC-window `start`/`end` coordinates are **one-based, inclusive
-residue positions**. A cleavage track has one value per internal bond, so a
-sequence of length 23 needs 22 values. Bond 8 is between residues 8 and 9;
-`null` means that bond was not assessed. Do not add a terminal-bond value.
-For each track, name the model, route `context`, evidence type, units,
-provenance, and threshold if it has one. Retain the model's native scale and
-version instead of relabeling its score as a probability.
+residue positions**. A hand-written numerical track has one value per internal
+bond, so a sequence of length 23 needs 22 values. Bond 8 is between residues
+8 and 9; `null` means that bond was not numerically assessed. Do not add a
+terminal-bond value. Imported categorical results keep their `matched`,
+`not_matched`, or `reported` site statuses in canonical evidence even though
+their numerical scores are all `null`.
+For a hand-written numerical track, supply its model `name`, route `context`,
+`evidence_type`, native score `units`, provenance, and an optional threshold.
+For a `cleavage_json` reference, the tool output supplies the model fields and
+per-bond evidence; only `context` must be declared in the manifest. The
+referenced JSON must come from `mhctools cleavage --out` for the complete
+construct sequence, in the same directory as the manifest or at an absolute
+path. Native scores retain their own scale and version rather than becoming
+presentation probabilities.
 
 For an injected SLP, extracellular exposure and uptake are relevant;
 endolysosomal processing is a primary display context. Cytosolic

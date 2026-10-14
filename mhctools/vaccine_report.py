@@ -263,7 +263,45 @@ class VaccineReportInput:
 
     @classmethod
     def from_json(cls, path):
-        return cls.from_dict(json.loads(Path(path).read_text(encoding="utf-8")))
+        path = Path(path)
+        value = json.loads(path.read_text(encoding="utf-8"))
+        for construct in value.get("constructs", ()):
+            for index, track in enumerate(construct.get("cleavage_tracks", ())):
+                if "cleavage_json" not in track:
+                    continue
+                extra = set(track) - {"cleavage_json", "context", "model", "name", "threshold"}
+                if extra:
+                    raise ValueError(
+                        "Cleavage JSON reference has unsupported fields: %s"
+                        % ", ".join(sorted(extra)))
+                source = path.parent / track["cleavage_json"]
+                output = json.loads(source.read_text(encoding="utf-8"))
+                if output.get("schema_version") != 2:
+                    raise ValueError("Cleavage output must use schema_version 2")
+                matches = [
+                    result for result in output["results"]
+                    if result["peptide"]["sequence"] == construct["sequence"]
+                    and ("model" not in track or result["model"] == track["model"])
+                ]
+                if len(matches) != 1:
+                    raise ValueError(
+                        "Cleavage output %s needs exactly one result matching construct %s%s"
+                        % (source, construct["id"],
+                           " and model %s" % track["model"] if "model" in track else "")
+                    )
+                selected = dict(matches[0])
+                model = selected.pop("model")
+                if output["models"][model]["name"] != model:
+                    raise ValueError("Cleavage model metadata contradicts result name")
+                from .cleavage import CleavageResult
+                result = CleavageResult.from_dict({
+                    **selected, "model": output["models"][model],
+                })
+                construct["cleavage_tracks"][index] = asdict(CleavageTrack.from_result(
+                    result, track["context"], construct["sequence"],
+                    name=track.get("name"), threshold=track.get("threshold"),
+                ))
+        return cls.from_dict(value)
 
     def to_dict(self):
         return {
@@ -622,12 +660,14 @@ def _render_report_pdf(report, path, maximum_mhc_windows):
                     construct, mhc_class, maximum=maximum_mhc_windows))
                 for mhc_class in ("I", "II")
             }
+            no_mhc_windows = not any(lane_layout.values())
             header_y = {
-                mhc_class: 1.02 + 0.42 * (
-                    1 + max((lane for _, _, lane in assigned), default=0)
-                )
+                mhc_class: (1.02 + 0.42 * (1 + max(
+                    lane for _, _, lane in assigned)) if assigned else 0.78)
                 for mhc_class, assigned in lane_layout.items()
             }
+            if no_mhc_windows:
+                header_y["II"] = 0.47
             upper_base = header_y["I"] + 0.78
             lower_base = -(header_y["II"] + 0.78)
             # Margin past the outermost track line, whose curve spans 0.48. A
@@ -686,12 +726,21 @@ def _render_report_pdf(report, path, maximum_mhc_windows):
                     ax.text((window.start + window.end) / 2, y, label,
                             ha="center", va="center", fontsize=7.5,
                             fontweight="bold", color=colors[mhc_class], clip_on=True)
-                ax.text(0.35, sign * header_y[mhc_class],
+                if no_mhc_windows and mhc_class == "II":
+                    continue
+                if no_mhc_windows:
+                    heading = "No MHC windows supplied"
+                elif not assigned:
+                    heading = "MHC-%s: no windows supplied" % mhc_class
+                else:
+                    heading = (
                         "MHC-%s: %d drawn of %d eligible; bar number is the "
                         "selection rank in selected-mhc-windows.csv" % (
                             mhc_class, len(assigned),
                             sum(1 for item in construct.mhc_windows
-                                if item.mhc_class == mhc_class)),
+                                if item.mhc_class == mhc_class))
+                    )
+                ax.text(0.35, sign * header_y[mhc_class], heading,
                         ha="left", va="center", fontsize=9,
                         fontweight="bold", color=colors[mhc_class])
 

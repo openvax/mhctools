@@ -1,6 +1,5 @@
 from datetime import datetime, timezone
 import json
-import math
 from pathlib import Path
 
 import pytest
@@ -103,36 +102,87 @@ def test_generate_report_uses_timestamped_directory_and_checksums(tmp_path):
     assert json.loads((output / "target-summary.json").read_text())[0]['serum']['status'] == 'not_applicable'
 
 
-def test_documented_simple_manifest_matches_file_and_cli_runs(tmp_path, capsys,
-                                                              monkeypatch):
-    from mhctools.cli.vaccine_report import main
-    from matplotlib.axes import Axes
+def test_documented_simple_manifest_uses_actual_tool_output(tmp_path, capsys):
+    from mhctools.cli.cleavage import main as cleavage_main
+    from mhctools.cli.vaccine_report import main as report_main
 
     docs = Path(__file__).parents[1] / "docs"
     guide = (docs / "vaccine-reports.md").read_text()
     inline = guide.split("cat > vaccine-report.json <<'JSON'\n", 1)[1].split("\nJSON\n", 1)[0]
     source = docs / "vaccine-report-simple.json"
     assert json.loads(inline) == json.loads(source.read_text())
-
-    plotted_curves = []
-    original_plot = Axes.plot
-
-    def record_plot(self, x, y, *args, **kwargs):
-        if len(x) == 14:
-            plotted_curves.append(y)
-        return original_plot(self, x, y, *args, **kwargs)
-
-    monkeypatch.setattr(Axes, "plot", record_plot)
-    main(["--input", str(source), "--output-dir", str(tmp_path)])
+    manifest_path = tmp_path / "vaccine-report.json"
+    manifest_path.write_text(source.read_text())
+    cleavage_main(["--sequence", "AAAKIILNFTTLAAA", "--model", "mme-hydrophobic",
+                   "--out", str(tmp_path / "cleavage.json")])
+    report_main(["--input", str(manifest_path), "--output-dir", str(tmp_path)])
     output = Path(capsys.readouterr().out.strip())
     assert output.parent == tmp_path
     assert (output / "vaccine-processing-report.pdf").read_bytes().startswith(b"%PDF-")
     summary, = json.loads((output / "placement-assessments.json").read_text())
-    assert summary["internal_supported_bonds"] == [7]
-    assert summary["boundary_supported_bonds"] == [3, 12]
-    assert len(plotted_curves) == 1
-    assert {bond for bond, value in enumerate(plotted_curves[0], start=1)
-            if not math.isnan(value)} == {3, 7, 12}
+    assert summary["internal_supported_bonds"] == [4, 5, 6, 8, 11]
+    assert summary["boundary_supported_bonds"] == []
+    assert summary["route_relevance"] == "primary"
+    saved = VaccineReportInput.from_dict(json.loads(
+        (output / "normalized-input.json").read_text()))
+    track, = saved.constructs[0].cleavage_tracks
+    assert track.name == "mme-hydrophobic"
+    assert track.evidence_type == "motif_rule"
+    assert track.evidence.model.name == "mme-hydrophobic"
+    assert track.evidence.model.references
+    assert track.scores == (None,) * 14
+
+
+def test_cleavage_json_reference_requires_a_unique_matching_result(tmp_path):
+    from mhctools.cli.cleavage import main as cleavage_main
+
+    manifest_path = tmp_path / "report.json"
+    value = json.loads((Path(__file__).parents[1] / "docs" /
+                        "vaccine-report-simple.json").read_text())
+    manifest_path.write_text(json.dumps(value))
+    output_path = tmp_path / "cleavage.json"
+    cleavage_main(["--sequence", "AAAKIILNFTTLAAA", "--model", "mme-hydrophobic",
+                   "--out", str(output_path)])
+    output = json.loads(output_path.read_text())
+    output["results"].append(output["results"][0])
+    output_path.write_text(json.dumps(output))
+    with pytest.raises(ValueError, match="exactly one result"):
+        VaccineReportInput.from_json(manifest_path)
+    output["results"] = output["results"][:1]
+    output["results"][0]["peptide"]["sequence"] = "AAAAAAAAAAAAAAA"
+    output_path.write_text(json.dumps(output))
+    with pytest.raises(ValueError, match="exactly one result"):
+        VaccineReportInput.from_json(manifest_path)
+
+
+def test_cleavage_json_model_selection_and_metadata_are_checked(tmp_path):
+    from mhctools.cli.cleavage import main as cleavage_main
+
+    value = json.loads((Path(__file__).parents[1] / "docs" /
+                        "vaccine-report-simple.json").read_text())
+    manifest_path = tmp_path / "report.json"
+    output_path = tmp_path / "cleavage.json"
+    cleavage_main(["--sequence", "AAAKIILNFTTLAAA", "--model", "mme-hydrophobic",
+                   "--model", "fap-endo-gp", "--out", str(output_path)])
+    manifest_path.write_text(json.dumps(value))
+    with pytest.raises(ValueError, match="exactly one result"):
+        VaccineReportInput.from_json(manifest_path)
+    track = value["constructs"][0]["cleavage_tracks"][0]
+    track["model"] = "mme-hydrophobic"
+    manifest_path.write_text(json.dumps(value))
+    selected = VaccineReportInput.from_json(manifest_path)
+    assert selected.constructs[0].cleavage_tracks[0].name == "mme-hydrophobic"
+    track["evidence_type"] = "quantitative_model"
+    manifest_path.write_text(json.dumps(value))
+    with pytest.raises(ValueError, match="unsupported fields"):
+        VaccineReportInput.from_json(manifest_path)
+    track.pop("evidence_type")
+    output = json.loads(output_path.read_text())
+    output["models"]["mme-hydrophobic"]["name"] = "different-model"
+    output_path.write_text(json.dumps(output))
+    manifest_path.write_text(json.dumps(value))
+    with pytest.raises(ValueError, match="metadata contradicts"):
+        VaccineReportInput.from_json(manifest_path)
 
 
 def test_compact_summary_keeps_internal_and_release_cuts_and_conditional_routes_separate():
