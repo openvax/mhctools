@@ -136,13 +136,13 @@ class CleavageModel:
     name: str
     version: str
     enzyme: str
+    uniprot: Optional[str]
     species: str
     compartments: Tuple[str, ...]
     evidence: str
     references: Tuple[str, ...]
     assay: str
     limitations: str
-    uniprot: Optional[str] = None
     score_name: Optional[str] = None
     score_units: Optional[str] = None
     scored_endpoint: Optional[str] = None
@@ -153,6 +153,13 @@ class CleavageModel:
     def to_dict(self):
         """Keep only metadata applicable to this evidence type."""
         return {key: value for key, value in asdict(self).items() if value is not None}
+
+    @classmethod
+    def from_dict(cls, value):
+        """Restore model metadata, including rules without a UniProt ID."""
+        value = dict(value)
+        value.setdefault("uniprot", None)
+        return cls(**value)
 
     def __post_init__(self):
         object.__setattr__(self, "compartments", tuple(self.compartments))
@@ -289,7 +296,7 @@ class CleavageResult:
         """Restore serialized evidence, rejecting contradictory source bonds."""
         value = dict(value)
         peptide = CleavageInput(**value.pop("peptide"))
-        model = CleavageModel(**value.pop("model"))
+        model = CleavageModel.from_dict(value.pop("model"))
         sites = []
         for record in value.pop("sites", ()):
             record = dict(record)
