@@ -14,7 +14,7 @@ from mechanism_scorecards import (
     core_bounds, enriched_assessments, mechanism_catalog, read_csv, sha256,
     verified_source, write_csv,
 )
-from mhctools import CleaveNet, CleavageInput, PeptideInput, Pepsickle
+from mhctools import CleaveNet, PeptideInput, Pepsickle
 from mhctools.cleavenet import ENZYMES
 
 
@@ -82,7 +82,7 @@ def bond_rows(records, results):
     parents = {r["sequence_record_id"]: r for r in records}
     rows = []
     for result in results:
-        record = parents[result.peptide.source_id]
+        record = parents[result.peptide.source_sequence_name]
         if result.peptide.sequence != record["sequence"] or result.peptide.source_start != 0:
             raise ValueError("Cleavage input identity mismatch")
         bounds = core_bounds(record)
@@ -116,8 +116,8 @@ def run(source, output_root):
     for result in mmp_native:
         if result.pop("inventory") != inventory or result.pop("runtime") != runtime:
             raise ValueError("CleaveNet batch changed runtime identity")
-    peptides = [CleavageInput(r["sequence"], n_term="unknown", c_term="unknown",
-                             source_id=r["sequence_record_id"]) for r in records]
+    peptides = [PeptideInput(r["sequence"], n_term="unknown", c_term="unknown",
+                             source_sequence_name=r["sequence_record_id"]) for r in records]
     peps_results = []
     for proteasome in ("C", "I"):
         print("Running human Pepsickle digestion " + proteasome, flush=True)
@@ -128,7 +128,8 @@ def run(source, output_root):
     from mhctools.itcell_cleavage import ITCELL_MODELS, ITCellCleavage
     cat_results = []
     # H assesses only the initial, exposed N-terminal bond; no cascade simulation.
-    cat_inputs = [CleavageInput(p.sequence, source_id=p.source_id) for p in peptides]
+    cat_inputs = [PeptideInput(p.sequence, source_sequence_name=p.source_sequence_name)
+                  for p in peptides]
     for settings in ITCELL_MODELS.values():
         predictor = ITCellCleavage(**settings)
         cat_results.extend(predictor.predict(p) for p in cat_inputs)

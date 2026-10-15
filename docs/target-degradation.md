@@ -68,7 +68,7 @@ a flank cut trims its precursor. These are consequences **if the cut occurs**, n
 probabilities. A native substrate score, purified-enzyme depletion estimate and
 partial motif match must retain different labels. No universal score threshold
 or cross-enzyme sum establishes a serum rate. For conditional fragments,
-`CleavageInput.source_start` preserves original coordinates and new termini.
+`PeptideInput.source_start` preserves original coordinates and new termini.
 
 Use short solid red marks between residues for candidate bonds, highlight the target,
 and list the responsible model and evidence type. Separate extracellular

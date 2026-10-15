@@ -11,7 +11,7 @@ def annotate_target_cleavage(target, results):
     ----------
     target : DegradationTarget
         Exact target interval in original-source coordinates. For reassessed
-        fragments, ``CleavageInput.source_start`` locates their new termini.
+        fragments, ``PeptideInput.source_start`` locates their new termini.
     results : iterable of CleavageResult
         Native evidence for the same exact peptide, chemistry and occurrence.
         No predictor is run and no model score threshold is applied here.

@@ -7,7 +7,7 @@ import json
 
 import pytest
 
-from mhctools import CleavageInput, DPP4qPISA
+from mhctools import PeptideInput, DPP4qPISA
 
 
 @pytest.mark.parametrize("triplet,expected", [
@@ -34,11 +34,11 @@ def test_only_exposed_terminus_is_assessed():
 
 
 @pytest.mark.parametrize("peptide", [
-    CleavageInput("HAE", n_term="acetylated"),
-    CleavageInput("HAE", n_term="unknown"),
-    CleavageInput("HAE", c_term="amidated"),
-    CleavageInput("HAE", c_term="unknown"),
-    CleavageInput("H"), CleavageInput("HA"),
+    PeptideInput("HAE", n_term="acetylated"),
+    PeptideInput("HAE", n_term="unknown"),
+    PeptideInput("HAE", c_term="amidated"),
+    PeptideInput("HAE", c_term="unknown"),
+    PeptideInput("H"), PeptideInput("HA"),
 ])
 def test_unsupported_inputs_abstain(peptide):
     result = DPP4qPISA().predict(peptide)

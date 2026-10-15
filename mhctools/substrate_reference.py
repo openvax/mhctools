@@ -5,7 +5,8 @@ from functools import lru_cache
 
 from ._resources import load_json_resource
 from .cleavage import (
-    CleavageInput, CleavageModel, CleavageResult, CleavageSite, coerce_peptide)
+    CleavageModel, CleavageResult, CleavageSite, coerce_peptide)
+from .peptide_input import PeptideInput
 
 
 #: Fields every entry in a reference catalog's ``cases`` list must carry.
@@ -47,7 +48,7 @@ class PeptidaseSubstrateReference:
         for index, case in enumerate(cases):
             _require_fields(case, _REQUIRED_CASE_FIELDS,
                             "Reference catalog case %d for %r" % (index, self.model.name))
-            peptide = CleavageInput(case["sequence"], case["n_term"], case["c_term"])
+            peptide = PeptideInput(case["sequence"], case["n_term"], case["c_term"])
             key = (peptide.sequence, peptide.n_term, peptide.c_term)
             if key in self._cases:
                 raise ValueError("Conflicting or repeated chemical form in reference catalog")

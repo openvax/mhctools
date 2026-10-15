@@ -41,7 +41,7 @@ class DPP4qPISA:
         scored_endpoint="substrate_depletion")
 
     def predict(self, peptide):
-        """Assess only bond 2 of a :class:`CleavageInput` or canonical string."""
+        """Assess only bond 2 of a PeptideInput or canonical string."""
         peptide = coerce_peptide(peptide)
         reason = None
         if peptide.n_term != "free":

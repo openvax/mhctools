@@ -4,7 +4,7 @@ import argparse
 import json
 from pathlib import Path
 
-from mhctools.cleavage import CleavageInput
+from mhctools.peptide_input import PeptideInput
 from mhctools.peptidases import cleavage_models, predict_cleavage
 
 from .errors import CLI_ERROR_TYPES, cli_error_message
@@ -36,7 +36,7 @@ def _format_models(models):
 
 
 def _compact_report(predictions):
-    """Build schema v3 with model metadata stored once per model name."""
+    """Build schema v4 with model metadata stored once per model name."""
     models = {}
     results = []
     for prediction in predictions:
@@ -48,7 +48,7 @@ def _compact_report(predictions):
         models[name] = model
         peptide = row.pop("peptide")
         results.append({"peptide": peptide, "model": name, **row})
-    return {"schema_version": 3, "models": models, "results": results}
+    return {"schema_version": 4, "models": models, "results": results}
 
 
 def _round_floats(value):
@@ -160,8 +160,9 @@ def main(argv=None):
             predictions = [
                 prediction
                 for seq in args.sequence
-                for prediction in predict_cleavage(CleavageInput(
-                    seq, n_term, c_term, args.source_id, source_start),
+                for prediction in predict_cleavage(PeptideInput(
+                    seq, n_term, c_term, source_sequence_name=args.source_id,
+                    source_start=source_start),
                     models=args.model, compartment=args.compartment,
                     enzyme_states=states)]
             result = _compact_report(predictions)

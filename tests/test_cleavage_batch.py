@@ -8,7 +8,7 @@ import sys
 import pytest
 
 from mhctools import (
-    CleavageInput, CleavageResult, get_cleavage_model, load_cleavage_batch,
+    PeptideInput, CleavageResult, get_cleavage_model, load_cleavage_batch,
     normalize_cleavage_input, predict_cleavage_batch, write_cleavage_batch,
 )
 from mhctools.cli.script import main
@@ -92,6 +92,20 @@ def test_legacy_batch_output_still_loads(tmp_path):
     assert load_cleavage_batch(path) == legacy
 
 
+def test_schema_two_batch_with_old_peptide_fields_still_loads(tmp_path):
+    legacy = deepcopy(run_request(request()))
+    legacy["schema_version"] = 2
+    for row in legacy["assessments"]:
+        if row["result"] is None:
+            continue
+        peptide = row["result"]["peptide"]
+        peptide["source_id"] = peptide.pop("source_sequence_name")
+        peptide.setdefault("source_start", 0)
+    path = tmp_path / "schema-two.json"
+    path.write_text(json.dumps(legacy))
+    assert load_cleavage_batch(path) == legacy
+
+
 def test_native_window_does_not_become_a_free_peptide():
     report = run_request(request())
     native = [r for r in report["assessments"] if r["input_id"] == "native-a"]
@@ -164,7 +178,7 @@ def test_saved_evidence_corruption_is_rejected(tmp_path):
     path.write_text(json.dumps(report))
     with pytest.raises(ValueError, match="missing requested"):
         load_cleavage_batch(path)
-    result = get_cleavage_model("cpn-basic").predict(CleavageInput("RPPGFSPFR", source_start=12))
+    result = get_cleavage_model("cpn-basic").predict(PeptideInput("RPPGFSPFR", source_start=12))
     assert CleavageResult.from_dict(result.to_dict()) == result
     corrupted = result.to_dict()
     corrupted["sites"][0]["source_bond"] = 0

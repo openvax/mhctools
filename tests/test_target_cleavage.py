@@ -3,13 +3,13 @@
 import pytest
 
 from mhctools import (
-    CleavageInput, CleavageModel, CleavageResult, CleavageSite,
+    PeptideInput, CleavageModel, CleavageResult, CleavageSite,
     DegradationTarget, annotate_target_cleavage, predict_cleavage,
 )
 
 
 def test_new_termini_and_original_coordinates_distinguish_loss_from_release():
-    peptide = CleavageInput("APACDEFG", source_id="synthetic", source_start=4)
+    peptide = PeptideInput("APACDEFG", source_sequence_name="synthetic", source_start=4)
     model = CleavageModel(
         "synthetic", "1", "synthetic enzyme", "", "synthetic", ("extracellular",),
         "substrate_reference", ("https://example.org/assay",), "synthetic assay", "no kinetics")
@@ -52,8 +52,8 @@ def test_missing_scope_and_nonmatch_do_not_become_protection():
 
 
 def test_different_chemistry_occurrences_and_invalid_targets_are_rejected():
-    a = CleavageInput("APACDEFG", source_id="one")
-    b = CleavageInput("APACDEFG", source_id="two")
+    a = PeptideInput("APACDEFG", source_sequence_name="one")
+    b = PeptideInput("APACDEFG", source_sequence_name="two")
     results = [predict_cleavage(x, models=("fap-dipeptidyl",))[0] for x in (a, b)]
     with pytest.raises(ValueError, match="Do not mix"):
         annotate_target_cleavage(DegradationTarget("target", 2, 6), results)

@@ -58,13 +58,14 @@ This API describes individual peptide bonds. Bond `b` splits
 
 Inputs describe canonical, linear L-peptides. Strings assume free N and C
 termini. Use the shared `PeptideInput` to record `n_term="acetylated"` or
-`c_term="amidated"`, or `unknown`. The older `CleavageInput` remains accepted
-for callers that use its `fragment()` method or existing result JSON. Cleavage
-models accept `PeptideInput` when its fields can be represented by a cleavage
-result: sequence, termini, one source name/occurrence ID and source offset.
-Attachments, context, gene and species provenance are rejected explicitly;
-they are not silently discarded. The initial qPISA implementation abstains on
-modified termini because they are outside its supported domain. Other
+`c_term="amidated"`, or `unknown`. `PeptideInput.fragment()` describes a
+conditional product with explicit terminal chemistry and retained source
+coordinates. Cleavage results preserve its context and source provenance;
+context is descriptive and does not recalibrate a predictor. Attached peptides
+are rejected because these models have not been validated for their chemistry.
+Older cleavage result JSON with `source_id` is still readable. The initial
+qPISA implementation abstains on modified termini because they are outside
+its supported domain. Other
 modifications, D-residues, cyclization and conjugates are unsupported; do not
 strip their chemistry to obtain a score.
 
@@ -73,3 +74,8 @@ DPP4 site. To ask about a hypothesized product, use
 `parent.fragment(start, end, n_term="free", c_term="free")` and predict that
 fragment. The source offset is retained. This conditional analysis does not
 predict formation of the fragment, cleavage order, rates or competition.
+
+In mhctools 4, `PeptideInput` replaces `CleavageInput`. For Python callers,
+rename `source_id` to `source_sequence_name`; the `fragment()` call stays the
+same. Scalar cleavage JSON now uses schema version 4 and batch result JSON
+uses version 3. Readers continue to accept older result files.

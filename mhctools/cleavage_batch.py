@@ -11,7 +11,8 @@ import html
 import json
 from pathlib import Path
 
-from .cleavage import CleavageInput, CleavageModel, CleavageResult
+from .cleavage import CleavageModel, CleavageResult
+from .peptide_input import PeptideInput
 from .peptidases import cleavage_models, get_cleavage_model
 from .substrate_reference import PeptidaseSubstrateReference
 
@@ -71,7 +72,7 @@ def normalize_cleavage_input(value):
     if scope not in ("native_window", "protein", "construct"):
         raise ValueError("scope must be native_window, protein or construct")
     if "sequence" not in value:
-        peptide = CleavageInput(value["peptide"]).sequence
+        peptide = PeptideInput(value["peptide"]).sequence
         n_flank, c_flank = value["n_flank"], value["c_flank"]
         if not isinstance(n_flank, str) or not isinstance(c_flank, str):
             raise ValueError("Flanks must be strings, including explicit empty strings")
@@ -111,8 +112,9 @@ def normalize_cleavage_input(value):
 
 
 def _peptide(value):
-    return CleavageInput(**{key: value[key] for key in (
-        "sequence", "n_term", "c_term", "source_id", "source_start")})
+    return PeptideInput(
+        value["sequence"], n_term=value["n_term"], c_term=value["c_term"],
+        source_sequence_name=value["source_id"], source_start=value["source_start"])
 
 
 def _normalize_scenarios(scenarios):
@@ -236,7 +238,7 @@ def predict_cleavage_batch(inputs, scenarios, *, predictors=None, reference_pane
                     n_term=fragment["n_term"], c_term=fragment["c_term"])
                 for name in scenario["models"]:
                     state = scenario["enzyme_states"].get(catalog[name].enzyme)
-                    model_input = replace(peptide, source_id=None, source_start=0)
+                    model_input = replace(peptide, source_sequence_name=None, source_start=0)
                     model_key = (name, state)
                     groups.setdefault(model_key, {}).setdefault(model_input, None)
                     row = dict(input_id=value["id"], scenario_id=scenario["id"],
@@ -288,7 +290,7 @@ def predict_cleavage_batch(inputs, scenarios, *, predictors=None, reference_pane
                 raise
             row.update(status="failed", error="%s: %s" % (type(error).__name__, error))
         assessments.append(row)
-    return _json_copy(dict(schema_version=2, inputs=inputs, scenarios=scenarios,
+    return _json_copy(dict(schema_version=3, inputs=inputs, scenarios=scenarios,
                           reference_panels=reference_panels,
                           assessments=assessments, coverage_gaps={
                               s["id"]: _COVERAGE_GAPS[s["context"]] for s in scenarios}))
@@ -297,7 +299,7 @@ def predict_cleavage_batch(inputs, scenarios, *, predictors=None, reference_pane
 def load_cleavage_batch(path):
     """Read a saved assessment without inference, validating result coordinates."""
     value = json.loads(Path(path).read_text(encoding="utf-8"))
-    if value.get("schema_version") not in (1, 2):
+    if value.get("schema_version") not in (1, 2, 3):
         raise ValueError("Unsupported cleavage batch schema version")
     inputs = {v["id"]: normalize_cleavage_input(v) for v in value["inputs"]}
     scenarios = {s["id"]: s for s in _normalize_scenarios(value["scenarios"])}

@@ -4,7 +4,7 @@ import hashlib
 
 import pytest
 
-from mhctools import CleavageInput, ERAMERCleavage
+from mhctools import PeptideInput, ERAMERCleavage
 
 
 @pytest.fixture
@@ -27,7 +27,7 @@ def test_one_step_score_and_loaded_artifact_identity(pwm):
     predictor = ERAMERCleavage(pwm_path=pwm)
     # The in-memory snapshot retains its identity even if the file changes.
     pwm.write_bytes(b"changed after loading")
-    result = predictor.predict(CleavageInput("LAAAFGAAA", source_start=40))
+    result = predictor.predict(PeptideInput("LAAAFGAAA", source_start=40))
     assert result.model.version == "pwm-sha256:" + digest
     assert len(result.sites) == 1
     assert result.sites[0].bond == 1
@@ -38,7 +38,7 @@ def test_one_step_score_and_loaded_artifact_identity(pwm):
 
 def test_erap_domain_and_terminal_chemistry(pwm):
     predictor = ERAMERCleavage(pwm_path=pwm)
-    for peptide in ("A" * 8, "A" * 17, CleavageInput("A" * 9, n_term="acetylated")):
+    for peptide in ("A" * 8, "A" * 17, PeptideInput("A" * 9, n_term="acetylated")):
         result = predictor.predict(peptide)
         assert result.unsupported_reason
         assert not result.sites

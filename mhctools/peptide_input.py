@@ -11,7 +11,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import asdict, dataclass, fields
+from dataclasses import asdict, dataclass, fields, replace
 import hashlib
 import json
 import math
@@ -205,11 +205,39 @@ class PeptideInput:
         """Full record identity including occurrence and source provenance."""
         return _identity_sha256(self.to_dict())
 
-    def to_dict(self):
-        """Return a JSON-friendly representation."""
+    def to_dict(self, *, compact=False):
+        """Return a JSON-friendly representation, optionally omitting defaults."""
         result = asdict(self)
-        result["context"] = self.context.to_dict() if self.context else None
+        if compact:
+            defaults = {
+                "attachments": (), "occurrence_id": None,
+                "source_sequence_name": None, "source_start": 0,
+                "source_gene": None, "source_species": None,
+                "context": None, "schema_version": 1,
+            }
+            result = {key: value for key, value in result.items()
+                      if key not in defaults or value != defaults[key]}
         return result
+
+    def fragment(self, start, end, *, n_term, c_term):
+        """Describe a conditional fragment with explicitly supplied termini.
+
+        Partial fragments of attached peptides cannot be described without
+        a positional attachment map, so they are rejected rather than
+        silently treated as unmodified.
+        """
+        if (type(start) is not int or type(end) is not int or
+                not 0 <= start < end <= len(self.sequence)):
+            raise ValueError("Invalid fragment interval")
+        if start == 0 and n_term != self.n_term:
+            raise ValueError("Retained N terminus must preserve chemistry")
+        if end == len(self.sequence) and c_term != self.c_term:
+            raise ValueError("Retained C terminus must preserve chemistry")
+        if self.attachments and (start != 0 or end != len(self.sequence)):
+            raise ValueError("Cannot locate attachments in a partial fragment")
+        return replace(self, sequence=self.sequence[start:end],
+                       n_term=n_term, c_term=c_term,
+                       source_start=self.source_start + start)
 
     @classmethod
     def from_dict(cls, value):
