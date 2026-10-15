@@ -54,9 +54,10 @@ class CleavageModel:
         A broad flag with many exceptions. A match constrains little and a
         non-match almost nothing.
 
-    ``strictness_basis`` names the source observation behind that grade, so
-    the grade is attributable rather than an opinion. Both fields belong to
-    motif rules only; scored models and source references carry neither.
+    ``strictness_basis`` names the source observation behind an optional
+    grade, so the grade is attributable rather than an opinion. Both fields
+    belong to motif rules only; scored models and source references carry
+    neither.
 
     ``scored_endpoint`` names the :mod:`mhctools.benchmark` endpoint that a
     ``quantitative_model``'s native score answers (for example
@@ -113,10 +114,13 @@ class CleavageModel:
         elif self.scored_endpoint is not None:
             raise ValueError("Only quantitative models carry a benchmark endpoint for their score")
         if self.evidence == "motif_rule":
-            if self.motif_strictness not in ("required", "preferred", "permissive"):
+            if self.motif_strictness is not None and self.motif_strictness not in (
+                    "required", "preferred", "permissive"):
                 raise ValueError(
                     "Motif rules must grade strictness as required, preferred or permissive")
-            if not self.strictness_basis:
+            if self.motif_strictness is None and self.strictness_basis is not None:
+                raise ValueError("A strictness basis requires a grade")
+            if self.motif_strictness is not None and not self.strictness_basis:
                 raise ValueError("A strictness grade requires the source observation behind it")
             if self.rule is not None and (
                     not isinstance(self.rule, str) or not self.rule.strip()):
@@ -172,6 +176,20 @@ class CleavageResult:
     unsupported_reason: Optional[str] = None
     conditions: Tuple[Tuple[str, str], ...] = ()
     substrate_observation: Optional[str] = None
+
+    @property
+    def pattern_mask(self):
+        """Bond-aligned motif matches; ``None`` marks an unassessed bond.
+
+        Entry ``b - 1`` describes the bond after residue ``b``. Quantitative
+        and source-reference models have no motif mask and return ``None``.
+        """
+        if self.model.evidence != "motif_rule":
+            return None
+        mask = [None] * (len(self.peptide.sequence) - 1)
+        for site in self.sites:
+            mask[site.bond - 1] = site.match
+        return tuple(mask)
 
     def __post_init__(self):
         if not isinstance(self.peptide, PeptideInput):

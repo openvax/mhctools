@@ -42,6 +42,10 @@ print(result.to_dict())      # input, model, assay, limitations and source bonds
 For a motif rule, `site.match` is `1` when the documented pattern matches
 and `0` when it does not. It is not the chance that the enzyme cuts the bond;
 `site.score` remains reserved for a quantitative model's native output.
+`result.pattern_mask` gives the same decisions aligned to every peptide bond:
+entry `b - 1` describes bond `b`, and `None` means that bond was not assessed.
+An internal rule fills the mask; a terminal rule assesses only the currently
+exposed bond. Non-motif results have no pattern mask (`None`).
 
 Or run the whole panel from the command line:
 

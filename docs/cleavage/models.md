@@ -35,7 +35,7 @@ from mhctools import PeptideInput, motif_rule
 nep = motif_rule(
     name="study-nep", enzyme="MME",
     references="https://pubmed.ncbi.nlm.nih.gov/2417254/",
-    topology="internal", left=".", right="[FILY]",
+    topology="internal", right="[FILY]",
     strictness="preferred",
     basis="Reported substance P cuts precede Phe or Leu",
     assay="Purified human kidney NEP acting on substance P",
@@ -44,16 +44,22 @@ nep = motif_rule(
 )
 peptide = PeptideInput("RPKPQQFFGLM", c_term="amidated")
 result = nep.predict(peptide)
-matches = [site.bond for site in result.sites if site.match]  # [6, 7, 9]
+mask = result.pattern_mask  # (0, 0, 0, 0, 0, 1, 1, 0, 1, 0)
+matches = [bond for bond, match in enumerate(mask, 1) if match]  # [6, 7, 9]
 ```
 
 `left` and `right` are Python regexes for the residues before and after each
-candidate bond. For a terminal enzyme, use `topology="n_terminal"` or
-`"c_terminal"` and state how many residues it removes with `removed=`.
+candidate bond. Omit a flank or pass `None` when it is unconstrained. In the
+example, `[FILY]` means one of those four residues immediately after the bond;
+`FILY` without brackets would require all four in order. For a terminal
+enzyme, use `topology="n_terminal"` or `"c_terminal"` and state how many
+residues it removes with `removed=`.
 `motif_rule()` also accepts optional UniProt accession, species, compartment,
-length, terminal chemistry and activation constraints. A custom rule reports
-binary motif matches, never numerical cleavage probabilities. The built-in
-`mme-hydrophobic` rule already covers the example above; custom rules should
+length, terminal chemistry and activation constraints. A custom rule can omit
+`strictness` and `basis`; if it assigns a grade, it must give the source
+observation behind that grade. Grades do not change pattern matches. A custom
+rule reports binary motif matches, never numerical cleavage probabilities.
+The built-in `mme-hydrophobic` rule already covers the example above; custom rules should
 retain the assay and limits supported by their own references.
 
 The default panel evaluates all 39 built-in models and returns separate
