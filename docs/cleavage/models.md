@@ -24,6 +24,38 @@ from mhctools import predict_cleavage
 results = predict_cleavage("TSGPNQ", models=["fap-endo-gp", "prep-pro"])
 ```
 
+### Define a sourced motif rule
+
+Use `motif_rule()` to make a rule outside the built-in catalog. It returns a
+predictor, so no registry edit is needed:
+
+```python
+from mhctools import PeptideInput, motif_rule
+
+nep = motif_rule(
+    name="study-nep", enzyme="MME",
+    references="https://pubmed.ncbi.nlm.nih.gov/2417254/",
+    topology="internal", left=".", right="[FILY]",
+    strictness="preferred",
+    basis="Reported substance P cuts precede Phe or Leu",
+    assay="Purified human kidney NEP acting on substance P",
+    limitations="Other bonds and substrates can be cleaved",
+    c_chemistry=("free", "amidated"),
+)
+peptide = PeptideInput("RPKPQQFFGLM", c_term="amidated")
+result = nep.predict(peptide)
+matches = [site.bond for site in result.sites if site.match]  # [6, 7, 9]
+```
+
+`left` and `right` are Python regexes for the residues before and after each
+candidate bond. For a terminal enzyme, use `topology="n_terminal"` or
+`"c_terminal"` and state how many residues it removes with `removed=`.
+`motif_rule()` also accepts optional UniProt accession, species, compartment,
+length, terminal chemistry and activation constraints. A custom rule reports
+binary motif matches, never numerical cleavage probabilities. The built-in
+`mme-hydrophobic` rule already covers the example above; custom rules should
+retain the assay and limits supported by their own references.
+
 The default panel evaluates all 39 built-in models and returns separate
 results. `--model` and `--sequence` can be repeated. `--list-models` prints a
 compact discovery table; add `--json` for its full machine-readable catalog.

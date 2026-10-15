@@ -5,7 +5,10 @@ import json
 
 import pytest
 
-from mhctools import CleavageInput, CleavageResult, CleavageSite, DPP4qPISA
+from mhctools import (
+    CleavageInput, CleavageResult, CleavageSite, DPP4qPISA,
+    PeptideContext, PeptideInput, get_cleavage_model,
+)
 
 
 @pytest.mark.parametrize("sequence", ["", "hap", " HAP", "HAP\n", "HAX", "HAP-amide", None])
@@ -132,12 +135,38 @@ def test_coerce_peptide_is_shared_by_every_predictor():
     assert isinstance(peptide, CleavageInput) and peptide.sequence == "HAP"
     same = coerce_peptide(peptide)
     assert same is peptide
-    with pytest.raises(TypeError, match="CleavageInput or canonical peptide string"):
+    with pytest.raises(TypeError, match="PeptideInput, CleavageInput or canonical peptide string"):
         coerce_peptide(("H", "A", "P"))
-    with pytest.raises(TypeError, match="CleavageInput or canonical peptide string"):
+    with pytest.raises(TypeError, match="PeptideInput, CleavageInput or canonical peptide string"):
         coerce_peptide(None)
     for predictor in (DPP4qPISA(),):
         assert predictor.predict("HAE").sites[0].bond == 2
+
+
+def test_general_peptide_input_preserves_supported_cleavage_fields():
+    input_peptide = PeptideInput(
+        "RPKPQQFFGLM", c_term="amidated", source_sequence_name="substance P",
+        source_start=20)
+    result = get_cleavage_model("mme-hydrophobic").predict(input_peptide)
+    assert result.peptide == CleavageInput(
+        "RPKPQQFFGLM", c_term="amidated", source_id="substance P",
+        source_start=20)
+    assert {site["source_bond"] for site in result.to_dict()["sites"]
+            if site["match"]} == {26, 27, 29}
+    assert CleavageResult.from_dict(result.to_dict()) == result
+    assert get_cleavage_model("ace-dipeptidyl").predict(input_peptide).unsupported_reason
+
+
+@pytest.mark.parametrize("kwargs,reason", [
+    ({"attachments": (("residue:1", "FITC"),)}, "attachments or context"),
+    ({"context": PeptideContext(matrix="serum")}, "attachments or context"),
+    ({"source_gene": "TAC1"}, "gene or species"),
+    ({"source_species": "Homo sapiens"}, "gene or species"),
+    ({"occurrence_id": "one", "source_sequence_name": "TAC1"}, "one source_id"),
+])
+def test_general_peptide_input_never_silently_drops_fields(kwargs, reason):
+    with pytest.raises(ValueError, match=reason):
+        get_cleavage_model("mme-hydrophobic").predict(PeptideInput("RPKPQQFFGLM", **kwargs))
 
 
 def test_non_quantitative_evidence_rejects_numerical_scores():

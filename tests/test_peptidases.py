@@ -5,9 +5,42 @@ import json
 import pytest
 
 from mhctools import (
-    CleavageInput, cleavage_models, get_cleavage_model, predict_cleavage,
+    CleavageInput, CleavageResult, PeptideInput, cleavage_models, get_cleavage_model,
+    motif_rule, predict_cleavage,
 )
 from mhctools.cli.script import main
+
+
+def test_public_motif_rule_uses_shared_scientific_contract():
+    rule = motif_rule(
+        name="source-nep-preference", enzyme="MME",
+        references="https://pubmed.ncbi.nlm.nih.gov/2417254/",
+        topology="internal", left=".", right="[FILY]",
+        assay="Purified human kidney NEP cleavage of substance P",
+        limitations="Other contexts may also be cleaved",
+        strictness="preferred",
+        basis="The reported substance P sites have Phe or Leu after the bond",
+        c_chemistry=("free", "amidated"))
+    peptide = PeptideInput("RPKPQQFFGLM", c_term="amidated")
+    result = rule.predict(peptide)
+    assert rule.model.motif_strictness == "preferred"
+    assert {s.bond for s in result.sites if s.match} == {6, 7, 9}
+    assert all(s.score is None for s in result.sites)
+    assert result.to_dict()["model"]["rule"] == ".|[FILY]"
+    assert "uniprot" not in result.to_dict()["model"]
+    assert CleavageResult.from_dict(result.to_dict()) == result
+
+
+def test_public_terminal_rule_infers_a_valid_minimum_length():
+    rule = motif_rule(
+        name="study-ace-terminal", enzyme="ACE",
+        references="https://pubmed.ncbi.nlm.nih.gov/2417254/",
+        topology="c_terminal", removed=2, left=".", right="..",
+        strictness="permissive", basis="ACE removed a terminal dipeptide from neurotensin",
+        assay="Purified human renal ACE and neurotensin",
+        limitations="Sequence and chloride effects are omitted")
+    assert rule.min_length == 3
+    assert rule.predict("PYIL").sites[0].bond == 2
 
 
 @pytest.mark.parametrize("model,sequence,bond", [
