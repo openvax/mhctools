@@ -97,7 +97,7 @@ def motif_rule(*, name, enzyme, references, topology, left, right, strictness,
     ``references``, the assay and limitations, and a source-backed
     ``strictness`` grade (``required``, ``preferred`` or ``permissive``).
     The returned predictor accepts strings, ``PeptideInput`` and legacy
-    ``CleavageInput`` records. A match is not a cleavage probability.
+    ``PeptideInput`` records. A match is not a cleavage probability.
     """
     if isinstance(references, str):
         references = (references,)

@@ -5,7 +5,7 @@ import json
 import pytest
 
 from mhctools import (
-    CleavageInput, CleavageResult, PeptideInput, cleavage_models, get_cleavage_model,
+    PeptideInput, CleavageResult, cleavage_models, get_cleavage_model,
     motif_rule, predict_cleavage,
 )
 from mhctools.cli.script import main
@@ -56,7 +56,7 @@ def test_public_terminal_rule_infers_a_valid_minimum_length():
     ("erap2-basic", "RSLYNTVATL", 1),
 ])
 def test_recognition_bonds(model, sequence, bond):
-    result = get_cleavage_model(model).predict(CleavageInput(sequence, source_start=20))
+    result = get_cleavage_model(model).predict(PeptideInput(sequence, source_start=20))
     assert result.unsupported_reason is None
     site = next(s for s in result.sites if s.bond == bond)
     assert site.status == "matched"
@@ -87,25 +87,25 @@ def test_nonmatches_retain_rule_semantics(model, sequence):
 
 
 def test_blocked_termini_distinguish_endo_and_exo():
-    peptide = CleavageInput("GPNQ", n_term="acetylated")
+    peptide = PeptideInput("GPNQ", n_term="acetylated")
     assert get_cleavage_model("fap-dipeptidyl").predict(peptide).unsupported_reason
     result = get_cleavage_model("fap-endo-gp").predict(peptide)
     assert next(s for s in result.sites if s.bond == 2).status == "matched"
     assert get_cleavage_model("cpn-basic").predict(
-        CleavageInput("AARK", c_term="amidated")).unsupported_reason
+        PeptideInput("AARK", c_term="amidated")).unsupported_reason
 
 
 def test_all_models_abstain_for_unknown_chemistry_and_too_short_input():
     for model in cleavage_models():
         predictor = get_cleavage_model(model.name)
-        for peptide in (CleavageInput("AAPRG", n_term="unknown"), CleavageInput("A")):
+        for peptide in (PeptideInput("AAPRG", n_term="unknown"), PeptideInput("A")):
             result = predictor.predict(peptide)
             assert result.unsupported_reason, model.name
             assert not result.sites
 
 
 def test_internal_dpp_motif_requires_conditional_fragment():
-    peptide = CleavageInput("GGVPYGSFKHV", source_id="precursor", source_start=5)
+    peptide = PeptideInput("GGVPYGSFKHV", source_sequence_name="precursor", source_start=5)
     initial = get_cleavage_model("dpp9-xp-xa").predict(peptide)
     assert [(s.bond, s.status) for s in initial.sites] == [(2, "not_matched")]
     fragment = peptide.fragment(2, 11, n_term="free", c_term="free")
@@ -136,7 +136,7 @@ def test_cli_json_preserves_scores_chemistry_and_provenance(capsys, tmp_path):
           "--source-start", "10", "--source-id", "construct"])
     data = json.loads(capsys.readouterr().out)
     result = data["results"][0]
-    assert data["schema_version"] == 3
+    assert data["schema_version"] == 4
     assert result["sites"][0]["score"] == pytest.approx(2.1694)
     assert result["sites"][0]["source_bond"] == 12
     assert result["model"] == "dpp4-qpisa"
@@ -148,7 +148,7 @@ def test_cli_json_preserves_scores_chemistry_and_provenance(capsys, tmp_path):
           "--n-term", "acetylated", "--out", str(path)])
     result = json.loads(path.read_text())["results"][0]
     assert result["peptide"]["n_term"] == "acetylated"
-    assert result["peptide"]["source_start"] == 0
+    assert result["peptide"].get("source_start", 0) == 0
     assert result["unsupported_reason"]
     assert result["sites"] == []
 
@@ -266,7 +266,7 @@ def test_position_track_spans_internal_scan_and_fragment_cascade():
     back to the parent's absolute coordinates. Both modes must resolve into
     the same coordinate system so their evidence can share one track.
     """
-    parent = CleavageInput("RPPGFSPFRSSRQ", source_id="precursor")
+    parent = PeptideInput("RPPGFSPFRSSRQ", source_sequence_name="precursor")
     track = {}
 
     def record(result):

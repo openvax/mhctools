@@ -111,7 +111,7 @@ from .serum_calibration import (
     serum_calibration_evidence as serum_calibration_evidence,
     serum_assay_parent_reference as serum_assay_parent_reference,
 )
-from .cleavage import CleavageInput, CleavageModel, CleavageSite, CleavageResult
+from .cleavage import CleavageModel, CleavageSite, CleavageResult
 from .cleavage_batch import (
     cleavage_overlays, load_cleavage_batch, normalize_cleavage_input,
     predict_cleavage_batch, write_cleavage_batch,
@@ -200,7 +200,7 @@ def __getattr__(name):
     raise AttributeError(
         "module %r has no attribute %r" % (__name__, name))
 
-__version__ = "3.53.14"
+__version__ = "4.0.0"
 
 __all__ = [
     "CleaveNet",
@@ -301,7 +301,6 @@ __all__ = [
     "empirical_terminal_cut_rates",
     "simulate_enzyme_degradation",
     "enzyme_removal_effects",
-    "CleavageInput",
     "CleavageModel",
     "CleavageSite",
     "CleavageResult",

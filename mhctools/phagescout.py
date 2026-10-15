@@ -13,7 +13,8 @@ import math
 from pathlib import Path
 from types import MappingProxyType
 
-from .cleavage import AMINO_ACIDS, CleavageModel, CleavageResult, CleavageSite, coerce_peptide
+from .cleavage import CleavageModel, CleavageResult, CleavageSite, coerce_peptide
+from .peptide_input import CANONICAL_AMINO_ACIDS
 
 
 DATA_SHA256 = "d9feb51e0ee12dafaad92aaea2d4c2c28a474102129b9276348e14b1a6160f9b"
@@ -65,7 +66,7 @@ def _weights(enzyme, profile):
         rows = list(csv.reader(StringIO(asset["raw"]), delimiter="\t"))
         residues = rows.pop(0)
         width = 9 if profile.endswith("-aligned") else 5
-        if (len(rows) != width or not AMINO_ACIDS <= set(residues) or
+        if (len(rows) != width or not CANONICAL_AMINO_ACIDS <= set(residues) or
                 len(set(residues)) != len(residues) or
                 any(len(row) != len(residues) for row in rows)):
             raise ValueError("Invalid PhageScout matrix shape")
@@ -83,7 +84,7 @@ def _peptide_weights(source, width):
     groups = {}
     for order, row in enumerate(rows):
         pattern, score = row["peptide"], float(row["log2FoldChange"])
-        if (len(pattern) != width or not set(pattern) <= AMINO_ACIDS | {"-"} or
+        if (len(pattern) != width or not set(pattern) <= CANONICAL_AMINO_ACIDS | {"-"} or
                 not math.isfinite(score)):
             raise ValueError("Invalid PhageScout peptide profile")
         positions = tuple(i for i, aa in enumerate(pattern) if aa != "-")

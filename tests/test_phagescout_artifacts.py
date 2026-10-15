@@ -8,7 +8,7 @@ import shutil
 
 import pytest
 
-from mhctools import CleavageInput, PhageScout, cleavage_models, predict_cleavage_batch
+from mhctools import PeptideInput, PhageScout, cleavage_models, predict_cleavage_batch
 from mhctools.artifacts import artifact_status, fetch, managed_path
 from mhctools.cli.artifacts import fetch_main, ls_main
 from mhctools.cli.cleavage import main
@@ -180,13 +180,13 @@ def test_missing_asset_has_actionable_selection_error(small_profiles):
 def test_full_profile_native_mean_gaps_negative_scores_and_chemistry(small_profiles):
     fetch("phagescout")
     predictor = PhageScout(profile="peptide-deseq2")
-    result = predictor.predict(CleavageInput("AAACDE", source_start=7))
+    result = predictor.predict(PeptideInput("AAACDE", source_start=7))
     assert [site.score for site in result.sites] == [-2, 1, 1, 1, 4]
     assert [site["source_bond"] for site in result.to_dict()["sites"]] == [8, 9, 10, 11, 12]
     assert "bundled_data_sha256" not in dict(result.conditions)
     assert dict(result.conditions)["normalization"] == "none"
     assert predictor.predict("AAAAA").unsupported_reason
-    assert predictor.predict(CleavageInput("AAACD", n_term="acetylated")).unsupported_reason
+    assert predictor.predict(PeptideInput("AAACD", n_term="acetylated")).unsupported_reason
     assert predictor.predict("AAAA").unsupported_reason
     with pytest.raises(TypeError):
         predictor.weights[(0, 1, 2, 3, 4)]["AAACD"] = (0, 0)

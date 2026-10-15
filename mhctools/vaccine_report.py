@@ -13,7 +13,7 @@ import json
 import math
 from pathlib import Path
 
-from .cleavage import AMINO_ACIDS
+from .peptide_input import CANONICAL_AMINO_ACIDS
 
 
 DELIVERY_MODALITIES = ("synthetic_long_peptide", "rna_encoded")
@@ -200,7 +200,7 @@ class VaccineConstruct:
         if not self.identifier:
             raise ValueError("Construct id must not be empty")
         if (not self.sequence or self.sequence != self.sequence.upper() or
-                not set(self.sequence) <= AMINO_ACIDS):
+                not set(self.sequence) <= CANONICAL_AMINO_ACIDS):
             raise ValueError(
                 "%s must have a nonempty canonical uppercase peptide sequence"
                 % self.identifier)
@@ -285,8 +285,8 @@ class VaccineReportInput:
                         % ", ".join(sorted(extra)))
                 source = path.parent / track["cleavage_json"]
                 output = json.loads(source.read_text(encoding="utf-8"))
-                if output.get("schema_version") not in (2, 3):
-                    raise ValueError("Cleavage output must use schema_version 2 or 3")
+                if output.get("schema_version") not in (2, 3, 4):
+                    raise ValueError("Cleavage output must use schema_version 2, 3 or 4")
                 matches = [
                     result for result in output["results"]
                     if result["peptide"]["sequence"] == construct["sequence"]

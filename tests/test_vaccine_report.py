@@ -275,13 +275,13 @@ def test_figure_lanes_keep_every_selected_window_and_its_audit_rank():
     for rank, window, _ in assigned:
         assert selected[rank - 1] is window
 def test_canonical_categorical_tracks_survive_report_round_trip(tmp_path):
-    from mhctools import CleavageInput, get_cleavage_model
+    from mhctools import PeptideInput, get_cleavage_model
     from mhctools.vaccine_report import (
         CleavageTrack, VaccineConstruct, VaccineReportInput, placement_assessments,
     )
     from dataclasses import asdict
 
-    result = get_cleavage_model("cpn-basic").predict(CleavageInput("RPPGFSPFR"))
+    result = get_cleavage_model("cpn-basic").predict(PeptideInput("RPPGFSPFR"))
     track = CleavageTrack.from_result(result, "circulation", "AARPPGFSPFRGG", start=2,
                                      conditional_on="If boundary cleavage releases bradykinin")
     value = dict(id="peptide", sequence="AARPPGFSPFRGG", delivery="synthetic_long_peptide",

@@ -126,8 +126,7 @@ and [integration checks](https://github.com/openvax/mhctools/blob/master/mhctool
 selected peptidases. [`predict_cleavage_batch()`][mhctools.predict_cleavage_batch]
 assesses a set of inputs and processing scenarios.
 The shared [`PeptideInput`][mhctools.PeptideInput] supplies sequence and terminal
-chemistry. [`CleavageInput`][mhctools.CleavageInput] remains supported for
-existing callers and conditional fragments. [`motif_rule()`][mhctools.motif_rule]
+chemistry and conditional fragments. [`motif_rule()`][mhctools.motif_rule]
 constructs a sourced custom motif predictor; see the [example](cleavage/models.md#define-a-sourced-motif-rule).
 The biological workflow is explained in the [peptidase activity guide](cleavage/index.md).
 
@@ -142,8 +141,6 @@ and [batch assessment](https://github.com/openvax/mhctools/blob/master/mhctools/
 ::: mhctools.predict_cleavage_batch
 
 ::: mhctools.motif_rule
-
-::: mhctools.CleavageInput
 
 ## Whole-substrate MMP evidence
 

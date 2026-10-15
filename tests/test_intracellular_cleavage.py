@@ -5,7 +5,7 @@ import json
 
 import pytest
 
-from mhctools import CleavageInput, cleavage_models, get_cleavage_model, predict_cleavage
+from mhctools import PeptideInput, cleavage_models, get_cleavage_model, predict_cleavage
 from mhctools._resources import load_json_resource
 from mhctools.benchmark import AssayMeasurement, evaluate_benchmark, predict_cleavage_measurements
 from mhctools.cli.script import main
@@ -17,7 +17,7 @@ def _panel():
 
 def test_source_reference_returns_observations_without_extrapolating():
     thop1 = get_cleavage_model("thop1-observed")
-    result = thop1.predict(CleavageInput("GPLGPLGPL", source_start=4))
+    result = thop1.predict(PeptideInput("GPLGPLGPL", source_start=4))
     assert [(s.bond, s.status) for s in result.sites] == [(3, "reported"), (6, "reported")]
     assert result.substrate_observation == "cleavage_reported"
     assert result.model.evidence == "substrate_reference"
@@ -30,7 +30,7 @@ def test_source_reference_returns_observations_without_extrapolating():
     assert unseen.unsupported_reason and not unseen.sites
     assert unseen.substrate_observation is None
     # Modified termini are a different chemical form too.
-    assert thop1.predict(CleavageInput("RPPGFSPFR", n_term="acetylated")).unsupported_reason
+    assert thop1.predict(PeptideInput("RPPGFSPFR", n_term="acetylated")).unsupported_reason
 
 
 def test_reported_non_cleavage_never_becomes_a_site_label():

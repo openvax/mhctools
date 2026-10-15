@@ -6,19 +6,19 @@ import json
 import pytest
 
 from mhctools import (
-    CleavageInput, CleavageResult, CleavageSite, DPP4qPISA,
+    CleavageResult, CleavageSite, DPP4qPISA,
     PeptideContext, PeptideInput, get_cleavage_model,
 )
 
 
 @pytest.mark.parametrize("sequence", ["", "hap", " HAP", "HAP\n", "HAX", "HAP-amide", None])
 def test_exact_canonical_identity(sequence):
-    with pytest.raises(ValueError, match="canonical"):
-        CleavageInput(sequence)
+    with pytest.raises(ValueError):
+        PeptideInput(sequence)
 
 
 def test_immutable_identity_and_explicit_fragment_chemistry():
-    parent = CleavageInput("AAHAEG", n_term="acetylated", source_id="construct", source_start=40)
+    parent = PeptideInput("AAHAEG", n_term="acetylated", source_sequence_name="construct", source_start=40)
     with pytest.raises(FrozenInstanceError):
         parent.sequence = "HAEG"
     with pytest.raises(TypeError):
@@ -31,13 +31,16 @@ def test_immutable_identity_and_explicit_fragment_chemistry():
     assert result.peptide.source_start == 42
     assert result.to_dict()["sites"][0]["source_bond"] == 44
     assert result.sites[0].bond == 2
-    assert json.loads(json.dumps(result.to_dict()))["peptide"]["source_id"] == "construct"
+    assert json.loads(json.dumps(result.to_dict()))["peptide"]["source_sequence_name"] == "construct"
+    with pytest.raises(ValueError, match="Cannot locate attachments"):
+        PeptideInput("AAHAEG", attachments=(("residue:1", "FITC"),)).fragment(
+            1, 6, n_term="free", c_term="free")
 
 
 @pytest.mark.parametrize("bond", [0, -1, True, 1.5, 3, 4])
 def test_only_real_peptide_bonds(bond):
     with pytest.raises(ValueError):
-        CleavageResult(CleavageInput("HAP"), DPP4qPISA.model,
+        CleavageResult(PeptideInput("HAP"), DPP4qPISA.model,
                        (CleavageSite(bond, "scored", "fixture", 2.0),))
 
 
@@ -49,12 +52,12 @@ def test_evidence_types_do_not_convert_to_probabilities():
         with pytest.raises(ValueError, match="finite"):
             CleavageSite(1, "scored", "model", value)
     with pytest.raises(ValueError, match="semantics"):
-        CleavageResult(CleavageInput("HAP"), DPP4qPISA.model,
+        CleavageResult(PeptideInput("HAP"), DPP4qPISA.model,
                        (CleavageSite(1, "matched", "rule"),))
     motif = replace(DPP4qPISA.model, evidence="motif_rule", score_name=None, score_units=None,
                     scored_endpoint=None, motif_strictness="required", strictness_basis="fixture")
     with pytest.raises(ValueError, match="semantics"):
-        CleavageResult(CleavageInput("HAP"), motif,
+        CleavageResult(PeptideInput("HAP"), motif,
                        (CleavageSite(1, "scored", "model", 2.0),))
 
 
@@ -85,9 +88,9 @@ def test_motif_match_serialization_is_binary_and_legacy_results_still_load():
 def test_duplicate_and_unsupported_sites_rejected():
     site = CleavageSite(2, "scored", "fixture", 2.0)
     with pytest.raises(ValueError, match="distinct"):
-        CleavageResult(CleavageInput("HAP"), DPP4qPISA.model, [site, site])
+        CleavageResult(PeptideInput("HAP"), DPP4qPISA.model, [site, site])
     with pytest.raises(ValueError, match="Unsupported"):
-        CleavageResult(CleavageInput("HAP"), DPP4qPISA.model, [site], "unknown chemistry")
+        CleavageResult(PeptideInput("HAP"), DPP4qPISA.model, [site], "unknown chemistry")
 
 
 def test_motif_strictness_is_graded_and_attributable():
@@ -128,16 +131,16 @@ def test_scored_endpoint_names_the_benchmark_endpoint_for_quantitative_models():
 
 
 def test_coerce_peptide_is_shared_by_every_predictor():
-    # Every predictor's predict() routes string/CleavageInput coercion through
+    # Every predictor's predict() routes string/PeptideInput coercion through
     # one shared helper, so the accepted-input contract is identical everywhere.
     from mhctools.cleavage import coerce_peptide
     peptide = coerce_peptide("HAP")
-    assert isinstance(peptide, CleavageInput) and peptide.sequence == "HAP"
+    assert isinstance(peptide, PeptideInput) and peptide.sequence == "HAP"
     same = coerce_peptide(peptide)
     assert same is peptide
-    with pytest.raises(TypeError, match="PeptideInput, CleavageInput or canonical peptide string"):
+    with pytest.raises(TypeError, match="PeptideInput or canonical peptide string"):
         coerce_peptide(("H", "A", "P"))
-    with pytest.raises(TypeError, match="PeptideInput, CleavageInput or canonical peptide string"):
+    with pytest.raises(TypeError, match="PeptideInput or canonical peptide string"):
         coerce_peptide(None)
     for predictor in (DPP4qPISA(),):
         assert predictor.predict("HAE").sites[0].bond == 2
@@ -148,25 +151,43 @@ def test_general_peptide_input_preserves_supported_cleavage_fields():
         "RPKPQQFFGLM", c_term="amidated", source_sequence_name="substance P",
         source_start=20)
     result = get_cleavage_model("mme-hydrophobic").predict(input_peptide)
-    assert result.peptide == CleavageInput(
-        "RPKPQQFFGLM", c_term="amidated", source_id="substance P",
-        source_start=20)
+    assert result.peptide is input_peptide
     assert {site["source_bond"] for site in result.to_dict()["sites"]
             if site["match"]} == {26, 27, 29}
     assert CleavageResult.from_dict(result.to_dict()) == result
     assert get_cleavage_model("ace-dipeptidyl").predict(input_peptide).unsupported_reason
 
 
-@pytest.mark.parametrize("kwargs,reason", [
-    ({"attachments": (("residue:1", "FITC"),)}, "attachments or context"),
-    ({"context": PeptideContext(matrix="serum")}, "attachments or context"),
-    ({"source_gene": "TAC1"}, "gene or species"),
-    ({"source_species": "Homo sapiens"}, "gene or species"),
-    ({"occurrence_id": "one", "source_sequence_name": "TAC1"}, "one source_id"),
-])
-def test_general_peptide_input_never_silently_drops_fields(kwargs, reason):
-    with pytest.raises(ValueError, match=reason):
-        get_cleavage_model("mme-hydrophobic").predict(PeptideInput("RPKPQQFFGLM", **kwargs))
+def test_general_peptide_input_never_silently_drops_fields():
+    peptide = PeptideInput(
+        "RPKPQQFFGLM", context=PeptideContext(matrix="serum"),
+        source_gene="TAC1", source_species="Homo sapiens",
+        occurrence_id="one", source_sequence_name="substance P")
+    result = get_cleavage_model("mme-hydrophobic").predict(peptide)
+    assert result.peptide is peptide
+    assert CleavageResult.from_dict(result.to_dict()) == result
+    with pytest.raises(ValueError, match="attachments"):
+        get_cleavage_model("mme-hydrophobic").predict(PeptideInput(
+            "RPKPQQFFGLM", attachments=(("residue:1", "FITC"),)))
+
+
+def test_old_cleavage_result_source_id_still_loads():
+    result = get_cleavage_model("mme-hydrophobic").predict(PeptideInput(
+        "RPKPQQFFGLM", source_sequence_name="substance P"))
+    encoded = result.to_dict()
+    encoded["peptide"]["source_id"] = encoded["peptide"].pop("source_sequence_name")
+    assert CleavageResult.from_dict(encoded) == result
+
+
+def test_cleavage_result_rejects_unknown_or_unassessed_chemistry():
+    result = get_cleavage_model("mme-hydrophobic").predict("RPKPQQFFGLM")
+    encoded = result.to_dict()
+    encoded["peptide"]["cyclized"] = True
+    with pytest.raises(ValueError, match="Unknown peptide fields: cyclized"):
+        CleavageResult.from_dict(encoded)
+    with pytest.raises(ValueError, match="unsupported result"):
+        replace(result, peptide=PeptideInput(
+            "RPKPQQFFGLM", attachments=(("residue:1", "FITC"),)))
 
 
 def test_non_quantitative_evidence_rejects_numerical_scores():
@@ -183,7 +204,7 @@ def test_non_quantitative_evidence_rejects_numerical_scores():
 def test_substrate_observation_invariants_are_enforced():
     from mhctools import get_cleavage_model
     reference_model = get_cleavage_model("thop1-observed").model
-    peptide = CleavageInput("RPPGFSPFR")
+    peptide = PeptideInput("RPPGFSPFR")
     # A whole-substrate non-cleavage cannot also carry a per-bond site label.
     with pytest.raises(ValueError, match="Whole-substrate non-cleavage must not create site labels"):
         CleavageResult(peptide, reference_model, (CleavageSite(5, "reported", "fixture"),),

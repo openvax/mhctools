@@ -5,7 +5,7 @@ import json
 
 import pytest
 
-from mhctools import CleavageInput, get_cleavage_model, predict_cleavage
+from mhctools import PeptideInput, get_cleavage_model, predict_cleavage
 from mhctools._resources import load_json_resource
 from mhctools.benchmark import AssayMeasurement, evaluate_benchmark, predict_cleavage_measurements
 from mhctools.cli.script import main
@@ -13,12 +13,12 @@ from mhctools.cli.script import main
 
 def test_ace_dipeptide_and_exceptional_chemistry():
     ace = get_cleavage_model("ace-dipeptidyl")
-    result = ace.predict(CleavageInput("DRVYIHPFHL", source_start=40))
+    result = ace.predict(PeptideInput("DRVYIHPFHL", source_start=40))
     assert [(s.bond, s.status) for s in result.sites] == [(8, "matched")]
     assert result.to_dict()["sites"][0]["source_bond"] == 48
     assert ace.predict("DRVYIHPF").sites[0].status == "not_matched"
-    assert ace.predict(CleavageInput("SDKP", n_term="acetylated")).sites[0].bond == 2
-    assert ace.predict(CleavageInput("RPKPQQFFGLM", c_term="amidated")).unsupported_reason
+    assert ace.predict(PeptideInput("SDKP", n_term="acetylated")).sites[0].bond == 2
+    assert ace.predict(PeptideInput("RPKPQQFFGLM", c_term="amidated")).unsupported_reason
     for seq in ("AAE", "AAD", "APA"):
         assert ace.predict(seq).sites[0].status == "not_matched"
 
@@ -27,10 +27,10 @@ def test_mme_site_context_and_input_scope():
     mme = get_cleavage_model("mme-hydrophobic")
     result = mme.predict("YGGFL")
     assert next(s for s in result.sites if s.bond == 3).status == "matched"
-    result = mme.predict(CleavageInput("RPKPQQFFGLM", c_term="amidated"))
+    result = mme.predict(PeptideInput("RPKPQQFFGLM", c_term="amidated"))
     assert {s.bond for s in result.sites if s.status == "matched"} == {6, 7, 9}
     assert mme.predict("A" * 31).unsupported_reason
-    assert mme.predict(CleavageInput("YGGFL", c_term="unknown")).unsupported_reason
+    assert mme.predict(PeptideInput("YGGFL", c_term="unknown")).unsupported_reason
 
 
 @pytest.mark.parametrize("state", [None, "unknown", "zymogen", "inactive"])
@@ -47,7 +47,7 @@ def test_cpb2_active_is_separate_from_cpn():
     assert results[0].conditions == ()
     assert dict(results[1].conditions) == {"enzyme_state": "active"}
     assert get_cleavage_model("cpb2-basic", enzyme_state="active").predict(
-        CleavageInput("YFPGQFAFSK", c_term="amidated")).unsupported_reason
+        PeptideInput("YFPGQFAFSK", c_term="amidated")).unsupported_reason
     with pytest.raises(ValueError, match="enzyme_state"):
         get_cleavage_model("cpb2-basic", enzyme_state="activated-ish")
     with pytest.raises(ValueError, match="only"):

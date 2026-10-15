@@ -7,7 +7,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from mhctools import CleavageInput, ITCellCleavage
+from mhctools import PeptideInput, ITCellCleavage
 from mhctools.cleavenet import CleaveNetScore, ENZYMES
 
 SCRIPT = Path(__file__).parents[1] / "analyses/osteosarc_vaccine_cleavage/stability_route.py"
@@ -48,7 +48,7 @@ def test_overlapping_windows_preserve_duplicate_occurrences_and_do_not_invent_cu
 
 def test_native_bonds_preserve_core_boundaries_and_terminal_initial_step():
     parent = record("first")
-    peptide = CleavageInput(parent["sequence"], source_id="first")
+    peptide = PeptideInput(parent["sequence"], source_sequence_name="first")
     rows = REPORT.bond_rows([parent], [ITCellCleavage("S").predict(peptide)])
     lookup = {r["bond"]: r for r in rows}
     assert lookup[4]["inside_source_minimal_epitope"] is False

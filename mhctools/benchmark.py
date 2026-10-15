@@ -320,9 +320,9 @@ def predict_cleavage_measurements(measurements, models):
     """Run site models against explicit measurements; unassessed bonds abstain.
 
     Only the exact canonical chemistry identifiers below can be represented
-    by CleavageInput; all other chemistry remains an unsupported record.
+    by PeptideInput; all other chemistry remains an unsupported record.
     """
-    from .cleavage import CleavageInput
+    from .peptide_input import PeptideInput
     from .peptidases import get_cleavage_model
     chemistry = {"linear_L_free": ("free", "free"),
                  "linear_L_N_acetylated": ("acetylated", "free"),
@@ -365,7 +365,7 @@ def predict_cleavage_measurements(measurements, models):
                 n_term, c_term = chemistry[m.chemistry]
                 selected = (get_cleavage_model(name, enzyme_state=dict(m.conditions).get("enzyme_state"))
                             if getattr(predictor, "requires_activation", False) else predictor)
-                result = selected.predict(CleavageInput(m.sequence, n_term, c_term))
+                result = selected.predict(PeptideInput(m.sequence, n_term, c_term))
                 if is_reference and m.endpoint == "substrate_depletion":
                     if result.substrate_observation is None:
                         predictions.append(BenchmarkPrediction(**kwargs, status="not_assessed",

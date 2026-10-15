@@ -81,7 +81,7 @@ uses those coordinates to classify candidate cuts inside versus beside it.
 
 ```json
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "models": {
     "mme-hydrophobic": {
       "name": "mme-hydrophobic",
@@ -110,8 +110,7 @@ uses those coordinates to classify candidate cuts inside versus beside it.
       "peptide": {
         "sequence": "AAAKIILNFTTLAAA",
         "n_term": "free",
-        "c_term": "free",
-        "source_start": 0
+        "c_term": "free"
       },
       "model": "mme-hydrophobic",
       "sites": [

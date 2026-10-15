@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from mhctools import CleavageInput, CleavageResult, get_cleavage_model
+from mhctools import PeptideInput, CleavageResult, get_cleavage_model
 from mhctools import phagescout_artifacts as assets
 from mhctools.phagescout import PHAGESCOUT_OPTIONAL_MODELS
 
@@ -22,8 +22,8 @@ def test_full_tables_reproduce_native_scores_and_missing_masks(name, settings):
     predictor = get_cleavage_model(name)
     source = "elastase" if settings["enzyme"] == "ELANE" else "cathepsin G"
     for record in REFERENCE["proteins"]:
-        result = predictor.predict(CleavageInput(
-            record["sequence"], source_start=record["source_start"], source_id=record["accession"]))
+        result = predictor.predict(PeptideInput(
+            record["sequence"], source_start=record["source_start"], source_sequence_name=record["accession"]))
         rows = record["expected"][source]
         expected = {row["pos"]: row["pep_deseq2"] for row in rows if row["pep_deseq2"] is not None}
         actual = {site["source_bond"]: site["score"] for site in result.to_dict()["sites"]}

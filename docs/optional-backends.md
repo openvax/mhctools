@@ -46,8 +46,7 @@ role:
 | Record | Fields | Role |
 |---|---|---|
 | `Prediction` | peptide, flanks, source name/offset, allele/TCR, predictor name/version | output and source-occurrence projection |
-| `PeptideInput` | sequence, terminal chemistry, optional attachments/context and source provenance | shared exact peptide input; cleavage rejects fields its result cannot represent |
-| `CleavageInput` | sequence, terminal chemistry, source name/start | legacy cleavage input and conditional-fragment helper |
+| `PeptideInput` | sequence, terminal chemistry, optional attachments/context and source provenance | shared exact peptide input and conditional-fragment helper; cleavage rejects unsupported attachments |
 | `AssayMeasurement` | free-text chemistry, species, matrix, cell type, conditions | benchmark source record, not predictor input |
 | `BackendInventory` | code/model/feature files and output-affecting settings | backend content identity |
 

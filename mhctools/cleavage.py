@@ -4,14 +4,11 @@ Bond ``b`` splits ``sequence[:b] | sequence[b:]``; only 1..length-1 are
 peptide bonds. Motif matches are recognition rules, never probabilities.
 """
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, fields
 import math
 from typing import Optional, Tuple
 
 from .peptide_input import PeptideInput
-
-
-AMINO_ACIDS = frozenset("ACDEFGHIKLMNPQRSTVWY")
 
 # The single source of truth for which CleavageModel.evidence values exist
 # and which CleavageSite.status values each one legally carries. Keying the
@@ -26,79 +23,14 @@ def _integer(value):
 
 
 def coerce_peptide(peptide):
-    """Accept a canonical sequence or an exact peptide input.
-
-    Cleavage results use the legacy compact ``CleavageInput`` record. A
-    ``PeptideInput`` is accepted only when its fields can be represented there;
-    dropping an attachment or contextual characteristic would change the
-    biological question without telling the caller.
-    """
+    """Accept a canonical sequence or exact peptide without losing fields."""
     if isinstance(peptide, str):
-        peptide = CleavageInput(peptide)
-    if isinstance(peptide, PeptideInput):
-        if peptide.attachments or peptide.context is not None:
-            raise ValueError(
-                "Cleavage models cannot represent PeptideInput attachments or context")
-        if peptide.source_gene or peptide.source_species:
-            raise ValueError(
-                "Cleavage results cannot preserve PeptideInput gene or species provenance")
-        if peptide.occurrence_id and peptide.source_sequence_name:
-            raise ValueError(
-                "Cleavage results have one source_id; supply either occurrence_id "
-                "or source_sequence_name")
-        peptide = CleavageInput(
-            peptide.sequence, peptide.n_term, peptide.c_term,
-            peptide.occurrence_id or peptide.source_sequence_name,
-            peptide.source_start)
-    if not isinstance(peptide, CleavageInput):
-        raise TypeError("Expected PeptideInput, CleavageInput or canonical peptide string")
+        peptide = PeptideInput(peptide)
+    if not isinstance(peptide, PeptideInput):
+        raise TypeError("Expected PeptideInput or canonical peptide string")
+    if peptide.attachments:
+        raise ValueError("Cleavage models do not support peptide attachments")
     return peptide
-
-
-@dataclass(frozen=True)
-class CleavageInput:
-    """Linear, canonical L-peptide; defaults explicitly assume free termini.
-
-    Other chemistry (D-residues, cyclization, conjugation, disulfides, etc.)
-    is outside this input type. No sequence normalization is performed.
-    ``source_start`` is a zero-based offset in an optional parent sequence.
-    """
-
-    sequence: str
-    n_term: str = "free"
-    c_term: str = "free"
-    source_id: Optional[str] = None
-    source_start: int = 0
-
-    def __post_init__(self):
-        if (not isinstance(self.sequence, str) or not self.sequence or
-                not set(self.sequence) <= AMINO_ACIDS):
-            raise ValueError("Expected a nonempty canonical uppercase L-peptide")
-        if self.n_term not in ("free", "acetylated", "unknown"):
-            raise ValueError("n_term must be free, acetylated or unknown")
-        if self.c_term not in ("free", "amidated", "unknown"):
-            raise ValueError("c_term must be free, amidated or unknown")
-        if not _integer(self.source_start) or self.source_start < 0:
-            raise ValueError("source_start must be a nonnegative integer")
-        if self.source_id is not None and not isinstance(self.source_id, str):
-            raise ValueError("source_id must be a string or None")
-
-    def fragment(self, start, end, *, n_term, c_term):
-        """Describe a conditional fragment, explicitly supplying its chemistry.
-
-        This does not predict whether or when the fragment is produced.
-        Retained parent termini must retain their original chemistry.
-        """
-        if (not _integer(start) or not _integer(end) or
-                not 0 <= start < end <= len(self.sequence)):
-            raise ValueError("Invalid fragment interval")
-        if start == 0 and n_term != self.n_term:
-            raise ValueError("Retained N terminus must preserve chemistry")
-        if end == len(self.sequence) and c_term != self.c_term:
-            raise ValueError("Retained C terminus must preserve chemistry")
-        return CleavageInput(
-            self.sequence[start:end], n_term, c_term, self.source_id,
-            self.source_start + start)
 
 
 @dataclass(frozen=True)
@@ -234,7 +166,7 @@ class CleavageResult:
     mean no assessment could be made, rather than absence of cleavage.
     """
 
-    peptide: CleavageInput
+    peptide: PeptideInput
     model: CleavageModel
     sites: Tuple[CleavageSite, ...] = ()
     unsupported_reason: Optional[str] = None
@@ -242,6 +174,10 @@ class CleavageResult:
     substrate_observation: Optional[str] = None
 
     def __post_init__(self):
+        if not isinstance(self.peptide, PeptideInput):
+            raise TypeError("CleavageResult requires PeptideInput")
+        if self.peptide.attachments and self.unsupported_reason is None:
+            raise ValueError("Attached peptides require an unsupported result")
         object.__setattr__(self, "sites", tuple(self.sites))
         if self.unsupported_reason is not None and (
                 not isinstance(self.unsupported_reason, str) or not self.unsupported_reason.strip()):
@@ -272,12 +208,13 @@ class CleavageResult:
 
     def to_dict(self):
         """Return JSON-compatible evidence with compact binary motif sites."""
-        result = asdict(self)
-        result["model"] = self.model.to_dict()
-        if self.peptide.source_id is None:
-            result["peptide"].pop("source_id")
+        result = dict(
+            peptide=self.peptide.to_dict(compact=True),
+            model=self.model.to_dict(), sites=[],
+            unsupported_reason=self.unsupported_reason,
+            conditions=self.conditions,
+            substrate_observation=self.substrate_observation)
         if self.model.evidence == "motif_rule":
-            result["sites"] = []
             for site in self.sites:
                 row = dict(bond=site.bond, match=site.match,
                            source_bond=self.peptide.source_start + site.bond)
@@ -295,7 +232,15 @@ class CleavageResult:
     def from_dict(cls, value):
         """Restore serialized evidence, rejecting contradictory source bonds."""
         value = dict(value)
-        peptide = CleavageInput(**value.pop("peptide"))
+        peptide_value = dict(value.pop("peptide"))
+        if "source_id" in peptide_value:
+            if "source_sequence_name" in peptide_value:
+                raise ValueError("Peptide has both source_id and source_sequence_name")
+            peptide_value["source_sequence_name"] = peptide_value.pop("source_id")
+        extra = set(peptide_value) - {field.name for field in fields(PeptideInput)}
+        if extra:
+            raise ValueError("Unknown peptide fields: %s" % ", ".join(sorted(extra)))
+        peptide = PeptideInput.from_dict(peptide_value)
         model = CleavageModel.from_dict(value.pop("model"))
         sites = []
         for record in value.pop("sites", ()):

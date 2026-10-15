@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from mhctools import (
-    CleavageInput, CleavageResult, PhageScout, cleavage_models,
+    PeptideInput, CleavageResult, PhageScout, cleavage_models,
     get_cleavage_model, predict_cleavage, predict_cleavage_batch,
 )
 from mhctools.cli.cleavage import main
@@ -29,7 +29,7 @@ def test_reproduces_deposited_scores_and_missing_values(name, settings):
     source = "elastase" if settings["enzyme"] == "ELANE" else "cathepsin G"
     feature = FEATURES[settings["profile"]]
     for record in REFERENCE["proteins"]:
-        peptide = CleavageInput(record["sequence"], source_id=record["accession"],
+        peptide = PeptideInput(record["sequence"], source_sequence_name=record["accession"],
                                source_start=record["source_start"])
         result = predictor.predict(peptide)
         rows = record["expected"][source]
@@ -80,9 +80,9 @@ def test_missing_profile_matches_do_not_become_zero_or_resistance(profile):
 
 @pytest.mark.parametrize("name", PHAGESCOUT_MODELS)
 @pytest.mark.parametrize("peptide", [
-    CleavageInput("AAFLDAAFF", n_term="unknown"),
-    CleavageInput("AAFLDAAFF", n_term="acetylated"),
-    CleavageInput("AAFLDAAFF", c_term="amidated"), "A",
+    PeptideInput("AAFLDAAFF", n_term="unknown"),
+    PeptideInput("AAFLDAAFF", n_term="acetylated"),
+    PeptideInput("AAFLDAAFF", c_term="amidated"), "A",
 ])
 def test_unestablished_chemistry_and_missing_bonds_abstain(name, peptide):
     result = get_cleavage_model(name).predict(peptide)

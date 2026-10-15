@@ -15,7 +15,7 @@ import subprocess
 
 import pytest
 
-from mhctools.cleavage import CleavageInput
+from mhctools.cleavage import PeptideInput
 from mhctools.pepsickle import Pepsickle, PepsickleCleavage
 from mhctools.processing_predictor import (
     score_cterm,
@@ -242,7 +242,7 @@ def test_canonical_bond_result_excludes_endpoint_sentinel(monkeypatch):
         lambda sequences: {sequence: [0.11, 0.22, 0.33, 0.0] for sequence in sequences},
     )
     result = predictor.predict_cleavage(
-        CleavageInput("SIIN", source_id="construct", source_start=20)
+        PeptideInput("SIIN", source_sequence_name="construct", source_start=20)
     )
     assert [site.bond for site in result.sites] == [1, 2, 3]
     assert [site.score for site in result.sites] == [0.11, 0.22, 0.33]
@@ -257,7 +257,7 @@ def test_canonical_bond_result_excludes_endpoint_sentinel(monkeypatch):
 def test_canonical_facade_rejects_unmodeled_terminal_chemistry():
     facade = PepsickleCleavage(human_only=True)
     result = facade.predict(
-        CleavageInput("SIINFEKL", n_term="acetylated")
+        PeptideInput("SIINFEKL", n_term="acetylated")
     )
     assert facade.predictor.isolate_subprocess is True
     assert result.sites == ()
@@ -294,7 +294,7 @@ def test_digestion_variants_match_upstream_and_change_profile(human_only):
         predictor = Pepsickle(
             model_type="in-vitro-2", proteasome_type=proteasome_type,
             human_only=human_only, isolate_subprocess=True)
-        result = predictor.predict_cleavage(CleavageInput(PROTEIN, source_start=7))
+        result = predictor.predict_cleavage(PeptideInput(PROTEIN, source_start=7))
         scores = [site.score for site in result.sites]
         assert scores == pytest.approx([row[2] for row in expected[:-1]])
         assert len(scores) == len(PROTEIN) - 1

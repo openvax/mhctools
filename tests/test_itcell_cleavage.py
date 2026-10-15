@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from mhctools import CleavageInput, CleavageResult, ITCellCleavage, cleavage_models, get_cleavage_model
+from mhctools import PeptideInput, CleavageResult, ITCellCleavage, cleavage_models, get_cleavage_model
 from mhctools.itcell_cleavage import ITCELL_MODELS
 
 
@@ -25,7 +25,7 @@ def test_all_real_profiles_reproduce_released_perl_scores(name):
 
 
 def test_cathepsin_h_only_scores_initial_n_terminal_bond():
-    result = ITCellCleavage("H").predict(CleavageInput("MALWMRLLPLL", source_start=30))
+    result = ITCellCleavage("H").predict(PeptideInput("MALWMRLLPLL", source_start=30))
     assert [s.bond for s in result.sites] == [1]
     assert result.to_dict()["sites"][0]["source_bond"] == 31
     assert dict(result.conditions)["topology"] == "n_terminal"
@@ -45,8 +45,8 @@ def test_internal_profiles_preserve_edge_and_unrepresented_residue_limits(enzyme
 
 
 @pytest.mark.parametrize("input_", [
-    CleavageInput("AACG", n_term="unknown"), CleavageInput("AACG", n_term="acetylated"),
-    CleavageInput("AACG", c_term="amidated"), "A",
+    PeptideInput("AACG", n_term="unknown"), PeptideInput("AACG", n_term="acetylated"),
+    PeptideInput("AACG", c_term="amidated"), "A",
 ])
 def test_unestablished_or_modified_chemistry_and_missing_bonds_abstain(input_):
     for settings in ITCELL_MODELS.values():

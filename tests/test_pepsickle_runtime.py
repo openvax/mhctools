@@ -6,7 +6,7 @@ import sys
 
 import pytest
 
-from mhctools import CleavageInput
+from mhctools import PeptideInput
 from mhctools.pepsickle import Pepsickle
 
 
@@ -39,7 +39,7 @@ def test_external_runtime_provenance_and_changed_asset_rejection(monkeypatch):
     monkeypatch.setattr("mhctools.pepsickle.subprocess.run", run)
     predictor = Pepsickle(model_type="in-vitro", proteasome_type="I", python_executable=sys.executable)
     assert predictor.isolate_subprocess
-    result = predictor.predict_cleavage(CleavageInput("SIINFEKL"))
+    result = predictor.predict_cleavage(PeptideInput("SIINFEKL"))
     assert "package:foreign-package" in result.model.version
     assert json.loads(dict(result.conditions)["runtime"]) == foreign_identity()
     assert len(result.sites) == 7
@@ -90,7 +90,7 @@ def test_sequence_context_preserves_partial_terminal_knowledge_and_rejects_modif
         return {s: [0.25] * (len(s) - 1) + [0.0] for s in sequences}
 
     monkeypatch.setattr(facade.predictor, "cleavage_probs_many", score)
-    inputs = [CleavageInput("SIINFEKL", n_term=n, c_term=c)
+    inputs = [PeptideInput("SIINFEKL", n_term=n, c_term=c)
               for n, c in (("free", "unknown"), ("unknown", "free"),
                            ("unknown", "unknown"), ("acetylated", "unknown"),
                            ("unknown", "amidated"))]
