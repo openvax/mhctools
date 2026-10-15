@@ -84,8 +84,9 @@ class PeptidaseMotif:
         return CleavageResult(peptide, self.model, tuple(sites), conditions=conditions)
 
 
-def motif_rule(*, name, enzyme, references, topology, left, right, strictness,
-               basis, assay, limitations, accession=None, compartments=(),
+def motif_rule(*, name, enzyme, references, topology, assay, limitations,
+               left=None, right=None, strictness=None, basis=None,
+               accession=None, compartments=(),
                description=None, removed=0, species="Homo sapiens", version="1",
                min_length=None, max_length=None, n_chemistry=("free",),
                c_chemistry=("free",), requires_activation=False,
@@ -93,13 +94,17 @@ def motif_rule(*, name, enzyme, references, topology, left, right, strictness,
     """Create a sourced per-bond motif predictor without registry changes.
 
     ``left`` and ``right`` are Python regexes for residues before and after a
-    candidate bond. ``topology`` is ``internal``, ``n_terminal`` or
-    ``c_terminal``; terminal rules also give ``removed``. Supply cited
-    ``references``, the assay and limitations, and a source-backed
-    ``strictness`` grade (``required``, ``preferred`` or ``permissive``).
+    candidate bond; ``None`` leaves that flank unconstrained. ``topology`` is
+    ``internal``, ``n_terminal`` or ``c_terminal``; terminal rules also give
+    ``removed``. Supply cited ``references``, the assay and limitations.
+    An optional source-backed
+    ``strictness`` grade is ``required``, ``preferred`` or ``permissive``.
     The returned predictor accepts strings and ``PeptideInput`` records.
-    A match is not a cleavage probability.
+    ``strictness`` interprets the evidence but does not change the binary
+    pattern mask or supply a cleavage probability.
     """
+    left = "" if left is None else left
+    right = "" if right is None else right
     if isinstance(references, str):
         references = (references,)
     if not assay or not limitations:

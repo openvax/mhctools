@@ -27,6 +27,7 @@ def test_immutable_identity_and_explicit_fragment_chemistry():
         parent.fragment(0, 6, n_term="free", c_term="free")
     fragment = parent.fragment(2, 6, n_term="free", c_term="free")
     result = DPP4qPISA().predict(fragment)
+    assert result.pattern_mask is None
     assert result.peptide.sequence == "HAEG"
     assert result.peptide.source_start == 42
     assert result.to_dict()["sites"][0]["source_bond"] == 44
@@ -99,7 +100,8 @@ def test_motif_strictness_is_graded_and_attributable():
     assert motif.motif_strictness == "preferred"
     with pytest.raises(ValueError, match="required, preferred or permissive"):
         replace(motif, motif_strictness="strict")
-    with pytest.raises(ValueError, match="required, preferred or permissive"):
+    assert replace(motif, motif_strictness=None, strictness_basis=None).motif_strictness is None
+    with pytest.raises(ValueError, match="basis requires a grade"):
         replace(motif, motif_strictness=None)
     with pytest.raises(ValueError, match="observation behind it"):
         replace(motif, strictness_basis="")

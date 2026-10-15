@@ -10,6 +10,12 @@ site status is `matched` or `not_matched`; serialized motif sites use `match: 1`
 or `match: 0` with the documented rule in model metadata. This indicator is a
 pattern decision, not a cleavage probability or native score. A non-match
 does not establish resistance.
+
+`result.pattern_mask` exposes these decisions as a bond-aligned tuple in Python.
+It uses `None` for unassessed bonds, including the other bonds of a terminal
+rule and every bond of an unsupported input. The serialized `sites` retain
+their bond and source coordinates; the mask is derived, not duplicated in JSON.
+
 `unsupported_reason` means the input could not be assessed and carries no
 score. These states must remain separate in downstream displays and ranking.
 
@@ -62,10 +68,11 @@ single per-position score to rank or threshold.
 
 ## How strict is each motif?
 
-A recognition pattern is only as informative as the evidence behind it, so
-every motif rule carries a `motif_strictness` grade and a `strictness_basis`
-naming the source observation that supports the grade. Read a decision through
-the grade rather than treating all matches alike:
+A recognition pattern is only as informative as the evidence behind it. The
+curated built-in rules carry a `motif_strictness` grade and a
+`strictness_basis` naming the source observation that supports it. Custom
+rules may leave both unset. When present, read a decision through the grade
+rather than treating all matches alike:
 
 | Grade | What a match means | What a non-match means |
 | --- | --- | --- |
@@ -76,3 +83,12 @@ the grade rather than treating all matches alike:
 Grades apply to motif rules only. Scored models report native units instead,
 and source references report what an experiment observed. Neither carries a
 grade, and both leave `motif_strictness` null.
+
+These grades do not change the pattern mask or supply cleavage probabilities.
+Even a quantitative substrate preference cannot be converted to a per-bond
+probability without a defined substrate, enzyme exposure and measurement
+window. [Quantitative protease profiling](https://pmc.ncbi.nlm.nih.gov/articles/PMC7932537/)
+measures sequence-dependent catalytic efficiency in a specified assay; the
+[human NEP and ACE substance P study](https://pubmed.ncbi.nlm.nih.gov/2417254/)
+reports cleavage of particular substrates. Neither calibrates this motif panel
+as probabilities for vaccine peptides in vivo.

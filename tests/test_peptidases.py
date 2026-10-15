@@ -31,6 +31,51 @@ def test_public_motif_rule_uses_shared_scientific_contract():
     assert CleavageResult.from_dict(result.to_dict()) == result
 
 
+def test_motif_pattern_mask_is_bond_aligned_and_unassessed_is_not_zero():
+    internal = get_cleavage_model("mme-hydrophobic").predict("RPKPQQFFGLM")
+    assert internal.pattern_mask == (0, 0, 0, 0, 0, 1, 1, 0, 1, 0)
+    assert CleavageResult.from_dict(internal.to_dict()).pattern_mask == internal.pattern_mask
+
+    n_terminal = get_cleavage_model("app2-xp").predict("RPPGFSPFR")
+    assert n_terminal.pattern_mask == (1,) + (None,) * 7
+    c_terminal = get_cleavage_model("cpn-basic").predict("RPPGFSPFR")
+    assert c_terminal.pattern_mask == (None,) * 7 + (1,)
+
+    unsupported = get_cleavage_model("cpn-basic").predict(
+        PeptideInput("RPPGFSPFR", c_term="amidated"))
+    assert unsupported.unsupported_reason is not None
+    assert unsupported.pattern_mask == (None,) * 8
+
+
+def test_unconstrained_flanks_and_strictness_do_not_change_pattern_matches():
+    masks = []
+    for strictness in ("required", "preferred", "permissive"):
+        rule = motif_rule(
+            name="fixture-%s" % strictness, enzyme="fixture",
+            references="https://example.org/motif-fixture",
+            topology="internal", right="[FILY]", strictness=strictness,
+            basis="Fixture grade", assay="Fixture assay",
+            limitations="Fixture has no biological claim")
+        assert rule.left == "" and rule.model.rule == "|[FILY]"
+        masks.append(rule.predict("RPKPQQFFGLM").pattern_mask)
+    assert masks == [(0, 0, 0, 0, 0, 1, 1, 0, 1, 0)] * 3
+
+    ungraded = motif_rule(
+        name="study-nep-ungraded", enzyme="MME",
+        references="https://pubmed.ncbi.nlm.nih.gov/2417254/",
+        topology="internal", left=None, right="[FILY]", assay="Purified human NEP",
+        limitations="Other bonds can be cleaved")
+    assert ungraded.model.motif_strictness is None
+    assert ungraded.predict("RPKPQQFFGLM").pattern_mask == masks[0]
+
+    right_unconstrained = motif_rule(
+        name="basic-left", enzyme="test", references="https://example.org/source",
+        topology="internal", left="[RK]", strictness="permissive",
+        basis="Fixture", assay="Fixture", limitations="Fixture")
+    assert right_unconstrained.right == ""
+    assert right_unconstrained.predict("RAK").pattern_mask == (1, 0)
+
+
 def test_public_terminal_rule_infers_a_valid_minimum_length():
     rule = motif_rule(
         name="study-ace-terminal", enzyme="ACE",
