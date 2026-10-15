@@ -23,7 +23,6 @@ class PeptidaseMotif:
     removed: int
     left: str
     right: str
-    description: str
     min_length: int = 2
     max_length: Optional[int] = None
     n_chemistry: Tuple[str, ...] = ("free",)
@@ -32,6 +31,8 @@ class PeptidaseMotif:
     enzyme_state: str = "unknown"
 
     def __post_init__(self):
+        if self.model.evidence != "motif_rule" or not self.model.rule:
+            raise ValueError("A peptidase motif needs a model with a rule description")
         if self.topology not in ("n_terminal", "c_terminal", "internal"):
             raise ValueError("Unknown cleavage topology")
         if type(self.removed) is not int or self.removed < 0:
@@ -79,7 +80,7 @@ class PeptidaseMotif:
             match = (re.search(self.left + "$", seq[:bond]) is not None and
                      re.match(self.right, seq[bond:]) is not None)
             sites.append(CleavageSite(
-                bond, "matched" if match else "not_matched", self.description))
+                bond, "matched" if match else "not_matched", self.model.rule))
         return CleavageResult(peptide, self.model, tuple(sites), conditions=conditions)
 
 
@@ -96,8 +97,8 @@ def motif_rule(*, name, enzyme, references, topology, left, right, strictness,
     ``c_terminal``; terminal rules also give ``removed``. Supply cited
     ``references``, the assay and limitations, and a source-backed
     ``strictness`` grade (``required``, ``preferred`` or ``permissive``).
-    The returned predictor accepts strings, ``PeptideInput`` and legacy
-    ``PeptideInput`` records. A match is not a cleavage probability.
+    The returned predictor accepts strings and ``PeptideInput`` records.
+    A match is not a cleavage probability.
     """
     if isinstance(references, str):
         references = (references,)
@@ -118,7 +119,7 @@ def motif_rule(*, name, enzyme, references, topology, left, right, strictness,
         limitations=limitations + " Partial specificity rule; no kinetic or matrix calibration.",
         motif_strictness=strictness, strictness_basis=basis, rule=description)
     return PeptidaseMotif(
-        metadata, topology, removed, left, right, description,
+        metadata, topology, removed, left, right,
         min_length=min_length, max_length=max_length,
         n_chemistry=n_chemistry, c_chemistry=c_chemistry,
         requires_activation=requires_activation, enzyme_state=enzyme_state)
