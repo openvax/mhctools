@@ -46,12 +46,13 @@ role:
 | Record | Fields | Role |
 |---|---|---|
 | `Prediction` | peptide, flanks, source name/offset, allele/TCR, predictor name/version | output and source-occurrence projection |
-| `CleavageInput` | sequence, terminal chemistry, source name/start | cleavage-specific linear peptide input |
+| `PeptideInput` | sequence, terminal chemistry, optional attachments/context and source provenance | shared exact peptide input; cleavage rejects fields its result cannot represent |
+| `CleavageInput` | sequence, terminal chemistry, source name/start | legacy cleavage input and conditional-fragment helper |
 | `AssayMeasurement` | free-text chemistry, species, matrix, cell type, conditions | benchmark source record, not predictor input |
 | `BackendInventory` | code/model/feature files and output-affecting settings | backend content identity |
 
-`PeptideInput` is the shared, versioned input record for reviewed PK and uptake
-adapters. It keeps the canonical L-peptide sequence, terminal chemistry and
+`PeptideInput` is the shared, versioned input record for reviewed PK, uptake and
+individual cleavage adapters. It keeps the canonical L-peptide sequence, terminal chemistry and
 attachments separate from occurrence/source provenance and from a nested
 `PeptideContext`. The context can describe route, formulation, cargo,
 administered and released material, measured analyte, study, assay species,

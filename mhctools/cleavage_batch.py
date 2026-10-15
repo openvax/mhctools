@@ -311,7 +311,7 @@ def load_cleavage_batch(path):
         scenario = scenarios[row["scenario_id"]]
         if row["model"] not in scenario["models"]:
             raise ValueError("Assessment model was not requested")
-        if CleavageModel(**row["requested_model"]).name != row["model"]:
+        if CleavageModel.from_dict(row["requested_model"]).name != row["model"]:
             raise ValueError("Requested model metadata contradicts its name")
         fragment = row["fragment"]
         if fragment is not None and fragment not in source["fragments"]:

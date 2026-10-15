@@ -30,9 +30,9 @@ Batch assessments cover tumor, APC, and extracellular scenarios. See
 ## Quickstart
 
 ```python
-from mhctools import CleavageInput, DPP4qPISA
+from mhctools import DPP4qPISA, PeptideInput
 
-peptide = CleavageInput("HAEGTFTSD", source_id="GLP-1 fragment")
+peptide = PeptideInput("HAEGTFTSD", source_sequence_name="GLP-1 fragment")
 result = DPP4qPISA().predict(peptide)
 print(result.sites[0].bond)   # 2: HA | EGTFTSD
 print(result.sites[0].score)  # 2.1694, native qPISA score
@@ -57,11 +57,16 @@ This API describes individual peptide bonds. Bond `b` splits
 `source_start` offset. The per-peptide proteasome predictors remain available separately.
 
 Inputs describe canonical, linear L-peptides. Strings assume free N and C
-termini. Use `CleavageInput` to explicitly record `n_term="acetylated"` or
-`c_term="amidated"`, or `unknown`. These forms are recorded but the initial
-qPISA implementation abstains because they are outside its supported domain.
-Other modifications, D-residues, cyclization and conjugates are unsupported;
-do not strip their chemistry to obtain a score.
+termini. Use the shared `PeptideInput` to record `n_term="acetylated"` or
+`c_term="amidated"`, or `unknown`. The older `CleavageInput` remains accepted
+for callers that use its `fragment()` method or existing result JSON. Cleavage
+models accept `PeptideInput` when its fields can be represented by a cleavage
+result: sequence, termini, one source name/occurrence ID and source offset.
+Attachments, context, gene and species provenance are rejected explicitly;
+they are not silently discarded. The initial qPISA implementation abstains on
+modified termini because they are outside its supported domain. Other
+modifications, D-residues, cyclization and conjugates are unsupported; do not
+strip their chemistry to obtain a score.
 
 Exopeptidases assess exposed termini. An internal `HAE` is not an immediate
 DPP4 site. To ask about a hypothesized product, use

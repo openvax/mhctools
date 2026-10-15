@@ -8,6 +8,8 @@ from dataclasses import asdict, dataclass
 import math
 from typing import Optional, Tuple
 
+from .peptide_input import PeptideInput
+
 
 AMINO_ACIDS = frozenset("ACDEFGHIKLMNPQRSTVWY")
 
@@ -24,15 +26,32 @@ def _integer(value):
 
 
 def coerce_peptide(peptide):
-    """Accept a canonical peptide string or pass a :class:`CleavageInput` through.
+    """Accept a canonical sequence or an exact peptide input.
 
-    Every predictor's ``predict`` entry point does exactly this coercion;
-    sharing it keeps the accepted-input contract identical everywhere.
+    Cleavage results use the legacy compact ``CleavageInput`` record. A
+    ``PeptideInput`` is accepted only when its fields can be represented there;
+    dropping an attachment or contextual characteristic would change the
+    biological question without telling the caller.
     """
     if isinstance(peptide, str):
         peptide = CleavageInput(peptide)
+    if isinstance(peptide, PeptideInput):
+        if peptide.attachments or peptide.context is not None:
+            raise ValueError(
+                "Cleavage models cannot represent PeptideInput attachments or context")
+        if peptide.source_gene or peptide.source_species:
+            raise ValueError(
+                "Cleavage results cannot preserve PeptideInput gene or species provenance")
+        if peptide.occurrence_id and peptide.source_sequence_name:
+            raise ValueError(
+                "Cleavage results have one source_id; supply either occurrence_id "
+                "or source_sequence_name")
+        peptide = CleavageInput(
+            peptide.sequence, peptide.n_term, peptide.c_term,
+            peptide.occurrence_id or peptide.source_sequence_name,
+            peptide.source_start)
     if not isinstance(peptide, CleavageInput):
-        raise TypeError("Expected CleavageInput or canonical peptide string")
+        raise TypeError("Expected PeptideInput, CleavageInput or canonical peptide string")
     return peptide
 
 
@@ -117,7 +136,7 @@ class CleavageModel:
     name: str
     version: str
     enzyme: str
-    uniprot: str
+    uniprot: Optional[str]
     species: str
     compartments: Tuple[str, ...]
     evidence: str
@@ -134,6 +153,13 @@ class CleavageModel:
     def to_dict(self):
         """Keep only metadata applicable to this evidence type."""
         return {key: value for key, value in asdict(self).items() if value is not None}
+
+    @classmethod
+    def from_dict(cls, value):
+        """Restore model metadata, including rules without a UniProt ID."""
+        value = dict(value)
+        value.setdefault("uniprot", None)
+        return cls(**value)
 
     def __post_init__(self):
         object.__setattr__(self, "compartments", tuple(self.compartments))
@@ -270,7 +296,7 @@ class CleavageResult:
         """Restore serialized evidence, rejecting contradictory source bonds."""
         value = dict(value)
         peptide = CleavageInput(**value.pop("peptide"))
-        model = CleavageModel(**value.pop("model"))
+        model = CleavageModel.from_dict(value.pop("model"))
         sites = []
         for record in value.pop("sites", ()):
             record = dict(record)
