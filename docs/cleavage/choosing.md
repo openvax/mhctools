@@ -86,7 +86,7 @@ For broader candidate screening, select
 [extracellular models](models.md#serum-and-extracellular-candidates) by the bond:
 CPN or activated CPB2 for a C-terminal Lys/Arg; ACE for ordinary C-terminal
 dipeptide removal; aminopeptidase P for N-terminal X-Pro; or FAP for its
-proline-associated activities. MME, ENPEP, and ANPEP provide narrower preference
+N-terminal Ala/Pro and internal Gly-Pro activities. MME, ENPEP, and ANPEP provide narrower preference
 flags. Preserve terminal chemistry and, for CPB2, the explicit active-enzyme
 assumption.
 

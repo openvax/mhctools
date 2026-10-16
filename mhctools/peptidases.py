@@ -212,14 +212,18 @@ _RULES = (
           basis="Aminopeptidase P is defined by hydrolysis of the X-Pro bond; the source's kinin "
                 "substrates all carry proline in the second position."),
     motif_rule(name="fap-dipeptidyl", enzyme="FAP", accession="Q12884", compartments=("extracellular", "plasma"),
-          references=("https://pubmed.ncbi.nlm.nih.gov/16410248/",),
-          topology="n_terminal", removed=2, left=".P", right="[^P]", description="Exposed N-terminal X-Pro|non-Pro",
-          assay="Purified human FAP dipeptide substrate profiling",
-          limitations="Dipeptidyl activity only; P2 preferences and whole-peptide context omitted.",
-          min_length=3,
-          strictness="required",
-          basis="FAP dipeptidyl activity requires proline in the second position; the source's "
-                "profiling is built on X-Pro dipeptide substrates."),
+          references=("https://pubmed.ncbi.nlm.nih.gov/16410248/",
+                      "https://doi.org/10.1111/j.1742-4658.2011.08051.x"),
+          topology="n_terminal", removed=2, left=".[AP]", right="[^P]",
+          description="Exposed N-terminal X-Ala/Pro|non-Pro",
+          assay="Purified human FAP dipeptide substrate profiling and 0.2 micromolar FAP parent-loss assay",
+          limitations="Ala substrates were much slower than Pro substrates in the measured cohort. "
+          "Dipeptidyl activity only; P2 preferences and whole-peptide context omitted.",
+          min_length=3, version="2",
+          strictness="preferred",
+          basis="Purified human FAP removed N-terminal X-Ala from GLP-1, GLP-2, GIP, PHM "
+                "and GRF as well as X-Pro from four neuropeptides; neither pattern proves "
+                "turnover of an unseen peptide."),
     motif_rule(name="fap-endo-gp", enzyme="FAP", accession="Q12884", compartments=("extracellular", "plasma"),
           references=("https://pubmed.ncbi.nlm.nih.gov/16480718/",
            "https://pubmed.ncbi.nlm.nih.gov/16410248/",
