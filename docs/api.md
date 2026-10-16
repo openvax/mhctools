@@ -126,9 +126,12 @@ and [integration checks](https://github.com/openvax/mhctools/blob/master/mhctool
 [`predict_cleavage()`][mhctools.predict_cleavage] assesses individual bonds for
 selected peptidases. [`predict_cleavage_batch()`][mhctools.predict_cleavage_batch]
 assesses a set of inputs and processing scenarios.
-[`EnzymePredictor`][mhctools.EnzymePredictor] discovers and runs every available
-method for one enzyme, returning distinct results in
+[`DPP4`][mhctools.DPP4] and [`FAP`][mhctools.FAP] are named enzyme classes.
+They discover and run every available method for that enzyme, returning
+distinct results in
 [`EnzymePredictions`][mhctools.EnzymePredictions].
+[`EnzymePredictor.from_name()`][mhctools.EnzymePredictor.from_name] resolves
+configuration strings through the named-class registry or generic catalog.
 The shared [`PeptideInput`][mhctools.PeptideInput] supplies sequence and terminal
 chemistry and conditional fragments. [`motif_rule()`][mhctools.motif_rule]
 constructs a sourced custom motif predictor; see the [example](cleavage/models.md#define-a-sourced-motif-rule).
@@ -143,6 +146,10 @@ and [batch assessment](https://github.com/openvax/mhctools/blob/master/mhctools/
 ::: mhctools.predict_cleavage
 
 ::: mhctools.EnzymePredictor
+
+::: mhctools.DPP4
+
+::: mhctools.FAP
 
 ::: mhctools.EnzymePredictions
 
