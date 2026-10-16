@@ -107,16 +107,31 @@ class EnzymePredictions:
 
 
 class EnzymePredictor:
-    """Discover and run available methods for one exact human enzyme.
+    """Discover and run methods for an enzyme class or cataloged name.
 
     Methods are reported independently: a motif is a recognition pattern,
     a scored model keeps its native units, and a time-dependent fraction is
     available only where a specified source assay has been calibrated.
+
+    Use a concrete class such as ``DPP4()`` or ``FAP()`` in Python. The
+    string constructor remains for existing callers; ``from_name()`` is the
+    explicit registry path for configuration-driven selection.
     """
 
-    def __init__(self, enzyme, *, include_optional=False):
+    enzyme_name = None
+
+    def __init__(self, enzyme=None, *, include_optional=False):
+        if self.enzyme_name is not None:
+            if enzyme is not None:
+                raise TypeError("%s already selects %s; pass no enzyme" % (
+                    type(self).__name__, self.enzyme_name))
+            enzyme = self.enzyme_name
+        elif isinstance(enzyme, type) and issubclass(enzyme, EnzymePredictor):
+            enzyme = enzyme.enzyme_name
+        elif isinstance(enzyme, EnzymePredictor):
+            enzyme = enzyme.enzyme
         if not isinstance(enzyme, str) or not enzyme.strip():
-            raise ValueError("enzyme must be a nonempty name")
+            raise ValueError("Use a concrete enzyme class or a nonempty cataloged name")
         models = cleavage_models(include_optional=include_optional)
         available = {model.enzyme for model in models}
         matches = [name for name in available if name.casefold() == enzyme.casefold()]
@@ -125,6 +140,16 @@ class EnzymePredictor:
                 enzyme, ", ".join(sorted(available))))
         self.enzyme = matches[0]
         self.models = tuple(model for model in models if model.enzyme == self.enzyme)
+
+    @staticmethod
+    def from_name(name, *, include_optional=False):
+        """Resolve a string from configuration, using concrete classes when registered."""
+        if not isinstance(name, str):
+            raise TypeError("enzyme name must be a string")
+        predictor_class = enzyme_predictors.get(name.casefold())
+        if predictor_class is None:
+            return EnzymePredictor(name, include_optional=include_optional)
+        return predictor_class(include_optional=include_optional)
 
     @staticmethod
     def available(*, include_optional=False):
@@ -179,3 +204,41 @@ class EnzymePredictor:
             assays = (estimate_assay_parent_fraction(
                 peptide, enzyme=self.enzyme, minutes=minutes),)
         return EnzymePredictions(self.enzyme, peptide, cleavage, assays, minutes)
+
+
+class DPP4(EnzymePredictor):
+    """Human DPP4: sourced motifs, qPISA score, and Keane assay parent loss."""
+
+    enzyme_name = "DPP4"
+
+
+class FAP(EnzymePredictor):
+    """Human FAP: dipeptidyl and endopeptidyl motifs, plus Keane assay loss."""
+
+    enzyme_name = "FAP"
+
+
+enzyme_predictors = {"dpp4": DPP4, "fap": FAP}
+"""Named enzyme classes for configuration-driven selection."""
+
+
+class _EnzymeNamespace:
+    """Attribute access to each default-cataloged enzyme as a predictor object."""
+
+    @staticmethod
+    def _names():
+        return {"".join(word[:1].upper() + word[1:] for word in name.split()): name
+                for name in EnzymePredictor.available()}
+
+    def __getattr__(self, name):
+        canonical = self._names().get(name)
+        if canonical is None:
+            raise AttributeError("No cataloged enzyme %r" % name)
+        return EnzymePredictor.from_name(canonical)
+
+    def __dir__(self):
+        return sorted(self._names())
+
+
+enzymes = _EnzymeNamespace()
+"""Discoverable predictor objects, e.g. ``enzymes.ACE`` or ``enzymes.CathepsinS``."""

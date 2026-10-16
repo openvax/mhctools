@@ -65,6 +65,8 @@ _UNREGISTERED_BY_DESIGN = {
     # Enzyme-centered Python facade returns mixed cleavage and assay results;
     # it does not implement the MHC predictor registry's result contract.
     "EnzymePredictor",
+    "DPP4",
+    "FAP",
     "ERAMERCleavage",
     "ITCellCleavage",
     "PhageScout",

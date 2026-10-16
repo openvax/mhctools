@@ -1,15 +1,15 @@
 # Enzyme-centered predictions
 
-Use `EnzymePredictor` when the question starts with an enzyme: **what activity
+Use a named enzyme class when the question starts with an enzyme: **what activity
 has been measured, and what can each available method say about my peptide?**
 It discovers the enzyme's named methods and runs them together, while keeping
 their endpoints separate. It does not turn a pattern match or native score
 into a probability of cleavage.
 
 ```python
-from mhctools import EnzymePredictor
+from mhctools import DPP4
 
-dpp4 = EnzymePredictor("DPP4")
+dpp4 = DPP4()
 for method in dpp4.describe()["methods"]:
     print(method["name"], method["evidence_type"], method["description"])
 
@@ -45,13 +45,40 @@ rows = report.summary_rows()  # one endpoint and status per method
 payload = report.to_dict()    # JSON-compatible, schema_version 1
 ```
 
-`EnzymePredictor.available()` lists supported enzymes. `EnzymePredictor("FAP")`
+`EnzymePredictor.available()` lists supported enzymes. `FAP()`
 similarly reports its N-terminal dipeptidyl and internal endopeptidyl motifs
 plus the separate [Keane assay estimate](models.md#the-corresponding-purified-fap-estimate).
 For an enzyme without an assay calibration, `minutes` produces no invented
 fraction; the summary says so. If an enzyme requires an explicitly active
 form, pass `enzyme_state="active"` (for example, CPB2). Optional model
 runtimes are included only with `include_optional=True`.
+
+The `enzymes` namespace gives every default-cataloged enzyme an object, including
+those without a dedicated class. Its attribute names remove spaces:
+
+```python
+from mhctools import enzymes
+
+ace = enzymes.ACE
+cats = enzymes.CathepsinS
+print(cats.describe()["methods"])
+```
+
+For configuration files and command-line integrations, the explicit string
+registry resolves named classes. Other cataloged enzymes fall back to the
+same generic predictor:
+
+```python
+from mhctools import DPP4, FAP, EnzymePredictor, enzyme_predictors
+
+assert enzyme_predictors["dpp4"] is DPP4
+assert isinstance(EnzymePredictor.from_name("fap"), FAP)
+ace = EnzymePredictor.from_name("ace")
+```
+
+`EnzymePredictor(DPP4)` also accepts the class. The older
+`EnzymePredictor("DPP4")` constructor remains valid for callers of 4.0.5;
+new Python code should use `DPP4()` directly.
 
 The fraction is **parent peptide lost in one purified-enzyme assay**. It is
 not serum half-life, a fraction of intact core epitope surviving, an IM-vaccine
