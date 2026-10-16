@@ -39,6 +39,11 @@ print(result.sites[0].score)  # 2.1694, native qPISA score
 print(result.to_dict())      # input, model, assay, limitations and source bonds
 ```
 
+For a bounded **fraction of parent lost** in one purified-DPP4 assay, use
+[`DPP4qPISA.estimate_keane_fraction()`](models.md#a-bounded-purified-dpp4-fraction-estimate).
+Its reported validation error and assay conditions matter; the qPISA score
+above is not itself a loss percentage.
+
 For a motif rule, `site.match` is `1` when the documented pattern matches
 and `0` when it does not. It is not the chance that the enzyme cuts the bond;
 `site.score` remains reserved for a quantitative model's native output.

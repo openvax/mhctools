@@ -237,6 +237,50 @@ unless otherwise credited; Dataset EV2 has no separate credit restriction.
 Attribution: Rajani Kanth Gudipati and colleagues, 2024, DOI above. No figures
 or upstream R source code are redistributed.
 
+### A bounded purified-DPP4 fraction estimate
+
+`DPP4qPISA().estimate_keane_fraction(peptide, minutes=...)` maps the qPISA
+triplet score to a **parent-peptide loss fraction in one purified-enzyme assay**.
+It fits log half-life to the eleven 27–42-residue peptide measurements in
+[Keane et al. 2011, Tables 1–2](https://doi.org/10.1111/j.1742-4658.2011.08051.x):
+0.1 µM recombinant human DPP4 at 37 °C, with MALDI-TOF parent-peptide time
+courses. The fit gives each substrate one observation; the published mean
+half-lives, SDs, replicate counts, N-terminal
+triplets and lengths are transcribed in `mhctools/data/dpp4_keane2011.json`.
+BNP and substance P lack a qPISA coefficient; censored non-cuts are never
+assigned a zero rate. The fit treats the reported amide-terminated source
+peptides as part of the training set, but estimates only free-terminus inputs
+accepted by `DPP4qPISA.predict()`.
+
+```python
+from mhctools import DPP4qPISA
+
+# Synthetic 30-residue illustration, not a measured vaccine peptide.
+estimate = DPP4qPISA().estimate_keane_fraction("HAE" + "G" * 27, minutes=10)
+print(estimate["parent_lost_fraction"])  # about 0.33 in this assay model
+print(estimate["parent_remaining_fraction"])  # about 0.67
+```
+
+The method evaluates only the first, exposed DPP4 bond (bond 2), lengths
+27–42, supported unmodified qPISA inputs, and scores within the training
+range. Otherwise it returns `status="unassessed"` with a reason. It retains
+the native qPISA score separately. A first-order loss assumption converts
+the fitted half-life into a fraction at the requested time:
+`parent_remaining_fraction = 2 ** (-minutes / estimated_half_life_minutes)`.
+This is a modeling assumption; Keane's half-lives are experimental parent-loss
+summaries, not proof that every new peptide follows one exponential.
+
+There are only eight unique triplets among the eleven training substrates.
+Leaving out each complete triplet group in turn gives a mean absolute error
+in log half-life corresponding to a **2.8-fold typical error**. That is a
+validation error summary, not a
+confidence interval or a guarantee for new substrates. qPISA was trained in
+a separate, median-normalized 21 °C assay; its score cannot itself be read
+as an absolute fraction. Other sequence positions, substrate structure,
+enzyme amount and matrix all limit transfer. In particular, this estimate
+is **not** a serum, lymph, IM-vaccine or APC-arrival fraction and is not
+automatically passed to `assess_vaccine_windows()`.
+
 ## Serum and extracellular candidates
 
 ```sh
