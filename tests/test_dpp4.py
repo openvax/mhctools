@@ -4,6 +4,7 @@ import hashlib
 from importlib.resources import files
 from itertools import product
 import json
+import math
 
 import pytest
 
@@ -63,3 +64,48 @@ def test_published_table_identity_and_complete_triplet_coverage():
         result = DPP4qPISA().predict("".join(triplet))
         counts["unsupported" if result.unsupported_reason else "scored"] += 1
     assert counts == {"scored": 6420, "unsupported": 1580}
+
+
+def test_keane_assay_uses_published_parent_half_lives_and_held_out_triplets():
+    data = json.loads(files("mhctools").joinpath("data/dpp4_keane2011.json").read_text())
+    rows = data["rows"]
+    assert len(rows) == 11
+    assert len({row["triplet"] for row in rows}) == 8
+    assert next(row for row in rows if row["name"] == "GLP-1-amide") == {
+        "name": "GLP-1-amide", "triplet": "HAE", "length": 30,
+        "half_life_minutes": 8.63, "sd_minutes": 0.92, "n": 3,
+    }
+    assert next(row for row in rows if row["name"] == "VIP")["half_life_minutes"] == 173.3
+    estimate = DPP4qPISA().estimate_keane_fraction("HAE" + "G" * 27, minutes=10)
+    assert estimate["status"] == "assay_estimate"
+    assert estimate["bond"] == 2
+    assert estimate["estimated_half_life_minutes"] == pytest.approx(17.14987, rel=1e-5)
+    assert estimate["parent_lost_fraction"] == pytest.approx(0.3325, abs=0.001)
+    assert estimate["parent_remaining_fraction"] + estimate["parent_lost_fraction"] == pytest.approx(1)
+    assert estimate["validation"]["leave_one_triplet_out_typical_factor_error"] == pytest.approx(2.81, abs=0.01)
+
+
+def test_keane_assay_abstains_outside_measured_domain():
+    predictor = DPP4qPISA()
+    for peptide in (
+            "HAE", "HAE" + "G" * 23, "HAE" + "G" * 40,
+            "RPK" + "G" * 27, "KPV" + "G" * 27,
+            PeptideInput("HAE" + "G" * 27, n_term="acetylated"),
+            PeptideInput("HAE" + "G" * 27, c_term="amidated")):
+        result = predictor.estimate_keane_fraction(peptide, minutes=10)
+        assert result["status"] == "unassessed"
+        assert result["reason"]
+        assert "parent_lost_fraction" not in result
+    for minutes in (-1, math.nan, math.inf, True):
+        with pytest.raises(ValueError, match="minutes"):
+            predictor.estimate_keane_fraction("HAE" + "G" * 27, minutes=minutes)
+
+
+def test_keane_assay_fraction_is_bounded_and_changes_with_time():
+    predictor = DPP4qPISA()
+    peptide = "HSD" + "G" * 27
+    at_zero = predictor.estimate_keane_fraction(peptide, minutes=0)
+    at_ten = predictor.estimate_keane_fraction(peptide, minutes=10)
+    at_sixty = predictor.estimate_keane_fraction(peptide, minutes=60)
+    assert at_zero["parent_lost_fraction"] == 0
+    assert 0 < at_ten["parent_lost_fraction"] < at_sixty["parent_lost_fraction"] < 1

@@ -1,0 +1,21 @@
+{
+  "source": "https://doi.org/10.1111/j.1742-4658.2011.08051.x",
+  "source_tables": "Table 1 N-terminal sequence and length; Table 2 DPP4 half-life mean, SD and replicate count",
+  "assay": "Purified recombinant human DPP4, 0.1 micromolar, 37 C; MALDI-TOF parent-peptide time course",
+  "endpoint": "Full-length parent peptide half-life in minutes; not an in-vivo half-life",
+  "inclusion": "Reported numerical DPP4 half-life, length 27-42 residues, and complete Gudipati 2024 human DPP4 qPISA P2-P1-P1-prime coefficients",
+  "exclusions": "BNP and substance P lack the published qPISA P1-prime Lys coefficient. Chemokines and censored non-cleavages are outside this short-peptide calibration.",
+  "rows": [
+    {"name": "GLP-1-amide", "triplet": "HAE", "length": 30, "half_life_minutes": 8.63, "sd_minutes": 0.92, "n": 3},
+    {"name": "GLP-2", "triplet": "HAD", "length": 33, "half_life_minutes": 38.2, "sd_minutes": 7.8, "n": 3},
+    {"name": "GIP", "triplet": "YAE", "length": 42, "half_life_minutes": 8.02, "sd_minutes": 2.19, "n": 4},
+    {"name": "Glucagon", "triplet": "HSQ", "length": 29, "half_life_minutes": 90.9, "sd_minutes": 36.8, "n": 3},
+    {"name": "PHM", "triplet": "HAD", "length": 27, "half_life_minutes": 8.44, "sd_minutes": 2.84, "n": 5},
+    {"name": "GRF-amide", "triplet": "YAD", "length": 29, "half_life_minutes": 2.02, "sd_minutes": 1.03, "n": 4},
+    {"name": "Oxyntomodulin", "triplet": "HSQ", "length": 37, "half_life_minutes": 133.1, "sd_minutes": 23.5, "n": 3},
+    {"name": "VIP", "triplet": "HSD", "length": 28, "half_life_minutes": 173.3, "sd_minutes": 30.2, "n": 3},
+    {"name": "PACAP-amide", "triplet": "HSD", "length": 38, "half_life_minutes": 18.5, "sd_minutes": 8.5, "n": 4},
+    {"name": "PYY", "triplet": "YPI", "length": 36, "half_life_minutes": 24.3, "sd_minutes": 3.97, "n": 5},
+    {"name": "NPY", "triplet": "YPS", "length": 36, "half_life_minutes": 2.96, "sd_minutes": 0.94, "n": 4}
+  ]
+}

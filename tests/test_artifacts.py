@@ -61,6 +61,7 @@ def test_curated_json_files_are_explicit_package_resources():
     } == {
         "cavaco_published_model.json",
         "cleavage_reference.json",
+        "dpp4_keane2011.json",
         "dpp4_qpisa.json",
         "intracellular_cleavage_reference.json",
         "intracellular_substrate_evidence.json",
