@@ -245,7 +245,7 @@ or upstream R source code are redistributed.
 triplet score to a **parent-peptide loss fraction in one purified-enzyme assay**.
 It fits log half-life to the eleven 27–42-residue peptide measurements in
 [Keane et al. 2011, Tables 1–2](https://doi.org/10.1111/j.1742-4658.2011.08051.x):
-0.1 µM recombinant human DPP4 at 37 °C, with MALDI-TOF parent-peptide time
+0.112 µM recombinant human DPP4 at 37 °C, with MALDI-TOF parent-peptide time
 courses. The fit gives each substrate one observation; the published mean
 half-lives, SDs, replicate counts, N-terminal
 triplets and lengths are transcribed in `mhctools/data/dpp4_keane2011.json`.
@@ -302,12 +302,16 @@ the sequence is unmodeled; this is a rough cohort prior, not a fit to full
 peptide sequence or a claim that an arbitrary motif match has this rate.
 
 ```python
-from mhctools import estimate_assay_parent_fraction
+from mhctools import AssayConditions, DPP4, FAP
 
 peptide = "HAE" + "G" * 27  # synthetic illustration, not a measured substrate
-for enzyme in ("DPP4", "FAP"):
-    result = estimate_assay_parent_fraction(peptide, enzyme=enzyme, minutes=10)
-    print(enzyme, result["status"], result.get("parent_lost_fraction"))
+for enzyme in (DPP4(), FAP()):
+    result = enzyme.predict(peptide).assay_fractions[0]
+    print(enzyme.enzyme, result["status"], result.get("estimated_half_life_minutes"),
+          result.get("parent_remaining_fraction"))
+
+scenario = AssayConditions(exposure_minutes=60, enzyme_concentration_um=0.2)
+result = DPP4().predict(peptide, conditions=scenario).assay_fractions[0]
 ```
 
 The FAP Ala group has 5 source substrates and 1.4-fold typical
@@ -317,8 +321,11 @@ already seen during fitting. They do **not** validate transfer to a novel
 sequence with the same triplet, and the source includes censored non-cuts
 which are excluded rather than assigned zero rates. The output names the
 source assay, model, estimated half-life, lost and remaining **parent**
-fractions, and group validation. Unassessed inputs contain a reason and no
-fabricated fraction. Neither estimate is core-epitope survival, serum
+fractions, and group validation. The default fractions use a 60-minute
+reference exposure in each source assay; a supplied enzyme concentration
+scales the rate linearly as a sensitivity assumption. Unassessed inputs
+contain a reason and no fabricated fraction. Neither estimate is
+core-epitope survival, serum
 half-life, IM exposure or APC arrival; broader calibration remains [#587](https://github.com/openvax/mhctools/issues/587).
 
 For names, keep three distinct things visible: `fap-dipeptidyl`,
@@ -327,11 +334,11 @@ For names, keep three distinct things visible: `fap-dipeptidyl`,
 substrate-depletion score**, and `fap-keane2011-parent-loss` or
 `dpp4-qpisa-keane2011-parent-loss` is an **assay-specific fraction at a
 specified time**. A bare name like `FAP_HalfLife` would hide the assay and
-suggest a transferable biological half-life. The stable Python call is
-`estimate_assay_parent_fraction(peptide, enzyme=..., minutes=...)`; the
-source and endpoint remain explicit in its returned `model` and `assay`.
-The [enzyme-centered API](enzyme-predictor.md) discovers and runs all
-applicable methods for one named enzyme.
+suggest a transferable biological half-life. The
+[enzyme-centered API](enzyme-predictor.md) discovers and runs all applicable
+methods for an enzyme object. The lower-level
+`estimate_assay_parent_fraction(peptide, enzyme=...)` remains available for
+configuration-driven calls; its result retains the source and assay.
 
 Other enzymes need different evidence before they get a time-specific
 parent-loss estimate for an arbitrary canonical peptide. A [human CatS

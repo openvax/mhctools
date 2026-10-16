@@ -1,7 +1,8 @@
 {
   "source": "https://doi.org/10.1111/j.1742-4658.2011.08051.x",
   "source_tables": "Table 1 N-terminal sequence and length; Table 2 DPP4 half-life mean, SD and replicate count",
-  "assay": "Purified recombinant human DPP4, 0.1 micromolar, 37 C; MALDI-TOF parent-peptide time course",
+  "assay": "Purified recombinant human DPP4, 0.112 micromolar, 37 C; 1 ug substrate in 15 uL of 50 mM Tris/HCl pH 7.6; MALDI-TOF parent-peptide time course",
+  "enzyme_concentration_um": 0.112,
   "endpoint": "Full-length parent peptide half-life in minutes; not an in-vivo half-life",
   "inclusion": "Reported numerical DPP4 half-life, length 27-42 residues, and complete Gudipati 2024 human DPP4 qPISA P2-P1-P1-prime coefficients",
   "exclusions": "BNP and substance P lack the published qPISA P1-prime Lys coefficient. Chemokines and censored non-cleavages are outside this short-peptide calibration.",

@@ -1,11 +1,12 @@
 """One enzyme entry point, with distinct source-backed prediction methods."""
 
 from dataclasses import dataclass
-import math
 from typing import Optional, Tuple
 
 from .cleavage import CleavageResult, coerce_peptide
-from .enzyme_assay import assay_fraction_method, estimate_assay_parent_fraction
+from .enzyme_assay import (
+    DEFAULT_EXPOSURE_MINUTES, AssayConditions, assay_fraction_method,
+    estimate_assay_parent_fraction)
 from .peptide_input import PeptideInput
 from .peptidases import PeptidaseMotif, cleavage_models, get_cleavage_model, predict_cleavage
 
@@ -54,7 +55,10 @@ class EnzymePredictions:
         for result in self.assay_fractions:
             row = {"model": result["model"], "evidence_type": "assay_estimate",
                    "endpoint": "parent_peptide_loss_fraction", "status": result["status"],
-                   "minutes": result["minutes"]}
+                   "minutes": result["minutes"],
+                   "enzyme_concentration_um": result["enzyme_concentration_um"],
+                   "reference_enzyme_concentration_um": result[
+                       "reference_enzyme_concentration_um"]}
             if result["status"] == "assay_estimate":
                 row.update(parent_lost_fraction=result["parent_lost_fraction"],
                            parent_remaining_fraction=result["parent_remaining_fraction"],
@@ -79,9 +83,10 @@ class EnzymePredictions:
                     item["bond"], item["score"], row["score_units"])
                     for item in row["scores"])
             elif status == "assay_estimate":
-                detail = "%.1f%% parent lost, %.1f%% remaining after %g min in source assay" % (
+                detail = "%.1f%% parent lost, %.1f%% remaining after %g min at %g µM enzyme; estimated parent half-life %.1f min" % (
                     100 * row["parent_lost_fraction"],
-                    100 * row["parent_remaining_fraction"], row["minutes"])
+                    100 * row["parent_remaining_fraction"], row["minutes"],
+                    row["enzyme_concentration_um"], row["estimated_half_life_minutes"])
             elif status == "unassessed":
                 detail = "unassessed: " + row.get("reason", "no applicable site")
             elif status == "cleavage_reported":
@@ -189,21 +194,30 @@ class EnzymePredictor:
             methods.append(assay)
         return {"enzyme": self.enzyme, "methods": methods}
 
-    def predict(self, peptide, *, minutes=None, enzyme_state=None):
-        """Run every selected method; ``minutes`` requests assay fractions."""
+    def predict(self, peptide, *, conditions=None, minutes=None, enzyme_state=None):
+        """Run each method; include a 60-minute source-assay scenario by default.
+
+        ``conditions`` changes the assay exposure time and/or enzyme
+        concentration. ``minutes`` remains a legacy exposure-time shortcut.
+        Motifs and native cleavage scores do not depend on either parameter.
+        """
         peptide = coerce_peptide(peptide)
-        if minutes is not None and (
-                isinstance(minutes, bool) or not isinstance(minutes, (int, float)) or
-                not math.isfinite(minutes) or minutes < 0):
-            raise ValueError("minutes must be finite and nonnegative")
+        if minutes is not None and conditions is not None:
+            raise ValueError("Specify either minutes or conditions, not both")
+        if conditions is not None and not isinstance(conditions, AssayConditions):
+            raise TypeError("conditions must be AssayConditions")
+        if conditions is None:
+            conditions = AssayConditions(
+                exposure_minutes=DEFAULT_EXPOSURE_MINUTES if minutes is None else minutes)
         states = {self.enzyme: enzyme_state} if enzyme_state is not None else None
         cleavage = predict_cleavage(peptide, models=[m.name for m in self.models],
                                     enzyme_states=states)
         assays = ()
-        if minutes is not None and assay_fraction_method(self.enzyme):
+        if assay_fraction_method(self.enzyme):
             assays = (estimate_assay_parent_fraction(
-                peptide, enzyme=self.enzyme, minutes=minutes),)
-        return EnzymePredictions(self.enzyme, peptide, cleavage, assays, minutes)
+                peptide, enzyme=self.enzyme, conditions=conditions),)
+        return EnzymePredictions(self.enzyme, peptide, cleavage, assays,
+                                 conditions.exposure_minutes)
 
 
 class DPP4(EnzymePredictor):

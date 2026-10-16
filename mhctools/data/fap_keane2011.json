@@ -1,7 +1,8 @@
 {
   "source": "https://doi.org/10.1111/j.1742-4658.2011.08051.x",
   "source_tables": "Table 1 N-terminal sequence and length; Table 2 FAP half-life mean, SD and replicate count",
-  "assay": "Purified recombinant human FAP, 0.2 micromolar, 37 C; MALDI-TOF parent-peptide time course",
+  "assay": "Purified recombinant human FAP, 0.2 micromolar, 37 C; 1 ug substrate in 15 uL of 25 mM Tris and 0.25 M NaCl pH 8.0; MALDI-TOF parent-peptide time course",
+  "enzyme_concentration_um": 0.2,
   "endpoint": "Full-length parent peptide half-life in minutes; not an in-vivo half-life",
   "inclusion": "Nine numerical FAP half-lives of 11-42-residue hormones and neuropeptides with exposed N-terminal Ala or Pro; only the eight observed N-terminal triplets are accepted at inference",
   "exclusions": "Glucagon, oxyntomodulin, VIP and PACAP have censored non-50%-loss observations; chemokines are excluded. No zero rate is imputed.",
