@@ -130,7 +130,9 @@ class DPP4qPISA:
         peptide = coerce_peptide(peptide)
         calibration = _keane_calibration()
         output = {
-            "status": "unassessed", "bond": 2, "minutes": minutes,
+            "status": "unassessed", "enzyme": "DPP4",
+            "model": "dpp4-qpisa-keane2011-parent-loss",
+            "bond": 2, "minutes": minutes,
             "source": calibration["source"], "assay": calibration["assay"],
         }
         if not 27 <= len(peptide.sequence) <= 42:

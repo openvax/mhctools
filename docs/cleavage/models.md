@@ -130,7 +130,7 @@ Strictness grades are explained in [reading the evidence](evidence.md#how-strict
 | `cpn-basic` | C-terminal \|Lys/Arg | required | Human plasma CPN; [Oshima et al. 1975](https://doi.org/10.1016/0003-9861(75)90104-6) |
 | `app1-xp` | N-terminal X\|Pro | required | Cytosolic human XPNPEP1; [Cottrell et al. 2000](https://pubmed.ncbi.nlm.nih.gov/11106490/); manganese dependent, distinct gene product from XPNPEP2 |
 | `app2-xp` | N-terminal X\|Pro | required | Human XPNPEP2; [Molinaro et al.](https://pubmed.ncbi.nlm.nih.gov/15361070/) |
-| `fap-dipeptidyl` | N-terminal X-Pro\|non-Pro | required | Human FAP; [Edosada et al.](https://pubmed.ncbi.nlm.nih.gov/16410248/) |
+| `fap-dipeptidyl` | N-terminal X-Ala/Pro\|non-Pro | preferred | Human FAP; [substrate profiling](https://pubmed.ncbi.nlm.nih.gov/16410248/) and [direct Ala/Pro cleavage](https://doi.org/10.1111/j.1742-4658.2011.08051.x). Ala was much slower in the tested cohort. |
 | `fap-endo-gp` | Gly-Pro\|non-Pro | required | FAP endopeptidase; [substrate profiling](https://pubmed.ncbi.nlm.nih.gov/16480718/), [prime-side constraint](https://pubmed.ncbi.nlm.nih.gov/22750443/) |
 | `enpep-acidic` | N-terminal Asp/Glu\|X | preferred | Aminopeptidase A; [human specificity study](https://pubmed.ncbi.nlm.nih.gov/23888046/); calcium and sequence affect activity |
 | `anpep-ala` | N-terminal Ala\|X preference | permissive | Aminopeptidase N; [human structure/biochemistry](https://pubmed.ncbi.nlm.nih.gov/22932899/); many other substrates omitted |
@@ -280,6 +280,65 @@ as an absolute fraction. Other sequence positions, substrate structure,
 enzyme amount and matrix all limit transfer. In particular, this estimate
 is **not** a serum, lymph, IM-vaccine or APC-arrival fraction and is not
 automatically passed to `assess_vaccine_windows()`.
+
+### The corresponding purified-FAP estimate
+
+The same [Keane et al. 2011 Table 2](https://doi.org/10.1111/j.1742-4658.2011.08051.x)
+reports nine numerical parent half-lives for 11–42-residue hormones and
+neuropeptides incubated with **0.2 µM purified human FAP at 37 °C**. Five
+substrates with Ala at the second residue had measured half-lives of about
+15.5–39.1 hours; four with Pro ranged from 5.78 to 60.2 minutes. These are
+different enzyme concentrations from the DPP4 assay and must not be compared
+as intrinsic in-vivo clearance rates.
+
+`estimate_assay_parent_fraction()` gives a common entry point for the two
+bounded estimates. For FAP it uses the geometric mean measured half-life of
+the Ala or Pro group, then assumes first-order parent loss. It accepts only
+11–42-residue peptides with one of the **eight measured N-terminal triplets**,
+an exposed free N terminus, and a free or amidated C terminus. The rest of
+the sequence is unmodeled; this is a rough cohort prior, not a fit to full
+peptide sequence or a claim that an arbitrary motif match has this rate.
+
+```python
+from mhctools import estimate_assay_parent_fraction
+
+peptide = "HAE" + "G" * 27  # synthetic illustration, not a measured substrate
+for enzyme in ("DPP4", "FAP"):
+    result = estimate_assay_parent_fraction(peptide, enzyme=enzyme, minutes=10)
+    print(enzyme, result["status"], result.get("parent_lost_fraction"))
+```
+
+The FAP Ala group has 5 source substrates and 1.4-fold typical
+leave-one-substrate-out error; the Pro group has 4 and **3.0-fold** typical
+error, with PYY a conspicuous outlier. Those checks reuse N-terminal groups
+already seen during fitting. They do **not** validate transfer to a novel
+sequence with the same triplet, and the source includes censored non-cuts
+which are excluded rather than assigned zero rates. The output names the
+source assay, model, estimated half-life, lost and remaining **parent**
+fractions, and group validation. Unassessed inputs contain a reason and no
+fabricated fraction. Neither estimate is core-epitope survival, serum
+half-life, IM exposure or APC arrival; broader calibration remains [#587](https://github.com/openvax/mhctools/issues/587).
+
+For names, keep three distinct things visible: `fap-dipeptidyl` is a
+**binary recognition pattern**, `dpp4-qpisa` is a **native numerical
+substrate-depletion score**, and `fap-keane2011-parent-loss` or
+`dpp4-qpisa-keane2011-parent-loss` is an **assay-specific fraction at a
+specified time**. A bare name like `FAP_HalfLife` would hide the assay and
+suggest a transferable biological half-life. The stable Python call is
+`estimate_assay_parent_fraction(peptide, enzyme=..., minutes=...)`; the
+source and endpoint remain explicit in its returned `model` and `assay`.
+
+Other enzymes need different evidence before they get a time-specific
+parent-loss estimate for an arbitrary canonical peptide. A [human CatS
+substitution series](https://pmc.ncbi.nlm.nih.gov/articles/PMC2662293/)
+reports digestion and kinetic constants for internally quenched peptides
+with dye, D-amino-acid and amide modifications around one scaffold; treating
+its fitted constants as rates for unmodified vaccine peptides would silently
+change the substrate chemistry. A [human neprilysin kinetic
+panel](https://pmc.ncbi.nlm.nih.gov/articles/PMC4121237/) reports constants
+for a small set of named substrates, but no validated sequence-to-rate
+mapping for novel windows. Their motif or native scores can still be used for
+the endpoints each measures; neither is an absolute per-minute fraction.
 
 ## Serum and extracellular candidates
 

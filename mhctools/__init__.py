@@ -117,6 +117,7 @@ from .cleavage_batch import (
     predict_cleavage_batch, write_cleavage_batch,
 )
 from .dpp4 import DPP4qPISA
+from .enzyme_assay import estimate_assay_parent_fraction as estimate_assay_parent_fraction
 from .peptidases import cleavage_models, get_cleavage_model, motif_rule, predict_cleavage
 from .eramer_cleavage import ERAMERCleavage
 from .itcell_cleavage import ITCellCleavage
@@ -200,7 +201,7 @@ def __getattr__(name):
     raise AttributeError(
         "module %r has no attribute %r" % (__name__, name))
 
-__version__ = "4.0.3"
+__version__ = "4.0.4"
 
 __all__ = [
     "CleaveNet",

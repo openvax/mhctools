@@ -92,6 +92,7 @@ def test_public_terminal_rule_infers_a_valid_minimum_length():
     ("cpn-basic", "RPPGFSPFR", 8),  # C-terminal Arg of bradykinin
     ("app2-xp", "RPPGFSPFR", 1),  # first residue, NOT the Pro at position 2
     ("fap-dipeptidyl", "APGAA", 2),
+    ("fap-dipeptidyl", "HAEGTFTSD", 2),  # Keane 2011: human FAP removes His-Ala
     ("fap-endo-gp", "TSGPNQ", 4),  # alpha-2-antiplasmin recognition context
     ("enpep-acidic", "DRVYIHPF", 1),  # angiotensin II N-terminal Asp
     ("anpep-ala", "AAGF", 1),
@@ -138,6 +139,13 @@ def test_blocked_termini_distinguish_endo_and_exo():
     assert next(s for s in result.sites if s.bond == 2).status == "matched"
     assert get_cleavage_model("cpn-basic").predict(
         PeptideInput("AARK", c_term="amidated")).unsupported_reason
+
+
+def test_fap_dipeptidyl_revision_records_ala_evidence():
+    model = get_cleavage_model("fap-dipeptidyl").model
+    assert model.version == "2"
+    assert model.motif_strictness == "preferred"
+    assert "10.1111/j.1742-4658.2011.08051.x" in model.references[1]
 
 
 def test_all_models_abstain_for_unknown_chemistry_and_too_short_input():

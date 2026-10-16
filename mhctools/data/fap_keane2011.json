@@ -1,0 +1,19 @@
+{
+  "source": "https://doi.org/10.1111/j.1742-4658.2011.08051.x",
+  "source_tables": "Table 1 N-terminal sequence and length; Table 2 FAP half-life mean, SD and replicate count",
+  "assay": "Purified recombinant human FAP, 0.2 micromolar, 37 C; MALDI-TOF parent-peptide time course",
+  "endpoint": "Full-length parent peptide half-life in minutes; not an in-vivo half-life",
+  "inclusion": "Nine numerical FAP half-lives of 11-42-residue hormones and neuropeptides with exposed N-terminal Ala or Pro; only the eight observed N-terminal triplets are accepted at inference",
+  "exclusions": "Glucagon, oxyntomodulin, VIP and PACAP have censored non-50%-loss observations; chemokines are excluded. No zero rate is imputed.",
+  "rows": [
+    {"name": "GLP-1-amide", "triplet": "HAE", "length": 30, "half_life_minutes": 1308.0, "sd_minutes": 762.0, "n": 7},
+    {"name": "GLP-2", "triplet": "HAD", "length": 33, "half_life_minutes": 1125.6, "sd_minutes": 804.0, "n": 4},
+    {"name": "GIP", "triplet": "YAE", "length": 42, "half_life_minutes": 2346.0, "sd_minutes": 882.0, "n": 4},
+    {"name": "PHM", "triplet": "HAD", "length": 27, "half_life_minutes": 930.0, "sd_minutes": 282.0, "n": 4},
+    {"name": "GRF-amide", "triplet": "YAD", "length": 29, "half_life_minutes": 968.4, "sd_minutes": 270.0, "n": 3},
+    {"name": "PYY", "triplet": "YPI", "length": 36, "half_life_minutes": 60.2, "sd_minutes": 16.9, "n": 4},
+    {"name": "BNP", "triplet": "SPK", "length": 32, "half_life_minutes": 6.24, "sd_minutes": 1.85, "n": 4},
+    {"name": "NPY", "triplet": "YPS", "length": 36, "half_life_minutes": 5.78, "sd_minutes": 1.62, "n": 4},
+    {"name": "Substance P", "triplet": "RPK", "length": 11, "half_life_minutes": 8.24, "sd_minutes": 1.95, "n": 3}
+  ]
+}
