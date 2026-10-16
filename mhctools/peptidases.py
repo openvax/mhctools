@@ -131,6 +131,30 @@ def motif_rule(*, name, enzyme, references, topology, assay, limitations,
 
 
 _RULES = (
+    motif_rule(name="dpp4-p1-pro-ala", enzyme="DPP4", accession="P27487",
+          compartments=("extracellular", "plasma", "serum"),
+          references="https://doi.org/10.1515/bc.2011.028",
+          topology="n_terminal", removed=2, left=".[PA]", right=".",
+          description="Exposed N-terminal X-(Pro/Ala)|X preference",
+          assay="Purified human DPP4 peptide-derivative kinetics, including short reporters and NPY analogues",
+          limitations="Pro/Ala is a preference, not a required gate: Ser and other P1 residues can be cleaved. "
+          "Short reporter substrates and full peptides have different relative rates; no time scale follows from a match.",
+          c_chemistry=("free", "amidated"),
+          strictness="preferred",
+          basis="Kühn-Wache et al. measured strong Pro/Ala preference in short derivatives "
+                "but divergent rates in longer NPY analogues."),
+    motif_rule(name="dpp4-p1prime-nonpro", enzyme="DPP4", accession="P27487",
+          compartments=("extracellular", "plasma", "serum"),
+          references="https://doi.org/10.1038/s44320-024-00071-4",
+          topology="n_terminal", removed=2, left="..", right="[^P]",
+          description="Exposed N-terminal X-X|non-Pro preference",
+          assay="Purified human DPP4 qPISA peptide validation",
+          limitations="Tested peptides with P1-prime Pro yielded no product, but this is not "
+          "a universal kinetic veto or a calibrated probability. P1 Ser/Thr can be cleaved.",
+          c_chemistry=("free", "amidated"),
+          strictness="preferred",
+          basis="Gudipati et al. observed no product for tested P1-prime Pro peptides while "
+                "other P1 residues including Ser/Thr were cleaved."),
     motif_rule(name="app1-xp", enzyme="XPNPEP1", accession="Q9NQW7", compartments=("cytosol",),
           references=("https://pubmed.ncbi.nlm.nih.gov/11106490/", "https://doi.org/10.1074/jbc.M710274200"),
           topology="n_terminal", removed=1, left=".", right="P", description="Exposed N-terminal X|Pro",

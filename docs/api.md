@@ -9,6 +9,7 @@ first prediction, start with [getting started](getting-started.md).
 | Describe a peptide or TCR | [Inputs](#inputs) | [Input shapes](predictors/index.md#input-shapes) |
 | Add predictions to a table | [Table annotation](#annotating-tables) | [Annotation recipe](recipes.md) |
 | Download or inspect models | [Models and artifacts](#models-and-artifacts) | [Getting models](artifacts.md) |
+| See one enzyme's methods and predictions | [Peptidase activity](#peptidase-activity) | [Enzyme-centered guide](cleavage/enzyme-predictor.md) |
 | Assess individual peptide bonds | [Peptidase activity](#peptidase-activity) | [Activity guide](cleavage/index.md) |
 | Model conditional vaccine exposure | [Vaccine trajectories](#vaccine-trajectories) | [Run, report and compare](vaccine-comparison.md) |
 
@@ -125,6 +126,9 @@ and [integration checks](https://github.com/openvax/mhctools/blob/master/mhctool
 [`predict_cleavage()`][mhctools.predict_cleavage] assesses individual bonds for
 selected peptidases. [`predict_cleavage_batch()`][mhctools.predict_cleavage_batch]
 assesses a set of inputs and processing scenarios.
+[`EnzymePredictor`][mhctools.EnzymePredictor] discovers and runs every available
+method for one enzyme, returning distinct results in
+[`EnzymePredictions`][mhctools.EnzymePredictions].
 The shared [`PeptideInput`][mhctools.PeptideInput] supplies sequence and terminal
 chemistry and conditional fragments. [`motif_rule()`][mhctools.motif_rule]
 constructs a sourced custom motif predictor; see the [example](cleavage/models.md#define-a-sourced-motif-rule).
@@ -137,6 +141,10 @@ Source: [model dispatch](https://github.com/openvax/mhctools/blob/master/mhctool
 and [batch assessment](https://github.com/openvax/mhctools/blob/master/mhctools/cleavage_batch.py).
 
 ::: mhctools.predict_cleavage
+
+::: mhctools.EnzymePredictor
+
+::: mhctools.EnzymePredictions
 
 ::: mhctools.predict_cleavage_batch
 
