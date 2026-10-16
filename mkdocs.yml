@@ -74,6 +74,7 @@ nav:
           - Overview and predictors: predictors/processing.md
           - Choosing processing models: cleavage/choosing.md
           - Peptidase activity: cleavage/index.md
+          - Enzyme-centered predictions: cleavage/enzyme-predictor.md
           - Peptidase models: cleavage/models.md
           - CleaveNet MMP substrates: cleavage/cleavenet.md
           - ITCell cathepsin profiles: cleavage/itcell.md

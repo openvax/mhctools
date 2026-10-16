@@ -16,6 +16,7 @@ substrate. These retain their own interpretation, as described in
 
 | Task | Guide |
 |---|---|
+| See what one enzyme can do and run its distinct methods | [Enzyme-centered predictions](enzyme-predictor.md) |
 | Assess individual peptide bonds | [Quickstart](#quickstart) |
 | Assess epitopes with flanks or complete vaccine constructs | [Batch assessments](batch.md) |
 | Generate a sequence-centered PDF | [Vaccine reports](../vaccine-reports.md) |

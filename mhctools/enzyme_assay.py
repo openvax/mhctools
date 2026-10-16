@@ -8,6 +8,27 @@ from .cleavage import coerce_peptide
 from .dpp4 import DPP4qPISA
 
 
+_ASSAY_METHODS = {
+    "DPP4": ("dpp4-qpisa-keane2011-parent-loss", "dpp4_keane2011.json"),
+    "FAP": ("fap-keane2011-parent-loss", "fap_keane2011.json"),
+}
+
+
+def assay_fraction_method(enzyme):
+    """Catalog a supported Keane assay endpoint without estimating a peptide."""
+    if enzyme not in _ASSAY_METHODS:
+        return None
+    name, resource = _ASSAY_METHODS[enzyme]
+    data = load_json_resource(resource)
+    return {
+        "name": name, "evidence_type": "assay_estimate",
+        "endpoint": "parent_peptide_loss_fraction",
+        "description": "Estimated fraction of full-length parent peptide lost at a specified time",
+        "assay": data["assay"], "references": [data["source"]],
+        "limitations": data["inclusion"] + "; " + data["exclusions"],
+    }
+
+
 def _first_order_fraction(half_life_minutes, minutes):
     exponent = -math.log(2) * minutes / half_life_minutes
     return {

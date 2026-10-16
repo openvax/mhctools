@@ -62,7 +62,7 @@ rule reports binary motif matches, never numerical cleavage probabilities.
 The built-in `mme-hydrophobic` rule already covers the example above; custom rules should
 retain the assay and limits supported by their own references.
 
-The default panel evaluates all 39 built-in models and returns separate
+The default panel evaluates all 41 built-in models and returns separate
 results. `--model` and `--sequence` can be repeated. `--list-models` prints a
 compact discovery table; add `--json` for its full machine-readable catalog.
 Nine bundled [ITCell cathepsin profiles](itcell.md) add human B/S internal
@@ -124,6 +124,8 @@ Strictness grades are explained in [reading the evidence](evidence.md#how-strict
 | Model | Assessed recognition pattern | Strictness | Main scope and primary evidence |
 | --- | --- | --- | --- |
 | `dpp4-qpisa` | N-terminal P2-P1\|P1′ score | scored | Human DPP4; quantitative model described above |
+| `dpp4-p1-pro-ala` | N-terminal X-(Pro/Ala)\|X preference | preferred | Human DPP4; [short substrates and NPY analogues](https://doi.org/10.1515/bc.2011.028); other P1 residues can still be cut |
+| `dpp4-p1prime-nonpro` | N-terminal X-X\|non-Pro preference | preferred | Human DPP4; [qPISA peptide validation](https://doi.org/10.1038/s44320-024-00071-4) found no product for tested P1′ Pro peptides; scope is that test set |
 | `ace-dipeptidyl` | C-terminal \|non-Pro–non-Asp/Glu | required | Ordinary human ACE dipeptide activity; [angiotensin assays](https://doi.org/10.1042/BJ20040634) |
 | `mme-hydrophobic` | Selected P1′ residues Phe/Ile/Leu/Tyr | preferred | Human neprilysin; [kidney peptide assays](https://pubmed.ncbi.nlm.nih.gov/6349683/); incomplete whole-sequence specificity |
 | `cpb2-basic` | C-terminal \|Lys/Arg, explicitly active enzyme | required | Human TAFIa; [chemerin cleavage](https://pmc.ncbi.nlm.nih.gov/articles/PMC2613638/); unknown/zymogen/inactive states abstain |
@@ -319,14 +321,17 @@ fractions, and group validation. Unassessed inputs contain a reason and no
 fabricated fraction. Neither estimate is core-epitope survival, serum
 half-life, IM exposure or APC arrival; broader calibration remains [#587](https://github.com/openvax/mhctools/issues/587).
 
-For names, keep three distinct things visible: `fap-dipeptidyl` is a
-**binary recognition pattern**, `dpp4-qpisa` is a **native numerical
+For names, keep three distinct things visible: `fap-dipeptidyl`,
+`dpp4-p1-pro-ala` and `dpp4-p1prime-nonpro` are separate
+**binary recognition patterns**, `dpp4-qpisa` is a **native numerical
 substrate-depletion score**, and `fap-keane2011-parent-loss` or
 `dpp4-qpisa-keane2011-parent-loss` is an **assay-specific fraction at a
 specified time**. A bare name like `FAP_HalfLife` would hide the assay and
 suggest a transferable biological half-life. The stable Python call is
 `estimate_assay_parent_fraction(peptide, enzyme=..., minutes=...)`; the
 source and endpoint remain explicit in its returned `model` and `assay`.
+The [enzyme-centered API](enzyme-predictor.md) discovers and runs all
+applicable methods for one named enzyme.
 
 Other enzymes need different evidence before they get a time-specific
 parent-loss estimate for an arbitrary canonical peptide. A [human CatS

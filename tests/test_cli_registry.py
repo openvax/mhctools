@@ -62,6 +62,9 @@ _UNREGISTERED_BY_DESIGN = {
     # Enzyme cleavage models, served by the `cleavage` subcommand via
     # mhctools.peptidases.cleavage_models().
     "DPP4qPISA",
+    # Enzyme-centered Python facade returns mixed cleavage and assay results;
+    # it does not implement the MHC predictor registry's result contract.
+    "EnzymePredictor",
     "ERAMERCleavage",
     "ITCellCleavage",
     "PhageScout",
