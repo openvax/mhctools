@@ -4,7 +4,9 @@ import json
 
 import pytest
 
-from mhctools import DPP4, FAP, EnzymePredictor, PeptideInput, enzyme_predictors, enzymes
+from mhctools import (
+    AssayConditions, DPP4, FAP, EnzymePredictor, PeptideInput,
+    enzyme_predictors, enzymes)
 
 
 PEPTIDE = "HAE" + "G" * 27
@@ -63,6 +65,23 @@ def test_fap_multiple_activities_and_assay_estimate():
     assert sum(result.by_model["fap-endo-gp"].pattern_mask) == 0
     assert result.by_model["fap-keane2011-parent-loss"]["parent_lost_fraction"] == pytest.approx(
         0.005508, rel=1e-3)
+
+
+def test_default_enzyme_report_includes_comparable_assay_fraction():
+    reports = (DPP4().predict(PEPTIDE), FAP().predict(PEPTIDE))
+    for report in reports:
+        estimate = report.assay_fractions[0]
+        assert estimate["exposure_minutes"] == 60
+        assert estimate["estimated_half_life_minutes"] > 0
+        assert 0 <= estimate["parent_remaining_fraction"] <= 1
+        assert estimate["parent_lost_fraction"] == pytest.approx(
+            1 - estimate["parent_remaining_fraction"])
+        assert "estimated parent half-life" in report.summary()
+    scaled = DPP4().predict(
+        PEPTIDE,
+        conditions=AssayConditions(exposure_minutes=10, enzyme_concentration_um=0.224))
+    assert scaled.assay_fractions[0]["estimated_half_life_minutes"] == pytest.approx(
+        reports[0].assay_fractions[0]["estimated_half_life_minutes"] / 2)
 
 
 def test_unsupported_chemistry_and_enzymes_without_assay():
