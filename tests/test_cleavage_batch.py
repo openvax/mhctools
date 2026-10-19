@@ -50,6 +50,17 @@ def run_request(value):
     return predict_cleavage_batch(value["inputs"], value["scenarios"])
 
 
+def legacy_report(version):
+    report = deepcopy(run_request(request()))
+    report["schema_version"] = version
+    models = report.pop("models")
+    for row in report["assessments"]:
+        row["requested_model"] = models[row["model"]]
+        if row["result"] is not None:
+            row["result"]["model"] = models[row["model"]]
+    return report
+
+
 def test_mixed_context_evidence_round_trip_and_cli_agree(tmp_path, monkeypatch):
     value = request()
     report = run_request(value)
@@ -57,6 +68,12 @@ def test_mixed_context_evidence_round_trip_and_cli_agree(tmp_path, monkeypatch):
     html_path = tmp_path / "evidence.html"
     write_cleavage_batch(report, path, html_path=html_path)
     assert load_cleavage_batch(path) == report
+    assert report["schema_version"] == 4
+    assert set(report["models"]) == {"app1-xp", "lnpep-observed", "dpp4-qpisa", "cpn-basic", "cpb2-basic"}
+    assert all("requested_model" not in row and "context_application" not in row
+               for row in report["assessments"])
+    assert all("model" not in row["result"] for row in report["assessments"]
+               if row["result"] is not None)
     assert report["inputs"][0]["evidence"] == value["inputs"][0]["evidence"]
     input_path = tmp_path / "request.json"
     input_path.write_text(json.dumps(value))
@@ -76,8 +93,7 @@ def test_legacy_batch_output_still_loads(tmp_path):
     from dataclasses import asdict
     from mhctools.cleavage_batch import cleavage_overlays
 
-    legacy = deepcopy(run_request(request()))
-    legacy["schema_version"] = 1
+    legacy = legacy_report(1)
     inputs = {item["id"]: item for item in legacy["inputs"]}
     for row in legacy["assessments"]:
         if row["result"] is None:
@@ -93,8 +109,7 @@ def test_legacy_batch_output_still_loads(tmp_path):
 
 
 def test_schema_two_batch_with_old_peptide_fields_still_loads(tmp_path):
-    legacy = deepcopy(run_request(request()))
-    legacy["schema_version"] = 2
+    legacy = legacy_report(2)
     for row in legacy["assessments"]:
         if row["result"] is None:
             continue
@@ -102,6 +117,13 @@ def test_schema_two_batch_with_old_peptide_fields_still_loads(tmp_path):
         peptide["source_id"] = peptide.pop("source_sequence_name")
         peptide.setdefault("source_start", 0)
     path = tmp_path / "schema-two.json"
+    path.write_text(json.dumps(legacy))
+    assert load_cleavage_batch(path) == legacy
+
+
+def test_schema_three_batch_with_embedded_models_still_loads(tmp_path):
+    legacy = legacy_report(3)
+    path = tmp_path / "schema-three.json"
     path.write_text(json.dumps(legacy))
     assert load_cleavage_batch(path) == legacy
 
@@ -174,6 +196,17 @@ def test_saved_evidence_corruption_is_rejected(tmp_path):
     report = run_request(request())
     path = tmp_path / "evidence.json"
     write_cleavage_batch(report, path)
+    missing_model = deepcopy(report)
+    missing_model["models"].pop("cpn-basic")
+    path.write_text(json.dumps(missing_model))
+    with pytest.raises(ValueError, match="catalog"):
+        load_cleavage_batch(path)
+    repeated_model = deepcopy(report)
+    repeated_model["assessments"][0]["result"]["model"] = repeated_model["models"][
+        repeated_model["assessments"][0]["model"]]
+    path.write_text(json.dumps(repeated_model))
+    with pytest.raises(ValueError, match="shared model catalog"):
+        load_cleavage_batch(path)
     report["assessments"].pop()
     path.write_text(json.dumps(report))
     with pytest.raises(ValueError, match="missing requested"):

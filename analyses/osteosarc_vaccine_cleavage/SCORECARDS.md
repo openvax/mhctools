@@ -60,7 +60,7 @@ predicted relative peptide-signal loss in the source assay, not observed
 vaccine-peptide loss or in-vivo degradation.
 Bold cells meet the raw score's within-model 0.5 display threshold.
 No threshold is applied to DPP4 or ERAMER. `NA` is unassessed/unsupported,
-never zero. Large triangles mark motif matches and hollow circles mark
+never zero. Dashed red lines mark motif matches and hollow circles mark
 assessed non-matches; motifs remain qualitative evidence.
 The models and their biological contexts are not combined into a consensus,
 whole-peptide survival probability, uptake estimate, or clinical conclusion.

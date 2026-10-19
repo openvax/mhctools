@@ -522,7 +522,6 @@ def placement_assessments(construct):
                 "score_units": track.units,
                 "evidence_type": track.evidence_type,
                 "conditional_on": track.conditional_on,
-                "canonical_evidence": track.evidence.to_dict() if track.evidence else None,
             })
     return rows
 
@@ -904,7 +903,10 @@ def generate_vaccine_report(
         "synthetic-long-peptide delivery use distinct declared processing policies.\n\n"
         "[Compact target summary](target-summary.json) separates expression, processing "
         "and serum availability. Site flags retain their model and route; missing "
-        "uptake, MHC loading and serum kinetics stay unassessed.\n",
+        "uptake, MHC loading and serum kinetics stay unassessed. "
+        "[Placement assessments](placement-assessments.json) give bond-level flags; "
+        "[normalized input](normalized-input.json) keeps complete model evidence "
+        "and sources once.\n",
         encoding="utf-8",
     )
     checksums = {}

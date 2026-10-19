@@ -1955,7 +1955,8 @@ def draw_extracellular_panel(
             for position in (1, 2):
                 ax.text(position, y + .08, sequence[position - 1], ha="center", va="bottom",
                         fontsize=12, fontweight="bold", family="monospace", color=color)
-            ax.plot([x, x], [y - .26, y + .26], color=color, linewidth=3.5)
+            ax.plot([x, x], [y - .26, y + .26], color="#c5323b", linewidth=2,
+                    linestyle=(0, (3, 2)), zorder=3)
             value_x = left + (right - left) * .63
             ax.annotate(dpp4_loss_label(evidence["score"]), xy=(x, y), xytext=(value_x, y),
                         fontsize=13, fontweight="bold", color=color, va="center", ha="center",
@@ -1965,14 +1966,15 @@ def draw_extracellular_panel(
         if evidence["unmatched_bonds"]:
             ax.scatter([bond + .5 for bond in evidence["unmatched_bonds"]], [y] * len(evidence["unmatched_bonds"]),
                        s=42, facecolors="white", edgecolors="#98a2ad", linewidths=1.2, zorder=2)
-        if evidence["matched_bonds"]:
-            ax.scatter([bond + .5 for bond in evidence["matched_bonds"]], [y] * len(evidence["matched_bonds"]),
-                       marker="v", s=225, facecolors=color, edgecolors="white", linewidths=1, zorder=3)
+        for bond in evidence["matched_bonds"]:
+            x = bond + .5
+            ax.plot([x, x], [y - .28, y + .28], color="#c5323b", linewidth=2,
+                    linestyle=(0, (3, 2)), zorder=3)
         assessed_bonds = set(evidence["matched_bonds"] + evidence["unmatched_bonds"])
         if model in {"mme-hydrophobic", "fap-endo-gp"}:
             for bond in set(bonds) - assessed_bonds:
                 ax.text(bond + .5, y, "NA", ha="center", va="center", fontsize=9, color="#59616b")
-    fig.text(.19, .102, "Triangle = motif match   |   hollow circle = no motif match   |   NA = not assessed. Enzyme presence and exposure are not measured.",
+    fig.text(.19, .102, "Dashed red line = candidate bond   |   hollow circle = no motif match   |   NA = not assessed. Enzyme presence and exposure are not measured.",
              fontsize=10, color="#333333")
     fig.text(.19, .087, "DPP4: predicted peptide-signal loss in the source 4 h assay. Native scores remain in CSV. Motifs indicate sequence matches only.",
              fontsize=9.5, color="#333333")
@@ -2204,7 +2206,8 @@ def plot_sequence_atlas_page(
             linestyle=(0, (2, 3)),
             zorder=0,
         )
-        ax.plot([x, x], [-0.47, 0.47], color="#b3212d", linewidth=2.5, zorder=6)
+        ax.plot([x, x], [-0.47, 0.47], color="#c5323b", linewidth=2.5,
+                linestyle=(0, (3, 2)), zorder=6)
         bead_y = np.linspace(-0.27, 0.27, assessed)
         ax.scatter(
             [x] * assessed,
@@ -2306,8 +2309,9 @@ def plot_sequence_atlas_page(
                     ax.plot(
                         [bond + 0.5, bond + 0.5],
                         [y - 0.17, y + 0.17],
-                        color="#b3212d",
+                        color="#c5323b",
                         linewidth=1.8,
+                        linestyle=(0, (3, 2)),
                         zorder=4,
                     )
         band_y = 0.0 if mhc_class == "I" else -0.48
@@ -2408,7 +2412,7 @@ def plot_sequence_atlas_page(
     fig.text(
         0.5,
         0.024,
-        "MHC  Up to 10/class: intended overlap, then allele diversity, then native rank. Red ticks inside bars are pre-binding cut evidence; full results stay in CSV.",
+        "MHC  Up to 10/class: intended overlap, then allele diversity, then native rank. Dashed red lines inside bars are pre-binding cut evidence; full results stay in CSV.",
         ha="center",
         va="center",
         fontsize=8.8,
@@ -2711,7 +2715,7 @@ def write_manuscript_caption(path: Path, selection_df: pd.DataFrame) -> None:
         "gold marks the disclosed intended minimal epitope. Intracellular/class-I "
         "processing evidence is above the sequence, and endolysosomal/class-II plus "
         "serum/extracellular evidence is below it. Lines connect adjacent exact native "
-        "bond scores without smoothing. Red sequence marks require all four displayed "
+        "bond scores without smoothing. Dashed red sequence marks require all four displayed "
         "intracellular models to assess a bond and at least three to reach the 0.5 display "
         "threshold; filled/open beads show the support count and are not probabilities. "
         "Blue and purple bars are selected MHC-I and MHC-II ligand windows at <=2% and "
@@ -2721,7 +2725,7 @@ def write_manuscript_caption(path: Path, selection_df: pd.DataFrame) -> None:
         "axis. DPP4's labeled callout connects to intact SLP bond 2 and shows rounded "
         "predicted percent loss on the source four-hour assay scale; native log2 scores "
         "remain in CSV. Negative native estimates say No predicted loss, while missing "
-        "estimates remain unavailable. Large triangles mark motif matches, hollow circles mark "
+        "estimates remain unavailable. Dashed red lines mark candidate bonds, hollow circles mark "
         "assessed non-matches, and unavailable rows state their reason. FAP internal "
         "Gly-Pro|non-Pro and N-terminal dipeptidyl activities have separate rows. "
         "All enzyme rows remain visible; exposure and cleavage kinetics are unmodeled.",
@@ -2988,7 +2992,7 @@ def write_report(
         "all-mammal Pepsickle output remains available in the exact-score and summary tables.",
         "Below the sequence, NetCleave-II is separated from a larger extracellular enzyme panel with its own residue axis. "
         "DPP4, MME, separate FAP internal/N-terminal activities, ANPEP and ENPEP always remain visible. "
-        "Large triangles mark motif matches, hollow circles mark assessed non-matches, and unavailable rows state the exact reason. "
+        "Dashed red lines mark candidate bonds, hollow circles mark assessed non-matches, and unavailable rows state the exact reason. "
         "DPP4 shows rounded predicted percent loss at intact SLP bond 2, converted as 100 * (1 - 2**(-native score)) "
         "on the source four-hour assay scale. Negative native estimates say No predicted loss, and positive estimates below 1% "
         "say <1% predicted loss. Native log2 scores remain unchanged in CSV. This display is neither an observed vaccine-peptide loss "
@@ -3017,9 +3021,9 @@ def write_report(
         f"{MHC_DISPLAY_MAX_WINDOWS} windows per class. Each page states selected and eligible counts. Exact "
         "selected rows and reasons are recorded in `slp_mhc_display_selection.csv`; every raw "
         "prediction remains in `slp_mhc_ligand_predictions.csv`.",
-        "For class I, a red sequence mark or ligand-window tick requires all four displayed intracellular "
+        "For class I, a dashed red sequence mark or ligand-window line requires all four displayed intracellular "
         "tracks to assess the bond and at least three to reach the 0.5 display threshold. Four beads on the sequence "
-        "mark encode that support count (filled = hit, open = miss), not a probability. Red ticks inside a ligand bar are pre-binding internal cleavage evidence in the relevant "
+        "mark encode that support count (filled = hit, open = miss), not a probability. Dashed red lines inside a ligand bar are pre-binding internal cleavage evidence in the relevant "
         "processing view. They do not establish that a bound pMHC complex will be cleaved or protected; "
         "binding occupancy and timing are not modeled.",
         "",

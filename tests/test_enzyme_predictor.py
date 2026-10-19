@@ -38,10 +38,21 @@ def test_dpp4_catalog_and_distinct_predictions():
     assert "33.2% parent lost" in result.summary()
     assert "X-(Pro/Ala)|X preference" in result.summary()
     serialized = result.to_dict()
-    assert serialized["schema_version"] == 1
-    assert len(serialized["cleavage_results"]) == 3
-    assert len(serialized["assay_fractions"]) == 1
+    assert serialized["schema_version"] == 2
+    assert len(serialized["results"]) == 4
+    assert serialized["results"][0]["scores"] == [{"bond": 2, "score": pytest.approx(2.1694)}]
+    assert serialized["results"][1]["matched_bonds"] == [2]
+    assert serialized["results"][3]["parent_remaining_fraction"] == pytest.approx(0.6675, abs=0.001)
+    assert "cleavage_results" not in serialized
+    assert "pattern" not in serialized["results"][1]
+    assert "limitations" not in json.dumps(serialized)
     json.dumps(serialized)
+    detailed = result.to_evidence_dict()
+    assert detailed["schema_version"] == 1
+    assert detailed["cleavage_results"][0]["model"]["references"]
+    assert len(detailed["assay_fractions"]) == 1
+    assert "limitations" in json.dumps(detailed)
+    assert "limitations" not in repr(result)
 
 
 def test_dpp4_preference_nonmatch_does_not_gate_scored_model():

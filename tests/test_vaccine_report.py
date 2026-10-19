@@ -291,8 +291,7 @@ def test_canonical_categorical_tracks_survive_report_round_trip(tmp_path):
     assert construct.cleavage_tracks[0].evidence == result
     row = placement_assessments(construct)[0]
     assert row["internal_supported_bonds"] == [10]
-    assert row["canonical_evidence"]["sites"][0]["match"] == 1
-    assert "score" not in row["canonical_evidence"]["sites"][0]
+    assert "canonical_evidence" not in row
     assert row["conditional_on"]
     assert not any(score is not None for score in track.scores)
     report = VaccineReportInput.from_dict(dict(schema_version=1, constructs=[value]))
@@ -301,6 +300,9 @@ def test_canonical_categorical_tracks_survive_report_round_trip(tmp_path):
     output = generate_vaccine_report(report, tmp_path / "canonical-report")
     assert (output / "vaccine-processing-report.pdf").stat().st_size > 0
     saved = json.loads((output / "normalized-input.json").read_text())
+    evidence = saved["constructs"][0]["cleavage_tracks"][0]["evidence"]
+    assert evidence["sites"][0]["match"] == 1
+    assert "score" not in evidence["sites"][0]
     assert VaccineReportInput.from_dict(saved).constructs[0].cleavage_tracks[0] == track
 
 

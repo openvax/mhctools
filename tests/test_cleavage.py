@@ -27,6 +27,10 @@ def test_immutable_identity_and_explicit_fragment_chemistry():
         parent.fragment(0, 6, n_term="free", c_term="free")
     fragment = parent.fragment(2, 6, n_term="free", c_term="free")
     result = DPP4qPISA().predict(fragment)
+    assert "limitations" not in repr(result)
+    assert "dpp4-qpisa" in repr(result)
+    assert "assay" not in repr(result.model)
+    assert "Published" not in repr(result.sites[0])
     assert result.pattern_mask is None
     assert result.peptide.sequence == "HAEG"
     assert result.peptide.source_start == 42
