@@ -202,6 +202,7 @@ running and an existing licensed netmhc-bundle installation:
 ```sh
 export NETMHC_BUNDLE_HOME=/absolute/path/to/netmhc-bundle
 python scripts/setup_test_backends.py legacy
+source env/test-backends/activate.sh
 ```
 
 This builds a pinned Linux runtime and generates test launchers. Each execution
@@ -209,3 +210,7 @@ mounts the licensed bundle and input files read-only, disables networking, and
 keeps scratch files in a disposable tmpfs. No licensed tool is copied into the
 image. Native Linux installations with Python 2 can continue using their existing
 launchers.
+
+`./test.sh` loads the generated activation file automatically. Source it before
+direct `pytest` or predictor commands so the container launchers take precedence
+over the native bundle scripts on `PATH`.

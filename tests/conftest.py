@@ -14,6 +14,18 @@ def pytest_configure(config):
         config.pluginmanager.register(_RequireAllTests(), "mhctools-require-all")
 
 
+@pytest.fixture(scope="session")
+def netmhc3_runtime():
+    from tests.common import require_executable
+    require_executable("netMHC-3.4", args=("-h",))
+
+
+@pytest.fixture(scope="session")
+def netmhccons_runtime(netmhc3_runtime):
+    from tests.common import require_executable
+    require_executable("netMHCcons", args=("-h",))
+
+
 class _RequireAllTests:
     def __init__(self):
         self.incomplete = set()

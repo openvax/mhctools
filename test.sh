@@ -107,10 +107,10 @@ XDIST_FLAGS=()
 if "$PYTHON_BIN" -c "import xdist" 2>/dev/null; then
     XDIST_FLAGS=(-n "$WORKERS")
     log "platform=${OS} cpus=${CPUS} cpu_cap=${CPU_CAP} ${mem_note} per_worker=${PER_WORKER_GB}GB"
-    log "workers=${WORKERS} → exec ${PYTHON_BIN} -m pytest -n ${WORKERS} --cov=mhctools/ --cov-report=term-missing tests $*"
+    log "workers=${WORKERS} → exec ${PYTHON_BIN} -m pytest -n ${WORKERS} -ra --cov=mhctools/ --cov-report=term-missing tests $*"
 else
     log "platform=${OS} cpus=${CPUS} (pytest-xdist not installed; running serial)"
-    log "→ exec ${PYTHON_BIN} -m pytest --cov=mhctools/ --cov-report=term-missing tests $*"
+    log "→ exec ${PYTHON_BIN} -m pytest -ra --cov=mhctools/ --cov-report=term-missing tests $*"
 fi
 
-exec "$PYTHON_BIN" -m pytest "${XDIST_FLAGS[@]}" --cov=mhctools/ --cov-report=term-missing tests "$@"
+exec "$PYTHON_BIN" -m pytest "${XDIST_FLAGS[@]}" -ra --cov=mhctools/ --cov-report=term-missing tests "$@"
