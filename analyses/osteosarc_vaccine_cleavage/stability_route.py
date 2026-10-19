@@ -16,6 +16,8 @@ from mechanism_scorecards import (
 )
 from mhctools import CleaveNet, PeptideInput, Pepsickle
 from mhctools.cleavenet import ENZYMES
+from mhctools.itcell_cleavage import ITCELL_MODELS
+from mhctools.phagescout import PHAGESCOUT_MODELS, PHAGESCOUT_OPTIONAL_MODELS
 
 
 SERUM_MODELS = (
@@ -98,12 +100,32 @@ def bond_rows(records, results):
     return rows
 
 
+def model_availability(mmp_results, cleavage_results, assessments):
+    """Describe included results, including abstentions and imported evidence."""
+    models = {result.model.name for result in cleavage_results}
+    models.update(row["model"] for row in assessments)
+    included = {
+        "cleavenet": bool(mmp_results),
+        "pepsickle": bool(models & {
+            "pepsickle-in-vitro-2-human-only-constitutive",
+            "pepsickle-in-vitro-2-human-only-immunoproteasome",
+        }),
+        "itcell": bool(models & ITCELL_MODELS.keys()),
+        "phagescout": bool(models & (PHAGESCOUT_MODELS.keys() | PHAGESCOUT_OPTIONAL_MODELS.keys())),
+    }
+    audit = json.loads(Path(__file__).with_name("stability_models.json").read_text())
+    for entry in audit:
+        backend = entry.pop("backend", None)
+        if backend is not None:
+            entry["status"] = "Included" if included[backend] else "Not included"
+    return audit
+
+
 def run(source, output_root):
     manifest = verified_source(source)
     records = vaccine_records(source)
     output = output_root / (datetime.now().astimezone().strftime("%Y-%m-%dT%H%M%S-%f%z") + "-stability")
     output.mkdir(parents=True, exist_ok=False)
-    shutil.copyfile(Path(__file__).with_name("stability_models.json"), output / "model_availability.json")
     write_csv(output / "vaccine_records.csv", records)
     inputs = window_inputs(records)
     print("Running CleaveNet: %d windows x 18 MMPs" % len(inputs), flush=True)
@@ -141,6 +163,8 @@ def run(source, output_root):
     # Keep every frozen extracellular model; selections are in the renderer only.
     write_csv(output / "existing_enzyme_assessments.csv", assessments)
     write_csv(output / "existing_model_catalog.csv", catalog)
+    availability = model_availability(mmp_results, peps_results + cat_results, assessments)
+    (output / "model_availability.json").write_text(json.dumps(availability, indent=2) + "\n")
     native = dict(cleavenet=dict(inventory=inventory, runtime=runtime, results=mmp_native),
                   proteasome=[r.to_dict() for r in peps_results],
                   cathepsin=[r.to_dict() for r in cat_results])
@@ -149,6 +173,7 @@ def run(source, output_root):
     provenance = dict(
         generated_at=datetime.now().astimezone().isoformat(), source=str(source),
         source_manifest_sha256=sha256(source / "SHA256SUMS.json"), source_manifest=manifest,
+        model_availability_sha256=sha256(output / "model_availability.json"),
         source_git_commit=subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
         runtime_python=sys.version, scripts={Path(__file__).name: sha256(__file__),
             "itcell_cleavage.py": sha256(Path(__file__).parents[2] / "mhctools/itcell_cleavage.py"),

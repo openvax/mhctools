@@ -2,12 +2,14 @@
 
 import hashlib
 import importlib.util
+import json
+from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
-from mhctools import PeptideInput, ITCellCleavage
+from mhctools import PeptideInput, ITCellCleavage, PhageScout, Pepsickle
 from mhctools.cleavenet import CleaveNetScore, ENZYMES
 
 SCRIPT = Path(__file__).parents[1] / "analyses/osteosarc_vaccine_cleavage/stability_route.py"
@@ -72,3 +74,80 @@ def test_frozen_vaccine_inventory_scope_and_all_window_counts():
     assert len({r["sequence"] for r in records}) == 39
     assert len(REPORT.window_inputs(records)) == 538
     assert max(len(r["sequence"]) for r in records) == 80
+
+
+def _status(audit, predictor):
+    return next(entry["status"] for entry in audit if entry["predictor"] == predictor)
+
+
+PHAGESCOUT = "PhageScout / ELANE and CTSG sequence profiles"
+
+
+def test_available_profiles_are_not_claimed_as_included_without_results():
+    audit = REPORT.model_availability([], [], [])
+    assert _status(audit, PHAGESCOUT) == "Not included"
+    assert _status(audit, "CleaveNet / 18 MMPs") == "Not included"
+    assert _status(audit, "Pepsickle / human digestion C and I") == "Not included"
+    assert _status(audit, "ITCell / human Cat B/S/H") == "Not included"
+    assert all(set(entry) == {"predictor", "status", "reason", "sources"} for entry in audit)
+
+
+def test_native_phagescout_results_update_status_without_claiming_classifiers():
+    template = SCRIPT.with_name("stability_models.json")
+    original = template.read_bytes()
+    results = [PhageScout(enzyme).predict("MAACVYTLA") for enzyme in ("ELANE", "CTSG")]
+    audit = REPORT.model_availability([], results, [])
+    assert _status(audit, PHAGESCOUT) == "Included"
+    assert _status(audit, "PhageScout / full classifiers") == "Unavailable"
+    assert template.read_bytes() == original
+    entry = next(entry for entry in audit if entry["predictor"] == PHAGESCOUT)
+    assert "inferred" in entry["reason"]
+    assert "sparse" in entry["reason"]
+    assert "unvalidated" in entry["reason"]
+
+
+@pytest.mark.parametrize("model", [
+    "phagescout-elane-pwm-relaxed-aligned", "phagescout-ctsg-peptide-deseq2",
+])
+def test_imported_profile_assessments_count_as_included(model):
+    audit = REPORT.model_availability([], [], [{"model": model}])
+    assert _status(audit, PHAGESCOUT) == "Included"
+
+
+def test_fresh_run_writes_availability_from_its_actual_outputs(tmp_path, monkeypatch):
+    source = tmp_path / "source"
+    source.mkdir()
+    (source / "SHA256SUMS.json").write_text("{}")
+    (source / "provenance.json").write_text("{}")
+    monkeypatch.setattr(REPORT, "verified_source", lambda _: {})
+    monkeypatch.setattr(REPORT, "vaccine_records", lambda _: [record("fixture")])
+    monkeypatch.setattr(REPORT, "read_csv", lambda _: [])
+    monkeypatch.setattr(REPORT, "mechanism_catalog", lambda *_: [{"model": "fixture"}])
+    monkeypatch.setattr(REPORT, "enriched_assessments", lambda *_: [
+        {"model": "phagescout-ctsg-pwm-relaxed-aligned"}])
+
+    class FakeWindow:
+        def to_dict(self):
+            return {"inventory": {}, "runtime": {}, "scores": []}
+
+    monkeypatch.setattr(REPORT, "CleaveNet", lambda **_: SimpleNamespace(
+        predict=lambda inputs: [FakeWindow() for _ in inputs]))
+    monkeypatch.setattr(REPORT, "window_rows", lambda *_: [{"z_score": 1.0}])
+
+    def fake_pepsickle(**settings):
+        model = Pepsickle._cleavage_model_from_identity(
+            True, None, "in-vitro-2", settings["proteasome_type"])
+        return SimpleNamespace(predict_cleavage_many=lambda peptides: [
+            replace(ITCellCleavage("S").predict(PeptideInput(
+                peptide.sequence, source_sequence_name=peptide.source_sequence_name)), model=model)
+            for peptide in peptides])
+
+    monkeypatch.setattr(REPORT, "Pepsickle", fake_pepsickle)
+    output = REPORT.run(source, tmp_path / "reports")
+    audit = json.loads((output / "model_availability.json").read_text())
+    assert _status(audit, PHAGESCOUT) == "Included"
+    assert _status(audit, "CleaveNet / 18 MMPs") == "Included"
+    assert _status(audit, "ITCell / human Cat B/S/H") == "Included"
+    assert _status(audit, "Pepsickle / human digestion C and I") == "Included"
+    provenance = json.loads((output / "provenance.json").read_text())
+    assert provenance["model_availability_sha256"] == REPORT.sha256(output / "model_availability.json")
