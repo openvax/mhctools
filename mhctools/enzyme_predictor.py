@@ -21,6 +21,12 @@ class EnzymePredictions:
     assay_fractions: Tuple[dict, ...] = ()
     requested_minutes: Optional[float] = None
 
+    def __repr__(self):
+        """Keep interactive displays readable; details remain in the fields."""
+        return ("EnzymePredictions(enzyme=%r, peptide=%r, methods=%d)" % (
+            self.enzyme, self.peptide.sequence,
+            len(self.cleavage_results) + len(self.assay_fractions)))
+
     @property
     def by_model(self):
         """Look up an existing result by its source-specific model name."""
@@ -102,7 +108,23 @@ class EnzymePredictions:
         return "\n".join(lines)
 
     def to_dict(self):
-        """Serialize each existing result under its own evidence type."""
+        """Return concise endpoint rows for display or routine JSON output.
+
+        Model descriptions and source provenance are available through
+        ``EnzymePredictor.describe()`` or ``to_evidence_dict()``.
+        """
+        rows = []
+        for row in self.summary_rows():
+            rows.append({key: value for key, value in row.items()
+                         if key not in ("pattern", "score_name")})
+        return {
+            "schema_version": 2,
+            "enzyme": self.enzyme, "peptide": self.peptide.to_dict(compact=True),
+            "results": rows,
+        }
+
+    def to_evidence_dict(self):
+        """Return the lossless, source-rich schema v1 evidence export."""
         return {
             "schema_version": 1,
             "enzyme": self.enzyme, "peptide": self.peptide.to_dict(compact=True),

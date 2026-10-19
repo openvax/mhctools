@@ -361,9 +361,57 @@ def test_enzyme_panel_keeps_no_match_and_unavailable_rows_visible(frozen_enzyme_
         assert any("Gly-Pro|non-Pro" in label for label in labels)
         assert ANALYSIS.MOTIF_DISPLAY_NAMES["fap-endo-gp"] == "FAP - Gly-Pro|X"
         assert "M" not in labels  # This sequence contains no Met; no motif-letter markers.
-        assert any("Triangle = motif match" in text.get_text() for text in fig.texts)
+        assert any("Dashed red line = candidate bond" in text.get_text() for text in fig.texts)
     finally:
         ANALYSIS.plt.close(fig)
+
+
+def test_extracellular_motif_markers_use_exact_dashed_bond_lines(frozen_enzyme_inputs):
+    inventory, quantitative, motifs = frozen_enzyme_inputs
+    record = inventory.loc[
+        inventory.sequence_record_id == "NME1-chr17-51154443:vaccine-peptide-1"
+    ].iloc[0]
+    fig = ANALYSIS.plt.figure(figsize=(16, 16.2))
+    try:
+        ax = ANALYSIS.draw_extracellular_panel(
+            fig, record, quantitative, motifs, (1, len(record["sequence"]) - 1))
+        # FAP's N-terminal row is index 3: y=5.5-3*1.1, and bond 2 is x=2.5.
+        markers = [line for line in ax.lines
+                   if tuple(line.get_xdata()) == (2.5, 2.5)
+                   and tuple(line.get_ydata()) == pytest.approx((1.92, 2.48))]
+        assert len(markers) == 1
+        assert markers[0].get_color() == "#c5323b"
+        assert markers[0].is_dashed()
+        assert not any(
+            tuple(offset) == (2.5, 2.2)
+            for collection in ax.collections for offset in collection.get_offsets()
+        )
+    finally:
+        ANALYSIS.plt.close(fig)
+
+
+def test_mhc_candidate_cut_markers_are_dashed_at_the_bond(frozen_enzyme_inputs, monkeypatch):
+    inventory, quantitative, motifs = frozen_enzyme_inputs
+    source = SCRIPT_PATH.parent / "results" / "2026-09-18T175125-855754-0400" / "tables"
+    ligands = pd.read_csv(source / "slp_mhc_ligand_predictions.csv")
+    record = inventory.loc[
+        inventory.sequence_record_id == "ADGRF5-chr6-46856758:vaccine-peptide-1"
+    ].iloc[0]
+    figures = []
+    monkeypatch.setattr(ANALYSIS, "save_pdf_page", lambda fig, *args, **kwargs: figures.append(fig))
+    try:
+        ANALYSIS.plot_sequence_atlas_page(
+            record, quantitative, motifs, ligands, None, 1, 1,
+            (1, len(record["sequence"]) - 1), 1, 1, None, None)
+        ax = figures[0].axes[0]
+        markers = [line for line in ax.lines
+                   if tuple(line.get_xdata()) == (9.5, 9.5)
+                   and min(line.get_ydata()) > .5
+                   and line.get_color() == "#c5323b"]
+        assert markers and all(line.is_dashed() for line in markers)
+    finally:
+        for fig in figures:
+            ANALYSIS.plt.close(fig)
 
 
 @pytest.mark.parametrize("record_id,segment,label", [
@@ -381,6 +429,13 @@ def test_enzyme_panel_uses_loss_labels_without_reassigning_intact_terminal_sites
     try:
         ax = ANALYSIS.draw_extracellular_panel(fig, record, quantitative, motifs, segment)
         assert label in [text.get_text() for text in ax.texts]
+        if record_id.startswith("SLC25A12"):
+            assert any(
+                tuple(line.get_xdata()) == (2.5, 2.5)
+                and tuple(line.get_ydata()) == pytest.approx((5.24, 5.76))
+                and line.get_color() == "#c5323b" and line.is_dashed()
+                for line in ax.lines
+            )
     finally:
         ANALYSIS.plt.close(fig)
 

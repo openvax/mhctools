@@ -49,7 +49,7 @@ print(json.dumps(profiles))
         runtime = json.loads(dict(result["conditions"])["runtime"])
         assert runtime["python"].startswith("3.8.")
         assert runtime["packages"]["scikit-learn"] == "0.23.2"
-        assert "runtime-sha256:" in result["model"]["version"]
+        assert "runtime-sha256:" in report["models"][row["model"]]["version"]
     assert expected["C"] != expected["I"]
     path = tmp_path / "legacy.json"
     write_cleavage_batch(report, path)

@@ -64,8 +64,16 @@ score = report.by_model["dpp4-qpisa"].sites[0].score
 mask = report.by_model["dpp4-p1-pro-ala"].pattern_mask
 fraction = report.assay_fractions[0]
 rows = report.summary_rows()  # one endpoint and status per method
-payload = report.to_dict()    # JSON-compatible, schema_version 1
+payload = report.to_dict()    # concise JSON endpoint rows, schema_version 2
+evidence = report.to_evidence_dict()  # full model, assay and source detail
 ```
+
+The concise JSON keeps the peptide once and gives one row per method with its
+status, native value or matched bonds, and units or assay conditions where
+needed. Use `dpp4.describe()` for method definitions and sources, or
+`to_evidence_dict()` when archiving the complete model and assay provenance.
+From 4.1.0, callers that previously read `to_dict()["cleavage_results"]` should use
+`to_evidence_dict()` for that schema.
 
 `EnzymePredictor.available()` lists supported enzymes. `FAP()`
 similarly reports its N-terminal dipeptidyl and internal endopeptidyl motifs

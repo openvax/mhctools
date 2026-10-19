@@ -37,8 +37,11 @@ peptide = PeptideInput("HAEGTFTSD", source_sequence_name="GLP-1 fragment")
 result = DPP4qPISA().predict(peptide)
 print(result.sites[0].bond)   # 2: HA | EGTFTSD
 print(result.sites[0].score)  # 2.1694, native qPISA score
-print(result.to_dict())      # input, model, assay, limitations and source bonds
+print(result)                 # short model, peptide and assessment status
 ```
+
+For complete source and assay provenance, use `result.to_dict()`. For a
+concise multi-method JSON report, use `DPP4().predict(peptide).to_dict()`.
 
 For a bounded **fraction of parent lost** in the Keane purified-DPP4 or
 purified-FAP assay, use
@@ -89,5 +92,5 @@ predict formation of the fragment, cleavage order, rates or competition.
 
 In mhctools 4, `PeptideInput` replaces `CleavageInput`. For Python callers,
 rename `source_id` to `source_sequence_name`; the `fragment()` call stays the
-same. Scalar cleavage JSON now uses schema version 4 and batch result JSON
-uses version 3. Readers continue to accept older result files.
+same. Scalar cleavage JSON and batch result JSON use schema version 4.
+Readers continue to accept older result files.

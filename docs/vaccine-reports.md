@@ -224,10 +224,10 @@ sequence supplied for that construct.
 |---|---|
 | `vaccine-processing-report.pdf` | Sequence map, intended target, MHC windows, and cleavage tracks grouped by route. |
 | `target-summary.json` | Per-target flags, assessed and unassessed bonds, and missing expression, uptake, loading, or serum evidence. |
-| `placement-assessments.json` | Cuts at target boundaries versus cuts within the target, separately for each track. |
+| `placement-assessments.json` | Compact boundary and internal cut flags for each target and track. |
 | `processing-routes.csv` | Which processing contexts are primary, conditional, or not applicable for the declared delivery. These labels are not probabilities. |
 | `selected-mhc-windows.csv` | Supplied MHC windows drawn in the PDF, if any. `display_rank` identifies each bar; a percentile rank is a predictor output, not a presentation probability. |
-| `normalized-input.json`, `SHA256SUMS.json` | Exact inputs used and checksums for the run. |
+| `normalized-input.json`, `SHA256SUMS.json` | Exact inputs, full model evidence and sources, and checksums for the run. |
 
 A numerical site flag means a score crossed *that model's* declared threshold;
 a categorical flag records a motif match or source-reported site. Neither

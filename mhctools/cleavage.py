@@ -83,6 +83,11 @@ class CleavageModel:
     strictness_basis: Optional[str] = None
     rule: Optional[str] = None
 
+    def __repr__(self):
+        """Keep provenance prose out of interactive displays."""
+        return "CleavageModel(name=%r, version=%r, evidence=%r)" % (
+            self.name, self.version, self.evidence)
+
     def to_dict(self):
         """Keep only metadata applicable to this evidence type."""
         return {key: value for key, value in asdict(self).items() if value is not None}
@@ -140,6 +145,14 @@ class CleavageSite:
     reason: str
     score: Optional[float] = None
 
+    def __repr__(self):
+        """Show the site value; its explanation remains in ``reason``."""
+        if self.status == "scored":
+            return "CleavageSite(bond=%r, score=%r)" % (self.bond, self.score)
+        if self.status in ("matched", "not_matched"):
+            return "CleavageSite(bond=%r, match=%r)" % (self.bond, self.match)
+        return "CleavageSite(bond=%r, status=%r)" % (self.bond, self.status)
+
     @property
     def match(self):
         """Binary motif-rule indicator, distinct from a cleavage probability."""
@@ -176,6 +189,13 @@ class CleavageResult:
     unsupported_reason: Optional[str] = None
     conditions: Tuple[Tuple[str, str], ...] = ()
     substrate_observation: Optional[str] = None
+
+    def __repr__(self):
+        """Show the assessment identity without printing model prose."""
+        return ("CleavageResult(peptide=%r, model=%r, sites=%d, status=%r)" % (
+            self.peptide.sequence, self.model.name, len(self.sites),
+            "unassessed" if self.unsupported_reason or (
+                not self.sites and self.substrate_observation is None) else "assessed"))
 
     @property
     def pattern_mask(self):

@@ -243,10 +243,7 @@ def predict_cleavage_batch(inputs, scenarios, *, predictors=None, reference_pane
                     groups.setdefault(model_key, {}).setdefault(model_input, None)
                     row = dict(input_id=value["id"], scenario_id=scenario["id"],
                                model=name, fragment=deepcopy(fragment), result=None,
-                               requested_model=catalog[name].to_dict(),
-                               overlays=[], error=None,
-                               context_application="Compartments filter locations; scenario labels and "
-                               "extra annotations do not change model parameters or establish assay calibration")
+                               overlays=[], error=None)
                     tasks.append((row, value, peptide, model_key, model_input))
     for (name, state), pending in groups.items():
         try:
@@ -274,6 +271,7 @@ def predict_cleavage_batch(inputs, scenarios, *, predictors=None, reference_pane
             if raise_on_error:
                 raise
             pending.update({p: error for p in pending})
+    actual_models = {}
     for row, value, peptide, model_key, model_input in tasks:
         try:
             prediction = groups[model_key][model_input]
@@ -282,15 +280,24 @@ def predict_cleavage_batch(inputs, scenarios, *, predictors=None, reference_pane
             if prediction.peptide != model_input or prediction.model.name != row["model"]:
                 raise ValueError("Predictor changed input or model identity")
             result = replace(prediction, peptide=peptide)
+            result_value = result.to_dict()
+            model_value = result_value.pop("model")
+            existing = actual_models.get(row["model"])
+            if existing is not None and existing != model_value:
+                raise ValueError("Conflicting metadata for cleavage model %r" % row["model"])
+            actual_models[row["model"]] = model_value
             row.update(status="unsupported" if result.unsupported_reason else "assessed",
-                       result=result.to_dict(),
+                       result=result_value,
                        overlays=cleavage_overlays(value, result, fragment=row["fragment"]))
         except Exception as error:
             if raise_on_error:
                 raise
             row.update(status="failed", error="%s: %s" % (type(error).__name__, error))
         assessments.append(row)
-    return _json_copy(dict(schema_version=3, inputs=inputs, scenarios=scenarios,
+    models = {name: actual_models.get(name, catalog[name].to_dict())
+              for scenario in scenarios for name in scenario["models"]}
+    return _json_copy(dict(schema_version=4, inputs=inputs, scenarios=scenarios,
+                          models=models,
                           reference_panels=reference_panels,
                           assessments=assessments, coverage_gaps={
                               s["id"]: _COVERAGE_GAPS[s["context"]] for s in scenarios}))
@@ -299,10 +306,18 @@ def predict_cleavage_batch(inputs, scenarios, *, predictors=None, reference_pane
 def load_cleavage_batch(path):
     """Read a saved assessment without inference, validating result coordinates."""
     value = json.loads(Path(path).read_text(encoding="utf-8"))
-    if value.get("schema_version") not in (1, 2, 3):
+    if value.get("schema_version") not in (1, 2, 3, 4):
         raise ValueError("Unsupported cleavage batch schema version")
     inputs = {v["id"]: normalize_cleavage_input(v) for v in value["inputs"]}
     scenarios = {s["id"]: s for s in _normalize_scenarios(value["scenarios"])}
+    models = value.get("models", {}) if value["schema_version"] == 4 else None
+    if models is not None:
+        selected = {name for scenario in scenarios.values() for name in scenario["models"]}
+        if set(models) != selected:
+            raise ValueError("Batch model catalog does not match requested models")
+        for name, metadata in models.items():
+            if CleavageModel.from_dict(metadata).name != name:
+                raise ValueError("Batch model metadata contradicts its name")
     for panel in value.get("reference_panels", ()):
         PeptidaseSubstrateReference(panel["model"], panel["cases"])
     if len(inputs) != len(value["inputs"]):
@@ -313,8 +328,9 @@ def load_cleavage_batch(path):
         scenario = scenarios[row["scenario_id"]]
         if row["model"] not in scenario["models"]:
             raise ValueError("Assessment model was not requested")
-        if CleavageModel.from_dict(row["requested_model"]).name != row["model"]:
-            raise ValueError("Requested model metadata contradicts its name")
+        if models is None:
+            if CleavageModel.from_dict(row["requested_model"]).name != row["model"]:
+                raise ValueError("Requested model metadata contradicts its name")
         fragment = row["fragment"]
         if fragment is not None and fragment not in source["fragments"]:
             raise ValueError("Unknown conditional fragment")
@@ -326,7 +342,12 @@ def load_cleavage_batch(path):
             if not row["error"] or row["result"] is not None or row["overlays"]:
                 raise ValueError("Failed assessment must retain an error without results")
             continue
-        result = CleavageResult.from_dict(row["result"])
+        result_value = dict(row["result"])
+        if models is not None:
+            if "model" in result_value:
+                raise ValueError("Batch result must reference the shared model catalog")
+            result_value["model"] = models[row["model"]]
+        result = CleavageResult.from_dict(result_value)
         expected = _peptide(source)
         if fragment:
             expected = expected.fragment(fragment["start"], fragment["end"],
@@ -392,7 +413,7 @@ def write_cleavage_batch(report, path, *, html_path=None):
                                    if "match" in site else site["status"]),
                             escape(site.get("score") if site.get("score") is not None else "—")))
                 parts.append("</table>")
-            parts.append("<details><summary>Full evidence, conditions and provenance</summary><pre>%s</pre>"
+            parts.append("<details><summary>Assessment details</summary><pre>%s</pre>"
                          "</details>" % escape(json.dumps(row, indent=2)))
     parts.append("<h2>Original inputs and imported evidence</h2><pre>%s</pre>" %
                  escape(json.dumps(report["inputs"], indent=2)))
