@@ -10,11 +10,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
+
 import logging
 import warnings
 from collections import defaultdict, namedtuple
+from collections.abc import Iterable, Sequence
 
-from typechecks import require_iterable_of
+from ._validation import require_items, require_type
 from .allele_normalization import (
     normalize_allele_name,
     normalize_allele_name_or_raw,
@@ -43,7 +46,11 @@ def _normalize_sequence_dict(sequence_dict):
     return sequence_dict
 
 
-def _check_flank_inputs(peptides, n_flanks=None, c_flanks=None):
+def _check_flank_inputs(
+        peptides: Iterable[str],
+        n_flanks: Iterable[str] | None = None,
+        c_flanks: Iterable[str] | None = None,
+) -> tuple[list[str], list[str] | None, list[str] | None]:
     peptide_list = list(peptides)
 
     def _check_flanks(name, flanks):
@@ -52,7 +59,7 @@ def _check_flank_inputs(peptides, n_flanks=None, c_flanks=None):
         if isinstance(flanks, str):
             raise TypeError("%s must be a sequence of strings, not a string" % name)
         flank_list = list(flanks)
-        require_iterable_of(flank_list, str, name)
+        require_items(flank_list, str, name)
         if len(flank_list) != len(peptide_list):
             raise ValueError(
                 "%s must have one entry per peptide, got %d flank(s) for "
@@ -112,14 +119,14 @@ class BasePredictor(object):
 
     def __init__(
             self,
-            alleles=None,
-            valid_alleles=None,
-            default_peptide_lengths=None,
-            min_peptide_length=8,
-            max_peptide_length=None,
-            allow_X_in_peptides=False,
-            allow_lowercase_in_peptides=False,
-            keep_unparseable_alleles=False):
+            alleles: str | Iterable[str] | None = None,
+            valid_alleles: Sequence[str] | set[str] | None = None,
+            default_peptide_lengths: int | Iterable[int] | None = None,
+            min_peptide_length: int | None = 8,
+            max_peptide_length: int | None = None,
+            allow_X_in_peptides: bool = False,
+            allow_lowercase_in_peptides: bool = False,
+            keep_unparseable_alleles: bool = False) -> None:
         """
         Parameters
         ----------
@@ -175,8 +182,8 @@ class BasePredictor(object):
             # default lengths are available.
             self.default_peptide_lengths = None
         else:
-            require_iterable_of(default_peptide_lengths, int)
             self.default_peptide_lengths = list(default_peptide_lengths)
+            require_items(self.default_peptide_lengths, int, "default_peptide_lengths")
         self.min_peptide_length = min_peptide_length
         self.max_peptide_length = max_peptide_length
         self.allow_X_in_peptides = allow_X_in_peptides
@@ -430,7 +437,8 @@ class BasePredictor(object):
             stacklevel=2)
         return self.predict_dataframe(peptides)
 
-    def _check_peptide_lengths(self, peptide_lengths=None):
+    def _check_peptide_lengths(
+            self, peptide_lengths: int | Iterable[int] | None = None) -> list[int]:
         """
         If peptide lengths not specified, then try using the default
         lengths associated with this predictor object. If those aren't
@@ -446,7 +454,8 @@ class BasePredictor(object):
                 "or set 'default_peptide_lengths"))
         if isinstance(peptide_lengths, int):
             peptide_lengths = [peptide_lengths]
-        require_iterable_of(peptide_lengths, int)
+        peptide_lengths = list(peptide_lengths)
+        require_items(peptide_lengths, int, "peptide_lengths")
         for peptide_length in peptide_lengths:
             if (self.min_peptide_length is not None and
                     peptide_length < self.min_peptide_length):
@@ -490,18 +499,18 @@ class BasePredictor(object):
                             "Expected %d unique pairs, got %d." % (
                                 p, a, n_expected, len(observed)))
 
-    def _check_peptide_inputs(self, peptides):
+    def _check_peptide_inputs(self, peptides: Iterable[str]) -> None:
         """
         Check peptide sequences to make sure they are valid for this predictor.
         """
-        require_iterable_of(peptides, str)
         check_X = not self.allow_X_in_peptides
         check_lower = not self.allow_lowercase_in_peptides
         check_min_length = self.min_peptide_length is not None
         min_length = self.min_peptide_length
         check_max_length = self.max_peptide_length is not None
         max_length = self.max_peptide_length
-        for p in peptides:
+        for index, p in enumerate(peptides):
+            require_type(p, str, f"peptides: element at index {index}")
             if not p.isalpha():
                 raise ValueError("Invalid characters in peptide '%s'" % p)
             elif check_X and "X" in p:
@@ -566,9 +575,9 @@ class BasePredictor(object):
 
     @staticmethod
     def _check_hla_alleles(
-            alleles,
-            valid_alleles=None,
-            keep_unparseable=False):
+            alleles: Iterable[str],
+            valid_alleles: Sequence[str] | set[str] | None = None,
+            keep_unparseable: bool = False) -> list[str]:
         """
         Given a list of HLA alleles and an optional list of valid
         HLA alleles, return a set of alleles that we will pass into
@@ -579,7 +588,8 @@ class BasePredictor(object):
         caller that validates against the tool's own supported list can still
         accept non-human alleles like H-2-Qa1 or BoLA-amani.1.
         """
-        require_iterable_of(alleles, str, "HLA alleles")
+        alleles = list(alleles)
+        require_items(alleles, str, "MHC alleles")
 
         # Keep only unique alleles (don't run the predictor twice for a
         # homozygous genotype). When keep_unparseable is set (command-line

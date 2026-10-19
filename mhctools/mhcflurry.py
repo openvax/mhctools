@@ -10,13 +10,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
+
+from collections.abc import Iterable, Sequence
 import logging
 import math
 import os
 
 from mhcgnomes import Allele, parse
-from typechecks import require_iterable_of
 
+from ._validation import require_items
 from .base_predictor import BasePredictor
 from .base_predictor import _check_flank_inputs
 from .binding_prediction import BindingPrediction
@@ -32,7 +35,9 @@ _PERCENT_RANK_SUPPORT_UNKNOWN = object()
 
 
 def _resolve_supported_alleles(
-        alleles, valid_alleles=None, keep_unparseable=False):
+        alleles: Iterable[str],
+        valid_alleles: Sequence[str] | set[str] | None = None,
+        keep_unparseable: bool = False) -> list[str]:
     """Resolve the BasePredictor validation hook to actual MHCflurry keys.
 
     Exact supported spellings win, including predictor-native names the parser
@@ -41,7 +46,7 @@ def _resolve_supported_alleles(
     Groups and multiple equivalent dictionary keys have no implicit winner.
     """
     requests = list(alleles)
-    require_iterable_of(requests, str, "MHC alleles")
+    require_items(requests, str, "MHC alleles")
     supported = set(valid_alleles or ())
     identity_keys = None
     resolved = []
