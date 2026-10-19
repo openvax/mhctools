@@ -116,6 +116,10 @@ paths, and license provenance.
 are data-only assets under `artifacts/phagescout/21387981/`. Their manifest
 records fixed source URLs, byte counts and SHA-256 hashes instead of a git
 commit; both tables, attribution and license are published atomically.
+Each file download allows three attempts for timeouts and HTTP 408, 429, 500,
+502, 503 or 504 responses, waiting one then two seconds between attempts.
+Interrupted files restart from byte zero. Integrity failures and permanent
+download errors stop immediately, leaving no partial installation.
 
 ## Who owns what: the MANAGER column
 

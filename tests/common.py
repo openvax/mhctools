@@ -12,6 +12,20 @@
 
 from functools import wraps
 
+import pytest
+
+from mhctools.optional_backend import probe_executable
+
+
+def require_executable(program, args=("--help",)):
+    """Skip absent optional tools; fail when an installed tool cannot launch."""
+    capability = probe_executable(program, args=args)
+    if not capability.located:
+        pytest.skip(capability.reason)
+    if not capability.runnable:
+        pytest.fail(capability.reason, pytrace=False)
+
+
 def ok_(b, msg=None):
     if not msg:
         assert b

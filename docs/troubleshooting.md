@@ -37,6 +37,13 @@ score is 0.0. Pass flanks or use `predict_proteins()`.
 ARM Linux use the pinned container setup in [legacy NetMHC on Apple
 Silicon](backends.md#legacy-netmhc-on-apple-silicon).
 
+The native tcsh launcher may instead print `python2:: Too many arguments.` when
+Python 2 is missing. After provisioning the container runtime, run
+`source env/test-backends/activate.sh` before direct `pytest` or predictor
+commands. Check `command -v netMHC-3.4`: it should resolve to the generated
+`env/test-backends/bin/netMHC-3.4`, not the native bundle launcher. `./test.sh`
+loads this activation file automatically.
+
 ## NetChop fails with a Docker error
 
 [NetChop](predictors/processing.md#netchop) 3.1 ships 32-bit x86 Linux binaries, so on macOS and ARM Linux it runs

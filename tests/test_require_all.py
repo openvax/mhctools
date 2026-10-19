@@ -10,6 +10,33 @@ import sys
 import pytest
 
 
+def test_test_script_reports_skip_reasons_by_default(tmp_path):
+    root = Path(__file__).resolve().parent.parent
+    shutil.copyfile(root / "test.sh", tmp_path / "test.sh")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "mhctools").mkdir()
+    (tmp_path / "mhctools/__init__.py").write_text("value = 1\n")
+    (tmp_path / "tests/test_example.py").write_text(
+        "import pytest\nimport mhctools\n"
+        "def test_ok(): assert mhctools.value == 1\n"
+        "@pytest.mark.skip(reason='optional model deliberately absent')\n"
+        "def test_optional_model(): pass\n")
+    env = {key: value for key, value in os.environ.items()
+           if not key.startswith(("COV_CORE", "COVERAGE", "PYTEST"))}
+    env.update(PYTEST_DISABLE_PLUGIN_AUTOLOAD="1", PYTHON=sys.executable,
+               MHCTOOLS_TEST_ENV="/dev/null", TEST_SH_MIN="1", TEST_SH_MAX="1",
+               PYTHONPATH=str(tmp_path))
+    plugins = ["-p", "pytest_cov"]
+    if importlib.util.find_spec("xdist"):
+        plugins.extend(["-p", "xdist.plugin"])
+    result = subprocess.run(
+        ["bash", "test.sh", *plugins], cwd=tmp_path, env=env,
+        capture_output=True, text=True, timeout=60)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "SKIPPED [1] tests/test_example.py:" in result.stdout
+    assert "optional model deliberately absent" in result.stdout
+
+
 @pytest.mark.parametrize("body, complete", [
     ("def test_ok(): pass", True),
     ("def test_skip(): pytest.skip('missing model')", False),

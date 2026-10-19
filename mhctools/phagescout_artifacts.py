@@ -3,10 +3,14 @@
 import errno
 import hashlib
 import json
+import logging
 import os
 from pathlib import Path
 import shutil
+import socket
 import tempfile
+import time
+from urllib.error import HTTPError, URLError
 from urllib.parse import quote
 from urllib.request import urlopen
 
@@ -20,6 +24,39 @@ FILES = (
     ("CTSG", "peptide_profile_cathepsin G.txt", 16304718,
      "e8d3a86c7d3fd4e44735f8036bc35f038342ebf8ea95c1f8669187337f7b6b0c"),
 )
+logger = logging.getLogger(__name__)
+
+
+def _download_profile(url, path, size, expected):
+    """Retry temporary failures, restarting and verifying each whole file."""
+    for attempt in range(3):
+        try:
+            digest, downloaded = hashlib.sha256(), 0
+            with urlopen(url, timeout=30) as source, path.open("wb") as output:
+                for block in iter(lambda: source.read(1024 * 1024), b""):
+                    downloaded += len(block)
+                    if downloaded > size:
+                        raise ValueError("PhageScout download exceeds pinned size: " + path.name)
+                    digest.update(block)
+                    output.write(block)
+                output.flush()
+                os.fsync(output.fileno())
+            if downloaded != size or digest.hexdigest() != expected:
+                raise ValueError("PhageScout download checksum/size mismatch: " + path.name)
+            return
+        except (HTTPError, URLError, TimeoutError, socket.timeout) as error:
+            if isinstance(error, HTTPError):
+                retryable = error.code in (408, 429, 500, 502, 503, 504)
+                error.close()
+            else:
+                reason = error.reason if isinstance(error, URLError) else error
+                retryable = isinstance(reason, (TimeoutError, socket.timeout))
+            if not retryable or attempt == 2:
+                raise
+            delay = attempt + 1
+            logger.warning("PhageScout download failed for %s: %s; retrying in %ss (%s/3)",
+                           path.name, error, delay, attempt + 2)
+            time.sleep(delay)
 
 
 def asset(enzyme):
@@ -113,18 +150,7 @@ def fetch_profiles(version=None, data_dir=None):
     try:
         for enzyme, _, _, _ in FILES:
             name, size, expected, url = asset(enzyme)
-            digest, downloaded = hashlib.sha256(), 0
-            with urlopen(url, timeout=30) as source, (staging / name).open("wb") as output:
-                for block in iter(lambda: source.read(1024 * 1024), b""):
-                    downloaded += len(block)
-                    if downloaded > size:
-                        raise ValueError("PhageScout download exceeds pinned size: " + name)
-                    digest.update(block)
-                    output.write(block)
-                output.flush()
-                os.fsync(output.fileno())
-            if downloaded != size or digest.hexdigest() != expected:
-                raise ValueError("PhageScout download checksum/size mismatch: " + name)
+            _download_profile(url, staging / name, size, expected)
         (staging / ".mhctools-artifact.json").write_text(
             json.dumps(_manifest(), indent=2, sort_keys=True) + "\n")
         shutil.copyfile(Path(__file__).parent / "data/PHAGESCOUT_LICENSE.txt",

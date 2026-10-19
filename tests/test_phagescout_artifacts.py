@@ -5,6 +5,8 @@ import io
 import json
 from pathlib import Path
 import shutil
+import ssl
+from urllib.error import HTTPError, URLError
 
 import pytest
 
@@ -75,13 +77,106 @@ def test_fetch_installs_exact_files_license_and_provenance_and_is_noop(small_pro
     assert len(requests) == 2
 
 
+@pytest.mark.parametrize("failure", ["timeout", "wrapped_timeout", 408, 429, 500, 502, 503, 504])
+def test_download_retries_temporary_open_failures(small_profiles, monkeypatch, failure, caplog):
+    original = assets.urlopen
+    requests, delays, errors = [], [], []
+
+    def download(url, timeout):
+        requests.append(url)
+        if len(requests) <= 2:
+            if failure == "timeout":
+                error = TimeoutError("read timed out")
+            elif failure == "wrapped_timeout":
+                error = URLError(TimeoutError("connection timed out"))
+            else:
+                error = HTTPError(url, failure, "temporary failure", {}, io.BytesIO())
+            errors.append(error)
+            raise error
+        return original(url, timeout)
+
+    monkeypatch.setattr(assets, "urlopen", download)
+    monkeypatch.setattr(assets.time, "sleep", delays.append)
+    result = fetch("phagescout")
+    assert result.status == "ready"
+    assert requests == [assets.asset("ELANE")[3]] * 3 + [assets.asset("CTSG")[3]]
+    assert delays == [1, 2]
+    assert "retrying in 1s (2/3)" in caplog.text
+    assert "retrying in 2s (3/3)" in caplog.text
+    assert all(error.fp.closed for error in errors if isinstance(error, HTTPError))
+
+
+@pytest.mark.parametrize("recover", [True, False])
+def test_midstream_timeout_restarts_file_or_cleans_up(small_profiles, monkeypatch, recover):
+    payloads, _ = small_profiles
+    original = assets.urlopen
+    requests, streams, delays = [], [], []
+
+    class Interrupted(io.BytesIO):
+        def read(self, size):
+            if self.tell():
+                raise TimeoutError("timed out after partial write")
+            return super().read(10)
+
+    def download(url, timeout):
+        requests.append(url)
+        if url == assets.asset("CTSG")[3] and (not recover or len(streams) < 2):
+            stream = Interrupted(payloads[assets.asset("CTSG")[0]])
+            streams.append(stream)
+            return stream
+        return original(url, timeout)
+
+    monkeypatch.setattr(assets, "urlopen", download)
+    monkeypatch.setattr(assets.time, "sleep", delays.append)
+    target = assets.managed_directory()
+    if recover:
+        assert fetch("phagescout").status == "ready"
+        assert {name: (target / name).read_bytes() for name in payloads} == payloads
+    else:
+        with pytest.raises(TimeoutError, match="after partial write"):
+            fetch("phagescout")
+        assert not target.exists()
+        assert list(target.parent.iterdir()) == []
+    assert requests == [assets.asset("ELANE")[3]] + [assets.asset("CTSG")[3]] * 3
+    assert delays == [1, 2]
+    assert all(stream.closed for stream in streams)
+
+
+@pytest.mark.parametrize("failure", ["timeout", 503, 403, 404, 501, "tls", "disk"])
+def test_download_failure_retry_limit_and_cleanup(small_profiles, monkeypatch, failure):
+    requests, delays = [], []
+    attempts = 3 if failure in ("timeout", 503) else 1
+
+    def download(url, timeout):
+        requests.append(url)
+        if failure == "timeout":
+            raise TimeoutError("read timed out")
+        if failure == "tls":
+            raise URLError(ssl.SSLCertVerificationError("certificate verify failed"))
+        if failure == "disk":
+            raise PermissionError("permission denied")
+        raise HTTPError(url, failure, "download failed", {}, io.BytesIO())
+
+    monkeypatch.setattr(assets, "urlopen", download)
+    monkeypatch.setattr(assets.time, "sleep", delays.append)
+    with pytest.raises(OSError):
+        fetch("phagescout")
+    assert requests == [assets.asset("ELANE")[3]] * attempts
+    assert delays == ([1, 2] if attempts == 3 else [])
+    target = assets.managed_directory()
+    assert not target.exists()
+    assert list(target.parent.iterdir()) == []
+
+
 @pytest.mark.parametrize("failure", ["checksum", "truncated", "oversized", "network", "stream"])
 def test_second_download_failure_never_publishes_partial_install(small_profiles, failure, monkeypatch):
     payloads, _ = small_profiles
     original = assets.urlopen
     target = assets.managed_directory()
+    requests = []
 
     def download(url, timeout):
+        requests.append(url)
         if url == assets.asset("ELANE")[3]:
             return original(url, timeout)
         if failure == "network":
@@ -99,10 +194,12 @@ def test_second_download_failure_never_publishes_partial_install(small_profiles,
         return io.BytesIO(data)
 
     monkeypatch.setattr(assets, "urlopen", download)
+    monkeypatch.setattr(assets.time, "sleep", lambda delay: pytest.fail("Retried a permanent failure"))
     with pytest.raises((ValueError, OSError)):
         fetch("phagescout")
     assert not target.exists()
     assert list(target.parent.iterdir()) == []
+    assert requests == [assets.asset("ELANE")[3], assets.asset("CTSG")[3]]
 
 
 def test_concurrent_complete_fetch_is_verified_and_reused(small_profiles, monkeypatch):

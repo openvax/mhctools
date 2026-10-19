@@ -24,6 +24,17 @@ pytestmark = pytest.mark.requires_external_tool
 # Tests assume that a netMHC-3.4 binary exists, and that netMHC is 4.0.
 program_name_overrides = {mhctools.NetMHC3: "netMHC-3.4"}
 
+
+@pytest.fixture
+def mhc_class(request):
+    predictor = request.param
+    if predictor is mhctools.NetMHC3:
+        request.getfixturevalue("netmhc3_runtime")
+    elif predictor is mhctools.NetMHCcons:
+        request.getfixturevalue("netmhccons_runtime")
+    return predictor
+
+
 def expect_binder(mhc_model, peptide):
     prediction = mhc_model.predict_peptides([peptide])[0]
     assert prediction.value < 500, "Expected %s to have IC50 < 500nM, got %s" % (
@@ -36,7 +47,7 @@ def make_mhc_model(mhc_class, alleles):
     return mhc_class(**kwargs)
 
 
-@pytest.mark.parametrize("mhc_class", mhc1_predictor_classes)
+@pytest.mark.parametrize("mhc_class", mhc1_predictor_classes, indirect=True)
 def test_MAGE_epitope(mhc_class):
     # Test the A1 MAGE epitope ESDPIVAQY from
     #   Identification of a Titin-Derived HLA-A1-Presented Peptide
@@ -45,7 +56,7 @@ def test_MAGE_epitope(mhc_class):
     mhc_model = make_mhc_model(mhc_class, "HLA-A*01:01")
     expect_binder(mhc_model, "ESDPIVAQY")
 
-@pytest.mark.parametrize("mhc_class", mhc1_predictor_classes)
+@pytest.mark.parametrize("mhc_class", mhc1_predictor_classes, indirect=True)
 def test_HIV_epitope(mhc_class):
     # Test the A2 HIV epitope SLYNTVATL from
     #    The HIV-1 HLA-A2-SLYNTVATL Is a Help-Independent CTL Epitope

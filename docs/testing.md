@@ -11,6 +11,10 @@ TEST_SH_MAX=2 ./test.sh --require-all -ra
 `--require-all` fails on skips, expected failures, and unexpected passes,
 including module-level skips and parallel workers. Ordinary development runs
 can still use availability-based skips when optional predictors are absent.
+`./test.sh` prints skip and expected-failure reasons by default. Installed legacy
+NetMHC executables that fail their startup probes produce test setup errors,
+including the diagnostic output, even without `--require-all`. Their probes run
+only when a test that needs the runtime is selected.
 Prediction tests do not call IEDB or other public prediction services.
 Internet access is needed only when installing model assets and runtimes.
 
@@ -147,6 +151,12 @@ TEST_SH_MAX=2 ./test.sh --require-all -ra
 # After merging, from clean master:
 PYTEST_ADDOPTS=--require-all TEST_SH_MAX=2 ./deploy.sh
 ```
+
+The two-worker limit has completed the release suite on Apple Silicon. A
+four-worker run intermittently crashed inside the emulated legacy NetMHCcons
+runtime; [#599](https://github.com/openvax/mhctools/issues/599) tracks the unresolved
+cause. A passing run with fewer workers does not establish a runtime fix.
+Prediction failures remain test failures and are never retried or skipped.
 
 ## CleaveNet source conformance
 
