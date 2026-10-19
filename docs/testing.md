@@ -37,7 +37,7 @@ predictor versions, and the explicit regeneration commands.
 “Optional” describes the extra software or model assets needed for a local
 installation. It does not mean the backend lacks tests or is allowed to
 disappear from CI. The four public Python jobs run offline wrapper and fixture
-tests; dedicated CI jobs provision Pepsickle, SMM/SMM-PMBEC, and the
+tests; dedicated CI jobs provision Pepsickle, SMM/SMM-PMBEC, DeepTAP, and the
 Keras-backed DeepImmuno/TLimmuno2/NetCleave models, then run real inference
 with `--require-all`. That flag makes a skipped model test fail its job.
 Different jobs are necessary because some upstream weights have separate
@@ -70,11 +70,16 @@ misconfiguration.
 | [Pepsickle](predictors/processing.md#pepsickle) neural and gradient-boosted models | `pepsickle` | `pytest tests/test_pepsickle_legacy.py tests/test_pepsickle_runtime.py --require-all` |
 | [SMM](predictors/binding.md#smm-and-smm-pmbec), [SMM-PMBEC](predictors/binding.md#smm-and-smm-pmbec) | `smm` | `python -m pytest tests/test_smm.py tests/test_smm_integration.py --require-all` |
 | [NetTCR](predictors/tcr.md#nettcr) (LiteRT) | `nettcr` | `python -m pytest tests/test_nettcr.py --require-all -W error` |
+| [DeepTAP](predictors/processing.md#deeptap) classification and regression | `deeptap` | `python -m pytest tests/test_deeptap.py --require-all -ra` |
 | [DeepImmuno](predictors/immunogenicity.md#deepimmuno), [TLimmuno2](predictors/immunogenicity.md#tlimmuno2), [NetCleave](predictors/processing.md#netcleave) | `keras` | `python -m pytest tests/test_deepimmuno.py tests/test_tlimmuno2.py tests/test_netcleave.py --require-all -W error` |
 | Legacy [NetMHC](predictors/binding.md#netmhc) | `legacy` | `TEST_SH_MAX=2 ./test.sh --require-all -ra` |
 
 Notes on what CI asserts:
 
+- **DeepTAP:** both classification and regression run on the pinned model
+  snapshot in an isolated PyTorch/Lightning interpreter. Classification also
+  checks the committed upstream demo scores. Missing models or runtimes fail
+  the job through `--require-all`.
 - **PeptiVerse CPP:** the original CPU SVC runs under scikit-learn 1.7.2.
   Direct native API scores, class labels, threshold and entropy agree with
   the adapter, including duplicates; five fixed source controls are replayed.

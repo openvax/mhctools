@@ -38,7 +38,7 @@ On Linux you can install a CPU-only torch wheel first from
 
 ```sh
 python -m pip install -e '.[dev,caphla,nettcr]'
-python scripts/setup_test_backends.py half-life recognition gfeller keras nettcr smm --accept-license
+python scripts/setup_test_backends.py half-life recognition gfeller keras nettcr smm deeptap --accept-license
 ```
 
 The recognition, Gfeller, keras, NetTCR and [SMM](predictors/binding.md#smm-and-smm-pmbec) groups fetch separately licensed code
@@ -125,10 +125,20 @@ sidecar additionally runs with `PYTHONNOUSERSITE=1`, so packages installed with
 `pip install --user` are not visible to it, so install into the interpreter
 itself.
 
-[DeepTAP](predictors/processing.md#deeptap) has no setup group; point `DEEPTAP_PYTHON` at any interpreter with
-`torch` and `pytorch-lightning`, and `DEEPTAP_HOME` at a checkout
-(`mhctools fetch deeptap`). The current interpreter is used when
-`DEEPTAP_PYTHON` is unset, which is enough when it already has torch.
+[DeepTAP](predictors/processing.md#deeptap) has a dedicated setup group with
+an isolated runtime and the pinned Apache-2.0 model snapshot:
+
+```sh
+python scripts/setup_test_backends.py deeptap
+source env/test-backends/activate.sh
+python -m pytest tests/test_deeptap.py --require-all -ra
+```
+
+It needs no license-acceptance flag. The setup pins PyTorch 2.14.0, Lightning
+2.6.6, NumPy 2.4.6 and pandas 3.0.6, using CPU PyTorch wheels on Linux, and checks
+the runtime's dependencies with `pip check`. Both classification and regression
+inference are required in CI. You can also supply `DEEPTAP_HOME` and
+`DEEPTAP_PYTHON` yourself; the current interpreter is used when the latter is unset.
 
 | Variable | Needs |
 |---|---|
