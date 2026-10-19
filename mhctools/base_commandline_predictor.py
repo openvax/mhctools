@@ -12,14 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
+
 from collections import defaultdict
+from collections.abc import Callable, Iterable
 import logging
 from multiprocessing import cpu_count
 import os
 from subprocess import CalledProcessError, check_output
 import tempfile
+from typing import Literal
 
-from typechecks import require_string, require_integer, require_iterable_of
+from ._validation import require_items, require_type
 from .allele_normalization import (
     normalize_allele_name,
     normalize_allele_name_or_raw,
@@ -121,24 +125,24 @@ class BaseCommandlinePredictor(BasePredictor):
     """
     def __init__(
             self,
-            program_name,
-            alleles,
-            parse_output_fn,
-            supported_alleles_flag,
-            input_file_flag,
-            length_flag,
-            allele_flag,
-            peptide_mode_flags=None,
-            tempdir_flag=None,
-            extra_flags=None,
-            max_peptides_per_file=10 ** 4,
-            max_alleles_per_command=1,
-            process_limit=-1,
-            default_peptide_lengths=None,
-            group_peptides_by_length=False,
-            min_peptide_length=8,
-            max_peptide_length=None,
-            parse_to_preds_fn=None,):
+            program_name: str,
+            alleles: str | Iterable[str] | None,
+            parse_output_fn: Callable | None,
+            supported_alleles_flag: str | None,
+            input_file_flag: str,
+            length_flag: str,
+            allele_flag: str,
+            peptide_mode_flags: Iterable[str] | None = None,
+            tempdir_flag: str | None = None,
+            extra_flags: Iterable[str] | None = None,
+            max_peptides_per_file: int = 10 ** 4,
+            max_alleles_per_command: int | Literal["auto"] | None = 1,
+            process_limit: int = -1,
+            default_peptide_lengths: int | Iterable[int] | None = None,
+            group_peptides_by_length: bool = False,
+            min_peptide_length: int | None = 8,
+            max_peptide_length: int | None = None,
+            parse_to_preds_fn: Callable | None = None) -> None:
         """
         Parameters
         ----------
@@ -214,48 +218,48 @@ class BaseCommandlinePredictor(BasePredictor):
         max_peptide_length : int
             Longest peptide this predictor can handle
         """
-        require_string(program_name, "Predictor program name")
+        require_type(program_name, str, "Predictor program name")
         self.program_name = program_name
 
         if supported_alleles_flag is not None:
-            require_string(supported_alleles_flag, "Supported alleles flag")
+            require_type(supported_alleles_flag, str, "Supported alleles flag")
         self.supported_alleles_flag = supported_alleles_flag
 
-        require_string(input_file_flag, "Input file flag")
+        require_type(input_file_flag, str, "Input file flag")
         self.input_file_flag = input_file_flag
 
-        require_string(length_flag, "Peptide length flag")
+        require_type(length_flag, str, "Peptide length flag")
         self.length_flag = length_flag
 
-        require_string(allele_flag, "Allele flag")
+        require_type(allele_flag, str, "Allele flag")
         self.allele_flag = allele_flag
 
         if peptide_mode_flags is None:
             peptide_mode_flags = ["-p"]
-        require_iterable_of(peptide_mode_flags, str)
         self.peptide_mode_flags = list(peptide_mode_flags)
+        require_items(self.peptide_mode_flags, str, "peptide_mode_flags")
 
         if tempdir_flag is not None:
-            require_string(tempdir_flag, "Temporary directory flag")
+            require_type(tempdir_flag, str, "Temporary directory flag")
         self.tempdir_flag = tempdir_flag
 
         if extra_flags is None:
             extra_flags = []
-        require_iterable_of(extra_flags, str)
         self.extra_flags = list(extra_flags)
+        require_items(self.extra_flags, str, "extra_flags")
 
-        require_integer(
-            max_peptides_per_file,
+        require_type(
+            max_peptides_per_file, int,
             "Maximum number of lines in a peptides input file")
         self.max_peptides_per_file = max_peptides_per_file
 
         if max_alleles_per_command not in (None, "auto"):
-            require_integer(
-                max_alleles_per_command,
+            require_type(
+                max_alleles_per_command, int,
                 "Maximum number of alleles per command")
         self.max_alleles_per_command = max_alleles_per_command
 
-        require_integer(process_limit, "Maximum number of processes")
+        require_type(process_limit, int, "Maximum number of processes")
         self.process_limit = process_limit
 
         self.parse_output_fn = parse_output_fn
@@ -763,7 +767,7 @@ class BaseCommandlinePredictor(BasePredictor):
                     % (len(peptide_list), len(allele_list)))
 
         self._check_peptide_inputs(peptide_list)
-        require_iterable_of(allele_list, str, "HLA alleles")
+        require_items(allele_list, str, "MHC alleles")
         allele_list = [
             normalize_allele_name_or_raw(allele)
             for allele in allele_list]
