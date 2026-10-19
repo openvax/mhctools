@@ -115,6 +115,21 @@ def recognition(root, python, config):
     config["MIXTCRPRED_PYTHON"] = str(runtime)
 
 
+def deeptap(root, python, config):
+    # An explicit data directory selects the pinned managed snapshot even if
+    # a different user checkout is available on this machine.
+    source = fetch("deeptap", "--data-dir", str(root / "data"))
+    requirements = [
+        "torch==2.14.0", "pytorch-lightning==2.6.6", "numpy==2.4.6", "pandas==3.0.6",
+    ]
+    if platform.system() == "Linux":
+        requirements[0] += "+cpu"
+        requirements.extend(["--extra-index-url", "https://download.pytorch.org/whl/cpu"])
+    runtime = make_env(root, "deeptap", python, requirements)
+    run(runtime, "-m", "pip", "check")
+    config.update(DEEPTAP_HOME=source, DEEPTAP_PYTHON=str(runtime))
+
+
 def keras(root, python, config):
     # DeepImmuno and TLimmuno2 ship Keras 2 era weights. Modern TensorFlow
     # reaches that API through the tf-keras shim, so one runtime serves both;
@@ -307,7 +322,7 @@ def main():
         nargs="+",
         choices=[
             "half-life", "recognition", "gfeller", "keras", "nettcr",
-            "legacy", "smm", "pepsickle", "cleavenet", "phagescout",
+            "legacy", "smm", "pepsickle", "cleavenet", "phagescout", "deeptap",
         ],
     )
     parser.add_argument("--python", default="python3.11", help="Python 3.11 interpreter for isolated runtimes")
@@ -325,7 +340,7 @@ def main():
     functions = {"half-life": half_life, "recognition": recognition,
                  "gfeller": gfeller, "keras": keras, "nettcr": nettcr,
                  "legacy": legacy, "smm": smm, "pepsickle": pepsickle, "cleavenet": cleavenet,
-                 "phagescout": phagescout}
+                 "phagescout": phagescout, "deeptap": deeptap}
     for group in args.groups:
         functions[group](root, args.python, config)
         state.write_text(json.dumps(config, indent=2) + "\n")

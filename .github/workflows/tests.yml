@@ -294,6 +294,8 @@ jobs:
             tests: tests/test_deepimmuno.py tests/test_tlimmuno2.py tests/test_netcleave.py tests/test_artifacts.py
           - group: nettcr
             tests: tests/test_nettcr.py
+          - group: deeptap
+            tests: tests/test_deeptap.py
     steps:
       - uses: actions/checkout@v7
 
