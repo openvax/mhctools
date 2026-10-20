@@ -253,8 +253,8 @@ def smm(root, python, config):
     # machine-specific. Start from an empty directory instead.
     if installation.exists():
         shutil.rmtree(installation)
-    # Copy regular files only; no symlink or archive-path traversal.
-    # The subset holds only the allowlisted paths and
+    # Copy regular files only; compatible with the supported host runtime and no symlink or
+    # archive-path traversal. The subset holds only the allowlisted paths and
     # is pinned above by SHA-256; the prefix check is a second constraint so
     # that changing the checksum alone cannot change what lands on disk.
     prefixes = ("mhc_i/src/", "mhc_i/method/allele-info/",
