@@ -123,8 +123,8 @@ identity because it changes whether a duration is emitted.
 
 This release makes no blanket platform claim for real-model inference. The
 conformance suite exercises artifact checks, input/output contracts, offline
-execution, and isolated stub sidecars on Linux (Python 3.10-3.12 in CI) and
-macOS (Python 3.12 locally); actual third-party inference remains an opt-in
+execution, and isolated stub sidecars on Linux (Python 3.11-3.14 in CI) and
+macOS (Python 3.11 and 3.14 locally); actual third-party inference remains an opt-in
 smoke test. A verified predictor instance advances to `inference_reproduced`
 only after that local smoke succeeds.
 
