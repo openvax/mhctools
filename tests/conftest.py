@@ -10,6 +10,10 @@ def pytest_addoption(parser):
 
 
 def pytest_configure(config):
+    import matplotlib
+
+    # Plot tests render static figures; avoid the macOS GUI backend (#607).
+    matplotlib.use("Agg")
     if config.getoption("--require-all"):
         config.pluginmanager.register(_RequireAllTests(), "mhctools-require-all")
 
