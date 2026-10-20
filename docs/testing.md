@@ -22,7 +22,7 @@ Internet access is needed only when installing model assets and runtimes.
 
 The [osteosarc fixtures](https://github.com/openvax/mhctools/blob/master/tests/data/osteosarc/README.md) contain source-linked
 vaccine sequences and native output captures from seven real predictors.
-Their parser and wrapper regression tests run offline in all four public
+Their parser and wrapper regression tests run offline in all public
 Python CI jobs, without downloading models or installing osteosarc:
 
 ```sh
@@ -36,7 +36,7 @@ predictor versions, and the explicit regeneration commands.
 
 “Optional” describes the extra software or model assets needed for a local
 installation. It does not mean the backend lacks tests or is allowed to
-disappear from CI. The four public Python jobs run offline wrapper and fixture
+disappear from CI. The public Python jobs run offline wrapper and fixture
 tests; dedicated CI jobs provision Pepsickle, SMM/SMM-PMBEC, DeepTAP, and the
 Keras-backed DeepImmuno/TLimmuno2/NetCleave models, then run real inference
 with `--require-all`. That flag makes a skipped model test fail its job.
@@ -133,7 +133,9 @@ release metadata.
 
 ## CI and release verification
 
-CI discovers all tests on Python 3.11–3.14 and runs every test without the
+CI checks installation, dependencies, CLI startup, builds and lint on Python
+3.11–3.14, with both pandas 2 and 3 on Python 3.11. It discovers all tests and
+runs every test without the
 `requires_external_tool` marker. New offline test files join that matrix
 automatically. Mark only tests that require separately installed predictor
 binaries, weights, or isolated upstream runtimes; keep parser, mocked-adapter,
