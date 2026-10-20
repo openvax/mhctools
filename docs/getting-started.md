@@ -1,7 +1,7 @@
 # Getting started
 
 This guide shows how to predict peptide-MHC binding with [MHCflurry](predictors/binding.md#mhcflurry) and read
-the results. It assumes you have Python 3.9 or later and a list of peptide
+the results. It assumes you have Python 3.11 or later and a list of peptide
 sequences and MHC alleles.
 
 ## Install
