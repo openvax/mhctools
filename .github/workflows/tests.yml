@@ -45,6 +45,11 @@ jobs:
           python -m pip install '${{ matrix.pandas }}'
           python -m pip check
 
+      - name: Check package import and CLI startup
+        run: |
+          python -c "import mhctools; print(mhctools.__version__)"
+          mhctools --help
+
       - name: Run lint checks
         run: ./lint.sh
 

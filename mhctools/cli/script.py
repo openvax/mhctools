@@ -53,11 +53,10 @@ def _subcommand(name, help, module, entry_point, aliases=()):
 # other (#352).
 #
 # These are dispatched before argparse rather than through add_subparsers for
-# two reasons. add_mhc_args declares --mhc-predictor required=True, so a
-# subparser on this parser makes every subcommand fail on the missing flag;
-# relaxing that is #444's decision and changes behavior for topiary, which
-# embeds add_mhc_args. And argparse's REMAINDER does not capture a
-# subcommand's own leading options, so `ls --all` would become "unrecognized
+# two reasons. This prediction parser requires --mhc-predictor, so a subparser
+# on it makes every subcommand fail on the missing flag. And argparse's
+# REMAINDER does not capture a subcommand's own leading options, so `ls --all`
+# would become "unrecognized
 # arguments: --all" unless every subcommand exposed its parser for
 # registration here.
 SUBCOMMANDS = (

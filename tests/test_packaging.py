@@ -23,13 +23,9 @@ import re
 import subprocess
 import sys
 import tarfile
+import tomllib
 
 import pytest
-
-try:
-    import tomllib
-except ModuleNotFoundError:  # Python < 3.11
-    import tomli as tomllib
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PYPROJECT = REPO_ROOT / "pyproject.toml"
@@ -42,7 +38,7 @@ def pyproject():
 
 
 def _distribution_name(requirement):
-    """'numpy>=1.26; python_version < "3.10"' -> 'numpy'."""
+    """'numpy>=2.0,<3.0' -> 'numpy'."""
     return re.split(r"[<>=!;\[ ]", requirement.strip())[0]
 
 

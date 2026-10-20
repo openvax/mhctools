@@ -91,3 +91,31 @@ significant digits.
 Default stdout is streamed as tab-separated values, so an empty source name
 survives as an empty field and large tables don't need a second formatted copy
 in memory. A downstream closed pipe (`| head`, say) exits cleanly.
+
+## Embed options in a report application
+
+Applications that replay saved predictions can make predictor selection
+optional while keeping the shared model, allele and runtime options:
+
+```python
+from argparse import ArgumentParser
+from mhctools.cli import add_mhc_args, predictors_from_args
+
+parser = ArgumentParser()
+parser.add_argument("--rescore", action="store_true")
+add_mhc_args(parser, predictor_required=False)
+args = parser.parse_args()
+
+if args.rescore:
+    predictors = predictors_from_args(args)
+    # Run fresh predictions with the explicitly selected predictors.
+```
+
+For replay, read the application's saved predictions without constructing a
+predictor.
+
+Parsing does not construct predictors or read allele files. Calling
+`predictors_from_args` requires a nonempty `--mhc-predictor` selection and the
+alleles needed by the selected predictors. Unknown names remain parser errors.
+The default `add_mhc_args(parser)` and the standalone prediction CLI still
+require `--mhc-predictor`.

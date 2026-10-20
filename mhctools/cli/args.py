@@ -225,7 +225,18 @@ def _parse_predictor_names(value):
     return names
 
 
-def add_mhc_args(arg_parser):
+def add_mhc_args(arg_parser, *, predictor_required=True):
+    """Add the shared predictor options to an application's parser.
+
+    Parameters
+    ----------
+    arg_parser : argparse.ArgumentParser
+        Parser to extend.
+    predictor_required : bool, optional
+        Require --mhc-predictor during parsing (default True). Set False for
+        applications that can replay saved predictions. Calling
+        predictors_from_args still requires an explicit predictor selection.
+    """
     mhc_options_arg_group = arg_parser.add_argument_group(
         title="Prediction Options",
         description="Model selection and prediction options")
@@ -234,7 +245,7 @@ def add_mhc_args(arg_parser):
         "--mhc-predictor",
         nargs="+",
         type=_parse_predictor_names,
-        required=True,
+        required=predictor_required,
         help=(
             "One or more predictor names, space or comma separated. "
             "E.g. '--mhc-predictor netmhcpan42' or "
@@ -314,8 +325,11 @@ def mhc_alleles_from_args(args):
 
 def _flatten_predictor_names(args):
     """Flatten the nested list from nargs="+" + comma-splitting type function."""
-    raw = args.mhc_predictor  # list of lists
-    return [name for group in raw for name in group]
+    raw = args.mhc_predictor or []  # list of lists, or None when optional
+    names = [name for group in raw for name in group]
+    if not names:
+        raise ValueError("MHC predictor required (use --mhc-predictor)")
+    return names
 
 def _build_predictor(cls, name, alleles, peptide_lengths, args):
     """Build a single predictor instance, passing only kwargs it accepts."""
