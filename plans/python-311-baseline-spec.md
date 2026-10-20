@@ -21,3 +21,10 @@ do not change the shared environment or force incompatible dependencies. File
 actual dependency blockers with the responsible project and link them in the PR.
 Run ./lint.sh and ./test.sh before merging green CI. Deploy from clean master
 with the required-backend release gate, then verify the PyPI artifacts.
+
+## Verification finding
+
+The fresh macOS Python 3.14 offline run selected Matplotlib's GUI backend and
+aborted while creating a figure in the restricted session (#607). Configure
+the test suite to use Agg, then repeat the existing plot regressions and offline
+suite. This change affects test setup only.

@@ -1,4 +1,4 @@
-"""Optional release gate for fully provisioned integration environments."""
+"""Headless test setup and the optional fully provisioned release gate."""
 
 import pytest
 
@@ -10,6 +10,10 @@ def pytest_addoption(parser):
 
 
 def pytest_configure(config):
+    import matplotlib
+
+    # Static plot tests must not open a GUI on macOS framework Python (#607).
+    matplotlib.use("Agg")
     if config.getoption("--require-all"):
         config.pluginmanager.register(_RequireAllTests(), "mhctools-require-all")
 
