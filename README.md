@@ -16,6 +16,8 @@ or browse the [documentation](https://openvax.github.io/mhctools/).
 
 ## Install and predict
 
+Requires Python 3.11 or later.
+
 ```sh
 pip install mhctools
 mhctools fetch mhcflurry

@@ -133,7 +133,8 @@ release metadata.
 
 ## CI and release verification
 
-CI discovers all tests on Python 3.9–3.12 and runs every test without the
+CI installs mhctools, checks dependencies and CLI startup, builds distributions,
+and runs lint on Python 3.11–3.14. It discovers all tests and runs every test without the
 `requires_external_tool` marker. New offline test files join that matrix
 automatically. Mark only tests that require separately installed predictor
 binaries, weights, or isolated upstream runtimes; keep parser, mocked-adapter,

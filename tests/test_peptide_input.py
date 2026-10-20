@@ -27,7 +27,7 @@ _SPEC = BackendSpec(
     serialization="JSON",
     entry_point="prediction_only",
     supported_platforms=("linux",),
-    supported_interpreters=("Python 3.10",),
+    supported_interpreters=("Python 3.11",),
 )
 
 

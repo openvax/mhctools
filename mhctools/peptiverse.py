@@ -168,7 +168,7 @@ PEPTIVERSE_BACKEND_SPEC = BackendSpec(
     license="PeptiVerse: Apache-2.0/MIT ambiguity; ESM2: MIT",
     serialization="torch pickle checkpoint + safetensors/torch weights",
     entry_point="prediction_only",
-    # The conformance path is covered on Linux/macOS and Python 3.10-3.12, but
+    # The conformance path is covered by the host Python CI matrix, but
     # real-model inference remains an opt-in smoke test, so do not advertise a
     # validated runtime combination here yet.
     supported_platforms=(),
