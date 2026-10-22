@@ -41,7 +41,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -e ".[dev,pepsickle,vaccine-report]"
+          python -m pip install -e ".[dev,pepsickle,vaccine-report,weirdo]"
           python -m pip install '${{ matrix.pandas }}'
           python -m pip check
 

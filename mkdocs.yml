@@ -82,6 +82,7 @@ nav:
           - Batch assessments: cleavage/batch.md
           - PhageScout sequence profiles: cleavage/phagescout.md
       - Immunogenicity: predictors/immunogenicity.md
+      - Foreignness: predictors/foreignness.md
       - TCR specificity: predictors/tcr.md
       - Peptide half-life: predictors/peptide-pk.md
       - Cell penetration classification: predictors/uptake.md

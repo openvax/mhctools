@@ -61,6 +61,7 @@ from .mixmhc2pred import MixMHC2pred
 from .prime import PRIME
 from .deeptap import DeepTAP
 from .calis import Calis
+from .weirdo import WEIRDO
 from .eramer import ERAMER
 from .deepimmuno import DeepImmuno
 from .peptiverse import PeptiVerse
@@ -202,7 +203,7 @@ def __getattr__(name):
     raise AttributeError(
         "module %r has no attribute %r" % (__name__, name))
 
-__version__ = "4.2.0"
+__version__ = "4.3.0"
 
 __all__ = [
     "CleaveNet",
@@ -264,6 +265,7 @@ __all__ = [
     "PRIME",
     "DeepTAP",
     "Calis",
+    "WEIRDO",
     "ERAMER",
     "DeepImmuno",
     "PeptiVerse",

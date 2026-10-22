@@ -41,6 +41,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+weirdo = [
+  "weirdo>=2.2.0,<3",
+]
 pepsickle = [
   "pepsickle",
 ]

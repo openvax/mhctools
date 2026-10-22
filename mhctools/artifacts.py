@@ -494,6 +494,27 @@ def _pepsickle_status():
     )
 
 
+def _weirdo_status():
+    try:
+        from weirdo import get_model_manifest
+        manifest = get_model_manifest()
+        path = Path(manifest["path"])
+        ready = all((path / name).is_file() for name in manifest["files"])
+        version = manifest["model_id"] + ":" + manifest["artifact_id"]
+        detail = (
+            "Bundled WEIRDO artifact located; use the reproduced capability check to verify weights and inference"
+            if ready else "WEIRDO weights are missing; reinstall mhctools[weirdo]"
+        )
+    except (ImportError, OSError, ValueError) as error:
+        path, version, ready = "", "", False
+        detail = "Install mhctools[weirdo] for its bundled model: %s" % error
+    return ArtifactStatus(
+        name="weirdo", status="ready" if ready else "missing",
+        manager="weirdo package", version=version, path=str(path),
+        fetchable=False, detail=detail,
+    )
+
+
 def _smm_status():
     from .smm import resolve_smm_executable
     try:
@@ -508,6 +529,7 @@ def _smm_status():
 
 
 _STATUS_FUNCTIONS = {
+    "weirdo": _weirdo_status,
     "smm": _smm_status,
     "calis": _calis_status,
     "mhcflurry": _mhcflurry_presentation_status,

@@ -300,6 +300,23 @@ See the [immunogenicity guide](predictors/immunogenicity.md) for examples and mo
 - Installation: `mhctools fetch tlimmuno2 --accept-license`
 - License: unlicensed
 
+## Descriptive foreignness
+
+See the [descriptive foreignness guide](predictors/foreignness.md) for examples and model notes.
+
+| Predictor | MHC class | Input |
+|---|---|---|
+| [WEIRDO](predictors/foreignness.md) | none | peptides only; human reference policy |
+
+### WEIRDO
+
+- Python classes: `WEIRDO`
+- CLI names: `weirdo`
+- Prediction kinds: `foreignness`
+- Default scanning lengths: 8-11
+- Installation: `pip install 'mhctools[weirdo]'`
+- License: open
+
 ## TCR specificity
 
 See the [tcr specificity guide](predictors/tcr.md) for examples and model notes.
