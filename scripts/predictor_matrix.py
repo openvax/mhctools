@@ -28,6 +28,7 @@ FAMILIES = [
     ("binding", "MHC binding and presentation", "predictors/binding.md"),
     ("processing", "Antigen processing", "predictors/processing.md"),
     ("immunogenicity", "Immunogenicity", "predictors/immunogenicity.md"),
+    ("foreignness", "Descriptive foreignness", "predictors/foreignness.md"),
     ("tcr", "TCR specificity", "predictors/tcr.md"),
     ("peptide-pk", "Peptide half-life", "predictors/peptide-pk.md"),
     ("uptake", "Cell penetration classification", "predictors/uptake.md"),
@@ -211,6 +212,13 @@ ROWS = [
          inputs="peptides only (9-16mer precursors)", lengths="(9-16 supported)",
          artifact="eramer", install="`mhctools fetch eramer` + `openpyxl`",
          license="open", page="predictors/processing.md#eramer"),
+
+    dict(family="foreignness", name="WEIRDO",
+         classes=["WEIRDO"], cli=["weirdo"],
+         kinds=["foreignness"], mhc_class="none",
+         inputs="peptides only; human reference policy", lengths="8-11",
+         artifact="weirdo", install="`pip install 'mhctools[weirdo]'`",
+         license="open", page="predictors/foreignness.md"),
 
     dict(family="immunogenicity", name="Calis",
          classes=["Calis"], cli=["calis"],

@@ -15,6 +15,7 @@ The canonical strings live in `mhctools.pred.Kind`.
 | `pMHC_stability` | Peptide-MHC complex stability | hours (Thalf) |
 | `pMHC_TCR_binding` | TCR recognition of a peptide-MHC (pMHC:TCR binding) | none |
 | `immunogenicity` | T-cell immunogenicity | none |
+| `foreignness` | Experimental sequence-category summary; distinct from immune recognition | none |
 | `antigen_processing` | Combined processing score | none |
 | `proteasome_cleavage` | Proteasomal (MHC-I, cytosolic) C-terminal cleavage score | none |
 | `endolysosomal_cleavage` | Endolysosomal (MHC-II, cathepsin) C-terminal cleavage score | none |
@@ -174,6 +175,7 @@ that `kind_support()` reports for each kind, which can differ by mode.
 | `PRIME`, `DeepImmuno` | `immunogenicity` | `single_allele` | `I` |
 | `TLimmuno2` | `immunogenicity` | `single_allele` | `II` |
 | `Calis` | `immunogenicity` | `none` | `I` |
+| `WEIRDO` | `foreignness` | `none` | `none` |
 | `PeptiVerse`, `PlifePred2` | `peptide_half_life` | `none` | `none` |
 | `PeptiVerseCPP` | `cpp_classification` | `none` | `none` |
 

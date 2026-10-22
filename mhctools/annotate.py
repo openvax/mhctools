@@ -73,6 +73,7 @@ _OUTPUT_FIELDS = {
     # `score`, which is where this field has always read it.
     "stability": (Kind.pMHC_stability, "score"),
     "immunogenicity": (Kind.immunogenicity, "score"),
+    "foreignness": (Kind.foreignness, "score"),
     "tap_transport": (Kind.tap_transport, "score"),
     "erap_trimming": (Kind.erap_trimming, "score"),
     # Parent-peptide half-life. Matrix-specific names remain CLI conveniences;

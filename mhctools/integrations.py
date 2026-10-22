@@ -14,6 +14,7 @@ implies that its dependencies work or that it can reproduce a prediction.
 """
 
 from dataclasses import asdict, dataclass
+import json
 import math
 import subprocess
 import sys
@@ -165,7 +166,35 @@ def _probe_netchop():
     return _ProbeResult(True, reproduced, detail)
 
 
+def _probe_weirdo(timeout):
+    code = """
+import json
+from mhctools import WEIRDO
+from weirdo import get_model_manifest
+manifest = get_model_manifest()
+smoke = manifest['smoke']
+prediction = WEIRDO().predict([smoke['peptide']])[0].preds[0]
+expected = 1 - smoke['category_values'][manifest['categories'].index('human')]
+print(json.dumps({'score': prediction.score, 'expected': expected, 'atol': smoke['atol']}))
+"""
+    try:
+        result = subprocess.run(
+            [sys.executable, "-c", code], capture_output=True, text=True,
+            timeout=timeout, check=True,
+        )
+        record = json.loads(result.stdout)
+        reproduced = math.isclose(record["score"], record["expected"],
+                                  rel_tol=0, abs_tol=record["atol"])
+    except (OSError, subprocess.SubprocessError, ValueError, KeyError) as error:
+        diagnostic = getattr(error, "stderr", None) or str(error)
+        return _ProbeResult(False, False, "WEIRDO reference inference failed: %s" % diagnostic[-500:])
+    return _ProbeResult(True, reproduced,
+                        "WEIRDO released reference score %s" % ("reproduced" if reproduced else "did not match"))
+
+
 def _run_probe(status, timeout):
+    if status.name == "weirdo":
+        return _probe_weirdo(timeout)
     if status.name == "calis":
         return _probe_calis()
     if status.name == "netchop":

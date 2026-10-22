@@ -54,6 +54,8 @@ class Kind:
     pMHC_stability = "pMHC_stability"
     pMHC_TCR_binding = "pMHC_TCR_binding"
     immunogenicity = "immunogenicity"
+    # Descriptive sequence-category score, distinct from immune recognition.
+    foreignness = "foreignness"
     antigen_processing = "antigen_processing"
     proteasome_cleavage = "proteasome_cleavage"
     endolysosomal_cleavage = "endolysosomal_cleavage"
@@ -521,7 +523,7 @@ class Prediction:
             if context.transform != "linear":
                 raise ValueError(
                     "Prediction.value must use the linear transform")
-        if self.kind in CONTEXT_DEPENDENT_KINDS and self.allele:
+        if (self.kind in CONTEXT_DEPENDENT_KINDS or self.kind == Kind.foreignness) and self.allele:
             raise ValueError(
                 f"{self.kind} is MHC-independent and cannot carry an allele")
         if self.kind == Kind.cpp_classification and self.value is not None:
@@ -664,6 +666,11 @@ class PeptideResult:
     def immunogenicity(self) -> Optional[Prediction]:
         """Best immunogenicity prediction, or None."""
         return self.best_by_score(Kind.immunogenicity)
+
+    @property
+    def foreignness(self) -> Optional[Prediction]:
+        """Highest descriptive foreignness score, if one is present."""
+        return self.best_by_score(Kind.foreignness)
 
     @property
     def processing(self) -> Optional[Prediction]:
