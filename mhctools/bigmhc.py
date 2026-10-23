@@ -218,7 +218,7 @@ class BigMHC(NewModelPredictorMixin):
         df.insert(
             0, "uid",
             df["mhc"].apply(mhcuid_mod.mhcuid) + "_" + df["pep"])
-        df.set_index("uid", drop=True, inplace=True)
+        df = df.set_index("uid", drop=True)
         df = df.astype({
             "mhc": "string", "pep": "string",
             "tgt": "float32", "len": "int8"})

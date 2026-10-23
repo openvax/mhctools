@@ -134,3 +134,9 @@ legacy binding-prediction fallback score each distinct peptide once and expand
 its predictions back to every occurrence. If those backends omit a requested
 peptide/allele pair, `predict()` raises `ValueError` instead of returning a
 shorter, misaligned list.
+
+## Legacy binding results
+
+`BindingPrediction.elution_score` remains a compatibility alias for `score`.
+Use `score` in new code. The alias returns the same value, including `None`
+when a score is unavailable.

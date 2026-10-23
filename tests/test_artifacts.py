@@ -447,9 +447,11 @@ def test_mhcflurry_download_progress_is_sent_to_stderr(monkeypatch, tmp_path):
     assert fetch_call["stdout"] is sys.stderr
 
 
-def test_mhcflurry_status_uses_native_manager(monkeypatch, tmp_path):
+@pytest.mark.parametrize("models_present", [False, True])
+def test_mhcflurry_status_uses_native_manager(monkeypatch, tmp_path, models_present):
     models = tmp_path / "models_class1_presentation" / "models"
-    models.mkdir(parents=True)
+    if models_present:
+        models.mkdir(parents=True)
     fake_downloads = SimpleNamespace(
         get_path=lambda name, test_exists=False: str(tmp_path / name),
         get_current_release=lambda: "test-release",
@@ -458,9 +460,18 @@ def test_mhcflurry_status_uses_native_manager(monkeypatch, tmp_path):
         artifacts, "_mhcflurry_downloads", lambda: fake_downloads)
 
     status = artifacts._mhcflurry_presentation_status()
-    assert status.status == "ready"
+    assert status.status == ("ready" if models_present else "missing")
     assert status.version == "test-release"
     assert status.path == str(models)
+
+
+def test_mhcflurry_import_failure_is_not_reported_as_missing_models(monkeypatch):
+    def broken_import():
+        raise ImportError("broken MHCflurry dependency")
+
+    monkeypatch.setattr(artifacts, "_mhcflurry_downloads", broken_import)
+    with pytest.raises(ImportError, match="broken MHCflurry dependency"):
+        artifacts.artifact_status("mhcflurry")
 
 
 def test_fetch_mhcflurry_delegates_and_returns_model_path(monkeypatch, tmp_path):

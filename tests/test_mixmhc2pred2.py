@@ -162,7 +162,25 @@ def test_mixmhc2pred_end_to_end():
         assert result.presentation is not None
 
 
-def test_predict_dataframe_inherits_flank_signature():
-    import inspect
-    params = inspect.signature(MixMHC2pred.predict_dataframe).parameters
-    assert "n_flanks" in params and "c_flanks" in params
+def test_predict_dataframe_accepts_flanks(monkeypatch):
+    predictor = MixMHC2pred(alleles=["DRB1_15_01", "HLA-DQA1*01:02-DQB1*06:02"])
+
+    def run(command, **kwargs):
+        with open(command[command.index("-o") + 1], "w") as output:
+            output.write(_MM2_OUTPUT)
+
+    monkeypatch.setattr("mhctools.mixmhc2pred.run_command", run)
+    frame = predictor.predict_dataframe(
+        ["PKYVKQNTLKLAT"], sample_name="sample", n_flanks=["AAA"], c_flanks=["CCC"])
+    assert frame["peptide"].tolist() == ["PKYVKQNTLKLAT", "PKYVKQNTLKLAT"]
+    assert {to_mixmhc2pred_allele(row.allele): row.score for row in frame.itertuples()} == {
+        "DRB1_15_01": 0.0791, "DQA1_01_02__DQB1_06_02": 0.218,
+    }
+    assert frame["sample_name"].tolist() == ["sample", "sample"]
+
+
+@pytest.mark.parametrize("flank", ["n_flanks", "c_flanks"])
+def test_predict_dataframe_validates_flanks(flank):
+    predictor = MixMHC2pred(alleles=["DRB1_15_01"])
+    with pytest.raises(ValueError, match=flank + " must have one entry per peptide"):
+        predictor.predict_dataframe(["PKYVKQNTLKLAT"], **{flank: []})

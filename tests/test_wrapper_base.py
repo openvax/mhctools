@@ -14,8 +14,11 @@
 
 """Tests for the shared new-model wrapper base classes."""
 
+import pytest
+
 from mhctools.pred import COLUMNS, Kind, Prediction, PeptideResult
 from mhctools.wrapper_base import AlleleFreePredictor, NewModelPredictorMixin
+from mhctools.bigmhc import BigMHC, BigMHC_EL, BigMHC_IM
 
 
 def test_normalize_peptides_single_string_and_strip_upper():
@@ -56,13 +59,21 @@ def test_inherited_predict_dataframe():
     assert len(empty) == 0
 
 
-def test_wrappers_use_the_shared_base():
-    # The standalone wrappers inherit the shared helpers rather than
-    # re-implementing them.
-    from mhctools.calis import Calis
-    from mhctools.bigmhc import BigMHC
-    assert issubclass(Calis, AlleleFreePredictor)
-    assert issubclass(BigMHC, NewModelPredictorMixin)
-    # BigMHC standardizes on _default_pred_kind (not the old _pred_kind).
+@pytest.mark.parametrize("factory,kind", [
+    (BigMHC_EL, Kind.pMHC_presentation),
+    (BigMHC_IM, Kind.immunogenicity),
+])
+def test_bigmhc_fixed_mode_supported_kinds(factory, kind, tmp_path):
+    # Construction checks the source path; model loading stays lazy.
+    source = tmp_path / "src"
+    source.mkdir()
+    (source / "bigmhc.py").touch()
+    predictor = factory(alleles=["HLA-A*02:01"], bigmhc_path=str(tmp_path))
+    assert predictor.supported_kinds == (kind,)
+    assert predictor.kind_support() == {
+        kind: {"mhc_dependence": "single_allele", "mhc_class": "I"},
+    }
+
+
+def test_bigmhc_legacy_kind_hook_stays_removed():
     assert not hasattr(BigMHC, "_pred_kind")
-    assert hasattr(BigMHC, "_default_pred_kind")

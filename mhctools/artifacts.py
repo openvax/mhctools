@@ -403,26 +403,18 @@ def _mhcflurry_downloads():
 
 
 def _mhcflurry_status(name, download_name, relative_path):
-    try:
-        downloads = _mhcflurry_downloads()
-        root = downloads.get_path(download_name, test_exists=False)
-        path = os.path.join(root, relative_path)
-        version = downloads.get_current_release() or "custom"
-        ready = os.path.exists(path)
-        detail = "Managed by MHCflurry"
-    except (ImportError, ModuleNotFoundError):
-        path = ""
-        version = ""
-        ready = False
-        detail = "Install the mhcflurry package before fetching its models"
+    downloads = _mhcflurry_downloads()
+    root = downloads.get_path(download_name, test_exists=False)
+    path = os.path.join(root, relative_path)
+    version = downloads.get_current_release() or "custom"
     return ArtifactStatus(
         name=name,
-        status="ready" if ready else "missing",
+        status="ready" if os.path.exists(path) else "missing",
         manager="mhcflurry",
         version=str(version),
-        path=os.path.abspath(path) if path else "",
+        path=os.path.abspath(path),
         fetchable=True,
-        detail=detail,
+        detail="Managed by MHCflurry",
     )
 
 
