@@ -407,5 +407,5 @@ def test_base_predictor_defaults_to_one_allele_per_command(monkeypatch, tmp_path
     predictor = BaseCommandlinePredictor(
         program_name=str(tmp_path / "predictor"), alleles=alleles, parse_output_fn=None,
         supported_alleles_flag="-listMHC", input_file_flag="-f",
-        length_flag="-l", allele_flag="-a")
+        length_flag="-l", allele_flag="-a", process_limit=1)
     assert predictor._allele_groups() == [[allele] for allele in predictor.alleles]
