@@ -363,7 +363,7 @@ def test_predict_peptides_command_count_is_files_times_groups():
 @pytest.fixture(params=[
     NetMHCpan, NetMHCpan28, NetMHCpan3, NetMHCpan4, NetMHCpan41, NetMHCpan42,
 ])
-def pan_predictor(request, monkeypatch):
+def pan_predictor(request, monkeypatch, tmp_path):
     alleles = ["HLA-A*02:01", "HLA-B*35:02", "HLA-C*07:02"]
     monkeypatch.setattr(
         BaseCommandlinePredictor, "_determine_supported_alleles",
@@ -372,7 +372,8 @@ def pan_predictor(request, monkeypatch):
         "mhctools.netmhc_pan.subprocess.run",
         lambda *args, **kwargs: SimpleNamespace(stdout=b"# NetMHCpan version 4.2"))
     return request.param(
-        alleles=alleles, process_limit=2, max_peptides_per_file=2)
+        alleles=alleles, process_limit=2, max_peptides_per_file=2,
+        program_name=str(tmp_path / "netMHCpan"))
 
 
 def test_pan_wrappers_default_to_auto_batching(pan_predictor):
@@ -398,13 +399,13 @@ def test_pan_wrappers_apply_max_peptides_per_file(pan_predictor):
             output.close()
 
 
-def test_base_predictor_defaults_to_one_allele_per_command(monkeypatch):
+def test_base_predictor_defaults_to_one_allele_per_command(monkeypatch, tmp_path):
     alleles = ["HLA-A*02:01", "HLA-B*35:02"]
     monkeypatch.setattr(
         BaseCommandlinePredictor, "_determine_supported_alleles",
         staticmethod(lambda *args: alleles))
     predictor = BaseCommandlinePredictor(
-        program_name="fake-predictor", alleles=alleles, parse_output_fn=None,
+        program_name=str(tmp_path / "predictor"), alleles=alleles, parse_output_fn=None,
         supported_alleles_flag="-listMHC", input_file_flag="-f",
         length_flag="-l", allele_flag="-a")
     assert predictor._allele_groups() == [[allele] for allele in predictor.alleles]
