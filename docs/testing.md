@@ -134,7 +134,7 @@ release metadata.
 ## CI and release verification
 
 CI checks installation, dependencies, CLI startup, builds and lint on Python
-3.11–3.14, with both pandas 2 and 3 on Python 3.11. It discovers all tests and
+3.11–3.14 with pandas 3.x. It discovers all tests and
 runs every test without the
 `requires_external_tool` marker. New offline test files join that matrix
 automatically. Mark only tests that require separately installed predictor
