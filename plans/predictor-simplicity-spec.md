@@ -16,6 +16,8 @@
   inheritance/attribute-presence checks with observable predictor behavior
   where coverage is needed; retain the intentional removed-hook regression.
 - Release as 4.4.1 after the pandas 3 baseline ships.
+- Replace the owned BigMHC `set_index(inplace=True)` call deprecated by pandas
+  3.1 with assignment. Track the upstream `reset_index` warning in #615.
 
 ## Verification
 
