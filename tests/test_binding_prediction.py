@@ -10,8 +10,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import pytest
+
 from mhctools.binding_prediction import BindingPrediction
 from .common import eq_
+
+
+@pytest.mark.parametrize("score", [None, 0.0, 0.75])
+def test_legacy_elution_score_tracks_score(score):
+    prediction = BindingPrediction("SIINFEKL", "H-2-K-b", score=score)
+    assert prediction.elution_score == score
+    prediction.score = 0.25
+    assert prediction.elution_score == 0.25
+
 
 def test_binding_prediction_fields():
     bp = BindingPrediction(

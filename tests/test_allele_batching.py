@@ -20,9 +20,10 @@ tests/test_netmhc_pan.py (which needs the binary) and the multi-allele parser
 tests in tests/test_mhc_formats.py.
 """
 
-import inspect
 import os
+from pathlib import Path
 import tempfile
+from types import SimpleNamespace
 
 import pytest
 
@@ -359,24 +360,51 @@ def test_predict_peptides_command_count_is_files_times_groups():
 # The netMHCpan family batches all alleles by default (perf win out of the box)
 # ---------------------------------------------------------------------------
 
-@pytest.mark.parametrize("factory", [
+@pytest.fixture(params=[
     NetMHCpan, NetMHCpan28, NetMHCpan3, NetMHCpan4, NetMHCpan41, NetMHCpan42,
 ])
-def test_pan_wrappers_default_to_auto_batching(factory):
-    default = inspect.signature(factory).parameters[
-        "max_alleles_per_command"].default
-    assert default == "auto"
+def pan_predictor(request, monkeypatch):
+    alleles = ["HLA-A*02:01", "HLA-B*35:02", "HLA-C*07:02"]
+    monkeypatch.setattr(
+        BaseCommandlinePredictor, "_determine_supported_alleles",
+        staticmethod(lambda *args: alleles))
+    monkeypatch.setattr(
+        "mhctools.netmhc_pan.subprocess.run",
+        lambda *args, **kwargs: SimpleNamespace(stdout=b"# NetMHCpan version 4.2"))
+    return request.param(
+        alleles=alleles, process_limit=2, max_peptides_per_file=2)
 
 
-@pytest.mark.parametrize("factory", [
-    NetMHCpan, NetMHCpan28, NetMHCpan3, NetMHCpan4, NetMHCpan41, NetMHCpan42,
-])
-def test_pan_wrappers_expose_max_peptides_per_file(factory):
-    assert "max_peptides_per_file" in inspect.signature(factory).parameters
+def test_pan_wrappers_default_to_auto_batching(pan_predictor):
+    alleles = pan_predictor.alleles
+    assert pan_predictor._allele_groups(n_input_files=1) == [alleles[:2], alleles[2:]]
+    assert pan_predictor._allele_groups(n_input_files=2) == [alleles]
 
 
-def test_base_predictor_defaults_to_one_allele_per_command():
-    # Non-pan command-line predictors keep the historical behavior.
-    default = inspect.signature(
-        BaseCommandlinePredictor).parameters["max_alleles_per_command"].default
-    assert default == 1
+def test_pan_wrappers_apply_max_peptides_per_file(pan_predictor):
+    peptides = ["SIINFEKLL", "GILGFVFTL", "NLVPMVATV"]
+    commands, filenames, directories = pan_predictor._build_peptide_commands(
+        peptides, pan_predictor.alleles)
+    try:
+        with CleanupFiles(
+                filenames=filenames + [output.name for output in commands],
+                directories=directories):
+            batches = [Path(filename).read_text().splitlines() for filename in filenames]
+            assert sorted(map(len, batches)) == [1, 2]
+            assert sorted(peptide for batch in batches for peptide in batch) == sorted(peptides)
+            assert len(commands) == 2
+    finally:
+        for output in commands:
+            output.close()
+
+
+def test_base_predictor_defaults_to_one_allele_per_command(monkeypatch):
+    alleles = ["HLA-A*02:01", "HLA-B*35:02"]
+    monkeypatch.setattr(
+        BaseCommandlinePredictor, "_determine_supported_alleles",
+        staticmethod(lambda *args: alleles))
+    predictor = BaseCommandlinePredictor(
+        program_name="fake-predictor", alleles=alleles, parse_output_fn=None,
+        supported_alleles_flag="-listMHC", input_file_flag="-f",
+        length_flag="-l", allele_flag="-a")
+    assert predictor._allele_groups() == [[allele] for allele in predictor.alleles]

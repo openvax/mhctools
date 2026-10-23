@@ -143,26 +143,10 @@ def test_bigmhc_maps_to_base():
     assert mhc_predictors["bigmhc"] == BigMHC
 
 
-def test_bigmhc_el_is_subclass():
-    assert issubclass(BigMHC_EL, BigMHC)
-
-
-def test_bigmhc_im_is_subclass():
-    assert issubclass(BigMHC_IM, BigMHC)
-
-
-def test_bigmhc_el_no_mode_arg():
-    """BigMHC_EL should not accept a mode argument — it's fixed to 'el'."""
-    import inspect
-    sig = inspect.signature(BigMHC_EL.__init__)
-    assert "mode" not in sig.parameters
-
-
-def test_bigmhc_im_no_mode_arg():
-    """BigMHC_IM should not accept a mode argument — it's fixed to 'im'."""
-    import inspect
-    sig = inspect.signature(BigMHC_IM.__init__)
-    assert "mode" not in sig.parameters
+@pytest.mark.parametrize("factory,mode", [(BigMHC_EL, "im"), (BigMHC_IM, "el")])
+def test_bigmhc_fixed_mode_rejects_override(factory, mode):
+    with pytest.raises(TypeError, match="mode"):
+        factory(alleles=["HLA-A*02:01"], mode=mode)
 
 
 def test_caphla_registry_entries():

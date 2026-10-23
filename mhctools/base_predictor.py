@@ -271,9 +271,6 @@ class BasePredictor(object):
             return pd.DataFrame(columns=COLUMNS)
         return pd.concat(dfs, ignore_index=True)
 
-    def _predict_protein_flank_length(self):
-        return max(self._predict_protein_flank_lengths())
-
     def _predict_protein_flank_lengths(self):
         if not self.uses_flanking_sequences:
             return (0, 0)

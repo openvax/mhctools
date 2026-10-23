@@ -218,10 +218,24 @@ def test_prime_dataframe_end_to_end():
     assert (df["allele"] == "HLA-A*02:01").all()
 
 
-def test_predict_dataframe_inherits_flank_signature():
-    # Regression: PRIME used to override predict_dataframe with a narrower
-    # signature that dropped n_flanks/c_flanks (a TypeError trap). It should
-    # inherit the base method, which forwards flanks to predict().
-    import inspect
-    params = inspect.signature(PRIME.predict_dataframe).parameters
-    assert "n_flanks" in params and "c_flanks" in params
+def test_predict_dataframe_accepts_flanks(monkeypatch):
+    predictor = PRIME(alleles=["HLA-A*02:01", "HLA-B*07:02"])
+    monkeypatch.setattr(predictor, "_validate_mixmhcpred", lambda: ("MixMHCpred", "3.0"))
+
+    def run(command, **kwargs):
+        with open(command[command.index("-o") + 1], "w") as output:
+            output.write(_PRIME_OUTPUT)
+
+    monkeypatch.setattr("mhctools.prime.run_command", run)
+    frame = predictor.predict_dataframe(
+        ["GILGFVFTL"], sample_name="sample", n_flanks=["AAA"], c_flanks=["CCC"])
+    assert frame["peptide"].tolist() == ["GILGFVFTL", "GILGFVFTL"]
+    assert frame["score"].tolist() == [0.236432, 0.013242]
+    assert frame["sample_name"].tolist() == ["sample", "sample"]
+
+
+@pytest.mark.parametrize("flank", ["n_flanks", "c_flanks"])
+def test_predict_dataframe_validates_flanks(flank):
+    predictor = PRIME(alleles=["HLA-A*02:01"])
+    with pytest.raises(ValueError, match=flank + " must have one entry per peptide"):
+        predictor.predict_dataframe(["GILGFVFTL"], **{flank: []})
