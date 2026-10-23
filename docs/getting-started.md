@@ -13,6 +13,9 @@ mhctools fetch mhcflurry
 
 [MHCflurry](predictors/binding.md#mhcflurry) is installed with mhctools; the second command downloads its model
 weights. Other predictors may need a separate executable or Python environment.
+mhctools requires pandas 3.x, which pip installs automatically. MixMHCpred and
+PRIME use a [separate backend environment](predictors/binding.md#mixmhcpred)
+for their pandas 2 dependency.
 See [getting models](artifacts.md) for download commands and
 [optional backends](backends.md) for installation details.
 

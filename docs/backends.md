@@ -110,8 +110,8 @@ The official CLI runs locally; errors and incomplete output fail explicitly.
 
 The `gfeller` setup group installs the official pinned predictors and a
 separate Python environment, then configures `MIXMHCPRED_PYTHON`. It uses the
-supported API runtime selection, with no test-only launcher. The host can
-keep pandas 3; the backend needs numpy, pandas below 3, scipy, logomaker and
+supported API runtime selection, with no test-only launcher. The host requires
+pandas 3; the backend needs numpy, pandas below 3, scipy, logomaker and
 matplotlib. See [manual setup and runtime diagnostics](predictors/binding.md#mixmhcpred).
 MAFFT remains on the inherited PATH for sequence alignment. PRIME's nested
 MixMHCpred call uses the same selected interpreter.

@@ -16,7 +16,7 @@ or browse the [documentation](https://openvax.github.io/mhctools/).
 
 ## Install and predict
 
-Requires Python 3.11 or later.
+Requires Python 3.11 or later and pandas 3.x.
 
 ```sh
 pip install mhctools

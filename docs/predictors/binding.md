@@ -252,11 +252,12 @@ python3.11 -m venv .mixmhcpred-venv
 export MIXMHCPRED_PYTHON="$PWD/.mixmhcpred-venv/bin/python"
 ```
 
-This isolated runtime lets the mhctools host keep Python 3.11+ and pandas 3.
+The mhctools host requires Python 3.11+ and pandas 3.
 MixMHCpred 3.0 still uses pandas APIs removed in pandas 3, so its interpreter
 needs pandas below 3. Sequence alignment additionally needs `mafft` on PATH.
-The existing `mixmhcpred` extra installs dependencies into the host and keeps
-its protective `pandas<3` constraint; use it only for a shared environment.
+The `mixmhcpred` extra was removed in mhctools 4.4.0. Replace
+`pip install 'mhctools[mixmhcpred]'` with the isolated setup above so that
+MixMHCpred's pandas requirement is installed in its own environment.
 
 `MixMHCpred(python_executable="/path/to/venv/bin/python")` overrides
 `MIXMHCPRED_PYTHON`. The CLI equivalent is `--mixmhcpred-python`.
