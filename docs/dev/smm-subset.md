@@ -22,23 +22,41 @@ Both output paths are git-ignored. The
 verifies the official archive's SHA-256, copies the allowed files without
 rewriting them, and normalizes archive order and metadata.
 
-The command succeeds only when the resulting digest matches
-`EXPECTED_SUBSET_SHA256`. A failed build is not an artifact to publish.
+The command succeeds only when the SHA-256 of the uncompressed tar stream
+matches `EXPECTED_SUBSET_TAR_SHA256`. This covers file names, contents,
+normalized metadata, order and tar padding. Different gzip encodings can pass
+the same audit. A failed build is not an artifact to publish.
+
+The output reports two checksums:
+
+| Field | Meaning |
+|---|---|
+| `sha256` | Exact bytes of the generated `.tar.gz`; may vary across compression runtimes. |
+| `tar_sha256` | Normalized tar stream after gzip decompression; must match the content pin. |
+
+To check the tar stream independently, without extracting files:
+
+```sh
+gzip -dc dist/IEDB_MHC_I-3.1.7-smm-subset.tar.gz | shasum -a 256
+```
+
+The expected value is
+`f1e3d6168644a33e64a8be00d77b4e56808db1bd9b72bcc704d4954828ad494e`.
 
 ## Check a failed build
 
 | Failure | Meaning and next step |
 |---|---|
 | Source checksum mismatch | The input is not the pinned official archive. Check the download before rebuilding. |
-| Output checksum mismatch | The compressed bytes differ from the hosted subset. Check the compression runtime and extracted contents. |
+| Tar checksum mismatch | The normalized tar stream differs from the pinned content. Inspect the selected files and tar metadata before publishing. |
 | Empty allowed prefix | An expected part of the archive is missing. Inspect the upstream layout. |
 | Unsupported member type | A selected entry is not a regular file or directory. Review it before changing the builder. |
 
-The same compression runtime reproduces the subset checksum. Different zlib
-versions can produce different compressed bytes even when the extracted files
-match. The independent content audit is tracked in
-[#465](https://github.com/openvax/mhctools/issues/465); keep the checksum gate in
-place while that work is pending.
+The installer still requires the exact hosted `.tar.gz` checksum, recorded as
+`SMM_SUBSET_SHA256` in `scripts/setup_test_backends.py` and
+`EXPECTED_SUBSET_SHA256` in the builder. Passing the content audit does not make
+a differently compressed rebuild interchangeable with the published download.
+Publishing a replacement artifact requires explicitly updating its download pin.
 
 ## Files in the subset
 

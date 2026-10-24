@@ -73,8 +73,3 @@ projects; mhctools provides the evidence contract.
   and [exposing extracellular cleavage and peptide half-life evidence](https://github.com/openvax/topiary/issues/288).
 - Vaxrank: [adopting generalized Topiary source tables](https://github.com/openvax/vaxrank/issues/497)
   for vaccine construction.
-
-## Maintenance
-
-- Making the [SMM](predictors/binding.md#smm-and-smm-pmbec) subset audit independent of zlib compression differences.
-  [#465](https://github.com/openvax/mhctools/issues/465)

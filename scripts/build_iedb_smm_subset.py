@@ -19,8 +19,9 @@ LIAI_license.txt is included because the bundle is Non-Profit Open Software
 License 3.0 and the terms travel with the material.
 
 Reproducibility: entries are sorted, and mtime, mode, uid/gid and uname/gname
-are normalized. Rebuilding with the same compression runtime yields the same
-SHA-256; different zlib versions may produce different compressed bytes.
+are normalized. The audit pins the uncompressed tar stream's SHA-256, so gzip
+encoding differences do not affect it. The installer separately pins the exact
+compressed bytes of the hosted artifact.
 
     python scripts/build_iedb_smm_subset.py \
         --archive env/test-backends/IEDB_MHC_I-3.1.7.tar.gz \
@@ -62,12 +63,13 @@ INCLUDED_PREFIXES = (
 
 EXCLUDED_NAMES = ("__pycache__", ".pyc")
 
-# The digest this script produces from the pinned archive. setup_test_backends
-# installs an artifact by checksum; asserting that checksum equals this one is
-# what ties the hosted copy to a build from the official release rather than to
-# whatever was uploaded.
+# Exact hosted archive bytes, also pinned by setup_test_backends. A rebuild
+# may use a different gzip encoding while preserving the normalized tar stream.
 EXPECTED_SUBSET_SHA256 = (
     "eef720a71991a76ceee64ce32fbb52e19684b91d9d44eb078c18c96f395e192e")
+# SHA-256 after gzip decompression, including normalized tar headers and padding.
+EXPECTED_SUBSET_TAR_SHA256 = (
+    "f1e3d6168644a33e64a8be00d77b4e56808db1bd9b72bcc704d4954828ad494e")
 
 
 def _digest(path):
@@ -76,6 +78,11 @@ def _digest(path):
         for block in iter(lambda: handle.read(1024 * 1024), b""):
             sha256.update(block)
     return sha256.hexdigest()
+
+
+def _tar_digest(path):
+    with gzip.open(path, "rb") as handle:
+        return hashlib.file_digest(handle, "sha256").hexdigest()
 
 
 MARKER = "mhc_i/"
@@ -194,16 +201,18 @@ def main():
     files = [entry for entry in entries if entry[1] is not None]
     total = sum(len(entry[1]) for entry in files)
     digest = _digest(args.output)
+    tar_digest = _tar_digest(args.output)
     print("files:      %d" % len(files))
     print("directories: %d" % (len(entries) - len(files)))
     print("bytes:      %d (%.1f MB uncompressed)" % (total, total / 1e6))
     print("output:     %s (%.1f MB)"
           % (args.output, args.output.stat().st_size / 1e6))
     print("sha256:     %s" % digest)
-    if EXPECTED_SUBSET_SHA256 not in ("PLACEHOLDER", digest):
+    print("tar_sha256: %s" % tar_digest)
+    if tar_digest != EXPECTED_SUBSET_TAR_SHA256:
         raise SystemExit(
-            "Built subset does not match EXPECTED_SUBSET_SHA256 (%s)"
-            % EXPECTED_SUBSET_SHA256)
+            "Built subset tar does not match EXPECTED_SUBSET_TAR_SHA256 (%s)"
+            % EXPECTED_SUBSET_TAR_SHA256)
 
 
 if __name__ == "__main__":
