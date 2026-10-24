@@ -165,6 +165,37 @@ runtime; [#599](https://github.com/openvax/mhctools/issues/599) tracks the unres
 cause. A passing run with fewer workers does not establish a runtime fix.
 Prediction failures remain test failures and are never retried or skipped.
 
+### Release ownership
+
+`deploy.sh` uses the temporary `release-lock` branch on `origin` to allow one
+deploy at a time across clones, worktrees and machines. Its unique owner commit
+records the release version, author and timestamp. The lock covers verification,
+build, upload and tagging. A competing deploy stops before running the gates.
+Immediately before upload, the script checks ownership and repeats the remote
+tag and PyPI checks. An existing release or failed lookup stops publication.
+
+Normal completion, errors and handled interrupts release only the caller's own
+lock. A killed process or lost network acknowledgement can leave a lock behind.
+Inspect it with:
+
+```sh
+git fetch --no-tags origin refs/heads/release-lock
+git show --no-patch FETCH_HEAD
+```
+
+After confirming that deployment has stopped, remove the inspected owner with
+a conditional push. A changed owner makes this command fail:
+
+```sh
+lock_commit=$(git rev-parse FETCH_HEAD)
+git push --no-follow-tags \
+    --force-with-lease="refs/heads/release-lock:$lock_commit" \
+    origin :refs/heads/release-lock
+```
+
+The lock coordinates callers of `deploy.sh` sharing the same `origin`; direct
+PyPI uploads do not participate. It is never automatically expired or stolen.
+
 ## CleaveNet source conformance
 
 Provision with `python scripts/setup_test_backends.py cleavenet --python python3.11`,
