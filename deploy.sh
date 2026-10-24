@@ -74,6 +74,25 @@ require_tooling() {
         die "python module 'twine' is unavailable; install the dev extra"
 }
 
+require_unpublished() {
+    git fetch --tags origin
+    if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+        die "tag $tag already exists"
+    fi
+    "$PYTHON" scripts/check_pypi_release.py mhctools "$release_version"
+}
+
+release_lock() {
+    local status=$?
+    trap - EXIT
+    if ! git push --no-follow-tags --force-with-lease="$lock_ref:$lock_commit" \
+            origin ":$lock_ref"; then
+        echo "deploy.sh: could not release lock $lock_commit; inspect $lock_ref on origin before recovery (docs/testing.md#release-ownership)" >&2
+        if [[ "$status" -eq 0 ]]; then status=1; fi
+    fi
+    exit "$status"
+}
+
 if [[ "$#" -gt 1 ]]; then
     usage
     exit 2
@@ -97,13 +116,24 @@ tag="v$release_version"
 
 # Stop on an existing tag, published release, or unverifiable PyPI lookup
 # before tooling checks, expensive gates, build, upload, or version mutation.
-git fetch --tags origin
-if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
-    die "tag $tag already exists"
-fi
-"$PYTHON" scripts/check_pypi_release.py mhctools "$release_version"
-
+require_unpublished
 require_tooling
+
+# A unique commit makes the remote ref an owner token, even when two deploys
+# start from the same HEAD. An empty lease permits creation only, never takeover.
+lock_ref="refs/heads/release-lock"
+lock_token="$("$PYTHON" -c 'import uuid; print(uuid.uuid4())')"
+lock_commit="$(git commit-tree 'HEAD^{tree}' -p HEAD \
+    -m "Deploy mhctools $release_version" -m "Owner: $lock_token")"
+if ! git push --no-follow-tags --force-with-lease="$lock_ref:" \
+        origin "$lock_commit:$lock_ref"; then
+    git ls-remote origin "$lock_ref" >&2 || true
+    die "cannot acquire release lock on origin; inspect $lock_ref (docs/testing.md#release-ownership)"
+fi
+trap release_lock EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+echo "deploy.sh: acquired release lock $lock_commit for $release_version"
 
 if [[ -n "$requested_version" ]]; then
     old_version="$(current_version)"
@@ -129,6 +159,13 @@ fi
 
 rm -rf dist
 "$PYTHON" -m build
+
+# Recheck after the long gates/build, including uploads outside this protocol.
+remote_lock="$(git ls-remote origin "$lock_ref")"
+if [[ "$remote_lock" != "$lock_commit"$'\t'"$lock_ref" ]]; then
+    die "release lock ownership changed; refusing to upload"
+fi
+require_unpublished
 "$PYTHON" -m twine upload dist/*
 
 git tag -a "$tag" -m "Release $tag"
