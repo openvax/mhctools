@@ -12,16 +12,13 @@
 
 """The hosted SMM subset must stay traceable to one upstream IEDB release.
 
-The subset builder and the fixture recorder each pin the official archive by
-SHA-256, and the builder also pins the digest of the subset it derives from
-it. The installer pins only that derived digest, which carries no upstream
-version of its own -- so the chain from "what CI installs" back to "which
-IEDB release" holds only if the installer's digest equals the one the builder
-declares. Assert that, or a rebuilt-and-reuploaded asset could change what CI
-installs while the recorded fixtures keep describing the old release.
+The source archive, normalized tar stream and exact hosted gzip artifact have
+separate checksums. Rebuilds must preserve the normalized tar stream across gzip
+encodings; installation must still reject changes to the hosted archive bytes.
 """
 
 import importlib.util
+import gzip
 import hashlib
 import io
 from pathlib import Path
@@ -32,6 +29,10 @@ import tarfile
 import pytest
 
 SCRIPTS = Path(__file__).resolve().parent.parent / "scripts"
+# Fixed digest of the normalized tar for source_files, independently checked
+# against its member payloads and metadata below.
+SOURCE_FILES_TAR_SHA256 = (
+    "1220dc57900fd4be42e64a8513cc0bae94bd11713a3f183ac8adcc02852b75e0")
 
 
 def _load(name):
@@ -63,16 +64,21 @@ def test_installer_pins_a_subset_checksum():
     assert re.fullmatch(r"[0-9a-f]{64}", installer.SMM_SUBSET_SHA256)
 
 
-def test_installer_digest_is_the_one_the_builder_produces():
-    """Ties the installed artifact to a build from the pinned IEDB release.
-
-    Without this, uploading a modified asset and updating only
-    SMM_SUBSET_SHA256 passes every other check here.
-    """
+def test_installer_digest_matches_the_hosted_artifact_pin():
     builder = _load("build_iedb_smm_subset")
     installer = _load("setup_test_backends")
 
     assert installer.SMM_SUBSET_SHA256 == builder.EXPECTED_SUBSET_SHA256
+
+
+@pytest.mark.requires_external_tool
+def test_hosted_archive_matches_the_pinned_tar_content():
+    archive = SCRIPTS.parent / "env/test-backends/IEDB_MHC_I-3.1.7-smm-subset.tar.gz"
+    if not archive.is_file():
+        pytest.skip("Provision the SMM artifact: python scripts/setup_test_backends.py smm")
+    builder = _load("build_iedb_smm_subset")
+    assert builder._digest(archive) == builder.EXPECTED_SUBSET_SHA256
+    assert builder._tar_digest(archive) == builder.EXPECTED_SUBSET_TAR_SHA256
 
 
 def test_subset_carries_the_upstream_licenses():
@@ -83,8 +89,7 @@ def test_subset_carries_the_upstream_licenses():
         assert notice in builder.INCLUDED_PREFIXES
 
 
-def test_installer_downloads_the_release_the_builder_produces():
-    """The installed artifact must be the one build_iedb_smm_subset writes."""
+def test_installer_downloads_the_pinned_subset_release():
     installer = _load("setup_test_backends")
 
     assert installer.SMM_SUBSET_URL.startswith(
@@ -143,8 +148,8 @@ def _build_subset(monkeypatch, archive, output, **pins):
     monkeypatch.setattr(builder, "ARCHIVE_SHA256", pins.get(
         "source", hashlib.sha256(archive.read_bytes()).hexdigest()))
     # Synthetic archives exercise the real builder without the 341 MB download.
-    monkeypatch.setattr(builder, "EXPECTED_SUBSET_SHA256",
-                        pins.get("subset", "PLACEHOLDER"))
+    monkeypatch.setattr(builder, "EXPECTED_SUBSET_TAR_SHA256",
+                        pins.get("subset", SOURCE_FILES_TAR_SHA256))
     monkeypatch.setattr(sys, "argv", [
         str(SCRIPTS / "build_iedb_smm_subset.py"),
         "--archive", str(archive), "--output", str(output)])
@@ -163,7 +168,7 @@ def test_builder_preserves_payload_and_normalizes_metadata(
     second = tmp_path / "second.tar.gz"
     _build_subset(monkeypatch, archive, first)
     _build_subset(monkeypatch, archive, second,
-                  subset=hashlib.sha256(first.read_bytes()).hexdigest())
+                  subset=hashlib.sha256(gzip.decompress(first.read_bytes())).hexdigest())
     assert first.read_bytes() == second.read_bytes()
     with tarfile.open(first) as subset:
         assert subset.getnames() == sorted(source_files)
@@ -212,11 +217,67 @@ def test_builder_rejects_wrong_source_checksum(tmp_path, monkeypatch, source_fil
     assert not output.exists()
 
 
-def test_builder_rejects_wrong_subset_checksum(tmp_path, monkeypatch, source_files):
+def test_builder_rejects_wrong_tar_checksum(tmp_path, monkeypatch, source_files):
     archive = tmp_path / "upstream.tar.gz"
     _write_archive(archive, source_files)
-    with pytest.raises(SystemExit, match="does not match EXPECTED_SUBSET_SHA256"):
+    with pytest.raises(SystemExit, match="does not match EXPECTED_SUBSET_TAR_SHA256"):
         _build_subset(monkeypatch, archive, tmp_path / "subset.tar.gz", subset="0" * 64)
+
+
+@pytest.mark.parametrize("encoding", [
+    {"compresslevel": 0},
+    {"compresslevel": 1},
+    {"filename": "another-name.tar", "mtime": 123456789},
+])
+def test_builder_accepts_different_gzip_encodings(
+        tmp_path, monkeypatch, source_files, capsys, encoding):
+    archive = tmp_path / "upstream.tar.gz"
+    _write_archive(archive, source_files)
+    first, second = tmp_path / "first.tar.gz", tmp_path / "second.tar.gz"
+    _build_subset(monkeypatch, archive, first)
+    original_gzip = gzip.GzipFile
+
+    def alternate_gzip(*args, **kwargs):
+        if kwargs.get("mode") == "wb":
+            kwargs.update(encoding)
+        return original_gzip(*args, **kwargs)
+
+    monkeypatch.setattr(gzip, "GzipFile", alternate_gzip)
+    _build_subset(monkeypatch, archive, second)
+    assert first.read_bytes() != second.read_bytes()
+    assert gzip.decompress(first.read_bytes()) == gzip.decompress(second.read_bytes())
+    assert capsys.readouterr().out.count("tar_sha256: " + SOURCE_FILES_TAR_SHA256) == 2
+
+
+@pytest.mark.parametrize("change", ["payload", "path"])
+def test_builder_rejects_changed_tar_content(
+        tmp_path, monkeypatch, source_files, change):
+    if change == "payload":
+        source_files["mhc_i/src/setupinfo.template"] += b"changed\n"
+    else:
+        source_files["mhc_i/src/renamed.template"] = source_files.pop(
+            "mhc_i/src/setupinfo.template")
+    archive = tmp_path / "upstream.tar.gz"
+    _write_archive(archive, source_files)
+    with pytest.raises(SystemExit, match="does not match EXPECTED_SUBSET_TAR_SHA256"):
+        _build_subset(monkeypatch, archive, tmp_path / "subset.tar.gz")
+
+
+def test_installer_rejects_reencoded_hosted_artifact(
+        tmp_path, monkeypatch, source_files):
+    archive = tmp_path / "upstream.tar.gz"
+    _write_archive(archive, source_files)
+    subset = tmp_path / "IEDB_MHC_I-3.1.7-smm-subset.tar.gz"
+    _build_subset(monkeypatch, archive, subset)
+    installer = _load("setup_test_backends")
+    monkeypatch.setattr(installer, "SMM_SUBSET_SHA256",
+                        hashlib.sha256(subset.read_bytes()).hexdigest())
+    payload = gzip.decompress(subset.read_bytes())
+    subset.write_bytes(gzip.compress(payload, compresslevel=0, mtime=0))
+    assert _load("build_iedb_smm_subset")._tar_digest(subset) == SOURCE_FILES_TAR_SHA256
+    with pytest.raises(SystemExit, match="Unexpected IEDB SMM subset checksum"):
+        installer.smm(tmp_path, sys.executable, {})
+    assert not (tmp_path / "iedb-3.1.7").exists()
 
 
 def test_installer_replaces_stale_tree_after_verifying_checksum(

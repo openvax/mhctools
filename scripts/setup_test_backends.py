@@ -220,7 +220,7 @@ def gfeller(root, python, config):
 # the Actions cache evicted, which blocked unrelated merges. The release
 # unpacks to 1031 MB, mostly bundled DTU executables SMM never runs, against
 # 9.4 MB it needs. scripts/build_iedb_smm_subset.py
-# derives this file reproducibly and documents exactly what it contains; the
+# audits the normalized tar contents independently of gzip encoding; the
 # upstream Non-Profit OSL 3.0 license ships inside it.
 SMM_SUBSET_URL = (
     "https://github.com/openvax/mhctools/releases/download/"

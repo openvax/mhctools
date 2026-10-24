@@ -293,7 +293,7 @@ jobs:
           - group: half-life
             tests: tests/test_peptiverse.py tests/test_peptiverse_cpp.py tests/test_peptiverse_cpp_benchmark.py tests/test_plifepred2.py
           - group: smm
-            tests: tests/test_smm.py tests/test_smm_integration.py
+            tests: tests/test_smm.py tests/test_smm_integration.py tests/test_smm_subset_provenance.py
           - group: gfeller
             tests: tests/test_mixmhcpred.py tests/test_mixmhcpred_runtime.py tests/test_mixmhcpred_runtime_integration.py tests/test_mixmhc2pred2.py tests/test_prime.py
           - group: keras
