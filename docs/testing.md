@@ -164,6 +164,9 @@ four-worker run intermittently crashed inside the emulated legacy NetMHCcons
 runtime; [#599](https://github.com/openvax/mhctools/issues/599) tracks the unresolved
 cause. A passing run with fewer workers does not establish a runtime fix.
 Prediction failures remain test failures and are never retried or skipped.
+The [parallel runtime investigation](dev/parallel-runtimes.md) records measured
+loads, the verified timeout-cleanup fix, and the remaining diagnostic gaps for
+both the QEMU crash and the native alignment timeout.
 
 ### Release ownership
 

@@ -96,19 +96,31 @@ class AsyncProcess(object):
         return self.process.poll()
 
     def _terminate(self, grace_seconds):
-        """Terminate the process, escalating to kill after a short grace."""
+        """Terminate owned processes, including children after the leader exits."""
         if self.terminate_process_group and os.name == "posix":
-            process_group = os.getpgid(self.process.pid)
-            os.killpg(process_group, signal.SIGTERM)
-        else:
-            self.process.terminate()
+            # start_new_session makes this PID the group ID. getpgid(pid) can
+            # fail after the leader exits while its children are still alive.
+            process_group = self.process.pid
+            deadline = time.monotonic() + grace_seconds
+            try:
+                os.killpg(process_group, signal.SIGTERM)
+                while True:
+                    self.process.poll()  # Reap the leader, but keep checking children.
+                    os.killpg(process_group, 0)
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0:
+                        os.killpg(process_group, signal.SIGKILL)
+                        break
+                    time.sleep(min(0.05, remaining))
+            except ProcessLookupError:
+                pass  # The entire group has already exited.
+            self.process.wait()
+            return
+        self.process.terminate()
         try:
             self.process.wait(timeout=grace_seconds)
         except TimeoutExpired:
-            if self.terminate_process_group and os.name == "posix":
-                os.killpg(process_group, signal.SIGKILL)
-            else:
-                self.process.kill()
+            self.process.kill()
             self.process.wait()
 
     def wait(self, timeout=None, terminate_grace_seconds=5):
