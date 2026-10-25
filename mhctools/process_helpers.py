@@ -104,22 +104,23 @@ class AsyncProcess(object):
             deadline = time.monotonic() + grace_seconds
 
             def signal_group(signum):
-                try:
-                    os.killpg(process_group, signum)
-                except PermissionError as error:
-                    # macOS rejects signaling a zombie-only group. Reap an
-                    # exited leader and retry; genuine permission errors stay
-                    # errors, including when remaining children are protected.
+                while True:
+                    self.process.poll()
                     try:
-                        self.process.wait(timeout=max(0, deadline - time.monotonic()))
-                    except TimeoutExpired:
-                        raise error from None
-                    os.killpg(process_group, signum)
+                        os.killpg(process_group, signum)
+                        return
+                    except PermissionError:
+                        # macOS rejects zombie-only groups. Give the leader
+                        # and other members time to be reaped, within the same
+                        # grace period. Persistent permission errors still raise.
+                        remaining = deadline - time.monotonic()
+                        if remaining <= 0:
+                            raise
+                        time.sleep(min(0.05, remaining))
 
             try:
                 signal_group(signal.SIGTERM)
                 while True:
-                    self.process.poll()  # Reap the leader, but keep checking children.
                     signal_group(0)
                     remaining = deadline - time.monotonic()
                     if remaining <= 0:

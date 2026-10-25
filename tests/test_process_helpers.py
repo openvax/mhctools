@@ -16,8 +16,9 @@ import errno
 import os
 import signal
 import sys
-from subprocess import TimeoutExpired
+from subprocess import Popen, TimeoutExpired
 import tempfile
+from threading import Event, Thread
 import time
 from unittest.mock import patch, MagicMock
 
@@ -94,6 +95,45 @@ def test_group_cleanup_reaps_an_already_exited_leader():
         assert proc.process.returncode == 0
     finally:
         proc.process.wait()
+
+
+@pytest.mark.skipif(os.name != "posix", reason="POSIX process-group behavior")
+def test_group_cleanup_waits_for_other_members_to_be_reaped(monkeypatch):
+    proc = AsyncProcess(
+        [sys.executable, "-c", "import time; time.sleep(30)"], terminate_process_group=True)
+    # Own a group in this session so the test can parent both members and
+    # control when its second, already-exited member gets reaped.
+    proc.process = Popen(proc.args, process_group=0)
+    member = Popen([sys.executable, "-c", "pass"], process_group=proc.process.pid)
+    checked = Event()
+    original = os.killpg
+
+    def signal_group(group, signum):
+        try:
+            return original(group, signum)
+        finally:
+            if signum == 0 and proc.process.returncode is not None:
+                checked.set()
+
+    def reap_member():
+        checked.wait(timeout=5)
+        time.sleep(0.05)
+        member.wait()
+
+    reaper = Thread(target=reap_member)
+    reaper.start()
+    try:
+        with monkeypatch.context() as patcher:
+            patcher.setattr(os, "killpg", signal_group)
+            proc._terminate(grace_seconds=1)
+        assert proc.process.returncode is not None
+    finally:
+        checked.set()
+        proc.process.kill()
+        member.kill()
+        proc.process.wait()
+        reaper.join(timeout=5)
+        assert not reaper.is_alive()
 
 
 @pytest.mark.skipif(os.name != "posix", reason="POSIX process-group behavior")

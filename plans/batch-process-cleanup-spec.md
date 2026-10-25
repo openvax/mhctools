@@ -20,7 +20,10 @@ knowledge out of the generic batch runner and exercise this path in CI.
 An immediate logging failure also exposed macOS EPERM when the group leader
 exits between polling and signaling. A 100-child probe and a deterministic
 already-exited-leader test reproduced it. Reap the exited leader before retrying
-the group operation, while preserving real permission errors.
+the group operation, while preserving real permission errors. The full run also
+exposed exited group members awaiting another parent's reaping after the leader
+was reaped: poll that state within the existing grace period instead of making
+only one retry. Add a controlled real-group regression for this case.
 
 Use the existing process helper rather than a new execution framework. Bump the
 patch version, run lint and the full required-backend suite, obtain green CI,
