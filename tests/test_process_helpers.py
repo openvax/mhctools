@@ -80,6 +80,44 @@ def test_timeout_stops_the_whole_process_group(
         proc.process.wait()
 
 
+@pytest.mark.skipif(os.name != "posix", reason="POSIX process-group behavior")
+def test_group_cleanup_reaps_an_already_exited_leader():
+    proc = AsyncProcess([sys.executable, "-c", "pass"], terminate_process_group=True)
+    proc.start()
+    try:
+        deadline = time.monotonic() + 5
+        # Deliberately leave the direct child unreaped, unlike Popen.poll().
+        while process_is_running(proc.process.pid):
+            assert time.monotonic() < deadline, "Child did not exit"
+            time.sleep(0.01)
+        proc._terminate(grace_seconds=0.1)
+        assert proc.process.returncode == 0
+    finally:
+        proc.process.wait()
+
+
+@pytest.mark.skipif(os.name != "posix", reason="POSIX process-group behavior")
+def test_group_cleanup_preserves_permission_errors_for_live_processes(monkeypatch):
+    proc = AsyncProcess(
+        [sys.executable, "-c", "import time; time.sleep(30)"], terminate_process_group=True)
+    proc.start()
+    denied = PermissionError("cannot signal live process")
+
+    def deny(*args):
+        raise denied
+
+    try:
+        with monkeypatch.context() as patcher:
+            patcher.setattr(os, "killpg", deny)
+            with pytest.raises(PermissionError) as error:
+                proc._terminate(grace_seconds=0.1)
+            assert error.value is denied
+            assert proc.poll() is None
+    finally:
+        os.killpg(proc.process.pid, signal.SIGKILL)
+        proc.process.wait()
+
+
 def test_start_retries_on_blocking_io_error():
     """Popen should be retried on BlockingIOError (EAGAIN)."""
     proc = AsyncProcess(["echo", "hello"])

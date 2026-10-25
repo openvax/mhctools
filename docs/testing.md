@@ -168,6 +168,23 @@ The [parallel runtime investigation](dev/parallel-runtimes.md) records measured
 loads, the verified timeout-cleanup fix, and the remaining diagnostic gaps for
 both the QEMU crash and the native alignment timeout.
 
+### Failed command batches
+
+Command batches create owned process groups by default. A failed command,
+startup or logging error, or `KeyboardInterrupt` cancels the active commands and
+reaps their direct children before the original error returns. Cleanup errors
+are attached to that error as notes; they do not prevent attempts to stop the
+other commands. Caller-owned output files remain open for failure diagnostics.
+While waiting for a batch, failures in later commands are observed without
+waiting for an earlier command to finish first.
+
+The legacy Docker test launcher separately owns its container. It creates a
+uniquely named container before starting it, then removes that exact container
+on completion or handled interruption. The cancellation regression checks a
+real container whose command ignores `SIGTERM`; stopping the host Docker client
+alone is insufficient. CI builds this runtime without licensed model assets and
+runs the cleanup checks with `--require-all`.
+
 ### Release ownership
 
 `deploy.sh` uses the temporary `release-lock` branch on `origin` to allow one

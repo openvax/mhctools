@@ -135,6 +135,12 @@ jobs:
           sudo mkdir -p /tools
           sudo ln -s "$NETMHC_BUNDLE_HOME" /tools/src
 
+      - name: Verify Docker launcher cleanup
+        run: |
+          docker build --platform linux/amd64 -t mhctools-test-netmhc-legacy:1 \
+            -f scripts/test-backends/Dockerfile.netmhc-legacy scripts/test-backends
+          python -m pytest tests/test_batch_docker_cleanup.py --require-all -q
+
       - name: Run full test suite
         env:
           NETMHC_BUNDLE_HOME: ${{ github.workspace }}/netmhc-bundle
