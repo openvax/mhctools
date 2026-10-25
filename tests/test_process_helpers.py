@@ -16,8 +16,9 @@ import errno
 import os
 import signal
 import sys
-from subprocess import TimeoutExpired
+from subprocess import Popen, TimeoutExpired
 import tempfile
+from threading import Event, Thread
 import time
 from unittest.mock import patch, MagicMock
 
@@ -77,6 +78,83 @@ def test_timeout_stops_the_whole_process_group(
             os.killpg(proc.process.pid, signal.SIGKILL)
         except ProcessLookupError:
             pass
+        proc.process.wait()
+
+
+@pytest.mark.skipif(os.name != "posix", reason="POSIX process-group behavior")
+def test_group_cleanup_reaps_an_already_exited_leader():
+    proc = AsyncProcess([sys.executable, "-c", "pass"], terminate_process_group=True)
+    proc.start()
+    try:
+        deadline = time.monotonic() + 5
+        # Deliberately leave the direct child unreaped, unlike Popen.poll().
+        while process_is_running(proc.process.pid):
+            assert time.monotonic() < deadline, "Child did not exit"
+            time.sleep(0.01)
+        proc._terminate(grace_seconds=0.1)
+        assert proc.process.returncode == 0
+    finally:
+        proc.process.wait()
+
+
+@pytest.mark.skipif(os.name != "posix", reason="POSIX process-group behavior")
+def test_group_cleanup_waits_for_other_members_to_be_reaped(monkeypatch):
+    proc = AsyncProcess(
+        [sys.executable, "-c", "import time; time.sleep(30)"], terminate_process_group=True)
+    # Own a group in this session so the test can parent both members and
+    # control when its second, already-exited member gets reaped.
+    proc.process = Popen(proc.args, process_group=0)
+    member = Popen([sys.executable, "-c", "pass"], process_group=proc.process.pid)
+    checked = Event()
+    original = os.killpg
+
+    def signal_group(group, signum):
+        try:
+            return original(group, signum)
+        finally:
+            if signum == 0 and proc.process.returncode is not None:
+                checked.set()
+
+    def reap_member():
+        checked.wait(timeout=5)
+        time.sleep(0.05)
+        member.wait()
+
+    reaper = Thread(target=reap_member)
+    reaper.start()
+    try:
+        with monkeypatch.context() as patcher:
+            patcher.setattr(os, "killpg", signal_group)
+            proc._terminate(grace_seconds=1)
+        assert proc.process.returncode is not None
+    finally:
+        checked.set()
+        proc.process.kill()
+        member.kill()
+        proc.process.wait()
+        reaper.join(timeout=5)
+        assert not reaper.is_alive()
+
+
+@pytest.mark.skipif(os.name != "posix", reason="POSIX process-group behavior")
+def test_group_cleanup_preserves_permission_errors_for_live_processes(monkeypatch):
+    proc = AsyncProcess(
+        [sys.executable, "-c", "import time; time.sleep(30)"], terminate_process_group=True)
+    proc.start()
+    denied = PermissionError("cannot signal live process")
+
+    def deny(*args):
+        raise denied
+
+    try:
+        with monkeypatch.context() as patcher:
+            patcher.setattr(os, "killpg", deny)
+            with pytest.raises(PermissionError) as error:
+                proc._terminate(grace_seconds=0.1)
+            assert error.value is denied
+            assert proc.poll() is None
+    finally:
+        os.killpg(proc.process.pid, signal.SIGKILL)
         proc.process.wait()
 
 

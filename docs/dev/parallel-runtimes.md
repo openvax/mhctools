@@ -23,8 +23,12 @@ create a different session and Docker containers owned by the daemon are outside
 this process-group guarantee.
 
 A separate deterministic failure leaves already-started sibling commands alive
-when a command batch raises. [#618](https://github.com/openvax/mhctools/issues/618)
-tracks that issue, including Docker cancellation; this change does not fix it.
+when a command batch raises. The subsequent 4.4.5 cleanup addresses
+[#618](https://github.com/openvax/mhctools/issues/618), including owned Docker
+containers; see [failed command batches](../testing.md#failed-command-batches).
+It also handles the exited-leader signaling race reported in
+[#620](https://github.com/openvax/mhctools/issues/620). Neither lifecycle fix
+establishes the cause of the historical QEMU crash or alignment timeout.
 
 ## Environment and measurements
 

@@ -102,14 +102,29 @@ class AsyncProcess(object):
             # fail after the leader exits while its children are still alive.
             process_group = self.process.pid
             deadline = time.monotonic() + grace_seconds
-            try:
-                os.killpg(process_group, signal.SIGTERM)
+
+            def signal_group(signum):
                 while True:
-                    self.process.poll()  # Reap the leader, but keep checking children.
-                    os.killpg(process_group, 0)
+                    self.process.poll()
+                    try:
+                        os.killpg(process_group, signum)
+                        return
+                    except PermissionError:
+                        # macOS rejects zombie-only groups. Give the leader
+                        # and other members time to be reaped, within the same
+                        # grace period. Persistent permission errors still raise.
+                        remaining = deadline - time.monotonic()
+                        if remaining <= 0:
+                            raise
+                        time.sleep(min(0.05, remaining))
+
+            try:
+                signal_group(signal.SIGTERM)
+                while True:
+                    signal_group(0)
                     remaining = deadline - time.monotonic()
                     if remaining <= 0:
-                        os.killpg(process_group, signal.SIGKILL)
+                        signal_group(signal.SIGKILL)
                         break
                     time.sleep(min(0.05, remaining))
             except ProcessLookupError:
@@ -259,6 +274,11 @@ def run_multiple_commands_redirect_stdout(
     Run multiple shell commands in parallel, write each of their
     stdout output to files associated with each command.
 
+    On failure or interruption, stop and reap every active command before
+    propagating the original error. Commands own their process groups by
+    default so POSIX cleanup also reaches descendants. Output files remain
+    owned by the caller.
+
     Parameters
     ----------
     multiple_args_dict : dict
@@ -283,6 +303,7 @@ def run_multiple_commands_redirect_stdout(
     if process_limit < 0:
         process_limit = cpu_count()
         logger.debug("Using %d processes", process_limit)
+    kwargs.setdefault("terminate_process_group", True)
 
     start_time = time.time()
     active = []
@@ -297,32 +318,42 @@ def run_multiple_commands_redirect_stdout(
                 still_running.append(p)
         active[:] = still_running
 
-    for f, args in multiple_args_dict.items():
-        # Wait until we're below the limit before starting a new process
-        while process_limit and len(active) >= process_limit:
+    try:
+        for f, args in multiple_args_dict.items():
+            # Wait until we're below the limit before starting a new process.
+            while process_limit and len(active) >= process_limit:
+                _reap_finished()
+                if len(active) >= process_limit:
+                    time.sleep(polling_freq)
+
+            p = AsyncProcess(args, redirect_stdout_file=f, **kwargs)
+            # Register before startup/logging so either failure cleans up all
+            # children, including the command that has just started.
+            active.append(p)
+            p.start()
+            if print_commands:
+                handler = logging.FileHandler(p.redirect_stdout_file.name)
+                handler.setLevel(logging.DEBUG)
+                logger.addHandler(handler)
+                try:
+                    logger.debug(" ".join(p.args))
+                finally:
+                    logger.removeHandler(handler)
+                    handler.close()
+
+        # Observe failures in any position without blocking on an earlier job.
+        while active:
             _reap_finished()
-            if len(active) >= process_limit:
+            if active:
                 time.sleep(polling_freq)
-
-        p = AsyncProcess(
-            args,
-            redirect_stdout_file=f,
-            **kwargs)
-        p.start()
-        if print_commands:
-            handler = logging.FileHandler(p.redirect_stdout_file.name)
-            handler.setLevel(logging.DEBUG)
-            logger.addHandler(handler)
-            try:
-                logger.debug(" ".join(p.args))
-            finally:
-                logger.removeHandler(handler)
-                handler.close()
-        active.append(p)
-
-    # Wait for remaining processes
-    for p in active:
-        p.wait()
+    except BaseException as error:
+        for p in active:
+            if p.process is not None:
+                try:
+                    p._terminate(grace_seconds=5)
+                except BaseException as cleanup_error:
+                    error.add_note("Cleanup failed for %s: %s" % (p.cmd, cleanup_error))
+        raise
 
     elapsed_time = time.time() - start_time
     logger.info(

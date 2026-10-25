@@ -3,8 +3,46 @@
 
 import os
 from pathlib import Path
+import signal
 import subprocess
 import sys
+from uuid import uuid4
+
+
+def run_container(arguments):
+    """Own the container independently of the attached Docker client."""
+    name = "mhctools-netmhc-" + uuid4().hex
+
+    def interrupted(signum, frame):
+        raise SystemExit(128 + signum)
+
+    previous = signal.signal(signal.SIGTERM, interrupted)
+    returncode = 1
+    try:
+        # Create before starting: interruption during creation cannot leave a
+        # running container whose identity the launcher has not recorded yet.
+        returncode = subprocess.run(
+            ["docker", "create", "--name", name] + arguments,
+            stdout=subprocess.DEVNULL).returncode
+        if returncode == 0:
+            returncode = subprocess.call(["docker", "start", "--attach", name])
+    finally:
+        signal.signal(signal.SIGTERM, signal.SIG_IGN)
+        try:
+            removed = subprocess.run(
+                ["docker", "rm", "--force", name], stdout=subprocess.DEVNULL,
+                # Finish within the batch runner's five-second signal grace.
+                stderr=subprocess.PIPE, text=True, timeout=3)
+            if removed.returncode and "No such container" not in removed.stderr:
+                print("Could not remove %s: %s" % (name, removed.stderr[-500:].strip()),
+                      file=sys.stderr)
+                returncode = returncode or 1
+        except (OSError, subprocess.TimeoutExpired) as error:
+            print("Could not remove %s: %s" % (name, error), file=sys.stderr)
+            returncode = returncode or 1
+        finally:
+            signal.signal(signal.SIGTERM, previous)
+    return returncode
 
 
 def main():
@@ -18,7 +56,7 @@ def main():
     if not (bundle / "bin" / backend).is_file():
         raise SystemExit("Missing bundle launcher: %s" % (bundle / "bin" / backend))
     command = [
-        "docker", "run", "--rm", "--pull", "never",
+        "--pull", "never",
         "--platform", "linux/amd64", "--network", "none", "--read-only",
         "--cap-drop", "ALL", "--security-opt", "no-new-privileges",
         "--tmpfs", "/tmp:rw,nosuid,size=256m",
@@ -43,7 +81,7 @@ def main():
         "/bin/sh", "-c", 'mkdir -p /tmp/netmhc; exec "$@"', "sh",
         "/netmhc-bundle/bin/%s" % backend,
     ))
-    return subprocess.call(command + arguments)
+    return run_container(command + arguments)
 
 
 if __name__ == "__main__":
