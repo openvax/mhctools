@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for process_helpers retry logic."""
+"""Process lifecycle, concurrency limits and runtime probes."""
 
 import errno
 import os
@@ -18,10 +18,12 @@ import signal
 import sys
 from subprocess import TimeoutExpired
 import tempfile
+import time
 from unittest.mock import patch, MagicMock
 
 import pytest
 
+from .common import process_is_running
 from mhctools.process_helpers import (
     AsyncProcess,
     legacy_keras_runtime_available,
@@ -31,37 +33,51 @@ from mhctools.process_helpers import (
 
 
 @pytest.mark.skipif(os.name != "posix", reason="POSIX process-group behavior")
-def test_timeout_terminates_process_group():
-    proc = AsyncProcess(["slow-command"], terminate_process_group=True)
-    proc.process = MagicMock(pid=123)
-    proc.process.wait.side_effect = [
-        TimeoutExpired("slow-command", 1),
-        0,
-    ]
-    with patch("mhctools.process_helpers.os.getpgid", return_value=456), \
-         patch("mhctools.process_helpers.os.killpg") as killpg:
+@pytest.mark.parametrize("parent_ignores_term,child_ignores_term", [
+    (False, False), (False, True), (True, True),
+])
+def test_timeout_stops_the_whole_process_group(
+        tmp_path, parent_ignores_term, child_ignores_term):
+    child = tmp_path / "child.py"
+    child.write_text(
+        "import os, signal, sys, time\nfrom pathlib import Path\n"
+        "signal.signal(signal.SIGTERM, signal.SIG_IGN if sys.argv[2] == '1' "
+        "else signal.SIG_DFL)\n"
+        "Path(sys.argv[1]).write_text(str(os.getpid()))\ntime.sleep(60)\n")
+    parent = tmp_path / "parent.py"
+    parent.write_text(
+        "import signal, subprocess, sys, time\n"
+        "signal.signal(signal.SIGTERM, signal.SIG_IGN if sys.argv[4] == '1' "
+        "else signal.SIG_DFL)\n"
+        "subprocess.Popen([sys.executable, sys.argv[1], sys.argv[2], sys.argv[3]])\n"
+        "time.sleep(60)\n")
+    ready = tmp_path / "child.pid"
+    proc = AsyncProcess(
+        [sys.executable, str(parent), str(child), str(ready),
+         str(int(child_ignores_term)), str(int(parent_ignores_term))],
+        terminate_process_group=True)
+    proc.start()
+    try:
+        deadline = time.monotonic() + 5
+        while not ready.exists():
+            assert proc.poll() is None
+            assert time.monotonic() < deadline, "Child did not become ready"
+            time.sleep(0.01)
+        child_pid = int(ready.read_text())
         with pytest.raises(TimeoutExpired):
-            proc.wait(timeout=1, terminate_grace_seconds=0.1)
-    killpg.assert_called_once_with(456, signal.SIGTERM)
-
-
-@pytest.mark.skipif(os.name != "posix", reason="POSIX process-group behavior")
-def test_timeout_kills_process_group_after_grace_period():
-    proc = AsyncProcess(["stubborn-command"], terminate_process_group=True)
-    proc.process = MagicMock(pid=123)
-    proc.process.wait.side_effect = [
-        TimeoutExpired("stubborn-command", 1),
-        TimeoutExpired("stubborn-command", 0.1),
-        0,
-    ]
-    with patch("mhctools.process_helpers.os.getpgid", return_value=456), \
-         patch("mhctools.process_helpers.os.killpg") as killpg:
-        with pytest.raises(TimeoutExpired):
-            proc.wait(timeout=1, terminate_grace_seconds=0.1)
-    assert killpg.call_args_list == [
-        ((456, signal.SIGTERM),),
-        ((456, signal.SIGKILL),),
-    ]
+            proc.wait(timeout=0.05, terminate_grace_seconds=0.1)
+        assert proc.process.returncode is not None
+        deadline = time.monotonic() + 2
+        while process_is_running(child_pid) and time.monotonic() < deadline:
+            time.sleep(0.01)
+        assert not process_is_running(child_pid), "Timeout left a running child"
+    finally:
+        # A failing regression must not leak its own sleeping child.
+        try:
+            os.killpg(proc.process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        proc.process.wait()
 
 
 def test_start_retries_on_blocking_io_error():

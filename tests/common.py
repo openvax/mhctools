@@ -11,10 +11,21 @@
 # limitations under the License.
 
 from functools import wraps
+import subprocess
 
 import pytest
 
 from mhctools.optional_backend import probe_executable
+
+
+def process_is_running(pid):
+    """Whether an owned POSIX test child is executing, rather than a zombie."""
+    result = subprocess.run(
+        ["ps", "-p", str(pid), "-o", "stat="], capture_output=True, text=True)
+    assert not result.stderr, result.stderr
+    assert result.returncode in (0, 1), result
+    state = result.stdout.strip()
+    return bool(state) and not state.startswith("Z")
 
 
 def require_executable(program, args=("--help",)):

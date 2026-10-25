@@ -3,8 +3,11 @@
 import os
 from pathlib import Path
 import shutil
+import signal
 import subprocess
 import sys
+from tempfile import TemporaryFile
+import time
 
 import pandas as pd
 import pytest
@@ -16,9 +19,10 @@ from mhctools.mixmhcpred import (
     resolve_mixmhcpred_path,
 )
 from mhctools.prime import parse_prime_results
+from mhctools.process_helpers import run_command
+from .common import process_is_running
 
 
-pytestmark = pytest.mark.requires_external_tool
 PEPTIDES = ["SIINFEKL", "MLDDFSAGA", "SIINFEKL"]
 ALLELES = ["HLA-A*02:01", "HLA-A*01:02"]
 
@@ -49,9 +53,62 @@ def native_runtime():
     assert changed == []
 
 
-def _native(args, environment):
-    completed = subprocess.run(args, env=environment, capture_output=True, text=True, timeout=180)
-    assert completed.returncode == 0, completed.stdout + completed.stderr
+def _native(args, environment, timeout=180):
+    started = time.monotonic()
+    with TemporaryFile() as output:
+        try:
+            run_command(
+                args, env=environment, timeout=timeout,
+                terminate_process_group=True,
+                redirect_stdout_file=output, redirect_stderr_to_stdout=True)
+        except (subprocess.TimeoutExpired, subprocess.CalledProcessError) as error:
+            output.seek(0, os.SEEK_END)
+            output.seek(max(0, output.tell() - 2000))
+            tail = output.read().decode("utf-8", errors="replace").strip()
+            reason = (f"timed out (limit {timeout:g}s)"
+                      if isinstance(error, subprocess.TimeoutExpired)
+                      else f"exited with status {error.returncode}")
+            pytest.fail(
+                f"{args[0]} {reason} after {time.monotonic() - started:.2f}s.\n"
+                f"Output tail:\n{tail or '(empty output)'}", pytrace=False)
+
+
+def test_native_reference_failure_reports_bounded_output():
+    command = [sys.executable, "-c",
+               "import sys; print('discarded-prefix' + 'x' * 5000, flush=True); "
+               "print('stdout marker', flush=True); "
+               "print('stderr marker', file=sys.stderr, flush=True); sys.exit(7)"]
+    with pytest.raises(pytest.fail.Exception) as error:
+        _native(command, dict(os.environ))
+    message = str(error.value)
+    assert "exited with status 7" in message
+    assert "stdout marker" in message and "stderr marker" in message
+    assert "discarded-prefix" not in message
+    assert len(message) < 2400
+
+
+@pytest.mark.skipif(os.name != "posix", reason="POSIX process-group behavior")
+def test_native_reference_timeout_stops_children(tmp_path):
+    child = tmp_path / "child.py"
+    child.write_text(
+        "import os, sys, time\nfrom pathlib import Path\n"
+        "print('reference child active', flush=True)\n"
+        "Path(sys.argv[1]).write_text(str(os.getpid()))\ntime.sleep(60)\n")
+    parent = tmp_path / "parent.py"
+    parent.write_text(
+        "import subprocess, sys\n"
+        "subprocess.run([sys.executable, sys.argv[1], sys.argv[2]])\n")
+    ready = tmp_path / "child.pid"
+    try:
+        with pytest.raises(pytest.fail.Exception, match="timed out \\(limit 3s\\)") as error:
+            _native([sys.executable, str(parent), str(child), str(ready)],
+                    dict(os.environ), timeout=3)
+        assert ready.is_file(), "Reference child did not start before the timeout"
+        assert "reference child active" in str(error.value)
+        assert not process_is_running(int(ready.read_text()))
+    finally:
+        if ready.exists() and process_is_running(int(ready.read_text())):
+            os.kill(int(ready.read_text()), signal.SIGKILL)
 
 
 def _input(tmp_path):
@@ -60,6 +117,7 @@ def _input(tmp_path):
     return str(path)
 
 
+@pytest.mark.requires_external_tool
 def test_isolated_multi_allele_rows_motifs_and_cli_match_native(native_runtime, tmp_path, monkeypatch):
     executable, selected, environment = native_runtime
     peptide_file = _input(tmp_path)
@@ -101,6 +159,7 @@ def test_isolated_multi_allele_rows_motifs_and_cli_match_native(native_runtime, 
         pred.percentile_rank for row in expected.predictions for pred in row.preds], abs=5e-5)
 
 
+@pytest.mark.requires_external_tool
 def test_isolated_sequence_alignment_prediction_and_artifacts_match_native(native_runtime, tmp_path):
     executable, selected, environment = native_runtime
     assert shutil.which("mafft"), "provision MAFFT for the sequence regression"
@@ -127,6 +186,7 @@ def test_isolated_sequence_alignment_prediction_and_artifacts_match_native(nativ
     assert alignment_only.runtime_info["backend"]["python_executable"] == selected
 
 
+@pytest.mark.requires_external_tool
 def test_prime_nested_isolated_runtime_matches_native(native_runtime, tmp_path, monkeypatch):
     executable, selected, environment = native_runtime
     prime = os.environ.get("PRIME_EXECUTABLE")

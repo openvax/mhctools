@@ -125,5 +125,6 @@ nav:
           - Protease candidates: cleavage/candidates.md
   - Development:
       - Testing: testing.md
+      - Parallel runtime investigation: dev/parallel-runtimes.md
       - Documentation style: dev/documentation-style.md
       - Maintaining the SMM subset: dev/smm-subset.md
