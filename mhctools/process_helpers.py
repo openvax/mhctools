@@ -164,6 +164,18 @@ else:
     import tf_keras  # noqa: F401  -- the Keras 2 shim that modern TF needs
 """
 
+def legacy_keras_environment():
+    """Copy the host environment with overridable Keras 2 and quiet TF defaults.
+
+    Used by both runtime probes and predictor subprocesses so they load the
+    same Keras API without modifying the host process environment.
+    """
+    env = dict(os.environ)
+    env.setdefault("TF_USE_LEGACY_KERAS", "1")
+    env.setdefault("TF_CPP_MIN_LOG_LEVEL", "3")
+    return env
+
+
 def legacy_keras_runtime_available(python_executable, timeout=120):
     """
     Whether `python_executable` can load Keras 2 era models.
@@ -194,11 +206,9 @@ def legacy_keras_runtime_available(python_executable, timeout=120):
     -------
     bool
     """
-    env = dict(os.environ)
-    env.setdefault("TF_USE_LEGACY_KERAS", "1")
-    env.setdefault("TF_CPP_MIN_LOG_LEVEL", "3")
     return _probe_interpreter(
-        python_executable, _LEGACY_KERAS_PROBE, timeout=timeout, env=env)
+        python_executable, _LEGACY_KERAS_PROBE, timeout=timeout,
+        env=legacy_keras_environment())
 
 def python_imports_available(
         python_executable, module_names, timeout=120, env=None):

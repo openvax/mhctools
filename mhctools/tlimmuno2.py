@@ -54,7 +54,9 @@ import pandas as pd
 
 from .cleanup_context import CleanupFiles
 from .pred import Kind, PeptideResult, Prediction
-from .process_helpers import legacy_keras_runtime_available, run_command
+from .process_helpers import (
+    legacy_keras_environment, legacy_keras_runtime_available, run_command,
+)
 from .wrapper_base import NewModelPredictorMixin
 
 logger = logging.getLogger(__name__)
@@ -137,14 +139,6 @@ def _tlimmuno2_allele(allele, valid_alleles):
         "TLimmuno2 does not recognize allele %r. Pass a NetMHCIIpan-style name "
         "present in Python/data/pseudosequence.2016.all.X.dat, e.g. "
         "'DRB1_0803' or 'HLA-DPA10103-DPB10101'." % allele)
-
-
-def _subprocess_env():
-    """Environment for the TLimmuno2 subprocess (legacy-Keras + quiet TF)."""
-    env = dict(os.environ)
-    env.setdefault("TF_USE_LEGACY_KERAS", "1")
-    env.setdefault("TF_CPP_MIN_LOG_LEVEL", "3")
-    return env
 
 
 def _resolve_python(tlimmuno2_python=None):
@@ -299,7 +293,7 @@ class TLimmuno2(NewModelPredictorMixin):
                 args,
                 suppress_stderr=False,
                 cwd=self.tlimmuno2_home,
-                env=_subprocess_env())
+                env=legacy_keras_environment())
             if not exists(output_file_path):
                 raise ValueError(
                     "TLimmuno2 produced no output file %r" % output_file_path)

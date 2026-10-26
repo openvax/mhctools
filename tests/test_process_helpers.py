@@ -27,6 +27,7 @@ import pytest
 from .common import process_is_running
 from mhctools.process_helpers import (
     AsyncProcess,
+    legacy_keras_environment,
     legacy_keras_runtime_available,
     python_imports_available,
     run_multiple_commands_redirect_stdout,
@@ -362,6 +363,18 @@ def test_legacy_keras_runtime_preserves_explicit_environment(monkeypatch):
     env = run.call_args.kwargs["env"]
     assert env["TF_USE_LEGACY_KERAS"] == "0"
     assert env["TF_CPP_MIN_LOG_LEVEL"] == "1"
+
+
+def test_legacy_keras_environment_does_not_modify_host_or_other_calls(monkeypatch):
+    monkeypatch.delenv("TF_USE_LEGACY_KERAS", raising=False)
+    monkeypatch.delenv("TF_CPP_MIN_LOG_LEVEL", raising=False)
+    monkeypatch.setenv("MHCTOOLS_TEST_ENVIRONMENT", "preserved")
+    environment = legacy_keras_environment()
+    assert environment["MHCTOOLS_TEST_ENVIRONMENT"] == "preserved"
+    assert "TF_USE_LEGACY_KERAS" not in os.environ
+    assert "TF_CPP_MIN_LOG_LEVEL" not in os.environ
+    environment["TF_USE_LEGACY_KERAS"] = "0"
+    assert legacy_keras_environment()["TF_USE_LEGACY_KERAS"] == "1"
 
 
 def test_python_imports_available_stdlib():
