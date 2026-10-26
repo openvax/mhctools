@@ -271,7 +271,25 @@ class BasePredictor(object):
             return pd.DataFrame(columns=COLUMNS)
         return pd.concat(dfs, ignore_index=True)
 
-    def _predict_protein_flank_lengths(self):
+    def protein_flank_lengths(self):
+        """Return the configured N- and C-terminal protein-scan window limits.
+
+        Returns
+        -------
+        tuple of int
+            Maximum upstream and downstream residues passed to each peptide
+            prediction by :meth:`predict_proteins`. A protein boundary can
+            shorten the observed strings; their lengths do not redefine these
+            limits. Zero means the corresponding side supplies no residues.
+            Predictors that do not use flanks return ``(0, 0)``.
+
+        Notes
+        -----
+        This is the same resolver used by native protein scanning. Subclasses
+        whose loaded models determine the limits should override this method.
+        It describes protein-window generation, not a limit on explicit flank
+        strings supplied to :meth:`predict_dataframe`.
+        """
         if not self.uses_flanking_sequences:
             return (0, 0)
         n_flank_length = (
@@ -325,7 +343,7 @@ class BasePredictor(object):
 
         peptide_lengths = self._check_peptide_lengths(peptide_lengths)
 
-        n_flank_length, c_flank_length = self._predict_protein_flank_lengths()
+        n_flank_length, c_flank_length = self.protein_flank_lengths()
         contexts = _peptide_contexts(
             sequence_dict,
             peptide_lengths,
