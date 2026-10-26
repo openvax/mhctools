@@ -49,24 +49,18 @@ constraints. Read each model's guide for its output and validation limits.
 
 ## Start here
 
-- [Getting started](getting-started.md): install the library and make your first prediction.
-- [User guide](predictors/index.md): supported predictors, inputs, and examples.
-- [Recipes](recipes.md): scan proteins, run multiple samples, and annotate tables.
-- [API reference](api.md): Python classes and functions.
-- [Research and evidence](research/index.md): primary studies, measurements, validation audits and open calibration questions.
-
-## Choose and evaluate models
-
-- [Choosing a predictor](choosing.md): biological questions, inputs, and practical constraints.
-- [Getting models](artifacts.md): install or download the required tools and weights.
-- [Known limits](limitations.md) and [benchmarks](benchmarks.md): interpret model coverage and evaluation evidence.
-- [Licensing](licensing.md): the mhctools license and separate upstream terms.
-
+Use the [recipes](recipes.md) for protein scans, multiple samples and table
+annotation, or the [API reference](api.md) for class and function details.
 For installation help, see [troubleshooting](troubleshooting.md).
 
-## Processing and vaccine analysis
+<a id="choose-and-evaluate-models"></a>
 
-The [antigen-processing guide](predictors/processing.md) covers proteasomes,
-peptidases, transport, and trimming, with [model recommendations](cleavage/choosing.md)
-and [batch assessments](cleavage/batch.md). Related workflows include
-[vaccine reports](vaccine-reports.md) and [assay-aware benchmarks](benchmarks.md).
+Read [known limits](limitations.md) and [benchmarks](benchmarks.md) when
+interpreting predictions. [Research and evidence](research/index.md) traces
+primary studies, validation audits and open calibration questions.
+
+<a id="processing-and-vaccine-analysis"></a>
+
+For processing workflows, start with the
+[antigen-processing guide](predictors/processing.md), then use
+[batch assessments](cleavage/batch.md) or [vaccine reports](vaccine-reports.md).

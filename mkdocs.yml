@@ -69,27 +69,31 @@ nav:
       - Troubleshooting: troubleshooting.md
   - User guide:
       - Supported predictors: predictors/index.md
-      - MHC binding and presentation: predictors/binding.md
+      - Prediction tasks:
+          - MHC binding and presentation: predictors/binding.md
+          - Immunogenicity: predictors/immunogenicity.md
+          - Foreignness: predictors/foreignness.md
+          - TCR specificity: predictors/tcr.md
+          - Peptide half-life: predictors/peptide-pk.md
+          - Cell penetration classification: predictors/uptake.md
       - Antigen processing:
           - Overview and predictors: predictors/processing.md
           - Choosing processing models: cleavage/choosing.md
           - Peptidase activity: cleavage/index.md
           - Enzyme-centered predictions: cleavage/enzyme-predictor.md
-          - Peptidase models: cleavage/models.md
-          - CleaveNet MMP substrates: cleavage/cleavenet.md
-          - ITCell cathepsin profiles: cleavage/itcell.md
           - Reading the evidence: cleavage/evidence.md
           - Batch assessments: cleavage/batch.md
-          - PhageScout sequence profiles: cleavage/phagescout.md
-      - Immunogenicity: predictors/immunogenicity.md
-      - Foreignness: predictors/foreignness.md
-      - TCR specificity: predictors/tcr.md
-      - Peptide half-life: predictors/peptide-pk.md
-      - Cell penetration classification: predictors/uptake.md
-      - Results and DataFrames: results.md
-      - Recipes: recipes.md
-      - Allele names: alleles.md
-      - Command line: cli.md
+          - Model reference:
+              - Peptidase models: cleavage/models.md
+              - CleaveNet MMP substrates: cleavage/cleavenet.md
+              - ITCell cathepsin profiles: cleavage/itcell.md
+              - PhageScout sequence profiles: cleavage/phagescout.md
+      - Working with predictions:
+          - Results and DataFrames: results.md
+          - Recipes: recipes.md
+          - Allele names: alleles.md
+          - Command line: cli.md
+          - Benchmarks: benchmarks.md
       - Vaccine and exposure modeling:
           - Target-preserving degradation: target-degradation.md
           - Serum peptidase contributions: serum-contributions.md
@@ -99,7 +103,6 @@ nav:
           - Core delivery and blood exposure: vaccine-core-exposure.md
           - Candidate window exposure: vaccine-windows.md
           - Vaccine reports: vaccine-reports.md
-      - Benchmarks: benchmarks.md
   - Reference:
       - API reference: api.md
       - Predictor matrix: predictor-matrix.md

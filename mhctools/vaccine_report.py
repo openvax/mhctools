@@ -26,7 +26,6 @@ TRACK_CONTEXTS = (
     "tumor_stroma",
     "circulation",
 )
-ROUTE_RELEVANCE = ("primary", "conditional", "not_applicable")
 
 
 @dataclass(frozen=True)

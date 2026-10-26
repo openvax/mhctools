@@ -51,7 +51,9 @@ from .allele_normalization import normalize_allele_name
 from .cleanup_context import CleanupFiles
 from .optional_backend import common_checkout_paths
 from .pred import Kind, PeptideResult, Prediction
-from .process_helpers import legacy_keras_runtime_available, run_command
+from .process_helpers import (
+    legacy_keras_environment, legacy_keras_runtime_available, run_command,
+)
 from .wrapper_base import NewModelPredictorMixin
 
 # DeepImmuno's peptide encoder only handles 9- and 10-mers: a 9mer is padded to
@@ -97,20 +99,6 @@ def _deepimmuno_allele(allele):
     (``rescue_unknown_hla``), so only the punctuation has to match.
     """
     return normalize_allele_name(allele).replace(":", "")
-
-
-def _subprocess_env():
-    """Environment for the DeepImmuno subprocess.
-
-    ``TF_USE_LEGACY_KERAS=1`` routes ``tensorflow.keras`` to the ``tf-keras``
-    (Keras 2) shim on TensorFlow >= 2.16 so the committed checkpoint loads; it
-    is ignored by older TensorFlow. ``TF_CPP_MIN_LOG_LEVEL=3`` quiets TF's C++
-    logging. Both only take effect if not already set by the caller.
-    """
-    env = dict(os.environ)
-    env.setdefault("TF_USE_LEGACY_KERAS", "1")
-    env.setdefault("TF_CPP_MIN_LOG_LEVEL", "3")
-    return env
 
 
 def _resolve_python(deepimmuno_python=None):
@@ -235,7 +223,7 @@ class DeepImmuno(NewModelPredictorMixin):
                 args,
                 suppress_stderr=False,
                 cwd=self.deepimmuno_home,
-                env=_subprocess_env())
+                env=legacy_keras_environment())
             if not exists(output_file_path):
                 raise ValueError(
                     "DeepImmuno produced no output file %r" % output_file_path)
