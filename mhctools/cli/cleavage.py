@@ -8,6 +8,7 @@ from mhctools.peptide_input import PeptideInput
 from mhctools.peptidases import cleavage_models, predict_cleavage
 
 from .errors import CLI_ERROR_TYPES, cli_error_message
+from .formatting import format_table
 
 
 def _format_models(models):
@@ -23,16 +24,7 @@ def _format_models(models):
         )
         for model in models
     ]
-    widths = [
-        max(len(headers[i]), *(len(row[i]) for row in rows))
-        for i in range(len(headers))
-    ]
-    lines = [
-        "  ".join(value.ljust(widths[i]) for i, value in enumerate(headers))]
-    lines.extend(
-        "  ".join(value.ljust(widths[i]) for i, value in enumerate(row))
-        for row in rows)
-    return "\n".join(lines)
+    return format_table(headers, rows)
 
 
 def _compact_report(predictions):

@@ -9,6 +9,7 @@ from argparse import ArgumentParser
 import json
 
 from ..integrations import CAPABILITY_LEVELS, list_integrations
+from .formatting import format_table
 
 
 def _display(value):
@@ -30,13 +31,7 @@ def _print_table(statuses):
         )
         for status in statuses
     ]
-    widths = [
-        max(len(headers[i]), *(len(row[i]) for row in rows))
-        for i in range(len(headers))
-    ]
-    print("  ".join(value.ljust(widths[i]) for i, value in enumerate(headers)))
-    for row in rows:
-        print("  ".join(value.ljust(widths[i]) for i, value in enumerate(row)))
+    print(format_table(headers, rows))
     notes = [status for status in statuses if status.detail]
     if notes:
         print()
@@ -84,8 +79,3 @@ def predictors_main(args_list=None, command_name="predictors"):
     if args.strict and not all(status.meets(args.check) for status in statuses):
         return 1
     return 0
-
-
-def integrations_main(args_list=None):
-    """Run the backward-compatible ``mhctools integrations`` alias."""
-    return predictors_main(args_list, command_name="integrations")

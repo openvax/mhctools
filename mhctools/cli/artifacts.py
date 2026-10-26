@@ -20,6 +20,7 @@ import string
 
 from ..artifacts import fetch, list_artifacts
 from .errors import CLI_ERROR_TYPES, cli_error_message
+from .formatting import format_table
 
 
 def _print_table(statuses):
@@ -34,13 +35,7 @@ def _print_table(statuses):
         )
         for status in statuses
     ]
-    widths = [
-        max(len(headers[i]), *(len(row[i]) for row in rows))
-        for i in range(len(headers))
-    ]
-    print("  ".join(value.ljust(widths[i]) for i, value in enumerate(headers)).rstrip())
-    for row in rows:
-        print("  ".join(value.ljust(widths[i]) for i, value in enumerate(row)).rstrip())
+    print(format_table(headers, rows))
     installed = [status for status in statuses
                  if status.status == "ready" and status.path]
     if installed:

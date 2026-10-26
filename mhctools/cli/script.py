@@ -13,13 +13,13 @@
 # limitations under the License.
 
 from argparse import RawDescriptionHelpFormatter
-from collections import namedtuple
 import csv
 from importlib import import_module
 from io import StringIO
 import math
 import os
 import sys
+from typing import NamedTuple
 
 from pyensembl.fasta import parse_fasta_dictionary
 
@@ -31,21 +31,22 @@ from .args import (
 from .errors import CLI_ERROR_TYPES, cli_error_message
 
 
-class Subcommand(namedtuple(
-        "Subcommand", ["name", "help", "module", "entry_point", "aliases"])):
+class Subcommand(NamedTuple):
     """One `mhctools <command>` entry.
 
     The module is imported on dispatch, not at startup: several subcommands
     pull heavy optional runtimes that a plain prediction run must not pay for.
     """
 
+    name: str
+    help: str
+    module: str
+    entry_point: str
+    aliases: tuple[str, ...] = ()
+
     def load(self):
         module = import_module(self.module, package=__package__)
         return getattr(module, self.entry_point)
-
-
-def _subcommand(name, help, module, entry_point, aliases=()):
-    return Subcommand(name, help, module, entry_point, aliases)
 
 
 # The single source of truth for `mhctools <command>`: dispatch reads it and
@@ -60,48 +61,48 @@ def _subcommand(name, help, module, entry_point, aliases=()):
 # arguments: --all" unless every subcommand exposed its parser for
 # registration here.
 SUBCOMMANDS = (
-    _subcommand(
+    Subcommand(
         "ls", "List model weights and other predictor artifacts",
         ".artifacts", "ls_main"),
-    _subcommand(
+    Subcommand(
         "fetch", "Fetch artifacts required by a predictor wrapper",
         ".artifacts", "fetch_main"),
-    _subcommand(
+    Subcommand(
         "predictors",
         "Report artifact location, launchability and reference reproduction",
         ".integrations", "predictors_main", aliases=("integrations",)),
-    _subcommand(
+    Subcommand(
         "predict-table",
         "Annotate a CSV of peptides (and optional alleles) with score columns",
         ".annotate_table", "main"),
-    _subcommand(
+    Subcommand(
         "benchmark",
         "Evaluate supplied measurements and predictions; writes a JSON report",
         ".benchmark", "main"),
-    _subcommand(
+    Subcommand(
         "cleavage",
         "Report peptidase motif evidence and native model scores per bond",
         ".cleavage", "main"),
-    _subcommand(
+    Subcommand(
         "cleavenet", "Score whole substrates or ten-residue windows for 18 MMPs",
         ".cleavenet", "main"),
-    _subcommand(
+    Subcommand(
         "mixtcrpred",
         "Score a paired alpha/beta TCR table with one MixTCRpred model",
         ".mixtcrpred", "main"),
-    _subcommand(
+    Subcommand(
         "vaccine-report",
         "Generate a route-aware peptide cleavage and MHC-window report",
         ".vaccine_report", "main"),
-    _subcommand(
+    Subcommand(
         "vaccine-trajectory",
         "Follow explicit SLP/mRNA rate scenarios through APC pMHC loading",
         ".vaccine_trajectory", "main"),
-    _subcommand(
+    Subcommand(
         "vaccine-windows",
         "Assess dose-normalized core delivery for candidate vaccine windows",
         ".vaccine_windows", "main"),
-    _subcommand(
+    Subcommand(
         "vaccine-compare",
         "Compare matched vaccine trajectory results with explicit dose bases",
         ".vaccine_compare", "main"),
