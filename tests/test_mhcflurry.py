@@ -92,7 +92,7 @@ def test_mhcflurry_predict_proteins_matches_direct_flanked_prediction():
     peptide = "SIINFEKL"
     protein = "MDSKG%sGSRLL" % peptide
     offset = protein.index(peptide)
-    n_flank_length, c_flank_length = predictor._predict_protein_flank_lengths()
+    n_flank_length, c_flank_length = predictor.protein_flank_lengths()
     n_flank = protein[max(0, offset - n_flank_length):offset]
     c_flank = protein[offset + len(peptide):
                       offset + len(peptide) + c_flank_length]

@@ -164,3 +164,15 @@ and [batch assessment](https://github.com/openvax/mhctools/blob/master/mhctools/
 ::: mhctools.cleavenet.CleaveNetResult
 
 ::: mhctools.cleavenet.CleaveNetScore
+
+### Protein-scan flank windows
+
+`BasePredictor.protein_flank_lengths()` returns the maximum upstream and
+downstream context lengths used by `predict_proteins` and
+`predict_proteins_dataframe`. MHCflurry resolves them from the loaded processing
+model. Protein ends can shorten the emitted strings; consumers must retain the
+configured limits instead of inferring them from those strings. Zero means
+that side supplies no residues. Explicit `predict_dataframe` flank strings are
+separate inputs and are not defined by the scan-window limits. Custom scanner
+subclasses should override this public method instead of the former private
+`_predict_protein_flank_lengths` hook.

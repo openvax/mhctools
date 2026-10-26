@@ -367,7 +367,17 @@ class MHCflurry(BasePredictor):
                     len(self.alleles)))
         return presentation_allele_mode
 
-    def _predict_protein_flank_lengths(self):
+    def protein_flank_lengths(self):
+        """Return the loaded processing model's protein-scan window limits.
+
+        Returns
+        -------
+        tuple of int
+            N- and C-terminal limits read from the processing model's declared
+            sequence lengths. A model without that declaration uses the base
+            predictor's configured window. Observed boundary-shortened flank
+            strings never determine these limits.
+        """
         processing_predictor = getattr(
             self.predictor, "processing_predictor_with_flanks", None)
         sequence_lengths = getattr(
@@ -377,7 +387,7 @@ class MHCflurry(BasePredictor):
                 int(sequence_lengths.get("n_flank", self.flank_length)),
                 int(sequence_lengths.get("c_flank", self.flank_length)),
             )
-        return super()._predict_protein_flank_lengths()
+        return super().protein_flank_lengths()
 
     def predict_peptides(self, peptides):
         """
