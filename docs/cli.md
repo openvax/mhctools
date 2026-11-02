@@ -11,6 +11,7 @@ for every option.
 | `mhctools predictors` | Report which predictors can actually run (`integrations` is an alias) | [getting models](artifacts.md#inventory-is-not-capability) |
 | `mhctools predict-table` | Append predictor scores to a CSV | [below](#annotate-a-table-predict-table) |
 | `mhctools cleavage` | Per-bond peptidase evidence | [cleavage](cleavage/index.md) |
+| `mhctools cleavenet` | Whole-substrate MMP scores for peptides or ten-residue windows | [CleaveNet](cleavage/cleavenet.md) |
 | `mhctools vaccine-report` | Route-aware vaccine construct report | [vaccine reports](vaccine-reports.md) |
 | `mhctools vaccine-trajectory` | Simulate explicit SLP/mRNA kinetics and write a readable report | [trajectory guide](vaccine-trajectory.md) |
 | `mhctools vaccine-windows` | Dose-normalized per-core candidate window exposure | [window guide](vaccine-windows.md) |
@@ -27,10 +28,17 @@ here because their input is a peptide plus a TCR.
 ## Predict for peptides you supply
 
 ```sh
-mhctools --sequence SIINFEKL SIINFEKLQ --mhc-predictor netmhc --mhc-alleles A0201
+mhctools --sequence SIINFEKL GILGFVFTL --mhc-predictor mhcflurry --mhc-alleles 'HLA-A*02:01'
 ```
 
-`--sequence` may be repeated and all occurrences accumulate. Or use
+```
+source_sequence_name	offset	peptide	allele	score	affinity	percentile_rank	prediction_method_name	length
+	0	SIINFEKL	HLA-A*02:01	0.192203	6249.06	7.96416	mhcflurry	8
+	0	GILGFVFTL	HLA-A*02:01	0.699441	25.8414	0.130863	mhcflurry	9
+```
+
+Quote an allele containing `*` so the shell does not expand it, or write it as
+`A0201`. `--sequence` may be repeated and all occurrences accumulate. Or use
 `--input-peptides-file` for one peptide per line (blank lines ignored), or
 `--input-fasta-file` for protein sequences. Pick exactly one of the three.
 

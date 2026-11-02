@@ -39,7 +39,9 @@ how to use another predictor.
 | ERAP1 trimming | [ERAMER](predictors/processing.md#eramer) |
 | T-cell immunogenicity | [Calis](predictors/immunogenicity.md#calis), [PRIME](predictors/immunogenicity.md#prime), [BigMHC (IM)](predictors/binding.md#bigmhc), [DeepImmuno](predictors/immunogenicity.md#deepimmuno); [TLimmuno2](predictors/immunogenicity.md#tlimmuno2) for class II |
 | Recognition by a specific TCR | [NetTCR](predictors/tcr.md#nettcr), [Tulip](predictors/tcr.md#tulip), [MixTCRpred](predictors/tcr.md#mixtcrpred) |
-| Free-peptide half-life | [PeptiVerse](predictors/peptide-pk.md#peptiverse), [PlifePred2](predictors/peptide-pk.md#plifepred2) |
+| Descriptive foreignness | [WEIRDO](predictors/foreignness.md) |
+| Free-peptide half-life | [Cavaco](predictors/peptide-pk.md#cavaco), [PeptiVerse](predictors/peptide-pk.md#peptiverse), [PlifePred2](predictors/peptide-pk.md#plifepred2) |
+| Cell penetration classification | [PeptiVerse CPP](predictors/uptake.md#peptiverse-cpp) |
 | Per-bond peptidase evidence | [Peptidase activity](cleavage/index.md) |
 
 The [selection guide](choosing.md) explains input, installation, and license
