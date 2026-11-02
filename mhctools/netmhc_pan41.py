@@ -10,14 +10,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from functools import partial
-
-from .base_commandline_predictor import BaseCommandlinePredictor
-from .parsing import parse_netmhc41_stdout, parse_netmhcpan_to_preds
+from .netmhc_pan4_base import NetMHCpan4Base
+from .parsing import parse_netmhc41_stdout
 from .pred import Kind
 
 
-class NetMHCpan41(BaseCommandlinePredictor):
+class NetMHCpan41(NetMHCpan4Base):
+    parse_stdout_fn = staticmethod(parse_netmhc41_stdout)
+    affinity_mode_kinds = (Kind.pMHC_affinity, Kind.pMHC_presentation)
+
     def __init__(
             self,
             alleles=None,
@@ -34,44 +35,16 @@ class NetMHCpan41(BaseCommandlinePredictor):
         The mode argument should be one of "binding_affinity" (default) or
         "elution_score".
         """
-
-        # The -BA flag is required to predict binding affinity
-        if mode == "binding_affinity":
-            flags = ["-BA"]
-        elif mode == "elution_score":
-            flags = []
-        else:
-            raise ValueError("Unsupported mode", mode)
-        self.mode = mode
-
-        BaseCommandlinePredictor.__init__(
+        NetMHCpan4Base.__init__(
             self,
-            program_name=program_name,
             alleles=alleles,
             default_peptide_lengths=default_peptide_lengths,
-            parse_output_fn=partial(parse_netmhc41_stdout, mode=mode),
-            parse_to_preds_fn=parse_netmhcpan_to_preds,
-            supported_alleles_flag="-listMHC",
-            input_file_flag="-f",
-            length_flag="-l",
-            allele_flag="-a",
-            extra_flags=flags + extra_flags,
+            program_name=program_name,
+            process_limit=process_limit,
+            mode=mode,
+            extra_flags=extra_flags,
             max_peptides_per_file=max_peptides_per_file,
-            max_alleles_per_command=max_alleles_per_command,
-            process_limit=process_limit)
-
-    def kind_support(self):
-        if self.mode == "binding_affinity":
-            kinds = (Kind.pMHC_affinity, Kind.pMHC_presentation)
-        else:
-            kinds = (Kind.pMHC_presentation,)
-        return {
-            kind: {
-                "mhc_dependence": "single_allele",
-                "mhc_class": "I",
-            }
-            for kind in kinds
-        }
+            max_alleles_per_command=max_alleles_per_command)
 
 
 class NetMHCpan41_EL(NetMHCpan41):
