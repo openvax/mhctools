@@ -639,6 +639,37 @@ class BaseCommandlinePredictor(BasePredictor):
             input_filenames,
             temp_dir_list,
             sequence_key_mapping=None):
+        """
+        Run the commands and parse their output with ``parse_output_fn``.
+
+        This is the legacy ``BindingPrediction`` path used by
+        ``predict_peptides``, and by ``predict``/``predict_pairs`` when the
+        predictor has no ``parse_to_preds_fn``. Otherwise those use
+        ``run_commands_and_collect_preds``, which returns ``Pred`` objects.
+
+        Parameters
+        ----------
+        commands : dict
+            Maps open output file objects to the command writing to them.
+        input_filenames : list of str
+            Input files to delete once finished (or on error).
+        temp_dir_list : list of str
+            Temporary directories to delete once finished (or on error).
+        sequence_key_mapping : dict, optional
+            Maps the predictor's sequence names back to the caller's keys;
+            every name maps to ``"seq"`` by default.
+
+        Returns
+        -------
+        BindingPredictionCollection
+
+        Raises
+        ------
+        RuntimeError
+            If a command fails.
+        ValueError
+            If no output could be parsed into predictions.
+        """
         if sequence_key_mapping is None:
             sequence_key_mapping = defaultdict(lambda: "seq")
         binding_predictions = self.run_commands_and_parse(
@@ -657,7 +688,17 @@ class BaseCommandlinePredictor(BasePredictor):
             input_filenames,
             temp_dir_list,
             sequence_key_mapping=None):
-        """Like run_commands_and_collect_predictions but returns list[Pred]."""
+        """
+        Run the commands and parse their output with ``parse_to_preds_fn``.
+
+        Same parameters and errors as ``run_commands_and_collect_predictions``,
+        but returns the ``Pred`` objects that ``predict`` and ``predict_pairs``
+        use when the predictor defines ``parse_to_preds_fn``.
+
+        Returns
+        -------
+        list of Pred
+        """
         if sequence_key_mapping is None:
             sequence_key_mapping = defaultdict(lambda: "seq")
         return self.run_commands_and_parse(

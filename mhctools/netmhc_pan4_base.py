@@ -27,6 +27,31 @@ class NetMHCpan4Base(BaseCommandlinePredictor):
     ``affinity_mode_kinds`` (the prediction kinds reported in binding
     affinity mode), and define ``__init__`` to give their own default
     ``program_name``.
+
+    Parameters
+    ----------
+    alleles : list of str
+        Alleles to predict for.
+    default_peptide_lengths : list of int
+        Peptide lengths used when a call does not specify them.
+    program_name : str
+        NetMHCpan executable to run, e.g. ``"netMHCpan-4.1"``.
+    process_limit : int
+        Maximum number of NetMHCpan processes to run at once.
+    mode : {"binding_affinity", "elution_score"}
+        ``"binding_affinity"`` adds ``-BA`` and reports affinities;
+        ``"elution_score"`` reports presentation scores only.
+    extra_flags : list of str
+        Extra command-line flags passed through to NetMHCpan.
+    max_peptides_per_file : int
+        Maximum peptides written to one input file.
+    max_alleles_per_command : int
+        Maximum alleles passed to one NetMHCpan command.
+
+    Raises
+    ------
+    ValueError
+        If ``mode`` is not one of the two values above.
     """
 
     parse_stdout_fn = None
