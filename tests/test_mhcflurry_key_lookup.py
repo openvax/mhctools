@@ -311,6 +311,67 @@ def test_mhcflurry_predict_proteins_threads_flanking_context():
     assert middle.presentation.c_flank == "C"
 
 
+@pytest.mark.parametrize("mode", ["haplotype", "per_allele"])
+def test_native_scan_expands_all_kinds_from_distinct_inputs(monkeypatch, mode):
+    alleles = ["HLA-A*02:01", "HLA-B*07:02"]
+    fake = _make_fake_predictor(None, alleles[1], supported=alleles)
+    affinity_predict = fake.affinity_predictor.predict_to_dataframe
+    presentation_predict = fake.predict
+
+    # Make every submitted occurrence numerically different. If duplicate
+    # inputs reach inference, their conflicting values must survive this stub.
+    def affinity(**kwargs):
+        frame = affinity_predict(**kwargs)
+        frame["prediction"] = [100.0 + i for i in range(len(frame))]
+        frame["prediction_percentile"] = [1.0 + i for i in range(len(frame))]
+        return frame
+
+    def presentation(**kwargs):
+        frame = presentation_predict(**kwargs)
+        frame["presentation_score"] = 0.1 + frame.peptide_num / 1000
+        frame["presentation_percentile"] = 1.0 + frame.peptide_num
+        frame["processing_score"] = 0.2 + frame.peptide_num / 1000
+        return frame.iloc[::-1]
+
+    monkeypatch.setattr(fake.affinity_predictor, "predict_to_dataframe", affinity)
+    monkeypatch.setattr(fake, "predict", presentation)
+    predictor = MHCflurry(
+        alleles=alleles, predictor=fake, presentation_allele_mode=mode,
+        predictor_version="test-model-v1")
+    predictor.n_flank_length = predictor.c_flank_length = 2
+    proteins = {"first": "MASIINFEKLAGG", "copy": "MASIINFEKLAGG"}
+    frame = predictor.predict_proteins_dataframe(proteins, sample_name="sample")
+
+    assert len(fake.predict_calls) == len(fake.affinity_predictor.affinity_calls) == 1
+    call = fake.predict_calls[0]
+    assert len(call["peptides"]) == 5
+    assert call["alleles"] == (
+        alleles if mode == "haplotype" else {a: [a] for a in alleles})
+    assert len(frame) == 10 * (4 if mode == "haplotype" else 5)
+    assert set(frame.kind) == {
+        Kind.pMHC_affinity, Kind.pMHC_presentation, Kind.antigen_processing}
+    assert set(frame.predictor_version) == {"test-model-v1"}
+    assert set(frame.sample_name) == {"sample"}
+    assert list(frame[["source_sequence_name", "offset"]].drop_duplicates().itertuples(
+        index=False, name=None)) == [(name, i) for name in proteins for i in range(5)]
+
+    # Compare every value and metadata field, excluding only source location.
+    first = frame[frame.source_sequence_name == "first"].drop(columns="source_sequence_name")
+    copy = frame[frame.source_sequence_name == "copy"].drop(columns="source_sequence_name")
+    pd.testing.assert_frame_equal(
+        first.reset_index(drop=True), copy.reset_index(drop=True), check_exact=True)
+    for (_, offset), rows in frame.groupby(["source_sequence_name", "offset"], sort=False):
+        affinities = rows[rows.kind == Kind.pMHC_affinity]
+        assert affinities.allele.tolist() == alleles
+        assert affinities.value.tolist() == [100.0 + offset, 105.0 + offset]
+        presentations = rows[rows.kind == Kind.pMHC_presentation]
+        assert set(presentations.allele) == ({alleles[1]} if mode == "haplotype" else set(alleles))
+        assert (presentations.score == 0.1 + offset / 1000).all()
+        processing = rows[rows.kind == Kind.antigen_processing]
+        assert processing.allele.tolist() == [""]
+        assert processing.score.tolist() == [0.2 + offset / 1000]
+
+
 def test_affinity_only_disabled_percentile_ranks_convert_to_none():
     def predict_to_dataframe(
             peptides, alleles, include_percentile_ranks=True):

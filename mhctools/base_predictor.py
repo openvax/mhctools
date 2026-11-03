@@ -327,6 +327,10 @@ class BasePredictor(object):
         """
         Scan protein sequences and predict for all subsequences.
 
+        Identical model inputs are predicted once per call, then expanded to
+        every original source and offset. For flank-aware predictors, both
+        flank strings are part of the input identity.
+
         Parameters
         ----------
         sequence_dict : dict or str
@@ -351,21 +355,27 @@ class BasePredictor(object):
             c_flank_length=c_flank_length)
 
         if self.uses_flanking_sequences:
-            peptide_list = [context.peptide for context in contexts]
-            n_flanks = [context.n_flank for context in contexts]
-            c_flanks = [context.c_flank for context in contexts]
+            # Source names and offsets describe occurrences, not model inputs.
+            # Reusing one result also avoids batch-dependent numerical drift
+            # between identical inputs (#626).
+            unique_inputs = list(dict.fromkeys(
+                (context.peptide, context.n_flank, context.c_flank)
+                for context in contexts))
             flat_preds = self.predict_with_flanks(
-                peptide_list,
-                n_flanks=n_flanks,
-                c_flanks=c_flanks)
-            if len(flat_preds) != len(contexts):
+                [peptide for peptide, _, _ in unique_inputs],
+                n_flanks=[n_flank for _, n_flank, _ in unique_inputs],
+                c_flanks=[c_flank for _, _, c_flank in unique_inputs])
+            if len(flat_preds) != len(unique_inputs):
                 raise ValueError(
-                    "%s.predict returned %d result(s) for %d flanked "
-                    "peptide occurrence(s)" % (
+                    "%s.predict returned %d result(s) for %d distinct "
+                    "flanked peptide input(s)" % (
                         self.__class__.__name__, len(flat_preds),
-                        len(contexts)))
+                        len(unique_inputs)))
+            predictions_by_input = dict(zip(unique_inputs, flat_preds))
             results = defaultdict(list)
-            for context, pp in zip(contexts, flat_preds):
+            for context in contexts:
+                pp = predictions_by_input[
+                    context.peptide, context.n_flank, context.c_flank]
                 relocated = PeptideResult(preds=tuple(
                     self._with_protein_location(p, context)
                     for p in pp.preds
