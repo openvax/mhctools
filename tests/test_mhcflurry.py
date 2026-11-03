@@ -14,6 +14,7 @@
 
 from .common import eq_
 from numpy import testing
+import pandas as pd
 
 from mhcflurry import Class1AffinityPredictor
 from mhctools import MHCflurry, MHCflurry_Affinity, mhcflurry_composite_version
@@ -124,6 +125,46 @@ def test_mhcflurry_predict_proteins_matches_direct_flanked_prediction():
         direct.presentation_percentile.iloc[0],
         rtol=1e-6,
         atol=1e-6)
+
+
+@pytest.mark.parametrize("mode", ["haplotype", "per_allele"])
+def test_mhcflurry_native_scan_reuses_complete_contexts(monkeypatch, mode):
+    """The #626 scan retains occurrences with bit-identical repeated scores."""
+    proteins = dict(
+        extended_n="WWMASIINFEKLAGG",
+        extended_c="MASIINFEKLAGGWW",
+        full="WWWMASIINFEKLAGGWWW",
+        interior="TTWWWMASIINFEKLAGGWWWTT",
+    )
+    predictor = MHCflurry(
+        alleles=["HLA-A*02:01", "HLA-B*07:02"],
+        default_peptide_lengths=[9], presentation_allele_mode=mode)
+    predict = predictor.predict_with_flanks
+    calls = []
+
+    def record_inputs(peptides, n_flanks, c_flanks):
+        calls.append(list(zip(peptides, n_flanks, c_flanks)))
+        return predict(peptides, n_flanks, c_flanks)
+
+    monkeypatch.setattr(predictor, "predict_with_flanks", record_inputs)
+    frame = predictor.predict_proteins_dataframe(proteins)
+    assert len(calls) == 1
+    assert len(calls[0]) == len(set(calls[0])) < 40
+    assert len(frame) == 40 * (4 if mode == "haplotype" else 5)
+    keys = ["peptide", "n_flank", "c_flank", "kind", "allele"]
+    values = ["value", "score", "percentile_rank"]
+    assert frame.groupby(keys, dropna=False)[values].nunique(dropna=False).le(1).all().all()
+
+    target = frame[(frame.peptide == "SIINFEKLA") &
+                   (frame.n_flank == "WWWMA") & (frame.c_flank == "GGWWW")]
+    assert target.groupby("source_sequence_name").offset.unique().map(list).to_dict() == {
+        "full": [5], "interior": [7]}
+    full = target[target.source_sequence_name == "full"]
+    interior = target[target.source_sequence_name == "interior"]
+    pd.testing.assert_frame_equal(
+        full.drop(columns=["source_sequence_name", "offset"]).reset_index(drop=True),
+        interior.drop(columns=["source_sequence_name", "offset"]).reset_index(drop=True),
+        check_exact=True)
 
 
 def test_mhcflurry_presentation_affinity_matches_old_api():
