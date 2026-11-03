@@ -8,6 +8,7 @@ first prediction, start with [getting started](getting-started.md).
 | Read predictions and scores | [Results](#results) | [Results and DataFrames](results.md) |
 | Describe a peptide or TCR | [Inputs](#inputs) | [Input shapes](predictors/index.md#input-shapes) |
 | Add predictions to a table | [Table annotation](#annotating-tables) | [Annotation recipe](recipes.md) |
+| Spell an allele for a tool | [Allele spellings](#allele-spellings) | [Allele names](alleles.md#in-each-tools-spelling) |
 | Download or inspect models | [Models and artifacts](#models-and-artifacts) | [Getting models](artifacts.md) |
 | See one enzyme's methods and predictions | [Peptidase activity](#peptidase-activity) | [Enzyme-centered guide](cleavage/enzyme-predictor.md) |
 | Assess individual peptide bonds | [Peptidase activity](#peptidase-activity) | [Activity guide](cleavage/index.md) |
@@ -101,6 +102,28 @@ Source: [table annotation](https://github.com/openvax/mhctools/blob/master/mhcto
 ::: mhctools.annotate_table
 
 ::: mhctools.AnnotationSpec
+
+## Allele spellings
+
+Parse an allele with mhcgnomes and write it the way a tool expects. See
+[allele names](alleles.md#in-each-tools-spelling) for the spellings and when
+they are used.
+
+::: mhctools.parse_allele
+
+::: mhctools.format_allele
+
+::: mhctools.netmhc_allele_name
+
+::: mhctools.netmhc4_allele_name
+
+::: mhctools.netmhciipan_allele_name
+
+::: mhctools.deepimmuno_allele_name
+
+::: mhctools.caphla_allele_key
+
+::: mhctools.prefer_allele_spelling
 
 ## Models and artifacts
 
