@@ -98,7 +98,7 @@ Full documentation: [openvax.github.io/mhctools](https://openvax.github.io/mhcto
 ```
 
 See the [testing guide](https://openvax.github.io/mhctools/testing/) and
-[release instructions](RELEASING.md).
+[release instructions](https://github.com/openvax/mhctools/blob/master/RELEASING.md).
 
 ## License
 

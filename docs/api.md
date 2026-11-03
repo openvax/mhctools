@@ -6,7 +6,7 @@ first prediction, start with [getting started](getting-started.md).
 | Task | Reference | Explanation and examples |
 |---|---|---|
 | Read predictions and scores | [Results](#results) | [Results and DataFrames](results.md) |
-| Scan a protein with the right flanks | [Protein-scan flank windows](#protein-scan-flank-windows) | [Recipes](recipes.md) |
+| Scan a protein with the right flanks | [Protein-scan flank windows](#protein-scan-flank-windows) | [Protein-scan recipe](recipes.md#scan-proteins-instead-of-peptides) |
 | Describe a peptide or TCR | [Inputs](#inputs) | [Input shapes](predictors/index.md#input-shapes) |
 | Add predictions to a table | [Table annotation](#annotating-tables) | [Annotation recipe](recipes.md) |
 | Download or inspect models | [Models and artifacts](#models-and-artifacts) | [Getting models](artifacts.md) |
