@@ -39,6 +39,33 @@ string, or a comma-separated string. The command line takes `--mhc-alleles`
 (comma- or space-separated) or `--mhc-alleles-file` (one per line); there is no
 default allele.
 
+## In each tool's spelling
+
+Command-line and sidecar tools each want their own spelling. mhctools prefers
+the spelling in the tool's own allele list (`netMHCpan -listMHC`); only when an
+allele is not found there does it format the name itself. Those formatters are
+public. Each takes the result of
+[`parse_allele`][mhctools.parse_allele] (or call
+[`format_allele`][mhctools.format_allele] with a name) and raises
+`mhcgnomes.ParseError` when the tool has no spelling for the allele, such as a
+class I allele for NetMHCIIpan.
+
+| Formatter | Tool | `HLA-A*02:01` | Class II / mouse |
+|---|---|---|---|
+| [`netmhc_allele_name`][mhctools.netmhc_allele_name] | NetMHCpan family, most wrappers | `HLA-A02:01` | pairs joined by `-` |
+| [`netmhc4_allele_name`][mhctools.netmhc4_allele_name] | NetMHC 4.0 | `HLA-A0201` | class I only |
+| [`netmhciipan_allele_name`][mhctools.netmhciipan_allele_name] | NetMHCIIpan | not accepted | `DRB1_0101`, `HLA-DQA10501-DQB10636`, `H-2-IAb` |
+| [`deepimmuno_allele_name`][mhctools.deepimmuno_allele_name] | DeepImmuno | `HLA-A*0201` | class I only |
+| [`caphla_allele_key`][mhctools.caphla_allele_key] | CapHLA | `HLA-A*02:01` | `HLA-DRB1*15:01`, `HLA-DPA1*01:03/DPB1*04:01`, `H2-IAb` |
+
+mhcgnomes pads non-human families to three digits (`Mamu-B*010:01`) and
+renames some species (`Chi-B0401` is `Gaga-BF2*04:01`), while the tools keep
+older spellings. For non-human species the tool's own list therefore decides
+the spelling and the formatters are only a fallback. Names mhcgnomes cannot
+parse (`H-2-Qa1`, `BoLA-DRB3_00101`) follow the tool's list verbatim.
+[`prefer_allele_spelling`][mhctools.prefer_allele_spelling] picks between
+several list spellings of one allele.
+
 ## What happens with a bad allele
 
 - A string that mhcgnomes cannot parse (`foo`) raises `mhcgnomes.ParseError`

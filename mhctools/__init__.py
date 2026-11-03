@@ -20,6 +20,16 @@ from .pred import (
 )
 from .sample import MultiSample
 from .tcr import TCR
+from .allele_formats import (
+    caphla_allele_key as caphla_allele_key,
+    deepimmuno_allele_name as deepimmuno_allele_name,
+    format_allele as format_allele,
+    netmhc4_allele_name as netmhc4_allele_name,
+    netmhc_allele_name as netmhc_allele_name,
+    netmhciipan_allele_name as netmhciipan_allele_name,
+    parse_allele as parse_allele,
+    prefer_allele_spelling as prefer_allele_spelling,
+)
 from .annotate import AnnotationSpec, annotate_table, parse_annotation_spec
 from .artifacts import (
     ArtifactStatus,
@@ -203,7 +213,7 @@ def __getattr__(name):
     raise AttributeError(
         "module %r has no attribute %r" % (__name__, name))
 
-__version__ = "4.5.2"
+__version__ = "4.5.3"
 
 __all__ = [
     "CleaveNet",
@@ -231,6 +241,14 @@ __all__ = [
     "TCR",
     "AnnotationSpec",
     "annotate_table",
+    "caphla_allele_key",
+    "deepimmuno_allele_name",
+    "format_allele",
+    "netmhc4_allele_name",
+    "netmhc_allele_name",
+    "netmhciipan_allele_name",
+    "parse_allele",
+    "prefer_allele_spelling",
     "parse_annotation_spec",
     "ArtifactStatus",
     "artifact_status",

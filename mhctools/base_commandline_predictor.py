@@ -24,9 +24,7 @@ import tempfile
 from typing import Literal
 
 from ._validation import require_items, require_type
-from mhcgnomes import ParseError
-
-from .allele_formats import netmhc_allele_name, parse_allele, prefer_allele_spelling
+from .allele_formats import format_allele, netmhc_allele_name, prefer_allele_spelling
 from .allele_normalization import (
     normalize_allele_name,
     normalize_allele_name_or_raw,
@@ -458,11 +456,11 @@ class BaseCommandlinePredictor(BasePredictor):
         """
         How does the predictor expect to see allele names?
         """
-        try:
-            return netmhc_allele_name(parse_allele(allele_name))
-        except ParseError:
+        return format_allele(
+            allele_name,
+            netmhc_allele_name,
             # Names mhcgnomes cannot parse keep their verbatim spelling.
-            return allele_name.replace("*", "")
+            fallback=lambda name: name.replace("*", ""))
 
     def _cli_allele_name(self, allele_name, allele_cli_names=None):
         """

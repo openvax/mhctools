@@ -15,7 +15,7 @@ import logging
 import os
 from subprocess import check_output
 
-from .allele_formats import netmhciipan_allele_name, parse_allele
+from .allele_formats import format_allele, netmhciipan_allele_name
 
 from .base_commandline_predictor import BaseCommandlinePredictor
 from .parsing import parse_netmhciipan_stdout, parse_netmhciipan4_stdout, parse_netmhciipan43_stdout
@@ -63,7 +63,7 @@ class NetMHCIIpanBase(BaseCommandlinePredictor):
          - H-2-IAb
          - H-2-IAd
         """
-        return netmhciipan_allele_name(parse_allele(allele_name))
+        return format_allele(allele_name, netmhciipan_allele_name)
 
 
 class NetMHCIIpan3(NetMHCIIpanBase):

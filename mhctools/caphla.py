@@ -23,7 +23,7 @@ from importlib import util
 import os
 from pathlib import Path
 
-from mhcgnomes import Allele, Gene, Pair, parse
+from mhcgnomes import Allele, Gene, ParseError, parse
 
 from .allele_formats import caphla_allele_key
 from .allele_normalization import (
@@ -67,82 +67,48 @@ def _find_caphla_home(caphla_path=None):
         "or pass caphla_path= to the constructor.")
 
 
-def _annotated_component_name(component, include_species):
-    gene = component.gene_name
-    if component.species_prefix == "HLA" and gene == "DRA":
-        gene = "DRA1"
-    core = gene + "*" + ":".join(component.allele_fields)
-    core += "".join(component.annotations)
-    if include_species:
-        species = (
-            "H-2" if component.species_prefix == "H2"
-            else component.species_prefix)
-        return "%s-%s" % (species, core)
-    return core
-
-
-def _mhcgnomes_fallback_names(parsed):
-    """Format expression variants and gene-level aliases for CapHLA."""
-    if isinstance(parsed, Allele):
-        canonical = _annotated_component_name(parsed, include_species=True)
-        return canonical, parsed.to_string()
-    if isinstance(parsed, Pair):
-        components = (parsed.alpha, parsed.beta)
-        canonical = "%s-%s" % (
-            _annotated_component_name(components[0], include_species=True),
-            _annotated_component_name(components[1], include_species=False),
-        )
-        # DRA is implicit in CapHLA's DR keys.
-        if components[0].gene_name == "DRA":
-            key = components[1].to_string()
-        else:
-            key = "%s/%s" % (
-                components[0].to_string(),
-                _annotated_component_name(
-                    components[1], include_species=False),
-            )
-        return canonical, key
+def _canonical_name(parsed):
+    """Canonical identity of an allele that the compatibility normalizer
+    rejects (expression variants, gene-level aliases)."""
     if isinstance(parsed, Gene):
-        # mhcgnomes resolves the Qa aliases to their official gene names;
-        # CapHLA's library retains the historical aliases.
-        caphla_key_by_gene = {
-            "H2-T23": "H2-Qa1",
-            "H2-Q7": "H2-Qa2",
-        }
-        mhcgnomes_name = parsed.to_string()
-        try:
-            key = caphla_key_by_gene[mhcgnomes_name]
-        except KeyError:
-            raise AlleleParseError(
-                "CapHLA does not support gene-level MHC name %s" %
-                mhcgnomes_name)
-        canonical = "H-2-%s" % parsed.gene_name
-        return canonical, key
-    raise AlleleParseError("Unsupported parsed MHC name: %s" % parsed)
+        return "H-2-%s" % parsed.gene_name
+    chains = (parsed,) if isinstance(parsed, Allele) else (
+        parsed.alpha, parsed.beta)
+    parts = []
+    for chain in chains:
+        gene = chain.gene_name
+        if chain.species_prefix == "HLA" and gene == "DRA":
+            gene = "DRA1"
+        parts.append(
+            gene + "*" + ":".join(chain.allele_fields) +
+            "".join(chain.annotations))
+    species = chains[0].species_prefix
+    return "-".join([
+        "H-2" if species == "H2" else species] + parts)
 
 
 def normalize_caphla_allele(allele):
     """Return ``(canonical_name, CapHLA_key, class)`` for an MHC allele.
 
-    Parsing and canonical identity come from mhcgnomes. CapHLA's only naming
-    differences are that DRA1 is implicit for DR, DP/DQ chains use ``/``, and
-    mouse alleles use the ``H2-`` prefix.
+    Parsing comes from mhcgnomes and the key from
+    :func:`mhctools.allele_formats.caphla_allele_key`. The compatibility
+    normalizer rejects expression suffixes such as N/L and gene-level aliases,
+    which mhcgnomes parses and CapHLA has keys for, so those take the
+    mhcgnomes result directly.
     """
     raw = str(allele).strip()
     try:
         canonical = normalize_allele_name(raw)
+        parsed = parse(canonical, infer_class2_pairing=True, raise_on_error=True)
     except AlleleParseError:
-        # The compatibility normalizer intentionally rejects expression
-        # suffixes such as N/L. mhcgnomes itself parses them, and CapHLA has
-        # explicit pseudosequences for two such alleles, so preserve them.
         parsed = parse(raw, infer_class2_pairing=True, raise_on_error=True)
-        canonical, key = _mhcgnomes_fallback_names(parsed)
-        mhc_class = "II" if str(parsed.mhc_class).startswith("II") else "I"
-        return canonical, key, mhc_class
-    parsed = parse(canonical, infer_class2_pairing=True, raise_on_error=True)
+        canonical = _canonical_name(parsed)
+    try:
+        key = caphla_allele_key(parsed)
+    except ParseError as e:
+        raise AlleleParseError(str(e))
     mhc_class = "II" if str(parsed.mhc_class).startswith("II") else "I"
-
-    return canonical, caphla_allele_key(parsed), mhc_class
+    return canonical, key, mhc_class
 
 
 def _load_upstream_class(path, module_name, class_name):
