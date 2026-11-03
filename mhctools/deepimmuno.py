@@ -47,6 +47,7 @@ from tempfile import mkdtemp
 
 import pandas as pd
 
+from .allele_formats import deepimmuno_allele_name, parse_allele
 from .allele_normalization import normalize_allele_name
 from .cleanup_context import CleanupFiles
 from .optional_backend import common_checkout_paths
@@ -98,7 +99,7 @@ def _deepimmuno_allele(allele):
     DeepImmuno itself snaps an unknown allele to the nearest one it knows
     (``rescue_unknown_hla``), so only the punctuation has to match.
     """
-    return normalize_allele_name(allele).replace(":", "")
+    return deepimmuno_allele_name(parse_allele(normalize_allele_name(allele)))
 
 
 def _resolve_python(deepimmuno_python=None):

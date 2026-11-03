@@ -1,0 +1,45 @@
+# mhcgnomes as the canonical allele spelling (#631)
+
+## Problem
+
+`mhctools/allele_normalization.py` re-spells every allele itself instead of
+using mhcgnomes' `to_string()`. The per-tool command-line formatters
+(NetMHC 4, NetMHCIIpan, DeepImmuno, CapHLA, the default drop-`*` rule) read that
+layer's private parsed tuple, so the layer cannot be removed until they stand on
+their own. mhcgnomes does not emit these tool formats (`compact_string()` only
+matches NetMHC 4 for HLA class I), so they stay in mhctools.
+
+## Staging
+
+### PR 1 (this PR, no output change, patch bump)
+
+Make the tool spellings public, tested and independent of the compat tuple.
+
+- New `mhctools/allele_formats.py` with one public formatter per tool, each
+  taking an mhcgnomes parse result and returning that tool's spelling:
+  `netmhc_allele_name` (default: drop `*`), `netmhc4_allele_name`,
+  `netmhciipan_allele_name` (owns the mouse `H-2-IA/IE` shorthand and the
+  DRA-implicit rule), `deepimmuno_allele_name`, `caphla_allele_key`.
+- `prefer_allele_spelling` becomes public (kept importable under the old
+  private name).
+- Predictor `prepare_allele_name` methods and CapHLA/DeepImmuno delegate to the
+  formatters. The canonical `allele` field, supported-allele keys and cache
+  keys are untouched.
+- Tests: (a) formatter output equals the existing behaviour for a table of
+  alleles, so this PR is provably behaviour-preserving; (b) every name in the
+  tool's own `-listMHC` output (captured as fixtures from the local netMHC
+  bundle) that mhcgnomes parses must format back to a name the tool lists;
+  names mhcgnomes cannot parse keep the verbatim path and are counted, not
+  hidden.
+
+### PR 2 (follow-up, minor bump, changes the `allele` column)
+
+`normalize_allele_name` returns mhcgnomes' `to_string()`; serotypes and
+supertypes are rejected with an ambiguity message; drop
+`parse_classi_or_classii_allele_name`, `_normalize_species/_family/_code`; remove
+the #544 MHCflurry workaround; release notes list before/after spellings.
+
+## Out of scope here
+
+Changing any canonical spelling, serotype handling, or the raw fallback for
+names mhcgnomes cannot parse (mhcgnomes#190).

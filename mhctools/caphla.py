@@ -25,10 +25,10 @@ from pathlib import Path
 
 from mhcgnomes import Allele, Gene, Pair, parse
 
+from .allele_formats import caphla_allele_key
 from .allele_normalization import (
     AlleleParseError,
     normalize_allele_name,
-    parse_classi_or_classii_allele_name,
 )
 from .optional_backend import common_checkout_paths
 from .pred import COLUMNS, Kind, PeptideResult, Prediction
@@ -65,19 +65,6 @@ def _find_caphla_home(caphla_path=None):
     raise FileNotFoundError(
         "CapHLA not found. Run `mhctools fetch caphla`, set CAPHLA_HOME, "
         "or pass caphla_path= to the constructor.")
-
-
-def _component_name(component, include_species):
-    core = component.gene
-    if component.allele_family:
-        core += "*%s:%s" % (
-            component.allele_family, component.allele_code)
-    else:
-        core += component.allele_code
-    if include_species:
-        species = "H2" if component.species == "H-2" else component.species
-        return "%s-%s" % (species, core)
-    return core
 
 
 def _annotated_component_name(component, include_species):
@@ -143,7 +130,6 @@ def normalize_caphla_allele(allele):
     """
     raw = str(allele).strip()
     try:
-        components = parse_classi_or_classii_allele_name(raw)
         canonical = normalize_allele_name(raw)
     except AlleleParseError:
         # The compatibility normalizer intentionally rejects expression
@@ -156,16 +142,7 @@ def normalize_caphla_allele(allele):
     parsed = parse(canonical, infer_class2_pairing=True, raise_on_error=True)
     mhc_class = "II" if str(parsed.mhc_class).startswith("II") else "I"
 
-    if len(components) == 1:
-        key = _component_name(components[0], include_species=True)
-    elif components[0].gene == "DRA1":
-        key = _component_name(components[1], include_species=True)
-    else:
-        key = "%s/%s" % (
-            _component_name(components[0], include_species=True),
-            _component_name(components[1], include_species=False),
-        )
-    return canonical, key, mhc_class
+    return canonical, caphla_allele_key(parsed), mhc_class
 
 
 def _load_upstream_class(path, module_name, class_name):
