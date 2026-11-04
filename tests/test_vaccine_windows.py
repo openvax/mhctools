@@ -5,7 +5,6 @@ import hashlib
 import json
 import math
 
-from Bio.SeqUtils import molecular_weight
 import pytest
 
 from mhctools import assess_vaccine_windows, vaccine_window_rows, format_vaccine_window_report, vaccine_route_steps
@@ -49,7 +48,10 @@ def test_one_microgram_uses_actual_window_mass_and_marginal_fractions():
     assert len(rows) == 4
     for window in out["candidates"]:
         assert window["dose"]["amount"] == 1
-        expected = 6.02214076e17 / molecular_weight(window["peptide_input"]["sequence"], seq_type="protein")
+        # Independent ExPASy residue sums plus terminal water (see migration guide).
+        mass = {"window1": 1377.59584, "longer": 1947.21404}[window["id"]]
+        assert window["dose"]["molecular_weight_g_per_mol"] == pytest.approx(mass, abs=0.0003, rel=0)
+        expected = 6.02214076e17 / mass
         assert window["initial_copies"] == pytest.approx(expected)
         for core in window["cores"]:
             assert core["exposure"]["node_apc_entry"]["fraction_of_dosed_peptide_copies"] == pytest.approx(1)
@@ -61,6 +63,41 @@ def test_one_microgram_uses_actual_window_mass_and_marginal_fractions():
         rows[0]["blood_core_auc_copy_hours"] / (rows[0]["initial_copies"] * rows[0]["horizon_hours"]))
     assert "Nodal APC arrivals (% SLP dose)" in format_vaccine_window_report(out)
     assert rows[0]["intrinsic_circulation_half_life_hours"] is None
+
+
+@pytest.mark.parametrize("sequence,mass", [
+    ("G", 75.06714), ("GG", 132.11904),
+    ("ACDEFGHIKLMNPQRSTVWY", 2395.73584),
+])
+def test_default_dose_uses_average_mass_and_one_terminal_water(sequence, mass):
+    # ExPASy FindMod average residue masses + 18.01524 Da H2O.
+    # Biotite rounds water to 18.015: allow only that 0.00024 Da difference.
+    data = request(sequence)
+    data["candidates"][0]["cores"] = []
+    window = assess_vaccine_windows(data)["candidates"][0]
+    dose = window["dose"]
+    assert dose["molecular_weight_g_per_mol"] == pytest.approx(mass, rel=0, abs=0.0003)
+    assert window["initial_copies"] == pytest.approx(6.02214076e17 / mass, rel=4e-6)
+    from biotite import __version__
+    assert "Biotite " + __version__ in dose["source"]
+    assert "average molecular weight of a free linear unmodified peptide" in dose["source"]
+
+
+@pytest.mark.parametrize("residue", ["X", "B", "Z", "U", "O", "*"])
+def test_default_dose_never_assigns_a_mass_to_unknown_or_noncanonical_residues(residue):
+    with pytest.raises(ValueError):
+        assess_vaccine_windows(request("ACDEFGHIKLMN" + residue))
+
+
+def test_explicit_peptide_mass_is_preserved():
+    data = request()
+    dose = {"amount": 2, "unit": "ug", "basis": "assumed",
+            "source": "Supplied mass", "molecular_weight_g_per_mol": 1400}
+    data["candidates"][0]["dose"] = dose
+    window = assess_vaccine_windows(data)["candidates"][0]
+    assert window["dose"]["molecular_weight_g_per_mol"] == 1400
+    assert window["dose"]["source"] == "Supplied mass"
+    assert window["initial_copies"] == pytest.approx(2 * 6.02214076e17 / 1400)
 
 
 def test_flank_cut_preserves_one_core_but_destroys_another_without_union_double_count():

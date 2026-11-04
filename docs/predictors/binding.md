@@ -194,7 +194,7 @@ ranks nor binder thresholds, so the wrapper does not invent them. `CapHLA_EL`
 and `CapHLA_BA` load only the five-fold ensemble they need.
 
 ```sh
-pip install "mhctools[caphla]"
+pip install mhctools
 mhctools fetch caphla
 ```
 

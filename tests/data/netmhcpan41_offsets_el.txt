@@ -1,0 +1,59 @@
+# /Users/iskander/code/netmhc-bundle/netMHCpan-4.1/Darwin_arm64/bin/netMHCpan -f /tmp/mhctools-offset-probe.fasta -a HLA-A02:01 -l 9
+# Tue Nov  3 23:01:40 2026
+# User: iskander
+# PWD : /Users/iskander/code/mhctools
+# Host: Darwin Arachne.lan 25.5.0 x86_64
+# -f       /tmp/mhctools-offset-probe.fasta File name with input
+# -a       HLA-A02:01           MHC allele
+# -l       9                    Peptide length [8-11] (multiple length with ,)
+# Command line parameters set to:
+#	[-rdir filename]     /Users/iskander/code/netmhc-bundle/netMHCpan-4.1/Darwin_arm64 Home directory for NetMHpan
+#	[-syn filename]      /Users/iskander/code/netmhc-bundle/netMHCpan-4.1/Darwin_arm64/data/synlist.bin Synaps file
+#	[-v]                 0                    Verbose mode
+#	[-dirty]             0                    Dirty mode, leave tmp dir+files
+#	[-tdir filename]     /var/folders/qm/qf74v01n2s12j3w0h1yrx4l00000gn/T//netMHCpanXXXXXX Temporary directory (made with mkdtemp)
+#	[-hlapseudo filename] /Users/iskander/code/netmhc-bundle/netMHCpan-4.1/Darwin_arm64/data/MHC_pseudo.dat File with MHC pseudo sequences
+#	[-hlaseq filename]                        File with full length MHC sequences
+#	[-a line]            HLA-A02:01           MHC allele
+#	[-f filename]        /tmp/mhctools-offset-probe.fasta File name with input
+#	[-w]                 0                    w option for webface
+#	[-s]                 0                    Sort output on descending affinity
+#	[-p]                 0                    Use peptide input
+#	[-rth float]         0.500000             Rank Threshold for high binding peptides
+#	[-rlt float]         2.000000             Rank Threshold for low binding peptides
+#	[-l string]          9                    Peptide length [8-11] (multiple length with ,)
+#	[-xls]               0                    Save output to xls file
+#	[-xlsfile filename]  NetMHCpan_out.xls    Filename for xls dump
+#	[-t float]           -99.900002           Threshold for output (%rank) [<0 print all]
+#	[-thrfmt filename]   /Users/iskander/code/netmhc-bundle/netMHCpan-4.1/Darwin_arm64/data/threshold/%s.thr.%s Format for threshold filenames
+#	[-expfix]            0                    Exclude prefix from synlist
+#	[-version filename]  /Users/iskander/code/netmhc-bundle/netMHCpan-4.1/Darwin_arm64/data/version File with version information
+#	[-inptype int]       0                    Input type [0] FASTA [1] Peptide
+#	[-listMHC]           0                    Print list of alleles included in netMHCpan
+#	[-allname filename]  /Users/iskander/code/netmhc-bundle/netMHCpan-4.1/Darwin_arm64/data/allelenames File with print names for alleles
+#	[-BA]                0                    Include Binding affinity prediction
+
+# NetMHCpan version 4.1b
+
+# Input is in FSA format
+
+# Peptide length 9
+
+# Make EL predictions
+
+HLA-A02:01 : Distance to training data  0.000 (using nearest neighbor HLA-A02:01)
+
+# Rank Threshold for Strong binding peptides   0.500
+# Rank Threshold for Weak binding peptides   2.000
+---------------------------------------------------------------------------------------------------------------------------
+ Pos         MHC        Peptide      Core Of Gp Gl Ip Il        Icore        Identity  Score_EL %Rank_EL BindLevel
+---------------------------------------------------------------------------------------------------------------------------
+   1 HLA-A*02:01      ACDEFGHIK ACDEFGHIK  0  0  0  0  0    ACDEFGHIK    offset_probe 0.0004170   24.979
+   2 HLA-A*02:01      CDEFGHIKL CDEFGHIKL  0  0  0  0  0    CDEFGHIKL    offset_probe 0.0000890   43.000
+   3 HLA-A*02:01      DEFGHIKLM DEFGHIKLM  0  0  0  0  0    DEFGHIKLM    offset_probe 0.0005250   22.908
+   4 HLA-A*02:01      EFGHIKLMN EFGHIKLMN  0  0  0  0  0    EFGHIKLMN    offset_probe 0.0000030   87.500
+---------------------------------------------------------------------------------------------------------------------------
+
+Protein offset_probe. Allele HLA-A*02:01. Number of high binders 0. Number of weak binders 0. Number of peptides 4
+
+-----------------------------------------------------------------------------------

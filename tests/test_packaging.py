@@ -43,9 +43,13 @@ def _distribution_name(requirement):
 
 
 def test_every_runtime_dependency_is_imported(pyproject):
-    """A dependency nothing imports is weight on every install."""
+    """Runtime and routine reporting dependencies must have a consumer."""
     imported = set()
-    for path in (REPO_ROOT / "mhctools").rglob("*.py"):
+    # Reporting scripts (including serum_calibration_review.py) use the same
+    # normal install as the package; ReportLab is now a routine requirement.
+    paths = [path for root in ("mhctools", "scripts")
+             for path in (REPO_ROOT / root).rglob("*.py")]
+    for path in paths:
         for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
             if isinstance(node, ast.Import):
                 imported.update(alias.name.split(".")[0] for alias in node.names)

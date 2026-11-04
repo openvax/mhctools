@@ -10,6 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from .allele_formats import format_allele, netmhc4_allele_name
 from .base_commandline_predictor import BaseCommandlinePredictor
 from .parsing import parse_netmhc4_stdout
 
@@ -34,5 +35,8 @@ class NetMHC4(BaseCommandlinePredictor):
             default_peptide_lengths=default_peptide_lengths)
 
     def prepare_allele_name(self, allele_name):
-        allele_name = super(NetMHC4, self).prepare_allele_name(allele_name)
-        return allele_name.replace(":", "")
+        return format_allele(
+            allele_name,
+            netmhc4_allele_name,
+            # Names mhcgnomes cannot parse keep their verbatim spelling.
+            fallback=lambda name: name.replace("*", "").replace(":", ""))
