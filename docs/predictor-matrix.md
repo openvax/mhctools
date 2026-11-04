@@ -118,7 +118,7 @@ See the [mhc binding and presentation guide](predictors/binding.md) for examples
 - CLI names: `caphla`, `caphla-ba`, `caphla-el`
 - Prediction kinds: `pMHC_affinity`, `pMHC_presentation`
 - Default scanning lengths: (7-25 supported)
-- Installation: `pip install "mhctools[caphla]"` + `mhctools fetch caphla`
+- Installation: `mhctools fetch caphla` (runtime installed with mhctools)
 - License: open
 
 ### MixMHCpred
@@ -214,7 +214,7 @@ See the [antigen processing guide](predictors/processing.md) for examples and mo
 - CLI names: `pepsickle`
 - Prediction kinds: `proteasome_cleavage`
 - Default scanning lengths: 9
-- Installation: `pip install pepsickle`
+- Installation: installed with mhctools
 - License: open
 
 ### NetChop
@@ -314,7 +314,7 @@ See the [descriptive foreignness guide](predictors/foreignness.md) for examples 
 - CLI names: `weirdo`
 - Prediction kinds: `foreignness`
 - Default scanning lengths: 8-11
-- Installation: `pip install 'mhctools[weirdo]'`
+- Installation: installed with mhctools
 - License: open
 
 ## TCR specificity

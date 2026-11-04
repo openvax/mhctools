@@ -1,5 +1,11 @@
 # Getting started
 
+A normal installation includes Biotite sequence utilities, ReportLab,
+WEIRDO, Pepsickle and PyTorch. Predictor weights and separately licensed
+executables still use their documented setup steps. See the
+[dependency migration notes](migration.md#sequence-utilities-and-normal-installation-460)
+for the remaining runtime extras.
+
 This guide shows how to predict peptide-MHC binding with [MHCflurry](predictors/binding.md#mhcflurry) and read
 the results. It assumes you have Python 3.11 or later and a list of peptide
 sequences and MHC alleles.

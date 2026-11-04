@@ -27,3 +27,10 @@ Existing PRs #628 and #630 overlap other cleanup and documentation; this
 stack does not absorb those unmerged changes. Related upstream issues were
 triaged in topiary, mhcflurry and mhcgnomes; scientific evidence gaps and
 upstream runtime warnings are not silently resolved here.
+
+## Dependency audit adjustment
+
+Biotite 2.0 requires Python >=3.12. Keep mhctools' Python 3.11 floor and use
+`biotite>=1.6,<3`: 1.6.0 is the newest stable 3.11-compatible release, while
+3.12+ resolves 2.0. Verify both mass and FASTA APIs; do not downgrade the
+Python 3.12 audit environment.

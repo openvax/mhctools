@@ -57,7 +57,7 @@ and `n_flanks=` where supported, or scan a protein with `predict_proteins()`.
 
 [Pepsickle](#pepsickle) is the in-vivo epitope proteasome model of [Weeder et al.
 (2021)](https://doi.org/10.1093/bioinformatics/btab628). Install the package
-with `pip install pepsickle`; there is nothing to fetch.
+with a normal `pip install mhctools`; there is nothing to fetch.
 
 ```python
 from mhctools import Pepsickle
