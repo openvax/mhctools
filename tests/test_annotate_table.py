@@ -611,7 +611,7 @@ def test_predict_table_csv_rounds_predictions_but_not_input_floats(
     input_path.write_text(
         "peptide,measurement\nSIINFEKL,0.123456789012345\n")
     monkeypatch.setattr(
-        "mhctools.cli.annotate_table.annotate_table",
+        "mhctools.annotate.annotate_table",
         lambda table, *args, **kwargs: table.assign(
             score=[0.02069018702171587]))
     cli_main([

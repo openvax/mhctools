@@ -1,22 +1,29 @@
 """Assess each candidate vaccine window and every supplied scored core."""
 
-import argparse
+from .help import HelpArgumentParser as ArgumentParser
 import csv
 import hashlib
 import json
 from pathlib import Path
 
-from ..vaccine_windows import assess_vaccine_windows, format_vaccine_window_report, vaccine_window_rows
 from .errors import CLI_ERROR_TYPES
 
 
-def main(argv=None):
-    parser = argparse.ArgumentParser(prog="mhctools vaccine-windows", description=__doc__)
+def make_parser():
+    """Build the command parser without running predictions or probing assets."""
+    parser = ArgumentParser(prog="mhctools vaccine-windows", description=__doc__)
     parser.add_argument("--input", required=True, help="Window schema JSON with explicit kinetic profiles")
     parser.add_argument("--output", required=True, help="New JSON with full per-core trajectory audits")
     parser.add_argument("--table", required=True, help="New per-core CSV")
     parser.add_argument("--report", required=True, help="New readable Markdown report")
+    return parser
+
+
+def main(argv=None):
+    parser = make_parser()
     args = parser.parse_args(argv)
+
+    from ..vaccine_windows import assess_vaccine_windows, format_vaccine_window_report, vaccine_window_rows
     try:
         paths = [Path(args.output), Path(args.table), Path(args.report)]
         if len({p.resolve() for p in paths}) != len(paths):

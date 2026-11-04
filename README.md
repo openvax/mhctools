@@ -45,6 +45,21 @@ Most predictors need model weights or an external installation. Use
 The [installation guide](https://openvax.github.io/mhctools/artifacts/) explains
 downloads, optional backends, and licensing.
 
+## Command line
+
+Run `mhctools --help` to see commands and prediction options, or
+`mhctools --version` to identify the installed release.
+
+Enable Bash/zsh tab completion for this shell:
+
+```sh
+eval "$(register-python-argcomplete mhctools)"
+```
+
+Alternatively, run `activate-global-python-argcomplete` once and start a new
+shell to enable completion for all participating OpenVax tools. See the
+[command-line guide](https://openvax.github.io/mhctools/cli/) for details.
+
 ## Guides
 
 - [Choosing a predictor](https://openvax.github.io/mhctools/choosing/) and

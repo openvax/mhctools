@@ -1,17 +1,16 @@
 """JSON reporting for per-bond cleavage evidence."""
 
-import argparse
+from .help import HelpArgumentParser as ArgumentParser
 import json
+import sys
 from pathlib import Path
 
-from mhctools.peptide_input import PeptideInput
-from mhctools.peptidases import cleavage_models, predict_cleavage
 
 from .errors import CLI_ERROR_TYPES, cli_error_message
 from .formatting import format_table
 
 
-def _format_models(models):
+def _format_models(models, *, stream=None):
     """Render the model catalog as a compact, aligned table."""
     headers = ("NAME", "ENZYME", "COMPARTMENTS", "EVIDENCE", "SCORE UNITS")
     rows = [
@@ -24,7 +23,7 @@ def _format_models(models):
         )
         for model in models
     ]
-    return format_table(headers, rows)
+    return format_table(headers, rows, stream=stream)
 
 
 def _compact_report(predictions):
@@ -54,8 +53,9 @@ def _round_floats(value):
     return value
 
 
-def main(argv=None):
-    parser = argparse.ArgumentParser(
+def make_parser():
+    """Build the command parser without running predictions or probing assets."""
+    parser = ArgumentParser(
         prog="mhctools cleavage",
         description="Report peptidase motif evidence and native model scores "
                     "per bond, as JSON.")
@@ -94,7 +94,15 @@ def main(argv=None):
     parser.add_argument("--out", help="Write JSON to this path instead of stdout")
     parser.add_argument("--input", help="Batch JSON with named inputs and explicit scenarios")
     parser.add_argument("--html", help="Also write a self-contained batch evidence report")
+    return parser
+
+
+def main(argv=None):
+    parser = make_parser()
     args = parser.parse_args(argv)
+
+    from mhctools.peptide_input import PeptideInput
+    from mhctools.peptidases import cleavage_models, predict_cleavage
     if args.input:
         if (args.sequence or args.model or args.compartment or args.list_models or args.json or
                 args.n_term is not None or args.c_term is not None or args.source_id is not None or
@@ -127,7 +135,7 @@ def main(argv=None):
             parser.error("--list-models cannot be combined with prediction options")
         models = cleavage_models(include_optional=True)
         if not args.json and not args.out:
-            print(_format_models(models))
+            print(_format_models(models, stream=sys.stdout))
             return
         # Preserve the original machine-readable catalog shape. ``--out``
         # implies JSON, matching its longstanding "Write JSON" contract.

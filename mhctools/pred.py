@@ -19,7 +19,6 @@ from functools import lru_cache
 from numbers import Real
 from typing import Optional
 
-import pandas as pd
 
 from .peptide_input import PeptideInput
 
@@ -804,6 +803,8 @@ class PeptideResult:
     # --- dataframe ---
 
     def to_dataframe(self, sample_name=""):
+        import pandas as pd
+
         rows = [p.to_row(sample_name) for p in self.preds]
         if not rows:
             return pd.DataFrame(columns=COLUMNS)
