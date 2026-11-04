@@ -54,3 +54,18 @@ def test_sequence_fasta_rejects_malformed_input_before_running(tmp_path, monkeyp
                         lambda *args: pytest.fail("invalid FASTA reached the predictor"))
     with pytest.raises(ValueError, match=error):
         predictor.predict_allele_sequences(source)
+
+
+def test_native_alignment_without_records_is_an_error(monkeypatch):
+    predictor = MixMHCpred(program_name=sys.executable)
+    predictor._version = "3.0"
+
+    def fake_run(args, stdout_path):
+        output = Path(args[args.index("-o") + 1])
+        output.mkdir()
+        (output / "final_alignment.fasta").write_text("not a FASTA alignment\n")
+        return "DONE\n"
+
+    monkeypatch.setattr(predictor, "_run_command", fake_run)
+    with pytest.raises(RuntimeError, match="no FASTA records"):
+        predictor.predict_allele_sequences({"allele": "ACDEFGHI"})

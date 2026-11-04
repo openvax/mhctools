@@ -722,6 +722,8 @@ class MixMHCpred(BasePredictor):
                     "Ensure MAFFT is installed and runnable. stdout: "
                     f"{stdout.strip()}")
             aligned = tuple(FastaFile.read_iter(alignment_path))
+            if not aligned:
+                raise RuntimeError("MixMHCpred alignment contains no FASTA records")
             artifacts = (
                 _collect_artifacts(persistent_dir) if persistent_dir else None)
 
