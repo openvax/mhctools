@@ -3,6 +3,10 @@
 `mhctools` is one executable with subcommands. Run `mhctools <command> --help`
 for every option.
 
+Run `mhctools --version` (or `mhctools -V`) to print the installed package
+version, for example `mhctools 4.7.1`. This needs no predictor or input.
+`mhctools fetch --version REVISION` instead selects an upstream artifact revision.
+
 | Command | Does | More |
 |---|---|---|
 | `mhctools` | Predict for peptides or FASTA sequences | below |
