@@ -4,7 +4,7 @@
 bundled with WEIRDO 2.2.0. Install it explicitly:
 
 ```bash
-pip install 'mhctools[weirdo]'
+pip install mhctools
 mhctools predict-table --input peptides.csv --out scored.csv \
   --predictor weirdo:weirdo_foreignness:foreignness
 ```
