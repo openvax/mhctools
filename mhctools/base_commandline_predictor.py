@@ -24,6 +24,7 @@ import tempfile
 from typing import Literal
 
 from ._validation import require_items, require_type
+from .allele_formats import format_allele, netmhc_allele_name, prefer_allele_spelling
 from .allele_normalization import (
     normalize_allele_name,
     normalize_allele_name_or_raw,
@@ -93,29 +94,6 @@ def _output_tail(outputs, max_lines=12, max_chars=2000):
 
 def _unique_in_order(values):
     return list(dict.fromkeys(values))
-
-
-def _prefer_allele_spelling(new, existing):
-    """
-    When several raw -listMHC spellings normalize to the same allele, pick the
-    one most likely accepted on `-a`, deterministically (independent of set
-    iteration order):
-
-      1. a colon-containing spelling (e.g. BoLA-1:00901, which netMHCpan
-         accepts, over BoLA-100901, which it rejects);
-      2. among those, the spelling whose colon sits earliest — i.e. right
-         after the gene (Mamu-A1:00101 over Mamu-A1001:01);
-      3. the lexicographically smaller string as a final stable tie-break.
-    """
-    def rank(name):
-        colon = name.find(":")
-        # higher is preferred: has-colon first, then earliest colon
-        return (colon >= 0, -colon if colon >= 0 else 1)
-
-    rank_new, rank_existing = rank(new), rank(existing)
-    if rank_new != rank_existing:
-        return new if rank_new > rank_existing else existing
-    return min(new, existing)
 
 
 class BaseCommandlinePredictor(BasePredictor):
@@ -373,7 +351,7 @@ class BaseCommandlinePredictor(BasePredictor):
         raw_name is the predictor's own spelling, which is what round-trips on
         the command line. When several raw spellings normalize to the same name
         (netMHCpan lists e.g. both `BoLA-1:00901` and `BoLA-100901`, or two
-        colon forms for one Mamu allele), _prefer_allele_spelling picks one
+        colon forms for one Mamu allele), prefer_allele_spelling picks one
         deterministically.
         """
         cache_key = (command, supported_allele_flag)
@@ -395,7 +373,7 @@ class BaseCommandlinePredictor(BasePredictor):
             if existing is None:
                 mapping[key] = name
             else:
-                mapping[key] = _prefer_allele_spelling(name, existing)
+                mapping[key] = prefer_allele_spelling(name, existing)
         if skipped:
             logger.debug(
                 "%s %s: %d of %d supported allele names could not be normalized",
@@ -478,7 +456,11 @@ class BaseCommandlinePredictor(BasePredictor):
         """
         How does the predictor expect to see allele names?
         """
-        return allele_name.replace("*", "")
+        return format_allele(
+            allele_name,
+            netmhc_allele_name,
+            # Names mhcgnomes cannot parse keep their verbatim spelling.
+            fallback=lambda name: name.replace("*", ""))
 
     def _cli_allele_name(self, allele_name, allele_cli_names=None):
         """

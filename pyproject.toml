@@ -31,7 +31,11 @@ classifiers = [
 dependencies = [
   "numpy>=2.0.0,<3.0.0",
   "pandas>=3,<4",
-  "biopython>=1.83",
+  "biotite>=1.6,<3",
+  "reportlab",
+  "weirdo>=2.2.0,<3",
+  "pepsickle",
+  "torch>=2",
   "pyensembl>=2.3.0,<3.0.0",
   "sercol>=0.0.2",
   "mhcflurry>=2.0.0",
@@ -41,20 +45,16 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-weirdo = [
-  "weirdo>=2.2.0,<3",
-]
-pepsickle = [
-  "pepsickle",
-]
+# Compatibility install names: these dependencies now come with mhctools.
+weirdo = []
+pepsickle = []
+vaccine-report = []
+caphla = []
 nettcr = [
   # A TFLite runtime for NetTCR's bundled models. ai-edge-litert is the
   # lightweight option; tensorflow also works. Fetch the tested pan weights
   # with `mhctools fetch nettcr --accept-license`.
   "ai-edge-litert",
-]
-caphla = [
-  "torch>=1.12",
 ]
 mixtcrpred = [
   # Runtime for the separately licensed upstream checkout. MixTCRpred's
@@ -65,10 +65,6 @@ mixtcrpred = [
   "pytorch-lightning>=1.6",
   "scipy",
   "scikit-learn",
-]
-vaccine-report = [
-  # Retained for ReportLab-based research exporters outside the installed API.
-  "reportlab",
 ]
 docs = [
   "mkdocs>=1.6,<2",

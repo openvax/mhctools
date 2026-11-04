@@ -517,6 +517,69 @@ def test_predict_proteins_preserves_distinct_flanking_contexts():
     assert c_flanks[5] == "Z"
 
 
+@pytest.mark.parametrize("lengths", [[3], [4, 3]])
+def test_flanked_scan_reuses_complete_inputs_and_preserves_occurrences(lengths):
+    predictor = FlankEchoPredictor()
+    proteins = {
+        "repeat": "TTABCYYTTABCYY",
+        "copy": "TTABCYYTTABCYY",
+        "different_n": "SSABCYY",
+        "different_c": "TTABCSS",
+        "short_n": "TABCYY",
+        "short_c": "TTABCY",
+        "no_flanks": "ABC",
+    }
+    results = predictor.predict_proteins(proteins, peptide_lengths=lengths)
+
+    # The backend's score depends on its input position. Repeated complete
+    # inputs must reuse that exact score while retaining every source location.
+    repeated = [pp for name in ("repeat", "copy") for pp in results[name]
+                if pp.peptide == "ABC"]
+    assert len(repeated) == 4
+    assert len({pp.presentation.score for pp in repeated}) == 1
+    assert len({id(pp) for pp in repeated}) == 4
+    assert [(pp.source_sequence_name, pp.offset) for pp in repeated] == [
+        ("repeat", 2), ("repeat", 9), ("copy", 2), ("copy", 9)]
+
+    assert list(results) == list(proteins)
+    for name, sequence in proteins.items():
+        assert [(len(pp.peptide), pp.offset) for pp in results[name]] == [
+            (length, offset) for length in lengths
+            for offset in range(len(sequence) - length + 1)]
+        assert all(pp.source_sequence_name == name for pp in results[name])
+
+    assert len(predictor.calls) == 1
+    inputs = list(zip(*predictor.calls[0]))
+    assert len(inputs) == len(set(inputs))
+    # N- and C-terminal changes and shorter/empty windows are separate inputs.
+    assert [(n, c) for peptide, n, c in inputs if peptide == "ABC"] == [
+        ("TT", "YY"), ("SS", "YY"), ("TT", "SS"),
+        ("T", "YY"), ("TT", "Y"), ("", "")]
+
+
+@pytest.mark.parametrize("extra_result", [False, True])
+def test_flanked_scan_validates_distinct_input_result_count(monkeypatch, extra_result):
+    predictor = FlankEchoPredictor()
+    predict = predictor.predict_with_flanks
+
+    def wrong_count(*args, **kwargs):
+        results = predict(*args, **kwargs)
+        return results + results[-1:] if extra_result else results[:-1]
+
+    monkeypatch.setattr(predictor, "predict_with_flanks", wrong_count)
+    with pytest.raises(ValueError, match="for 1 distinct flanked peptide input"):
+        predictor.predict_proteins({"one": "ABC", "two": "ABC"})
+
+
+@pytest.mark.parametrize("proteins", [{}, {"short": "AB"}])
+def test_flanked_scan_with_no_windows_returns_no_results(proteins):
+    predictor = FlankEchoPredictor()
+    assert predictor.predict_proteins(proteins) == {}
+    frame = predictor.predict_proteins_dataframe(proteins)
+    assert frame.empty
+    assert list(frame.columns) == list(COLUMNS)
+
+
 def test_predict_proteins_dataframe():
     predictor = RandomBindingPredictor(
         alleles=["HLA-A*02:01"],

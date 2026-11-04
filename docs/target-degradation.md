@@ -109,8 +109,8 @@ python analyses/osteosarc_vaccine_cleavage/focused_stability_report.py \
 
 It reuses native inference without changing predictor outputs, keeps all target
 annotations in the audit, and separates the primary mutant candidates from
-disclosed source references. This research exporter uses ReportLab; install the
-`vaccine-report` extra to run it.
+disclosed source references. This research exporter uses ReportLab, included
+in the normal mhctools installation.
 
 The enzyme guide distinguishes soluble blood activity, cell-surface exposure,
 intracellular processing and inflammation. There is no universal DPP4/FAP/ACE

@@ -11,12 +11,12 @@
 # limitations under the License.
 
 from .netmhc_pan4_base import NetMHCpan4Base
-from .parsing import parse_netmhc41_stdout
+from .parsing import parse_netmhcpan41_stdout
 from .pred import Kind
 
 
 class NetMHCpan41(NetMHCpan4Base):
-    parse_stdout_fn = staticmethod(parse_netmhc41_stdout)
+    parse_stdout_fn = staticmethod(parse_netmhcpan41_stdout)
     affinity_mode_kinds = (Kind.pMHC_affinity, Kind.pMHC_presentation)
 
     def __init__(

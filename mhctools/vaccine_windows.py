@@ -9,8 +9,8 @@ from copy import deepcopy
 from dataclasses import asdict
 import math
 
-from Bio import __version__ as biopython_version
-from Bio.SeqUtils import molecular_weight
+from biotite import __version__ as biotite_version
+from biotite.sequence import ProteinSequence
 from mhcgnomes import parse
 
 from .peptide_input import PeptideInput, sequence_only_chemistry_error
@@ -55,8 +55,8 @@ def _dose(candidate, peptide):
         return None
     return VaccineDose(
         amount=1, unit="ug", basis="assumed",
-        source="Requested 1 ug comparison; average molecular weight of a free linear unmodified peptide, Biopython %s" % biopython_version,
-        molecular_weight_g_per_mol=molecular_weight(peptide.sequence, seq_type="protein"))
+        source="Requested 1 ug comparison; average molecular weight of a free linear unmodified peptide, Biotite %s" % biotite_version,
+        molecular_weight_g_per_mol=float(ProteinSequence(peptide.sequence).get_molecular_weight(monoisotopic=False)))
 
 
 def _aggregate(cores, delivery):

@@ -19,6 +19,11 @@ for r in proteins["TP53"]:
         print(f"  offset={r.offset} {r.peptide} IC50={r.affinity.value:.0f}")
 ```
 
+Repeated inputs are scored once within a scan, and every original source and
+offset remains in the results. For flank-aware predictors such as MHCflurry,
+the peptide and both flank strings must match exactly to reuse a prediction;
+different or boundary-shortened contexts remain separate inputs.
+
 ## Run many samples with different genotypes
 
 ```python

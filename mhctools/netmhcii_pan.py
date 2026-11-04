@@ -15,7 +15,7 @@ import logging
 import os
 from subprocess import check_output
 
-from .allele_normalization import parse_classi_or_classii_allele_name
+from .allele_formats import format_allele, netmhciipan_allele_name
 
 from .base_commandline_predictor import BaseCommandlinePredictor
 from .parsing import parse_netmhciipan_stdout, parse_netmhciipan4_stdout, parse_netmhciipan43_stdout
@@ -51,19 +51,6 @@ class NetMHCIIpanBase(BaseCommandlinePredictor):
             extra_flags=extra_flags,
             min_peptide_length=9)
 
-    def _prepare_drb_allele_name(self, parsed_beta_allele):
-        """
-        Assume that we're dealing with a human DRB allele
-        which NetMHCIIpan treats differently because there is
-        little population diversity in the DR-alpha gene
-        """
-        if "DRB" not in parsed_beta_allele.gene:
-            raise ValueError("Unexpected allele %s" % parsed_beta_allele)
-        return "%s_%s%s" % (
-            parsed_beta_allele.gene,
-            parsed_beta_allele.allele_family,
-            parsed_beta_allele.allele_code)
-
     def prepare_allele_name(self, allele_name):
         """
         netMHCIIpan has some unique requirements for allele formats,
@@ -76,27 +63,7 @@ class NetMHCIIpanBase(BaseCommandlinePredictor):
          - H-2-IAb
          - H-2-IAd
         """
-        parsed_alleles = parse_classi_or_classii_allele_name(allele_name)
-        if len(parsed_alleles) == 1:
-            allele = parsed_alleles[0]
-            if allele.species == "H-2":
-                return "%s-%s%s" % (
-                    allele.species,
-                    allele.gene,
-                    allele.allele_code)
-            return self._prepare_drb_allele_name(allele)
-
-        else:
-            alpha, beta = parsed_alleles
-            if "DRA" in alpha.gene:
-                return self._prepare_drb_allele_name(beta)
-            return "HLA-%s%s%s-%s%s%s" % (
-                alpha.gene,
-                alpha.allele_family,
-                alpha.allele_code,
-                beta.gene,
-                beta.allele_family,
-                beta.allele_code)
+        return format_allele(allele_name, netmhciipan_allele_name)
 
 
 class NetMHCIIpan3(NetMHCIIpanBase):
