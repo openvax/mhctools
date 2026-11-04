@@ -13,7 +13,7 @@
 from functools import partial
 
 from .base_commandline_predictor import BaseCommandlinePredictor
-from .parsing import parse_netmhc41_stdout, parse_netmhcpan_to_preds
+from .parsing import parse_netmhcpan41_stdout, parse_netmhcpan_to_preds
 from .pred import Kind
 
 
@@ -49,7 +49,7 @@ class NetMHCpan41(BaseCommandlinePredictor):
             program_name=program_name,
             alleles=alleles,
             default_peptide_lengths=default_peptide_lengths,
-            parse_output_fn=partial(parse_netmhc41_stdout, mode=mode),
+            parse_output_fn=partial(parse_netmhcpan41_stdout, mode=mode),
             parse_to_preds_fn=parse_netmhcpan_to_preds,
             supported_alleles_flag="-listMHC",
             input_file_flag="-f",

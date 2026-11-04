@@ -2,6 +2,16 @@
 
 Old spellings that still work, and what replaces them.
 
+## NetMHCpan 4.1 coordinates (4.5.4)
+
+`NetMHCpan41` and its BA/EL variants now return zero-based offsets from the
+legacy `predict_subsequences()` API, matching the 4.0/4.2 wrappers and Python
+sequence slicing. Previously these offsets were one residue too large.
+Scores and allele identities are unchanged; the modern `predict_proteins()`
+path already used zero-based coordinates. The duplicate, misnamed internal
+`parse_netmhc41_stdout` function was removed; use `parse_netmhcpan41_stdout`
+for the NetMHCpan 4.1 output format.
+
 ## Prediction types
 
 | Old | New |
