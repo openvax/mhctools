@@ -213,7 +213,7 @@ def __getattr__(name):
     raise AttributeError(
         "module %r has no attribute %r" % (__name__, name))
 
-__version__ = "4.6.1"
+__version__ = "4.6.2"
 
 __all__ = [
     "CleaveNet",

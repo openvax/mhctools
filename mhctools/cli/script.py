@@ -23,6 +23,7 @@ from typing import NamedTuple
 
 from pyensembl.fasta import parse_fasta_dictionary
 
+from .. import __version__
 from .args import (
     _flatten_predictor_names,
     make_mhc_arg_parser,
@@ -134,6 +135,9 @@ arg_parser = make_mhc_arg_parser(
     description=("Predict MHC ligands from protein sequences."),
     epilog=_subcommand_epilog(),
     formatter_class=RawDescriptionHelpFormatter)
+arg_parser.add_argument(
+    "--version", "-V", action="version", version="mhctools %s" % __version__,
+    help="Show the installed mhctools version and exit")
 
 def add_input_args(arg_parser):
     input_group = arg_parser.add_argument_group("Inputs")

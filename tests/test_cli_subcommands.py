@@ -21,6 +21,7 @@ import sys
 
 import pytest
 
+from mhctools import __version__
 from mhctools.cli.script import (
     SUBCOMMANDS,
     arg_parser,
@@ -54,6 +55,17 @@ def test_bare_invocation_prints_help_and_succeeds(capsys):
     captured = capsys.readouterr()
     assert "Subcommands:" in captured.out
     assert "predict-table" in captured.out
+
+
+@pytest.mark.parametrize("flag", ["--version", "-V"])
+def test_package_version_needs_no_prediction_arguments(flag):
+    result = subprocess.run([
+        sys.executable, "-c",
+        "from mhctools.cli.script import main; main()", flag,
+    ], capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == "mhctools %s\n" % __version__
+    assert result.stderr == ""
 
 
 @pytest.mark.parametrize("command", [
