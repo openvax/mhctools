@@ -2,6 +2,16 @@
 
 Old spellings that still work, and what replaces them.
 
+## MixMHCpred FASTA handling (4.6.1)
+
+`MixMHCpred.predict_allele_sequences()` now uses Biotite's FASTA reader and
+writer for allele inputs and native alignments. Full headers, record order,
+wrapped sequence lines and alignment gaps are preserved. Semicolon comment
+lines are accepted and ignored. Sequence data before the first header,
+empty inputs, duplicate/empty identifiers and empty sequences are rejected
+before running MixMHCpred. The private `_read_fasta` and `_write_fasta`
+helpers were removed.
+
 ## Sequence utilities and normal installation (4.6.0)
 
 Default SLP mass-to-molecule conversion now uses Biotite's

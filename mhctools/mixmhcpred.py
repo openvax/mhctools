@@ -40,6 +40,7 @@ from pathlib import Path
 from subprocess import STDOUT, CalledProcessError, TimeoutExpired, check_output
 from tempfile import TemporaryDirectory
 
+from biotite.sequence.io.fasta import FastaFile
 import pandas as pd
 
 from .allele_normalization import normalize_allele_name_or_raw
@@ -388,34 +389,6 @@ def _sequence_allele_info(names, artifacts=None):
     return tuple(result)
 
 
-def _read_fasta(path):
-    records = []
-    name = None
-    sequence = []
-    with open(path) as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            if line.startswith(">"):
-                if name is not None:
-                    records.append((name, "".join(sequence)))
-                name = line[1:]
-                sequence = []
-            elif name is None:
-                raise ValueError("Sequence data appears before the first FASTA header")
-            else:
-                sequence.append(line)
-    if name is not None:
-        records.append((name, "".join(sequence)))
-    return tuple(records)
-
-
-def _write_fasta(path, records):
-    with open(path, "w") as f:
-        f.write("".join(f">{name}\n{sequence}\n" for name, sequence in records))
-
-
 def _collect_artifacts(output_dir):
     root = Path(output_dir).resolve()
     files = tuple(sorted(
@@ -684,7 +657,18 @@ class MixMHCpred(BasePredictor):
                 (str(name), str(sequence))
                 for name, sequence in allele_sequences.items())
         else:
-            records = _read_fasta(allele_sequences)
+            with open(allele_sequences) as fasta:
+                # Biotite ignores pre-header text. Reject it for user input,
+                # while allowing the blank/comment lines supported by FASTA.
+                for line in fasta:
+                    line = line.strip()
+                    if not line or line.startswith(";"):
+                        continue
+                    if not line.startswith(">"):
+                        raise ValueError("Sequence data appears before the first FASTA header")
+                    break
+                fasta.seek(0)
+                records = tuple(FastaFile.read_iter(fasta))
         if not records:
             raise ValueError("At least one MHC-I allele sequence is required")
         names = [name for name, _ in records]
@@ -716,7 +700,7 @@ class MixMHCpred(BasePredictor):
             sequence_path = Path(temp_dir) / "alleles.fasta"
             peptide_path = Path(temp_dir) / "peptides.txt"
             stdout_path = Path(temp_dir) / "stdout.txt"
-            _write_fasta(sequence_path, records)
+            FastaFile.write_iter(sequence_path, records)
             if peptide_list is not None:
                 peptide_path.write_text("\n".join(peptide_list) + "\n")
             run_output_dir = Path(persistent_dir or (Path(temp_dir) / "output"))
@@ -737,7 +721,9 @@ class MixMHCpred(BasePredictor):
                     "MixMHCpred exited without a non-empty sequence alignment. "
                     "Ensure MAFFT is installed and runnable. stdout: "
                     f"{stdout.strip()}")
-            aligned = _read_fasta(alignment_path)
+            aligned = tuple(FastaFile.read_iter(alignment_path))
+            if not aligned:
+                raise RuntimeError("MixMHCpred alignment contains no FASTA records")
             artifacts = (
                 _collect_artifacts(persistent_dir) if persistent_dir else None)
 

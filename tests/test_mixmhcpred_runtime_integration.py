@@ -9,13 +9,14 @@ import sys
 from tempfile import TemporaryFile
 import time
 
+from biotite.sequence.io.fasta import FastaFile
 import pandas as pd
 import pytest
 
 from mhctools import MixMHCpred, PRIME
 from mhctools.cli.script import main
 from mhctools.mixmhcpred import (
-    _collect_artifacts, _read_fasta, parse_mixmhcpred_output,
+    _collect_artifacts, parse_mixmhcpred_output,
     resolve_mixmhcpred_path,
 )
 from mhctools.prime import parse_prime_results
@@ -168,7 +169,7 @@ def test_isolated_sequence_alignment_prediction_and_artifacts_match_native(nativ
     reference_dir = tmp_path / "native-sequences"
     _native([executable, "-s", str(sequences), "-i", _input(tmp_path),
              "-o", str(reference_dir), "-p", "1", "-m", "1"], environment)
-    aligned = _read_fasta(reference_dir / "final_alignment.fasta")
+    aligned = tuple(FastaFile.read_iter(reference_dir / "final_alignment.fasta"))
     expected = parse_mixmhcpred_output(
         reference_dir / "Binding_predictions.txt", alleles=[name for name, _ in aligned],
         artifacts=_collect_artifacts(reference_dir), sequence_mode=True, aligned_sequences=aligned)
