@@ -14,11 +14,11 @@
 
 """CLI commands for discovering and fetching predictor artifacts."""
 
-from argparse import ArgumentParser
+from .help import HelpArgumentParser as ArgumentParser
 import json
 import string
+import sys
 
-from ..artifacts import fetch, list_artifacts
 from .errors import CLI_ERROR_TYPES, cli_error_message
 from .formatting import format_table
 
@@ -35,7 +35,7 @@ def _print_table(statuses):
         )
         for status in statuses
     ]
-    print(format_table(headers, rows))
+    print(format_table(headers, rows, stream=sys.stdout))
     installed = [status for status in statuses
                  if status.status == "ready" and status.path]
     if installed:
@@ -58,8 +58,8 @@ def _display_version(version):
     return version
 
 
-def ls_main(args_list=None):
-    """Run ``mhctools ls``."""
+def make_ls_parser():
+    """Build the command parser without running predictions or probing assets."""
     parser = ArgumentParser(
         prog="mhctools ls",
         description="List model weights and other predictor artifacts.",
@@ -79,7 +79,15 @@ def ls_main(args_list=None):
     parser.add_argument(
         "--high-confidence", action="store_true",
         help="With --models, show only upstream high-confidence models")
+    return parser
+
+
+def ls_main(args_list=None):
+    """Run ``mhctools ls``."""
+    parser = make_ls_parser()
     args = parser.parse_args(args_list)
+
+    from ..artifacts import list_artifacts
     if args.models:
         if args.name != ["mixtcrpred"]:
             parser.error("--models requires exactly: mhctools ls mixtcrpred")
@@ -108,8 +116,8 @@ def ls_main(args_list=None):
         _print_table(statuses)
 
 
-def fetch_main(args_list=None):
-    """Run ``mhctools fetch``."""
+def make_fetch_parser():
+    """Build the command parser without running predictions or probing assets."""
     parser = ArgumentParser(
         prog="mhctools fetch",
         description="Fetch artifacts required by a predictor wrapper.",
@@ -140,7 +148,15 @@ def fetch_main(args_list=None):
         help="Fetch upstream's high-confidence weights (mixtcrpred only)")
     parser.add_argument(
         "--json", action="store_true", help="Emit machine-readable JSON")
+    return parser
+
+
+def fetch_main(args_list=None):
+    """Run ``mhctools fetch``."""
+    parser = make_fetch_parser()
     args = parser.parse_args(args_list)
+
+    from ..artifacts import fetch
     try:
         status = fetch(
             args.name,

@@ -158,10 +158,9 @@ def test_real_models_match_official_source():
 
 
 def test_native_subcommand_preserves_json_and_windows(predictor, monkeypatch, capsys):
-    from mhctools.cli import cleavenet as cli
     from mhctools.cli.script import main
     mock_sidecar(monkeypatch)
-    monkeypatch.setattr(cli, "CleaveNet", lambda **kwargs: predictor)
+    monkeypatch.setattr(cleavenet, "CleaveNet", lambda **kwargs: predictor)
     assert main(["cleavenet", "--peptides", "PRVFQLRVFL", "LRVFL",
                  "--source-name", "vaccine", "--source-start", "12"]) == 0
     records = json.loads(capsys.readouterr().out)["results"]

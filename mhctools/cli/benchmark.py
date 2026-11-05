@@ -1,14 +1,9 @@
 """Evaluate supplied measurements and predictions without merging assay scales."""
 
-import argparse
+from .help import HelpArgumentParser as ArgumentParser
 import json
 from pathlib import Path
 
-from mhctools._resources import load_json_resource
-from mhctools.benchmark import (
-    AssayMeasurement, BenchmarkPrediction, ModelLineage, evaluate_benchmark,
-    model_lineage_inventory, predict_cleavage_measurements,
-)
 
 #: Single source of truth mapping a --reference-cleavage choice to its packaged
 #: data file, so the two can never drift apart.
@@ -19,8 +14,9 @@ REFERENCE_PANELS = {
 }
 
 
-def main(argv=None):
-    parser = argparse.ArgumentParser(
+def make_parser():
+    """Build the command parser without running predictions or probing assets."""
+    parser = ArgumentParser(
         prog="mhctools benchmark",
         description="Evaluate supplied measurements and predictions without "
                     "merging assay scales. Writes a JSON report.")
@@ -42,7 +38,18 @@ def main(argv=None):
                             "(default: %(default)s). --reference-cleavage "
                             "and --peptiverse-cpp-metadata are always reproduction.")
     parser.add_argument("--out", help="Write JSON to this path instead of stdout")
+    return parser
+
+
+def main(argv=None):
+    parser = make_parser()
     args = parser.parse_args(argv)
+
+    from mhctools._resources import load_json_resource
+    from mhctools.benchmark import (
+        AssayMeasurement, BenchmarkPrediction, ModelLineage, evaluate_benchmark,
+        model_lineage_inventory, predict_cleavage_measurements,
+    )
     try:
         if (args.predict_cpp or args.source_id) and not args.peptiverse_cpp_metadata:
             parser.error("--predict-cpp and --source-id require --peptiverse-cpp-metadata")

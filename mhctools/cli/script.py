@@ -1,3 +1,4 @@
+# PYTHON_ARGCOMPLETE_OK
 # Copyright (c) 2016. Mount Sinai School of Medicine
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from argparse import RawDescriptionHelpFormatter
 import csv
 from importlib import import_module
 from io import StringIO
@@ -21,8 +21,8 @@ import os
 import sys
 from typing import NamedTuple
 
-from pyensembl.fasta import parse_fasta_dictionary
 
+from .. import __version__
 from .args import (
     _flatten_predictor_names,
     make_mhc_arg_parser,
@@ -43,10 +43,15 @@ class Subcommand(NamedTuple):
     module: str
     entry_point: str
     aliases: tuple[str, ...] = ()
+    parser_factory: str = "make_parser"
 
     def load(self):
         module = import_module(self.module, package=__package__)
         return getattr(module, self.entry_point)
+
+    def make_parser(self):
+        module = import_module(self.module, package=__package__)
+        return getattr(module, self.parser_factory)()
 
 
 # The single source of truth for `mhctools <command>`: dispatch reads it and
@@ -63,10 +68,10 @@ class Subcommand(NamedTuple):
 SUBCOMMANDS = (
     Subcommand(
         "ls", "List model weights and other predictor artifacts",
-        ".artifacts", "ls_main"),
+        ".artifacts", "ls_main", parser_factory="make_ls_parser"),
     Subcommand(
         "fetch", "Fetch artifacts required by a predictor wrapper",
-        ".artifacts", "fetch_main"),
+        ".artifacts", "fetch_main", parser_factory="make_fetch_parser"),
     Subcommand(
         "predictors",
         "Report artifact location, launchability and reference reproduction",
@@ -74,7 +79,7 @@ SUBCOMMANDS = (
     Subcommand(
         "predict-table",
         "Annotate a CSV of peptides (and optional alleles) with score columns",
-        ".annotate_table", "main"),
+        ".annotate_table", "main", parser_factory="make_arg_parser"),
     Subcommand(
         "benchmark",
         "Evaluate supplied measurements and predictions; writes a JSON report",
@@ -132,8 +137,10 @@ def _subcommand_epilog():
 arg_parser = make_mhc_arg_parser(
     prog="mhctools",
     description=("Predict MHC ligands from protein sequences."),
-    epilog=_subcommand_epilog(),
-    formatter_class=RawDescriptionHelpFormatter)
+    epilog=_subcommand_epilog())
+arg_parser.add_argument(
+    "--version", "-V", action="version", version="mhctools %s" % __version__,
+    help="Show the installed mhctools version and exit")
 
 def add_input_args(arg_parser):
     input_group = arg_parser.add_argument_group("Inputs")
@@ -217,6 +224,8 @@ def _run_single_predictor(predictor, args):
             "prediction model only). Use `mhctools predict-table` instead."
             % type(predictor).__name__)
     if args.input_fasta_file:
+        from pyensembl.fasta import parse_fasta_dictionary
+
         input_dictionary = parse_fasta_dictionary(args.input_fasta_file)
         if not input_dictionary:
             raise ValueError(
@@ -372,6 +381,8 @@ def main(args_list=None):
     """
     if args_list is None:
         args_list = sys.argv[1:]
+    from .completion import autocomplete
+    autocomplete(arg_parser, SUBCOMMANDS)
     if not args_list:
         # A bare `mhctools` is someone looking for the interface, not a
         # malformed prediction run. Show it instead of an argparse error.

@@ -2,6 +2,16 @@
 
 Old spellings that still work, and what replaces them.
 
+## CLI usability (4.7.1–4.8.0)
+
+`mhctools --version` and `mhctools -V` report the installed release starting in
+4.7.1. Version 4.8.0 adds [shell completion and terminal help styling](cli.md#tab-completion-and-help).
+Package exports now load on first access; existing `from mhctools import ...`
+imports still return the same classes and functions. Importing mhctools alone,
+asking for help, or completing a command no longer initializes scientific
+packages or predictor runtimes. The public CLI registry retains its class/factory entries and is constructed
+when requested; parser startup uses only the names. Prediction arguments, output formats and allele naming are unchanged.
+
 ## MixMHCpred FASTA handling (4.6.1)
 
 `MixMHCpred.predict_allele_sequences()` now uses Biotite's FASTA reader and

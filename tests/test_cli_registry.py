@@ -46,6 +46,12 @@ def test_all_models_in_registry():
         assert name in mhc_predictors, f"{name} missing from mhc_predictors registry"
 
 
+def test_deferred_registry_retains_function_and_partial_factory_identity():
+    from mhctools import NetMHCpan, NetMHCpan4_BA
+    assert mhc_predictors["netmhcpan"] is NetMHCpan
+    assert mhc_predictors["netmhcpan4-ba"] is NetMHCpan4_BA
+
+
 # Predictor classes that are public but deliberately absent from the
 # --mhc-predictor registry, each with the interface that does serve them.
 _UNREGISTERED_BY_DESIGN = {

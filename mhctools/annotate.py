@@ -47,6 +47,11 @@ from typing import Optional
 
 import pandas as pd
 
+from .annotation_fields import (
+    OUTPUT_FIELDS as _OUTPUT_FIELDS,
+    OUTPUT_UNITS as _OUTPUT_UNITS,
+    output_field_tokens as output_field_tokens,
+)
 from .allele_normalization import normalize_allele_name_or_raw
 from .pred import Kind, reduce_op
 
@@ -54,53 +59,6 @@ from .pred import Kind, reduce_op
 # Whitespace, comma, or semicolon separate multiple alleles packed into one
 # cell (e.g. a genotype column "HLA-A*02:01 HLA-B*07:02" or "A0201,B0702").
 _DEFAULT_ALLELE_SEP = re.compile(r"[\s,;]+")
-
-
-# Output-field token -> (kind, Prediction attribute). ``kind`` is ``None`` when
-# the field's "best" direction is kind-independent (``score`` is always
-# higher-better, ``percentile_rank`` always lower-better); ``affinity`` maps to
-# the ``value`` of ``pMHC_affinity`` predictions (IC50 nM, lower-better).
-_OUTPUT_FIELDS = {
-    "affinity": (Kind.pMHC_affinity, "value"),
-    "score": (None, "score"),
-    "percentile_rank": (None, "percentile_rank"),
-    # convenience aliases
-    "rank": (None, "percentile_rank"),
-    "value": (Kind.pMHC_affinity, "value"),
-    "presentation": (Kind.pMHC_presentation, "score"),
-    "processing": (Kind.antigen_processing, "score"),
-    # NetMHCstabpan's Thalf(h) lands in both `score` and `value`; read it from
-    # `score`, which is where this field has always read it.
-    "stability": (Kind.pMHC_stability, "score"),
-    "immunogenicity": (Kind.immunogenicity, "score"),
-    "foreignness": (Kind.foreignness, "score"),
-    "tap_transport": (Kind.tap_transport, "score"),
-    "erap_trimming": (Kind.erap_trimming, "score"),
-    # Parent-peptide half-life. Matrix-specific names remain CLI conveniences;
-    # the prediction's MeasurementContext carries the actual matrix.
-    "peptide_half_life": (Kind.peptide_half_life, "value"),
-    "serum_half_life": (Kind.peptide_half_life, "value"),
-    "blood_half_life": (Kind.peptide_half_life, "value"),
-}
-
-
-# Units of the serialized field selected by each CLI token. An empty value
-# means dimensionless or predictor-specific, not unknown canonical metadata.
-_OUTPUT_UNITS = {
-    "affinity": "nM",
-    "value": "nM",
-    "percentile_rank": "percentile",
-    "rank": "percentile",
-    "stability": "hours",
-    "peptide_half_life": "hours",
-    "serum_half_life": "hours",
-    "blood_half_life": "hours",
-}
-
-
-def output_field_tokens():
-    """Sorted list of accepted output-field tokens (for CLI help / errors)."""
-    return sorted(_OUTPUT_FIELDS)
 
 
 @dataclass

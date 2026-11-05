@@ -5,10 +5,11 @@
 
 """CLI for honest optional-integration capability reports."""
 
-from argparse import ArgumentParser
+from .help import HelpArgumentParser as ArgumentParser
 import json
+import sys
 
-from ..integrations import CAPABILITY_LEVELS, list_integrations
+from ..capabilities import CAPABILITY_LEVELS
 from .formatting import format_table
 
 
@@ -31,7 +32,7 @@ def _print_table(statuses):
         )
         for status in statuses
     ]
-    print(format_table(headers, rows))
+    print(format_table(headers, rows, stream=sys.stdout))
     notes = [status for status in statuses if status.detail]
     if notes:
         print()
@@ -39,8 +40,8 @@ def _print_table(statuses):
             print("%s: %s" % (status.name, status.detail))
 
 
-def predictors_main(args_list=None, command_name="predictors"):
-    """Run the predictor capability-report command."""
+def make_parser(command_name="predictors"):
+    """Build the command parser without running predictions or probing assets."""
     parser = ArgumentParser(
         prog="mhctools %s" % command_name,
         description=(
@@ -62,7 +63,15 @@ def predictors_main(args_list=None, command_name="predictors"):
         help="Override MHCTOOLS_DATA_DIR for mhctools-managed artifacts")
     parser.add_argument(
         "--json", action="store_true", help="Emit machine-readable JSON")
+    return parser
+
+
+def predictors_main(args_list=None, command_name="predictors"):
+    """Run the predictor capability-report command."""
+    parser = make_parser(command_name=command_name)
     args = parser.parse_args(args_list)
+
+    from ..integrations import list_integrations
     try:
         statuses = list_integrations(
             args.name or None,
