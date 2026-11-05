@@ -193,10 +193,7 @@ def _native_alleles_from_table(table):
 
 
 def _normalize_output_allele(allele):
-    try:
-        return normalize_allele_name_or_raw(allele)
-    except (TypeError, ValueError):
-        return allele
+    return normalize_allele_name_or_raw(allele)
 
 
 def _parse_comments(filename):

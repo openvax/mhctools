@@ -307,3 +307,17 @@ def test_mhcflurry_legacy_predict_peptides_unchanged():
     for bp in collection:
         assert bp.affinity is not None
         assert bp.prediction_method_name == "mhcflurry"
+
+
+def test_dla_and_high_resolution_requests_match_real_model_scores():
+    """The generic mapping retains canine zeros and human request resolution."""
+    from numpy.testing import assert_allclose
+    requests = ['DLA-88*001:01', 'HLA-A*02:01:01:01']
+    model = MHCflurry_Affinity(requests, include_affinity_percentile_ranks=False)
+    peptides = ['SIINFEKLL']
+    result = list(model.predict_peptides(peptides))
+    assert {p.allele for p in result} == set(requests)
+    direct = model.predictor.predict_to_dataframe(
+        peptides=peptides * 2, alleles=['DLA-88*001:01', 'HLA-A*02:01'],
+        include_percentile_ranks=False)
+    assert_allclose([p.affinity for p in result], direct.prediction, rtol=1e-6)

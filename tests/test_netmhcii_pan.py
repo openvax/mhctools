@@ -36,7 +36,7 @@ def test_netmhcii_pan_DRB():
     eq_(unique_lengths, {15, 16})
 
     unique_alleles = {x.allele for x in binding_predictions}
-    eq_(unique_alleles, {"HLA-DRA1*01:01-DRB1*01:01"})
+    eq_(unique_alleles, {"HLA-DRB1*01:01"})
 
     # length of "PAPAPSWPLSSSVPSQKTYQGSYGFRLGFLHSGT" is 34
     # length of "SQAMDDLMLSPDDIEQWFTED" is 21
@@ -45,7 +45,7 @@ def test_netmhcii_pan_DRB():
         "Expected 52 epitopes from %s" % (binding_predictions,)
 
 def test_netmhcii_pan_alpha_beta():
-    alleles = [normalize_allele_name("HLA-DPA1*01:05-DPB1*100:01")]
+    alleles = [normalize_allele_name("HLA-DPA1*01:05/DPB1*100:01")]
     ii_pan_predictor = NetMHCIIpan(
         alleles=alleles)
     fasta_dictionary = {
@@ -60,7 +60,7 @@ def test_netmhcii_pan_alpha_beta():
     eq_(unique_lengths, {15, 16})
 
     unique_alleles = {x.allele for x in binding_predictions}
-    eq_(unique_alleles, {"HLA-DPA1*01:05-DPB1*100:01"})
+    eq_(unique_alleles, {"HLA-DPA1*01:05/DPB1*100:01"})
 
     # length of "PAPAPSWPLSSSVPSQKTYQGSYGFRLGFLHSGT" is 34
     # length of "SQAMDDLMLSPDDIEQWFTED" is 21
@@ -70,9 +70,9 @@ def test_netmhcii_pan_alpha_beta():
 
 def test_netmhcii_pan_multiple_alleles():
     alleles = [
-        normalize_allele_name("HLA-DPA1*01:05-DPB1*100:01"),
-        normalize_allele_name("HLA-DQA1*05:11-DQB1*03:02"),
-        normalize_allele_name("HLA-DRA1*01:01-DRB1*01:01")
+        normalize_allele_name("HLA-DPA1*01:05/DPB1*100:01"),
+        normalize_allele_name("HLA-DQA1*05:11/DQB1*03:02"),
+        normalize_allele_name("HLA-DRA*01:01/DRB1*01:01")
     ]
     ii_pan_predictor = NetMHCIIpan(
         alleles=alleles)
@@ -88,9 +88,9 @@ def test_netmhcii_pan_multiple_alleles():
 
     unique_alleles = {x.allele for x in binding_predictions}
     eq_(unique_alleles, {
-        "HLA-DPA1*01:05-DPB1*100:01",
-        "HLA-DQA1*05:11-DQB1*03:02",
-        "HLA-DRA1*01:01-DRB1*01:01"
+        "HLA-DPA1*01:05/DPB1*100:01",
+        "HLA-DQA1*05:11/DQB1*03:02",
+        "HLA-DRA*01:01/DRB1*01:01"
     })
 
     # length of "SQAMDDLMLSPDDIEQWFTED" is 21
@@ -113,7 +113,7 @@ def test_netmhcii_pan_mouse():
     eq_(unique_lengths, {15, 16})
 
     unique_alleles = {x.allele for x in binding_predictions}
-    eq_(unique_alleles, {"H-2-IAb"})
+    eq_(unique_alleles, {"H2-AA*b/AB*b"})
 
     # length of "PAPAPSWPLSSSVPSQKTYQGSYGFRLGFLHSGT" is 34
     # length of "SQAMDDLMLSPDDIEQWFTED" is 21
@@ -128,7 +128,7 @@ OPTIONAL_NETMHCIIPAN_PROGRAM_NAMES = [
     "netMHCIIpan-4.0",
 ]
 
-DEFAULT_ALLELE = "HLA-DPA1*01:05-DPB1*100:01"
+DEFAULT_ALLELE = "HLA-DPA1*01:05/DPB1*100:01"
 
 protein_sequence_dict = {
     "SMAD4-001": "PAPAPSWPLSSSVPSQKTYQGSYGFRLGFLHSGT",
@@ -152,3 +152,20 @@ def check_netmhcii_pan(program_name, fail_if_no_such_program=True):
             raise
         print("Skipping because no such program: %s" % program_name)
         return
+
+
+def test_beta_and_explicit_pair_keep_distinct_identities_in_one_native_batch():
+    """One DR model input must produce both explicit request identities."""
+    from mhctools import NetMHCIIpan
+    beta = 'HLA-DRB1*01:01'
+    pair = 'HLA-DRA*01:01/DRB1*01:01'
+    predictor = NetMHCIIpan(alleles=[beta, pair], program_name='netMHCIIpan-4.3')
+    peptides = ['YARFASHNGALIQRR']
+    results = predictor.predict(peptides)
+    assert {p.allele for r in results for p in r.preds} == {beta, pair}
+    binding = list(predictor.predict_peptides(peptides))
+    assert {p.allele for p in binding} == {beta, pair}
+    assert len(binding) == 2
+    assert binding[0].score == binding[1].score
+    provenance = predictor.allele_provenance()
+    assert provenance['native_alleles'] == {beta: 'DRB1_0101', pair: 'DRB1_0101'}

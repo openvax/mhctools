@@ -25,6 +25,7 @@ from dataclasses import asdict, dataclass
 import hashlib
 import json
 import os
+import logging
 from pathlib import Path
 import shutil
 import subprocess
@@ -37,10 +38,14 @@ from urllib.request import urlopen
 import pandas as pd
 
 from .process_helpers import python_imports_available
-from .allele_normalization import normalize_allele_name_or_raw
+from .allele_normalization import (
+    AlleleIdentityError, native_allele_identity, normalize_allele_name_or_raw,
+)
 from .pred import COLUMNS, Kind, PeptideResult, Prediction
 from .tcr import TCR
 
+
+logger = logging.getLogger(__name__)
 
 UPSTREAM_REVISION = "acd6f57444bde675840890207c74ca3b0c7ffac2"
 ZENODO_RECORD = "7930623"
@@ -142,10 +147,15 @@ def model_catalog(mixtcrpred_path=None, data_dir=None):
             checkpoint = (
                 home / "pretrained_models" / ("model_%s.ckpt" % name))
             upstream_class = row["MHC_class"].strip()
+            try:
+                identity = native_allele_identity(row["MHC"].strip())
+            except AlleleIdentityError as error:
+                logger.warning("Excluding MixTCRpred model %s: %s", name, error)
+                continue
             result.append(MixTCRpredModel(
                 name=name,
                 peptide=row["Peptide"].strip(),
-                allele=normalize_allele_name_or_raw(row["MHC"].strip()),
+                allele=identity,
                 upstream_allele=row["MHC"].strip(),
                 mhc_class={"MHCI": "I", "MHCII": "II"}.get(
                     upstream_class, upstream_class),

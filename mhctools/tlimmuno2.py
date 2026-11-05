@@ -45,7 +45,6 @@ a prioritization aid, not ground truth.
 
 import logging
 import os
-import re
 import sys
 from os.path import exists, isfile, join
 from tempfile import mkdtemp
@@ -58,6 +57,8 @@ from .process_helpers import (
     legacy_keras_environment, legacy_keras_runtime_available, run_command,
 )
 from .wrapper_base import NewModelPredictorMixin
+from .allele_normalization import normalize_allele_name
+from .allele_formats import format_allele, netmhciipan_allele_name
 
 logger = logging.getLogger(__name__)
 
@@ -105,25 +106,10 @@ def _load_valid_alleles(tlimmuno2_home):
 
 
 def _allele_candidates(allele):
-    """Yield candidate TLimmuno2 keys for an allele, most-specific first.
-
-    TLimmuno2 keys are NetMHCIIpan-style and inconsistent across loci: DR is a
-    single chain (``DRB1_0803``) while DP/DQ are heterodimers
-    (``HLA-DPA10103-DPB10101``). We try the string as-is, then a few
-    punctuation transforms, then pull the DRB chain out of a DRA/DRB
-    heterodimer name.
-    """
-    a = allele.strip()
-    yield a
-    core = a[4:] if a.startswith("HLA-") else a
-    yield core
-    yield core.replace("*", "_").replace(":", "")   # DRB1*08:03 -> DRB1_0803
-    yield a.replace("*", "").replace(":", "")        # DPA1*..-DPB1*.. -> DPA10..-DPB10..
-    # mhctools canonicalizes DR to an alpha/beta pair (HLA-DRA1*01:01-DRB1*08:03);
-    # TLimmuno2 keys it by the beta chain only.
-    match = re.search(r"DRB[1-5]\*?\d+:?\d+", a)
-    if match:
-        yield match.group(0).replace("*", "_").replace(":", "")
+    """Yield the supplied spelling and its parsed NetMHCIIpan model key."""
+    canonical = normalize_allele_name(allele)
+    yield allele.strip()
+    yield format_allele(canonical, netmhciipan_allele_name)
 
 
 def _tlimmuno2_allele(allele, valid_alleles):
@@ -201,7 +187,7 @@ class TLimmuno2(NewModelPredictorMixin):
             alleles = [alleles]
         if not alleles:
             raise ValueError("TLimmuno2 requires at least one allele")
-        self.alleles = list(alleles)
+        self.alleles = [normalize_allele_name(a) for a in alleles]
         self.tlimmuno2_home = _find_tlimmuno2_home(tlimmuno2_home)
         self.tlimmuno2_python = _resolve_python(tlimmuno2_python)
         self._valid_alleles = None

@@ -106,9 +106,11 @@ def test_invalid_peptide_and_flank_elements_have_type_errors():
 
 
 def test_mhcflurry_allele_validation_preserves_generators():
-    assert _resolve_supported_alleles(iter(ALLELES), ALLELES) == ALLELES
+    from types import SimpleNamespace
+    model = SimpleNamespace()
+    assert _resolve_supported_alleles(model, iter(ALLELES), ALLELES) == ALLELES
     with pytest.raises(TypeError, match=r"index 1"):
-        _resolve_supported_alleles(iter([ALLELES[0], 7]), ALLELES)
+        _resolve_supported_alleles(model, iter([ALLELES[0], 7]), ALLELES)
 
 
 def test_import_and_prediction_without_typechecks():

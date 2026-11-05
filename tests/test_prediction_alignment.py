@@ -60,12 +60,12 @@ def predictor(request, monkeypatch):
         "mhctools.base_commandline_predictor.run_multiple_commands_redirect_stdout",
         run_commands)
 
-    def parse_legacy(stdout, **kwargs):
+    def parse_legacy(stdout, sequence_key_mapping, prediction_method_name):
         return BindingPredictionCollection([
             BindingPrediction.from_pred(Prediction.from_dict(row))
             for row in json.loads(stdout)])
 
-    def parse_native(stdout, **kwargs):
+    def parse_native(stdout, sequence_key_mapping, predictor_name):
         return [Prediction.from_dict(row) for row in json.loads(stdout)]
 
     result = BaseCommandlinePredictor(

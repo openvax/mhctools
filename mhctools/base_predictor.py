@@ -626,7 +626,7 @@ class BasePredictor(object):
         if keep_unparseable:
             alleles = {normalize_allele_name_or_raw(a) for a in alleles}
         else:
-            alleles = {normalize_allele_name(a.strip().upper()) for a in alleles}
+            alleles = {normalize_allele_name(a) for a in alleles}
         if valid_alleles:
             # For some reason netMHCpan drops the '*' in names, so
             # 'HLA-A*03:01' becomes 'HLA-A03:01'

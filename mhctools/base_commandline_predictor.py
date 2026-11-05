@@ -16,6 +16,9 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Callable, Iterable
+from copy import copy
+from dataclasses import replace
+from inspect import Parameter, signature
 import logging
 from multiprocessing import cpu_count
 import os
@@ -29,6 +32,9 @@ from .allele_normalization import (
     normalize_allele_name,
     normalize_allele_name_or_raw,
     AlleleParseError,
+    AlleleIdentityError,
+    allele_identity_provenance,
+    native_allele_identity,
 )
 
 from .base_predictor import BasePredictor
@@ -38,7 +44,7 @@ from .cleanup_context import CleanupFiles
 from .input_file_formats import create_input_peptides_files
 from .process_helpers import run_multiple_commands_redirect_stdout
 from .binding_prediction_collection import BindingPredictionCollection
-from .pred import PeptideResult
+from .pred import PeptideResult, Prediction
 
 logger = logging.getLogger(__name__)
 
@@ -276,9 +282,9 @@ class BaseCommandlinePredictor(BasePredictor):
             default_peptide_lengths=default_peptide_lengths,
             min_peptide_length=min_peptide_length,
             max_peptide_length=max_peptide_length,
-            # Non-human alleles the normalizer can't parse (e.g. H-2-Qa1) are
-            # kept verbatim and validated against the tool's raw -listMHC list.
-            keep_unparseable_alleles=True)
+            # Genuine parser failures require a native catalog match.
+            # Parsed genes/groups always fail the identity contract.
+            keep_unparseable_alleles=self._supported_allele_names is not None)
 
         self._resolve_supported_alleles()
 
@@ -323,7 +329,7 @@ class BaseCommandlinePredictor(BasePredictor):
                 try:
                     normalize_allele_name(name)
                     return True
-                except AlleleParseError:
+                except (AlleleParseError, AlleleIdentityError):
                     return False
             if not any(parses(name) for name in supported_alleles):
                 raise ValueError(
@@ -354,7 +360,9 @@ class BaseCommandlinePredictor(BasePredictor):
         colon forms for one Mamu allele), prefer_allele_spelling picks one
         deterministically.
         """
-        cache_key = (command, supported_allele_flag)
+        provenance = allele_identity_provenance()
+        cache_key = (command, supported_allele_flag, provenance["policy"],
+                     provenance["mhcgnomes"], frozenset(raw_names))
         cached = _normalized_supported_cache.get(cache_key)
         if cached is not None:
             return cached
@@ -362,11 +370,10 @@ class BaseCommandlinePredictor(BasePredictor):
         skipped = 0
         for name in raw_names:
             try:
-                key = normalize_allele_name(name)
-            except AlleleParseError:
-                # Some non-human/edge-case names (e.g. BoLA-amani.1, H-2-Qa1)
-                # can't be normalized; they remain reachable only by verbatim
-                # match on the fast path.
+                key = native_allele_identity(name)
+            except (AlleleParseError, AlleleIdentityError):
+                # Reject unsupported parsed identities, without letting an
+                # unrelated catalog entry block valid requests.
                 skipped += 1
                 continue
             existing = mapping.get(key)
@@ -375,8 +382,9 @@ class BaseCommandlinePredictor(BasePredictor):
             else:
                 mapping[key] = prefer_allele_spelling(name, existing)
         if skipped:
-            logger.debug(
-                "%s %s: %d of %d supported allele names could not be normalized",
+            logger.warning(
+                "%s %s: excluded %d of %d native catalog entries because they "
+                "do not identify specific alleles or valid pairs",
                 command, supported_allele_flag, skipped, len(raw_names))
         _normalized_supported_cache[cache_key] = mapping
         return mapping
@@ -438,6 +446,7 @@ class BaseCommandlinePredictor(BasePredictor):
         if unsupported:
             raise UnsupportedAllele(
                 "Unsupported alleles for %s: %s\n"
+                "Class-II models requiring both chains need an explicit alpha/beta pair.\n"
                 "Run command %s %s to see a list of valid alleles" % (
                     self.program_name,
                     unsupported,
@@ -451,6 +460,58 @@ class BaseCommandlinePredictor(BasePredictor):
         """
         self._allele_cli_names = self._resolve_supported_allele_cli_names(
             self.alleles)
+
+    def allele_provenance(self):
+        """Return identity policy and exact request-to-native model inputs.
+
+        Include this value, the predictor version, and prediction settings in
+        external prediction-cache keys. Native catalog aliases never change
+        the canonical request identity.
+        """
+        return dict(
+            **allele_identity_provenance(),
+            predictor=self.program_name,
+            native_alleles={a: self._cli_allele_name(a) for a in self.alleles},
+            catalog_aliases="mhcgnomes-curated-groups-only")
+
+    def _normalize_native_output(self, name):
+        # Native output may echo a historical catalog alias. Only names
+        # actually in that catalog may use the curated alias bridge.
+        raw = name.strip().replace("*", "")
+        catalog = getattr(self, "_supported_allele_names", None)
+        if catalog is not None:
+            if name in catalog:
+                return native_allele_identity(name)
+            if raw in catalog:
+                return native_allele_identity(raw)
+        return normalize_allele_name_or_raw(name)
+
+    def _parse_output(self, parser, **kwargs):
+        # Existing third-party parsers need only the original arguments. New
+        # parsers may opt into the catalog-aware normalization callback.
+        parameters = signature(parser).parameters
+        if "allele_normalizer" in parameters or any(
+                p.kind == Parameter.VAR_KEYWORD for p in parameters.values()):
+            kwargs["allele_normalizer"] = self._normalize_native_output
+        return parser(**kwargs)
+
+    def _restore_requested_identities(self, predictions, alleles, allele_cli_names):
+        requests = defaultdict(list)
+        for allele in alleles:
+            native = self._cli_allele_name(allele, allele_cli_names)
+            model_identity = self._normalize_native_output(native)
+            if allele not in requests[model_identity]:
+                requests[model_identity].append(allele)
+        restored = []
+        for prediction in predictions:
+            for allele in requests.get(prediction.allele, [prediction.allele]):
+                if isinstance(prediction, Prediction):
+                    restored.append(replace(prediction, allele=allele))
+                else:
+                    item = copy(prediction)
+                    item.allele = allele
+                    restored.append(item)
+        return restored
 
     def prepare_allele_name(self, allele_name):
         """
@@ -538,9 +599,9 @@ class BaseCommandlinePredictor(BasePredictor):
         args = [self.program_name]
         if peptide_mode:
             args.extend(self.peptide_mode_flags)
-        allele_arg = ",".join(
+        allele_arg = ",".join(dict.fromkeys(
             self._cli_allele_name(allele, allele_cli_names)
-            for allele in alleles)
+            for allele in alleles))
         args.extend([self.allele_flag, allele_arg])
         if length:
             args.extend([self.length_flag, str(length)])
@@ -584,7 +645,8 @@ class BaseCommandlinePredictor(BasePredictor):
             outputs = _read_command_outputs(commands)
             for file_contents in outputs:
                 binding_predictions.extend(
-                    self.parse_output_fn(
+                    self._parse_output(
+                        self.parse_output_fn,
                         stdout=file_contents,
                         sequence_key_mapping=sequence_key_mapping,
                         prediction_method_name=self.program_name))
@@ -625,7 +687,8 @@ class BaseCommandlinePredictor(BasePredictor):
             outputs = _read_command_outputs(commands)
             for file_contents in outputs:
                 all_preds.extend(
-                    self.parse_to_preds_fn(
+                    self._parse_output(
+                        self.parse_to_preds_fn,
                         stdout=file_contents,
                         sequence_key_mapping=sequence_key_mapping,
                         predictor_name=self.program_name))
@@ -643,6 +706,12 @@ class BaseCommandlinePredictor(BasePredictor):
             alleles,
             allele_cli_names=None):
         self._check_peptide_inputs(peptides)
+        # Distinct requests can use the same native input (DR beta vs pair).
+        # Score each native input once and restore all requests after parsing.
+        by_native = {}
+        for allele in alleles:
+            by_native.setdefault(self._cli_allele_name(allele, allele_cli_names), allele)
+        alleles = list(by_native.values())
         input_filenames = create_input_peptides_files(
             peptides,
             max_peptides_per_file=self.max_peptides_per_file,
@@ -697,6 +766,8 @@ class BaseCommandlinePredictor(BasePredictor):
             commands=commands,
             input_filenames=input_filenames,
             temp_dir_list=dirs)
+        results = BindingPredictionCollection(self._restore_requested_identities(
+            results, alleles, allele_cli_names))
         self._check_results(
             results,
             peptides=peptides,
@@ -722,6 +793,8 @@ class BaseCommandlinePredictor(BasePredictor):
                 commands=commands,
                 input_filenames=input_filenames,
                 temp_dir_list=dirs)
+            predictions = self._restore_requested_identities(
+                predictions, alleles, allele_cli_names)
         return self._peptide_results_in_input_order(predictions, peptides, alleles)
 
     def _check_pair_inputs(self, peptides, alleles=None):

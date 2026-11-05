@@ -38,6 +38,7 @@ from .pred import (
     Prediction,
 )
 from .wrapper_base import NewModelPredictorMixin
+from .allele_normalization import normalize_allele_name
 
 
 def _find_bigmhc_dir(bigmhc_path=None):
@@ -124,7 +125,7 @@ class BigMHC(NewModelPredictorMixin):
         if mode not in self.VALID_MODES:
             raise ValueError(
                 "mode must be one of %s, got %r" % (self.VALID_MODES, mode))
-        self.alleles = list(alleles)
+        self.alleles = [normalize_allele_name(a) for a in alleles]
         self.mode = mode
         self.bigmhc_dir = _find_bigmhc_dir(bigmhc_path)
         self.device = device

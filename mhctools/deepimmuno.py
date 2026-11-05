@@ -99,7 +99,7 @@ def _deepimmuno_allele(allele):
     DeepImmuno itself snaps an unknown allele to the nearest one it knows
     (``rescue_unknown_hla``), so only the punctuation has to match.
     """
-    return format_allele(normalize_allele_name(allele), deepimmuno_allele_name)
+    return format_allele(allele, deepimmuno_allele_name)
 
 
 def _resolve_python(deepimmuno_python=None):
