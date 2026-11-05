@@ -6,14 +6,14 @@
 
 """CSV prediction command for the MixTCRpred wrapper."""
 
-from argparse import ArgumentParser
+from .help import HelpArgumentParser as ArgumentParser
 
-import pandas as pd
 
 from .errors import CLI_ERROR_TYPES, cli_error_message
 
 
-def main(args_list=None):
+def make_parser():
+    """Build the command parser without running predictions or probing assets."""
     parser = ArgumentParser(
         prog="mhctools mixtcrpred",
         description=(
@@ -35,7 +35,14 @@ def main(args_list=None):
     parser.add_argument(
         "--batch-size", type=int, default=256,
         help="TCRs scored per upstream invocation (default: %(default)s)")
+    return parser
+
+
+def main(args_list=None):
+    parser = make_parser()
     args = parser.parse_args(args_list)
+
+    import pandas as pd
 
     # Keep heavyweight/optional predictor imports out of ordinary CLI startup.
     from ..mixtcrpred import MixTCRpred

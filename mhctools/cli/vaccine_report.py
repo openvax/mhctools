@@ -1,14 +1,14 @@
 """Command-line entry point for route-aware vaccine processing reports."""
 
-import argparse
+from .help import HelpArgumentParser as ArgumentParser
 from pathlib import Path
 
-from ..vaccine_report import VaccineReportInput, generate_vaccine_report
 from .errors import CLI_ERROR_TYPES
 
 
-def main(argv=None):
-    parser = argparse.ArgumentParser(
+def make_parser():
+    """Build the command parser without running predictions or probing assets."""
+    parser = ArgumentParser(
         prog="mhctools vaccine-report",
         description=(
             "Generate a timestamped, route-aware peptide cleavage and MHC-window "
@@ -24,7 +24,14 @@ def main(argv=None):
         "--max-mhc-windows", type=int, default=10,
         help="Maximum displayed windows per MHC class and construct (default: 10)",
     )
+    return parser
+
+
+def main(argv=None):
+    parser = make_parser()
     args = parser.parse_args(argv)
+
+    from ..vaccine_report import VaccineReportInput, generate_vaccine_report
     try:
         report = VaccineReportInput.from_json(args.input)
         output = generate_vaccine_report(

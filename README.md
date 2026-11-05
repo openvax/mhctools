@@ -75,8 +75,19 @@ source_sequence_name	offset	peptide	allele	score	affinity	percentile_rank	predic
 Subcommands cover artifacts (`ls`, `fetch`, `predictors`), table annotation
 (`predict-table`), peptidase activity (`cleavage`, `cleavenet`), TCR scoring
 (`mixtcrpred`), vaccine modeling (`vaccine-report`, `vaccine-trajectory`,
-`vaccine-windows`, `vaccine-compare`) and evaluation (`benchmark`). See the
-[command-line guide](https://openvax.github.io/mhctools/cli/).
+`vaccine-windows`, `vaccine-compare`) and evaluation (`benchmark`). Run
+`mhctools --help` to see commands and prediction options, or
+`mhctools --version` to identify the installed release.
+
+Enable Bash/zsh tab completion for this shell:
+
+```sh
+eval "$(register-python-argcomplete mhctools)"
+```
+
+Alternatively, run `activate-global-python-argcomplete` once and start a new
+shell to enable completion for all participating OpenVax tools. See the
+[command-line guide](https://openvax.github.io/mhctools/cli/) for details.
 
 ## Documentation
 

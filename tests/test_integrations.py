@@ -8,7 +8,6 @@ import json
 from types import SimpleNamespace
 
 from mhctools.artifacts import ArtifactStatus
-from mhctools.cli import integrations as integration_cli
 from mhctools.cli.script import main
 from mhctools.integrations import IntegrationStatus, integration_status
 from mhctools import integrations
@@ -108,7 +107,7 @@ def test_integrations_cli_json_and_strict_failure(monkeypatch, capsys):
         detail="launch succeeded",
     )]
     monkeypatch.setattr(
-        integration_cli, "list_integrations", lambda *args, **kwargs: statuses)
+        integrations, "list_integrations", lambda *args, **kwargs: statuses)
 
     result = main([
         "integrations", "example", "--check", "reproduced", "--strict",
@@ -133,7 +132,7 @@ def test_integrations_cli_strict_success(monkeypatch, capsys):
         detail="reference reproduced",
     )]
     monkeypatch.setattr(
-        integration_cli, "list_integrations", lambda *args, **kwargs: statuses)
+        integrations, "list_integrations", lambda *args, **kwargs: statuses)
 
     result = main([
         "integrations", "example", "--check", "reproduced", "--strict",
@@ -157,7 +156,7 @@ def test_predictors_is_canonical_command_and_integrations_remains_alias(
         detail="launch succeeded",
     )]
     monkeypatch.setattr(
-        integration_cli, "list_integrations", lambda *args, **kwargs: statuses)
+        integrations, "list_integrations", lambda *args, **kwargs: statuses)
 
     assert main(["predictors", "--check", "runnable", "--strict"]) == 0
     canonical_output = capsys.readouterr().out

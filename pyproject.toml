@@ -29,6 +29,7 @@ classifiers = [
   "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
 dependencies = [
+  "argcomplete>=3",
   "numpy>=2.0.0,<3.0.0",
   "pandas>=3,<4",
   "biotite>=1.6,<3",

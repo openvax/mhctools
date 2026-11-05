@@ -16,7 +16,6 @@ import pytest
 
 from mhctools import artifacts
 from mhctools.artifacts import ArtifactStatus, artifact_status, fetch, list_artifacts
-from mhctools.cli import artifacts as artifact_cli
 from mhctools.cli.script import main
 from mhctools.netcleave import _find_netcleave_dir
 from mhctools.optional_backend import common_checkout_paths
@@ -512,7 +511,7 @@ def test_ls_cli_table(monkeypatch, capsys):
         detail="example",
     )
     monkeypatch.setattr(
-        artifact_cli,
+        artifacts,
         "list_artifacts",
         lambda names, data_dir=None: [status])
     result = main(["ls"])
@@ -538,7 +537,7 @@ def test_ls_cli_missing_artifact_shows_note_not_destination(monkeypatch, capsys)
         detail="Run mhctools fetch bigmhc --accept-license",
     )
     monkeypatch.setattr(
-        artifact_cli,
+        artifacts,
         "list_artifacts",
         lambda names, data_dir=None: [status])
     main(["ls"])
@@ -563,7 +562,7 @@ def test_ls_cli_json_keeps_full_revision_and_destination(monkeypatch, capsys):
         detail="Fetch it",
     )
     monkeypatch.setattr(
-        artifact_cli,
+        artifacts,
         "list_artifacts",
         lambda names, data_dir=None: [status])
     main(["ls", "--json"])
@@ -583,7 +582,7 @@ def test_ls_cli_json(monkeypatch, capsys):
         detail="example",
     )
     monkeypatch.setattr(
-        artifact_cli,
+        artifacts,
         "list_artifacts",
         lambda names, data_dir=None: [status])
     main(["ls", "--json"])
@@ -603,7 +602,7 @@ def test_fetch_cli_dispatch(monkeypatch, capsys):
         detail="example",
     )
     monkeypatch.setattr(
-        artifact_cli,
+        artifacts,
         "fetch",
         lambda name, version=None, data_dir=None, accept_license=False,
         models=None, all_models=False, high_confidence=False: status)
@@ -624,7 +623,7 @@ def test_fetch_cli_passes_mixtcrpred_model_selection(monkeypatch):
         calls.append((name, kwargs))
         return status
 
-    monkeypatch.setattr(artifact_cli, "fetch", fake_fetch)
+    monkeypatch.setattr(artifacts, "fetch", fake_fetch)
     main([
         "fetch", "mixtcrpred", "--model", "A0201_GILGFVFTL",
         "--accept-license",

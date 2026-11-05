@@ -16,13 +16,13 @@ def test_table_aligns_headers_and_rows_without_trailing_spaces():
 
 
 @pytest.mark.parametrize("command,provider,headers", [
-    (["ls"], "mhctools.cli.artifacts.list_artifacts",
+    (["ls"], "mhctools.artifacts.list_artifacts",
      "NAME  STATUS  MANAGER  VERSION  FETCHABLE"),
-    (["predictors"], "mhctools.cli.integrations.list_integrations",
+    (["predictors"], "mhctools.integrations.list_integrations",
      "NAME  LOCATED  RUNNABLE  REPRODUCED  CAPABILITY  PATH"),
-    (["integrations"], "mhctools.cli.integrations.list_integrations",
+    (["integrations"], "mhctools.integrations.list_integrations",
      "NAME  LOCATED  RUNNABLE  REPRODUCED  CAPABILITY  PATH"),
-    (["cleavage", "--list-models"], "mhctools.cli.cleavage.cleavage_models",
+    (["cleavage", "--list-models"], "mhctools.peptidases.cleavage_models",
      "NAME  ENZYME  COMPARTMENTS  EVIDENCE  SCORE UNITS"),
 ])
 def test_empty_catalog_prints_headers(command, provider, headers, monkeypatch, capsys):

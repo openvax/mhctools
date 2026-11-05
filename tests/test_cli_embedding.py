@@ -7,6 +7,7 @@ import pytest
 from mhctools.cli import (
     add_mhc_args,
     make_mhc_arg_parser,
+    mhc_alleles_from_args,
     mhc_binding_predictor_from_args,
     predictors_from_args,
 )
@@ -18,6 +19,48 @@ def _optional_parser():
     parser = ArgumentParser()
     add_mhc_args(parser, predictor_required=False)
     return parser
+
+
+@pytest.mark.parametrize("tokens, expected", [
+    (["HLA-A*02:01", "HLA-B*07:02"], ["HLA-A*02:01", "HLA-B*07:02"]),
+    (["HLA-A*02:01,HLA-B*07:02"], ["HLA-A*02:01", "HLA-B*07:02"]),
+    (["HLA-A*02:01 HLA-B*07:02"], ["HLA-A*02:01", "HLA-B*07:02"]),
+    (["HLA-A*02:01,HLA-B*07:02", "HLA-C*07:02"],
+     ["HLA-A*02:01", "HLA-B*07:02", "HLA-C*07:02"]),
+    (["H2-Kb", "H2-Db"], ["H-2-Kb", "H-2-Db"]),
+])
+def test_allele_arguments_preserve_the_string_contract(tokens, expected):
+    args = _optional_parser().parse_args(["--mhc-alleles", *tokens])
+    assert isinstance(args.mhc_alleles, str)
+    assert mhc_alleles_from_args(args) == expected
+
+
+def test_multiple_allele_arguments_combine_with_file_and_predict(tmp_path):
+    allele_file = tmp_path / "alleles.txt"
+    allele_file.write_text("HLA-C*07:02\n")
+    args = _optional_parser().parse_args([
+        "--mhc-alleles", "HLA-A*02:01", "HLA-B*07:02",
+        "--mhc-alleles-file", str(allele_file), "--mhc-predictor", "random",
+        "--mhc-peptide-lengths", "8",
+    ])
+    predictor, = predictors_from_args(args)
+    predictions = predictor.predict(["SIINFEKL"])
+    assert {entry.allele for peptide in predictions for entry in peptide.preds} == {
+        "HLA-A*02:01", "HLA-B*07:02", "HLA-C*07:02"}
+
+
+def test_repeated_allele_option_keeps_the_last_occurrence():
+    args = _optional_parser().parse_args([
+        "--mhc-alleles", "HLA-A*02:01", "HLA-B*07:02",
+        "--mhc-alleles", "HLA-C*07:02",
+    ])
+    assert mhc_alleles_from_args(args) == ["HLA-C*07:02"]
+
+
+def test_allele_option_requires_a_value():
+    with pytest.raises(SystemExit) as exc:
+        _optional_parser().parse_args(["--mhc-alleles", "--mhc-predictor", "random"])
+    assert exc.value.code == 2
 
 
 def test_cached_report_parses_options_without_loading_models(monkeypatch, tmp_path):
