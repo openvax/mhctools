@@ -3,15 +3,14 @@
 
 """Native whole-substrate MMP evidence, deliberately separate from bond tracks."""
 
-from argparse import ArgumentParser
+from .help import HelpArgumentParser as ArgumentParser
 import json
 
-from ..cleavenet import CleaveNet
-from ..peptide_input import PeptideInput
 from .errors import CLI_ERROR_TYPES, cli_error_message
 
 
-def main(argv=None):
+def make_parser():
+    """Build the command parser without running predictions or probing assets."""
     parser = ArgumentParser(prog="mhctools cleavenet", description=__doc__)
     parser.add_argument("--peptides", nargs="+", required=True)
     parser.add_argument("--windows", action="store_true", help="Scan ten-residue windows")
@@ -19,7 +18,15 @@ def main(argv=None):
     parser.add_argument("--source-start", type=int, default=0)
     parser.add_argument("--cleavenet-home")
     parser.add_argument("--cleavenet-python")
+    return parser
+
+
+def main(argv=None):
+    parser = make_parser()
     args = parser.parse_args(argv)
+
+    from ..cleavenet import CleaveNet
+    from ..peptide_input import PeptideInput
     try:
         inputs = [PeptideInput(sequence, source_sequence_name=args.source_name,
                                source_start=args.source_start) for sequence in args.peptides]

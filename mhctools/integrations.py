@@ -24,7 +24,7 @@ from .artifacts import artifact_status, list_artifacts
 from .optional_backend import probe_executable
 
 
-CAPABILITY_LEVELS = ("located", "runnable", "reproduced")
+from .capabilities import CAPABILITY_LEVELS as CAPABILITY_LEVELS
 
 
 @dataclass(frozen=True)

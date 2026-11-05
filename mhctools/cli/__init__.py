@@ -21,7 +21,6 @@ from .args import (
     mhc_alleles_from_args,
     make_mhc_arg_parser,
     add_mhc_args,
-    mhc_predictors,
     predictors_from_args,
     _cls_accepts,
 )
@@ -35,3 +34,15 @@ __all__ = [
     "predictors_from_args",
     "_cls_accepts",
 ]
+
+
+def __getattr__(name):
+    if name == "mhc_predictors":
+        from .args import mhc_predictors
+        globals()[name] = mhc_predictors
+        return mhc_predictors
+    raise AttributeError("module %r has no attribute %r" % (__name__, name))
+
+
+def __dir__():
+    return sorted(set(globals()) | set(__all__))
