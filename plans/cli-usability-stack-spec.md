@@ -30,3 +30,12 @@ does not change allele semantics.
 The concurrent #628, #630 and #645 reserve 4.6.2, 4.6.3 and 4.7.0.
 This stack therefore uses 4.7.1 then 4.8.0 and follows those releases.
 Rebase and revalidate against the resulting main before merging.
+
+## Review adjustment
+
+The first full-suite run exposed an existing public registry identity contract
+(`test_cavaco.py` uses `mhc_predictors["cavaco"] is CavacoHalfLife`). Keep the
+public dictionary's original class/factory entries and existing heavyweight
+proxies. Defer construction of that dictionary until a consumer asks for it;
+parser construction and completion use the same lightweight name catalog.
+Restart full validation after this correction. Do not weaken the identity test.

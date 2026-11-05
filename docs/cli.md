@@ -7,6 +7,32 @@ Run `mhctools --version` (or `mhctools -V`) to print the installed package
 version, for example `mhctools 4.7.1`. This needs no predictor or input.
 `mhctools fetch --version REVISION` instead selects an upstream artifact revision.
 
+## Tab completion and help
+
+For Bash or zsh, enable completion in the current shell with:
+
+```sh
+eval "$(register-python-argcomplete mhctools)"
+```
+
+Add that line to your shell configuration to keep it enabled. Alternatively,
+run `activate-global-python-argcomplete` once and start a new shell for global
+activation across participating OpenVax tools. Global Bash activation requires
+Bash 4.2 or newer; macOS's bundled Bash 3.2 can use the per-command registration
+above. [Argcomplete's documentation](https://kislyuk.github.io/argcomplete/)
+covers shell setup.
+
+Completion includes subcommands, aliases, command options, predictor names
+(including comma-separated selections), local paths and fixed option choices.
+It does not initialize predictors, scan the Ensembl cache, or contact the network.
+
+Help uses cyan flags and bold cyan headings in a terminal. Catalog tables use
+the same headings, dim unavailable fields and yellow warning statuses. Redirected
+help, JSON and prediction tables remain plain. Set `NO_COLOR` (including an empty
+value) or `TERM=dumb` to disable styling.
+
+## Commands
+
 | Command | Does | More |
 |---|---|---|
 | `mhctools` | Predict for peptides or FASTA sequences | below |

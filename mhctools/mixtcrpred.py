@@ -409,15 +409,8 @@ def print_model_catalog(
         model.manager,
         model.path,
     ) for model in models]
-    widths = [
-        max([len(headers[index])] + [len(row[index]) for row in rows])
-        for index in range(len(headers))
-    ]
-    print("  ".join(
-        value.ljust(widths[index]) for index, value in enumerate(headers)))
-    for row in rows:
-        print("  ".join(
-            value.ljust(widths[index]) for index, value in enumerate(row)))
+    from .cli.formatting import format_table
+    print(format_table(headers, rows, stream=sys.stdout))
 
 
 def _resolve_python(mixtcrpred_python=None):

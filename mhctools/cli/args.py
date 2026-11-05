@@ -17,73 +17,17 @@
 Commandline options for MHC Binding Prediction
 """
 
-from argparse import Action, ArgumentParser
+from argparse import Action
+from .help import HelpArgumentParser as ArgumentParser
 import inspect
 import logging
 
-from ..allele_normalization import normalize_allele_name_or_raw
 
 from .parsing_helpers import parse_int_list
-# Heavy predictors (BigMHC, CapHLA, MHCflurry) are NOT imported here: pulling them in
-# would trigger torch/TF imports just by loading this CLI module. They are
-# wrapped in _LazyPredictor below and resolved on first use.
-from .. import (
-    NetMHC,
-    NetMHC3,
-    NetMHC4,
-    NetMHCpan,
-    NetMHCpan28,
-    NetMHCpan3,
-    NetMHCpan4,
-    NetMHCpan4_EL,
-    NetMHCpan4_BA,
-    NetMHCpan41,
-    NetMHCpan41_EL,
-    NetMHCpan41_BA,
-    NetMHCpan42,
-    NetMHCpan42_EL,
-    NetMHCpan42_BA,
-    NetMHCIIpan,
-    NetMHCIIpan3,
-    NetMHCIIpan4,
-    NetMHCIIpan4_EL,
-    NetMHCIIpan4_BA,
-    NetMHCIIpan43,
-    NetMHCIIpan43_EL,
-    NetMHCIIpan43_BA,
-    NetMHCcons,
-    NetMHCstabpan,
-    NetChop,
-    NetCleave,
-    NetCleave_I,
-    NetCleave_II,
-    Pepsickle,
-    RandomBindingPredictor,
-    IedbNetMHCpan,
-    IedbNetMHCcons,
-    SMM,
-    SMMPMBEC,
-    IedbSMM,
-    IedbSMM_PMBEC,
-    IedbNetMHCIIpan,
-    MixMHCpred,
-    MixMHC2pred,
-    PRIME,
-    DeepTAP,
-    Calis,
-    WEIRDO,
-    ERAMER,
-    DeepImmuno,
-    TLimmuno2,
-    PeptiVerse,
-    PeptiVerseCPP,
-    PlifePred2,
-    CavacoHalfLife,
-)
 
 
 class _LazyPredictor:
-    """Lazy-import factory for heavy predictors.
+    """Lazy-import factory for CLI predictors.
 
     NOTE: this is an instance, not a class. `isinstance(x, _LazyPredictor(...))`
     and `issubclass(cls, _LazyPredictor(...))` will NOT work against these
@@ -128,80 +72,102 @@ class _LazyPredictor:
         return hash((self._module_name, self._class_name))
 
 
-_BigMHC = _LazyPredictor(".bigmhc", "BigMHC")
-_BigMHC_EL = _LazyPredictor(".bigmhc", "BigMHC_EL")
-_BigMHC_IM = _LazyPredictor(".bigmhc", "BigMHC_IM")
-_CapHLA = _LazyPredictor(".caphla", "CapHLA")
-_CapHLA_BA = _LazyPredictor(".caphla", "CapHLA_BA")
-_CapHLA_EL = _LazyPredictor(".caphla", "CapHLA_EL")
-_MHCflurry = _LazyPredictor(".mhcflurry", "MHCflurry")
-_MHCflurry_Affinity = _LazyPredictor(".mhcflurry", "MHCflurry_Affinity")
-
-
 logger = logging.getLogger(__name__)
 
-mhc_predictors = {
-    "netmhc": NetMHC,
-    "netmhc3": NetMHC3,
-    "netmhc4": NetMHC4,
-    "netmhcpan": NetMHCpan,
-    "netmhcpan4": NetMHCpan4,
-    "netmhcpan4-ba": NetMHCpan4_BA,
-    "netmhcpan4-el": NetMHCpan4_EL,
-    "netmhcpan41": NetMHCpan41,
-    "netmhcpan41-ba": NetMHCpan41_BA,
-    "netmhcpan41-el": NetMHCpan41_EL,
-    "netmhcpan42": NetMHCpan42,
-    "netmhcpan42-ba": NetMHCpan42_BA,
-    "netmhcpan42-el": NetMHCpan42_EL,
-    "netmhcpan28": NetMHCpan28,
-    "netmhcpan3": NetMHCpan3,
-    "netmhciipan": NetMHCIIpan,
-    "netmhciipan3": NetMHCIIpan3,
-    "netmhciipan4": NetMHCIIpan4,
-    "netmhciipan4-ba": NetMHCIIpan4_BA,
-    "netmhciipan4-el": NetMHCIIpan4_EL,
-    "netmhciipan43": NetMHCIIpan43,
-    "netmhciipan43-ba": NetMHCIIpan43_BA,
-    "netmhciipan43-el": NetMHCIIpan43_EL,
-    "netmhccons": NetMHCcons,
-    "netmhcstabpan": NetMHCstabpan,
-    "bigmhc": _BigMHC,
-    "bigmhc-el": _BigMHC_EL,
-    "bigmhc-im": _BigMHC_IM,
-    "caphla": _CapHLA,
-    "caphla-ba": _CapHLA_BA,
-    "caphla-el": _CapHLA_EL,
-    "netchop": NetChop,
-    "netcleave": NetCleave,
-    "netcleave-i": NetCleave_I,
-    "netcleave-ii": NetCleave_II,
-    "pepsickle": Pepsickle,
-    "random": RandomBindingPredictor,
-    "smm": SMM,
-    "smm-pmbec": SMMPMBEC,
-    # Historical names, now using installed local predictors.
-    "netmhcpan-iedb": IedbNetMHCpan,
-    "netmhccons-iedb": IedbNetMHCcons,
-    "smm-iedb": IedbSMM,
-    "smm-pmbec-iedb": IedbSMM_PMBEC,
-    "netmhciipan-iedb": IedbNetMHCIIpan,
-    "mhcflurry": _MHCflurry,
-    "mhcflurry-affinity": _MHCflurry_Affinity,
-    "mixmhcpred": MixMHCpred,
-    "mixmhc2pred": MixMHC2pred,
-    "prime": PRIME,
-    "deeptap": DeepTAP,
-    "calis": Calis,
-    "weirdo": WEIRDO,
-    "eramer": ERAMER,
-    "deepimmuno": DeepImmuno,
-    "tlimmuno2": TLimmuno2,
-    "peptiverse": PeptiVerse,
-    "peptiverse-cpp": PeptiVerseCPP,
-    "plifepred2": PlifePred2,
-    "cavaco": CavacoHalfLife,
+_PREDICTORS = {
+    "netmhc": _LazyPredictor(".netmhc", "NetMHC"),
+    "netmhc3": _LazyPredictor(".netmhc3", "NetMHC3"),
+    "netmhc4": _LazyPredictor(".netmhc4", "NetMHC4"),
+    "netmhcpan": _LazyPredictor(".netmhc_pan", "NetMHCpan"),
+    "netmhcpan4": _LazyPredictor(".netmhc_pan4", "NetMHCpan4"),
+    "netmhcpan4-ba": _LazyPredictor(".netmhc_pan4", "NetMHCpan4_BA"),
+    "netmhcpan4-el": _LazyPredictor(".netmhc_pan4", "NetMHCpan4_EL"),
+    "netmhcpan41": _LazyPredictor(".netmhc_pan41", "NetMHCpan41"),
+    "netmhcpan41-ba": _LazyPredictor(".netmhc_pan41", "NetMHCpan41_BA"),
+    "netmhcpan41-el": _LazyPredictor(".netmhc_pan41", "NetMHCpan41_EL"),
+    "netmhcpan42": _LazyPredictor(".netmhc_pan42", "NetMHCpan42"),
+    "netmhcpan42-ba": _LazyPredictor(".netmhc_pan42", "NetMHCpan42_BA"),
+    "netmhcpan42-el": _LazyPredictor(".netmhc_pan42", "NetMHCpan42_EL"),
+    "netmhcpan28": _LazyPredictor(".netmhc_pan28", "NetMHCpan28"),
+    "netmhcpan3": _LazyPredictor(".netmhc_pan3", "NetMHCpan3"),
+    "netmhciipan": _LazyPredictor(".netmhcii_pan", "NetMHCIIpan"),
+    "netmhciipan3": _LazyPredictor(".netmhcii_pan", "NetMHCIIpan3"),
+    "netmhciipan4": _LazyPredictor(".netmhcii_pan", "NetMHCIIpan4"),
+    "netmhciipan4-ba": _LazyPredictor(".netmhcii_pan", "NetMHCIIpan4_BA"),
+    "netmhciipan4-el": _LazyPredictor(".netmhcii_pan", "NetMHCIIpan4_EL"),
+    "netmhciipan43": _LazyPredictor(".netmhcii_pan", "NetMHCIIpan43"),
+    "netmhciipan43-ba": _LazyPredictor(".netmhcii_pan", "NetMHCIIpan43_BA"),
+    "netmhciipan43-el": _LazyPredictor(".netmhcii_pan", "NetMHCIIpan43_EL"),
+    "netmhccons": _LazyPredictor(".netmhc_cons", "NetMHCcons"),
+    "netmhcstabpan": _LazyPredictor(".netmhcstabpan", "NetMHCstabpan"),
+    "bigmhc": _LazyPredictor(".bigmhc", "BigMHC"),
+    "bigmhc-el": _LazyPredictor(".bigmhc", "BigMHC_EL"),
+    "bigmhc-im": _LazyPredictor(".bigmhc", "BigMHC_IM"),
+    "caphla": _LazyPredictor(".caphla", "CapHLA"),
+    "caphla-ba": _LazyPredictor(".caphla", "CapHLA_BA"),
+    "caphla-el": _LazyPredictor(".caphla", "CapHLA_EL"),
+    "netchop": _LazyPredictor(".netchop", "NetChop"),
+    "netcleave": _LazyPredictor(".netcleave", "NetCleave"),
+    "netcleave-i": _LazyPredictor(".netcleave", "NetCleave_I"),
+    "netcleave-ii": _LazyPredictor(".netcleave", "NetCleave_II"),
+    "pepsickle": _LazyPredictor(".pepsickle", "Pepsickle"),
+    "random": _LazyPredictor(".random_predictor", "RandomBindingPredictor"),
+    "smm": _LazyPredictor(".smm", "SMM"),
+    "smm-pmbec": _LazyPredictor(".smm", "SMMPMBEC"),
+    "netmhcpan-iedb": _LazyPredictor(".iedb", "IedbNetMHCpan"),
+    "netmhccons-iedb": _LazyPredictor(".iedb", "IedbNetMHCcons"),
+    "smm-iedb": _LazyPredictor(".iedb", "IedbSMM"),
+    "smm-pmbec-iedb": _LazyPredictor(".iedb", "IedbSMM_PMBEC"),
+    "netmhciipan-iedb": _LazyPredictor(".iedb", "IedbNetMHCIIpan"),
+    "mhcflurry": _LazyPredictor(".mhcflurry", "MHCflurry"),
+    "mhcflurry-affinity": _LazyPredictor(".mhcflurry", "MHCflurry_Affinity"),
+    "mixmhcpred": _LazyPredictor(".mixmhcpred", "MixMHCpred"),
+    "mixmhc2pred": _LazyPredictor(".mixmhc2pred", "MixMHC2pred"),
+    "prime": _LazyPredictor(".prime", "PRIME"),
+    "deeptap": _LazyPredictor(".deeptap", "DeepTAP"),
+    "calis": _LazyPredictor(".calis", "Calis"),
+    "weirdo": _LazyPredictor(".weirdo", "WEIRDO"),
+    "eramer": _LazyPredictor(".eramer", "ERAMER"),
+    "deepimmuno": _LazyPredictor(".deepimmuno", "DeepImmuno"),
+    "tlimmuno2": _LazyPredictor(".tlimmuno2", "TLimmuno2"),
+    "peptiverse": _LazyPredictor(".peptiverse", "PeptiVerse"),
+    "peptiverse-cpp": _LazyPredictor(".peptiverse_cpp", "PeptiVerseCPP"),
+    "plifepred2": _LazyPredictor(".plifepred2", "PlifePred2"),
+    "cavaco": _LazyPredictor(".cavaco", "CavacoHalfLife"),
 }
+
+
+# Keep the original public dict contract: ordinary entries are actual classes
+# or factories, while the existing heavyweight backends remain lazy proxies.
+# Parser construction needs only names and must not initialize that registry.
+_HEAVY_PREDICTORS = frozenset((
+    "bigmhc", "bigmhc-el", "bigmhc-im", "caphla", "caphla-ba", "caphla-el",
+    "mhcflurry", "mhcflurry-affinity",
+))
+
+
+def _predictor_registry():
+    if "mhc_predictors" not in globals():
+        globals()["mhc_predictors"] = {
+            name: factory if name in _HEAVY_PREDICTORS else factory._resolve()
+            for name, factory in _PREDICTORS.items()
+        }
+    return globals()["mhc_predictors"]
+
+
+def __getattr__(name):
+    if name == "mhc_predictors":
+        return _predictor_registry()
+    raise AttributeError("module %r has no attribute %r" % (__name__, name))
+
+
+def __dir__():
+    return sorted(set(globals()) | {"mhc_predictors"})
+
+
+def _predictor_names():
+    # Honor caller changes to the public registry after it has been requested.
+    return globals().get("mhc_predictors", _PREDICTORS).keys()
 
 
 def _cls_accepts(cls, param_name):
@@ -219,12 +185,18 @@ def _parse_predictor_names(value):
     """Normalize a single CLI token: lowercase, split on commas, validate."""
     names = [s.strip().lower() for s in value.split(",") if s.strip()]
     for name in names:
-        if name not in mhc_predictors:
+        if name not in _predictor_names():
             from argparse import ArgumentTypeError
             raise ArgumentTypeError(
                 "Unknown predictor %r. Available: %s"
-                % (name, ", ".join(sorted(mhc_predictors.keys()))))
+                % (name, ", ".join(sorted(_predictor_names()))))
     return names
+
+
+def _complete_predictor_names(prefix, **kwargs):
+    head, separator, tail = prefix.rpartition(",")
+    return [head + separator + name for name in sorted(_predictor_names())
+            if name.startswith(tail.lower())]
 
 
 class _StoreAlleleArguments(Action):
@@ -260,8 +232,8 @@ def add_mhc_args(arg_parser, *, predictor_required=True):
             "E.g. '--mhc-predictor netmhcpan42' or "
             "'--mhc-predictor netmhcpan42 bigmhc-el pepsickle' or "
             "'--mhc-predictor netmhcpan42,bigmhc-el,pepsickle'. "
-            "Available: %s" % ", ".join(sorted(mhc_predictors.keys()))
-        ))
+            "Available: %s" % ", ".join(sorted(_predictor_names()))
+        )).completer = _complete_predictor_names
 
     mhc_options_arg_group.add_argument(
         "--mhc-predictor-path",
@@ -316,6 +288,8 @@ def make_mhc_arg_parser(**kwargs):
     return parser
 
 def mhc_alleles_from_args(args):
+    from ..allele_normalization import normalize_allele_name_or_raw
+
     # normalize_allele_name_or_raw keeps exotic / non-human alleles that
     # mhcgnomes can't parse (e.g. BoLA-amani.1, H-2-Qa1) instead of raising,
     # matching the commandline predictors' keep-unparseable behavior (#220).
@@ -378,6 +352,8 @@ def predictors_from_args(args):
     names = _flatten_predictor_names(args)
     if getattr(args, "mixmhcpred_python", None) and not set(names) & {"mixmhcpred", "prime"}:
         raise ValueError("--mixmhcpred-python requires MixMHCpred or PRIME selection")
+
+    mhc_predictors = _predictor_registry()
 
     # Fetch alleles only if at least one predictor needs them
     needs_alleles = any(_cls_accepts(mhc_predictors[n], "alleles") for n in names)

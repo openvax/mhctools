@@ -1,25 +1,32 @@
 """JSON interface to explicitly parameterized SLP/mRNA pMHC scenarios."""
 
-import argparse
+from .help import HelpArgumentParser as ArgumentParser
 import json
 from pathlib import Path
 
-from ..vaccine_trajectory import (
-    VaccineTrajectoryInput, simulate_vaccine_trajectory,
-)
-from ..vaccine_windows import fragment_cleavage_table
-from ..vaccine_trajectory_report import format_vaccine_trajectory_report
 from .errors import CLI_ERROR_TYPES
 
 
-def main(argv=None):
-    parser = argparse.ArgumentParser(
+def make_parser():
+    """Build the command parser without running predictions or probing assets."""
+    parser = ArgumentParser(
         prog="mhctools vaccine-trajectory",
         description="Conditional local SLP/secreted-mRNA trajectories to APC pMHC; requires explicit kinetics.")
     parser.add_argument("--input", required=True, help="Trajectory schema JSON, including observation times")
     parser.add_argument("--output", required=True, help="Output JSON with curves and full mechanism/assumption audit")
     parser.add_argument("--report", help="Optional new Markdown report with dose, presentation exposure and missing inputs")
+    return parser
+
+
+def main(argv=None):
+    parser = make_parser()
     args = parser.parse_args(argv)
+
+    from ..vaccine_trajectory import (
+        VaccineTrajectoryInput, simulate_vaccine_trajectory,
+    )
+    from ..vaccine_windows import fragment_cleavage_table
+    from ..vaccine_trajectory_report import format_vaccine_trajectory_report
     try:
         paths = [Path(args.output)] + ([Path(args.report)] if args.report else [])
         if len({path.resolve() for path in paths}) != len(paths):

@@ -1,20 +1,27 @@
 """Compare existing vaccine trajectory results with explicit endpoint matching."""
 
-import argparse
+from .help import HelpArgumentParser as ArgumentParser
 import hashlib
 import json
 from pathlib import Path
 
-from ..vaccine_trajectory_report import compare_vaccine_trajectories, format_vaccine_comparison_report
 from .errors import CLI_ERROR_TYPES
 
 
-def main(argv=None):
-    parser = argparse.ArgumentParser(description=__doc__, prog="mhctools vaccine-compare")
+def make_parser():
+    """Build the command parser without running predictions or probing assets."""
+    parser = ArgumentParser(description=__doc__, prog="mhctools vaccine-compare")
     parser.add_argument("--input", required=True, nargs="+", help="Two or more trajectory RESULT JSON files, in display order")
     parser.add_argument("--output", required=True, help="New comparison JSON")
     parser.add_argument("--report", required=True, help="New readable Markdown comparison")
+    return parser
+
+
+def main(argv=None):
+    parser = make_parser()
     args = parser.parse_args(argv)
+
+    from ..vaccine_trajectory_report import compare_vaccine_trajectories, format_vaccine_comparison_report
     try:
         outputs = [Path(args.output), Path(args.report)]
         if outputs[0].resolve() == outputs[1].resolve():

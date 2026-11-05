@@ -19,16 +19,9 @@ CSV (optionally compressed), runs the requested predictors, and writes the
 input table back with one appended score column per predictor.
 """
 
-from argparse import ArgumentParser
+from .help import HelpArgumentParser as ArgumentParser
 
-import pandas as pd
-
-from ..annotate import (
-    annotate_table,
-    parse_annotation_spec,
-    output_field_tokens,
-)
-from ..pred import best_direction
+from ..annotation_fields import output_field_tokens
 from ..logging import get_logger
 from .errors import CLI_ERROR_TYPES, predictor_error_message
 
@@ -88,6 +81,9 @@ def make_arg_parser():
 
 
 def _write_predictor_info(path, raw_specs, specs):
+    import pandas as pd
+    from ..pred import best_direction
+
     rows = []
     for raw, spec in zip(raw_specs, specs):
         rows.append({
@@ -104,6 +100,8 @@ def _write_predictor_info(path, raw_specs, specs):
 
 def _format_prediction_columns(dataframe, specs):
     """Format generated numeric columns without rounding input columns."""
+    import pandas as pd
+
     output = dataframe.copy()
     for spec in specs:
         output[spec.output_column] = output[spec.output_column].map(
@@ -114,6 +112,9 @@ def _format_prediction_columns(dataframe, specs):
 def main(args_list=None):
     parser = make_arg_parser()
     args = parser.parse_args(args_list)
+
+    import pandas as pd
+    from ..annotate import annotate_table, parse_annotation_spec
 
     try:
         df = pd.read_csv(args.input)
