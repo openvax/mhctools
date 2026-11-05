@@ -563,7 +563,7 @@ def __dir__():
     return sorted(set(globals()) | set(_LAZY_IMPORTS))
 
 
-__version__ = "4.8.0"
+__version__ = "4.8.1"
 
 __all__ = [
     "CleaveNet",

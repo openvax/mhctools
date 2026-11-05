@@ -17,6 +17,7 @@
 Commandline options for MHC Binding Prediction
 """
 
+from argparse import Action
 from .help import HelpArgumentParser as ArgumentParser
 import inspect
 import logging
@@ -198,6 +199,13 @@ def _complete_predictor_names(prefix, **kwargs):
             if name.startswith(tail.lower())]
 
 
+class _StoreAlleleArguments(Action):
+    """Accept multiple arguments while retaining the embedded CLI's string API."""
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        setattr(namespace, self.dest, " ".join(values))
+
+
 def add_mhc_args(arg_parser, *, predictor_required=True):
     """Add the shared predictor options to an application's parser.
 
@@ -261,9 +269,13 @@ def add_mhc_args(arg_parser, *, predictor_required=True):
 
     mhc_options_arg_group.add_argument(
         "--mhc-alleles",
+        nargs="+",
+        action=_StoreAlleleArguments,
+        metavar="ALLELE",
         default="",
-        help="Comma or space separated list of alleles, e.g. "
-             "'HLA-A*02:01,HLA-B*07:02'. Required (here or via "
+        help="One or more alleles, as separate quoted values or a quoted "
+             "comma/space-separated list. Quote '*' to prevent shell expansion. "
+             "E.g. --mhc-alleles 'HLA-A*02:01' 'HLA-B*07:02'. Required (here or via "
              "--mhc-alleles-file) for every allele-specific predictor; "
              "there is no default allele.")
 

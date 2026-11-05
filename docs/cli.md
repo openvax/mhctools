@@ -54,6 +54,17 @@ accepted names are listed by `mhctools --help` and in the CLI names column
 of the [predictor matrix](predictor-matrix.md). TCR predictors have no name
 here because their input is a peptide plus a TCR.
 
+`--mhc-alleles` accepts separate values or a comma- or space-separated list:
+
+```sh
+--mhc-alleles 'HLA-A*02:01' 'HLA-B*07:02'
+--mhc-alleles 'HLA-A*02:01,HLA-B*07:02'
+--mhc-alleles 'HLA-A*02:01 HLA-B*07:02'
+```
+
+Keep the quotes so the shell does not expand `*` to filenames or reject an
+unmatched pattern. `--mhc-alleles-file` takes one allele per line.
+
 ## Predict for peptides you supply
 
 ```sh
