@@ -17,7 +17,11 @@ import logging
 import math
 import os
 
-from mhcgnomes import Allele, parse
+from mhcgnomes import Allele, ParseError
+
+from .allele_normalization import (
+    AlleleIdentityError, allele_identity_provenance, parse_allele,
+)
 
 from ._validation import require_items
 from .base_predictor import BasePredictor
@@ -35,37 +39,49 @@ _PERCENT_RANK_SUPPORT_UNKNOWN = object()
 
 
 def _resolve_supported_alleles(
+        self,
         alleles: Iterable[str],
         valid_alleles: Sequence[str] | set[str] | None = None,
         keep_unparseable: bool = False) -> list[str]:
-    """Resolve the BasePredictor validation hook to actual MHCflurry keys.
+    """Keep canonical requests separate from MHCflurry's actual model keys.
 
-    Exact supported spellings win, including predictor-native names the parser
-    cannot recognize. Otherwise require one nomenclature-equivalent Allele
-    identity, retaining all fields and annotations without historical aliases.
-    Groups and multiple equivalent dictionary keys have no implicit winner.
+    Exact supported spellings win. Otherwise require one equivalent identity,
+    or the model's explicit two-field projection of a higher-resolution allele.
+    Expression annotations remain part of both identities. Ambiguous groups
+    cannot enter through an exact catalog match.
     """
     requests = list(alleles)
     require_items(requests, str, "MHC alleles")
     supported = set(valid_alleles or ())
     identity_keys = None
-    resolved = []
+    resolved = {}
     for raw_name in requests:
         name = raw_name.strip()
+        try:
+            identity = parse_allele(name)
+        except ParseError as error:
+            if name not in supported:
+                raise UnsupportedAllele("Unsupported MHCflurry allele: %s" % name) from error
+            canonical = name
+            identity = None
+        else:
+            if not isinstance(identity, Allele) or not identity.is_class1:
+                raise UnsupportedAllele("Unsupported MHCflurry allele: %s" % name)
+            canonical = identity.to_string()
         if name in supported:
             key = name
         else:
-            identity = parse(name, use_allele_aliases=False, raise_on_error=False)
-            if not isinstance(identity, Allele):
-                raise UnsupportedAllele("Unsupported MHCflurry allele: %s" % name)
             if identity_keys is None:
                 identity_keys = {}
                 for candidate in sorted(supported):
-                    parsed = parse(
-                        candidate, use_allele_aliases=False, raise_on_error=False)
-                    if isinstance(parsed, Allele):
-                        identity_keys.setdefault(parsed, []).append(candidate)
-            matches = identity_keys.get(identity, [])
+                    try:
+                        parsed = parse_allele(candidate)
+                    except (ParseError, AlleleIdentityError):
+                        continue
+                    identity_keys.setdefault(parsed.to_string(), []).append(candidate)
+            matches = identity_keys.get(canonical, [])
+            if not matches and identity is not None and len(identity.allele_fields) > 2:
+                matches = identity_keys.get(identity.restrict_allele_fields(2).to_string(), [])
             if len(matches) > 1:
                 raise UnsupportedAllele(
                     "Ambiguous MHCflurry allele %s matches supported keys: %s"
@@ -73,9 +89,16 @@ def _resolve_supported_alleles(
             if not matches:
                 raise UnsupportedAllele("Unsupported MHCflurry allele: %s" % name)
             key = matches[0]
-        if key not in resolved:
-            resolved.append(key)
-    return resolved
+        resolved.setdefault(canonical, key)
+    self._allele_model_names = resolved
+    return list(resolved)
+
+
+def _allele_provenance(self):
+    """Return lossless requests and effective model keys for prediction caches."""
+    return dict(**allele_identity_provenance(),
+                model_alleles=dict(self._allele_model_names),
+                predictor_version=self.predictor_version)
 
 
 def _normalize_models_path(models_path):
@@ -277,7 +300,8 @@ class MHCflurry(BasePredictor):
         "per_allele",
     ))
     # Preserve the loaded model's keys instead of legacy two-field spelling.
-    _check_hla_alleles = staticmethod(_resolve_supported_alleles)
+    _check_hla_alleles = _resolve_supported_alleles
+    allele_provenance = _allele_provenance
 
     @classmethod
     def fetch(cls, version=None):
@@ -344,7 +368,7 @@ class MHCflurry(BasePredictor):
 
         if self.include_affinity_percentile_ranks:
             _check_affinity_percent_rank_support(
-                self.predictor.affinity_predictor, self.alleles)
+                self.predictor.affinity_predictor, list(self._allele_model_names.values()))
 
     def _resolve_presentation_allele_mode(self, presentation_allele_mode):
         if presentation_allele_mode not in self.presentation_allele_modes:
@@ -401,7 +425,8 @@ class MHCflurry(BasePredictor):
 
         # Build cross product for batch prediction
         batch_peptides = peptide_list * len(allele_list)
-        batch_alleles = [a for a in allele_list for _ in peptide_list]
+        batch_requests = [a for a in allele_list for _ in peptide_list]
+        batch_alleles = [self._allele_model_names[a] for a in batch_requests]
 
         df = self.predictor.affinity_predictor.predict_to_dataframe(
             peptides=batch_peptides,
@@ -409,9 +434,9 @@ class MHCflurry(BasePredictor):
             include_percentile_ranks=self.include_affinity_percentile_ranks,
         )
         binding_predictions = []
-        for row in df.itertuples(index=False):
+        for allele, row in zip(batch_requests, df.itertuples(index=False), strict=True):
             binding_predictions.append(BindingPrediction(
-                allele=row.allele,
+                allele=allele,
                 peptide=row.peptide,
                 affinity=row.prediction,
                 percentile_rank=(
@@ -447,7 +472,8 @@ class MHCflurry(BasePredictor):
 
         # Build cross product
         batch_peptides = peptide_list * len(allele_list)
-        batch_alleles = [a for a in allele_list for _ in peptide_list]
+        batch_requests = [a for a in allele_list for _ in peptide_list]
+        batch_alleles = [self._allele_model_names[a] for a in batch_requests]
         batch_indices = list(range(len(peptide_list))) * len(allele_list)
 
         # Single batched call for affinity
@@ -458,10 +484,10 @@ class MHCflurry(BasePredictor):
         )
 
         if self.presentation_allele_mode == "haplotype":
-            presentation_alleles = allele_list
+            presentation_alleles = list(dict.fromkeys(self._allele_model_names.values()))
         else:
             presentation_alleles = {
-                allele: [allele]
+                allele: [self._allele_model_names[allele]]
                 for allele in allele_list
             }
 
@@ -496,7 +522,19 @@ class MHCflurry(BasePredictor):
         for row_position, row in enumerate(pres_df.itertuples(index=False)):
             row_index = int(getattr(row, "peptide_num", row_position))
             if self.presentation_allele_mode == "haplotype":
-                allele = getattr(row, "best_allele", getattr(row, "allele", ""))
+                model_allele = getattr(row, "best_allele", getattr(row, "allele", ""))
+                allele = next((a for a in allele_list
+                               if self._allele_model_names[a] == model_allele), "")
+                if model_allele and not allele:
+                    try:
+                        reported = parse_allele(model_allele).to_string()
+                        allele = next((a for a in allele_list
+                                       if parse_allele(self._allele_model_names[a]).to_string()
+                                       == reported), "")
+                    except (ParseError, AlleleIdentityError):
+                        pass
+                    if not allele:
+                        raise ValueError("MHCflurry returned an unrequested model allele: %s" % model_allele)
                 key = (row_index, "")
             else:
                 allele = getattr(
@@ -518,9 +556,9 @@ class MHCflurry(BasePredictor):
                 row_index, getattr(row, "processing_score", None))
 
         groups = [list() for _ in peptide_list]
-        for row_index, row in zip(batch_indices, aff_df.itertuples(index=False)):
+        for row_index, allele, row in zip(
+                batch_indices, batch_requests, aff_df.itertuples(index=False), strict=True):
             pep = row.peptide
-            allele = row.allele
             affinity_nM = row.prediction
             affinity_pct = (
                 row.prediction_percentile
@@ -627,7 +665,8 @@ class MHCflurry_Affinity(BasePredictor):
 
     See https://github.com/openvax/mhcflurry
     """
-    _check_hla_alleles = staticmethod(_resolve_supported_alleles)
+    _check_hla_alleles = _resolve_supported_alleles
+    allele_provenance = _allele_provenance
 
     @classmethod
     def fetch(cls, version=None):
@@ -681,7 +720,8 @@ class MHCflurry_Affinity(BasePredictor):
             include_affinity_percentile_ranks
 
         if self.include_affinity_percentile_ranks:
-            _check_affinity_percent_rank_support(self.predictor, self.alleles)
+            _check_affinity_percent_rank_support(
+                self.predictor, list(self._allele_model_names.values()))
 
     def predict_peptides(self, peptides):
         """
@@ -691,7 +731,8 @@ class MHCflurry_Affinity(BasePredictor):
         allele_list = list(self.alleles)
 
         batch_peptides = peptide_list * len(allele_list)
-        batch_alleles = [a for a in allele_list for _ in peptide_list]
+        batch_requests = [a for a in allele_list for _ in peptide_list]
+        batch_alleles = [self._allele_model_names[a] for a in batch_requests]
 
         df = self.predictor.predict_to_dataframe(
             peptides=batch_peptides,
@@ -699,9 +740,9 @@ class MHCflurry_Affinity(BasePredictor):
             include_percentile_ranks=self.include_affinity_percentile_ranks,
         )
         binding_predictions = []
-        for row in df.itertuples(index=False):
+        for allele, row in zip(batch_requests, df.itertuples(index=False), strict=True):
             binding_predictions.append(BindingPrediction(
-                allele=row.allele,
+                allele=allele,
                 peptide=row.peptide,
                 affinity=row.prediction,
                 percentile_rank=(

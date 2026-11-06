@@ -49,7 +49,7 @@ _KEY = ("faketool_cache_test", "-listMHC")
 
 def _clear():
     bcp._supported_alleles_cache.pop(_KEY, None)
-    bcp._normalized_supported_cache.pop(_KEY, None)
+    bcp._normalized_supported_cache.clear()
 
 
 @pytest.fixture(autouse=True)
@@ -151,18 +151,18 @@ def test_fast_path_resolves_without_building_normalized_map():
 # ---------------------------------------------------------------------------
 
 def test_slow_path_uses_predictor_spelling_for_non_roundtripping_allele():
-    # prepare("BoLA-1*09:01") -> "BoLA-109:01", which is NOT what netMHCpan
+    # prepare("BoLA-1*009:01") -> "BoLA-109:01", which is NOT what netMHCpan
     # prints; the normalized map must map it back to "BoLA-1:00901".
-    p = _StubResolve(["BoLA-1*09:01"], {"BoLA-1:00901", "BoLA-100901"})
+    p = _StubResolve(["BoLA-1*009:01"], {"BoLA-1:00901", "BoLA-100901"})
     p._resolve_supported_alleles()
-    assert p._allele_cli_names == {"BoLA-1*09:01": "BoLA-1:00901"}
-    assert _KEY in bcp._normalized_supported_cache  # map was needed
+    assert p._allele_cli_names == {"BoLA-1*009:01": "BoLA-1:00901"}
+    assert any(key[:2] == _KEY for key in bcp._normalized_supported_cache)  # map was needed
 
 
 def test_collision_prefers_colon_spelling():
     mapping = BaseCommandlinePredictor._normalized_supported_alleles(
         *_KEY, raw_names={"BoLA-100901", "BoLA-1:00901"})
-    assert mapping["BoLA-1*09:01"] == "BoLA-1:00901"
+    assert mapping["BoLA-1*009:01"] == "BoLA-1:00901"
 
 
 def test_collision_tie_break_is_deterministic():
@@ -173,16 +173,16 @@ def test_collision_tie_break_is_deterministic():
     _clear()
     b = BaseCommandlinePredictor._normalized_supported_alleles(
         *_KEY, raw_names=set(reversed(list(raw))))
-    assert a == b == {"Mamu-A1*01:01": "Mamu-A1:00101"}
+    assert a == b == {"Mamu-A1*001:01": "Mamu-A1:00101"}
 
 
 def test_resolved_spelling_used_in_command():
     # The predictor's own -listMHC spelling (not the mangled prepared form)
     # must reach the -a argument.
-    p = _StubResolve(["BoLA-1*09:01"], {"BoLA-1:00901", "BoLA-100901"})
+    p = _StubResolve(["BoLA-1*009:01"], {"BoLA-1:00901", "BoLA-100901"})
     p._resolve_supported_alleles()
     cmd = p._build_command(
-        input_filename="pep.txt", alleles=["BoLA-1*09:01"], peptide_mode=True)
+        input_filename="pep.txt", alleles=["BoLA-1*009:01"], peptide_mode=True)
     i = cmd.index("-a")
     assert cmd[i + 1] == "BoLA-1:00901"
     assert "BoLA-109:01" not in cmd            # not the rewritten form
@@ -194,9 +194,9 @@ def test_prepare_failure_falls_back_to_slow_path():
     def boom(allele):
         raise ValueError("prepare rejects %s" % allele)
 
-    p = _StubResolve(["BoLA-1*09:01"], {"BoLA-1:00901"}, prepare=boom)
+    p = _StubResolve(["BoLA-1*009:01"], {"BoLA-1:00901"}, prepare=boom)
     p._resolve_supported_alleles()
-    assert p._allele_cli_names == {"BoLA-1*09:01": "BoLA-1:00901"}
+    assert p._allele_cli_names == {"BoLA-1*009:01": "BoLA-1:00901"}
 
 
 def test_unsupported_allele_raises():

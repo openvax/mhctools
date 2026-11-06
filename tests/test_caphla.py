@@ -47,34 +47,34 @@ def test_allele_normalization_class_i():
 
 def test_allele_normalization_class_ii_dr():
     assert normalize_caphla_allele("HLA-DRB1*15:01") == (
-        "HLA-DRA1*01:01-DRB1*15:01", "HLA-DRB1*15:01", "II")
+        "HLA-DRB1*15:01", "HLA-DRB1*15:01", "II")
 
 
 def test_allele_normalization_class_ii_heterodimer():
     assert normalize_caphla_allele(
         "HLA-DPA1*01:03-DPB1*04:01") == (
-            "HLA-DPA1*01:03-DPB1*04:01",
+            "HLA-DPA1*01:03/DPB1*04:01",
             "HLA-DPA1*01:03/DPB1*04:01",
             "II")
 
 
 def test_allele_normalization_mouse():
     assert normalize_caphla_allele("H-2-Db") == (
-        "H-2-Db", "H2-Db", "I")
+        "H2-D*b", "H2-Db", "I")
 
 
 def test_allele_normalization_expression_variants():
     assert normalize_caphla_allele("HLA-A*30:14L") == (
         "HLA-A*30:14L", "HLA-A*30:14L", "I")
     assert normalize_caphla_allele("HLA-DRB5*01:08N") == (
-        "HLA-DRA1*01:01-DRB5*01:08N", "HLA-DRB5*01:08N", "II")
+        "HLA-DRB5*01:08N", "HLA-DRB5*01:08N", "II")
 
 
-def test_allele_normalization_nonclassical_mouse_aliases():
-    assert normalize_caphla_allele("H2-Qa1") == (
-        "H-2-T23", "H2-Qa1", "I")
-    assert normalize_caphla_allele("H2-Qa2") == (
-        "H-2-Q7", "H2-Qa2", "I")
+def test_allele_normalization_rejects_gene_only_mouse_aliases():
+    from mhctools.allele_normalization import AlleleIdentityError
+    for name in ('H2-Qa1', 'H2-Qa2'):
+        with pytest.raises(AlleleIdentityError, match='Gene'):
+            normalize_caphla_allele(name)
 
 
 def test_init_and_kind_support(caphla_home):
@@ -82,7 +82,7 @@ def test_init_and_kind_support(caphla_home):
         ["HLA-A*02:01", "HLA-DRB1*15:01"],
         caphla_path=caphla_home)
     assert predictor.alleles == [
-        "HLA-A*02:01", "HLA-DRA1*01:01-DRB1*15:01"]
+        "HLA-A*02:01", "HLA-DRB1*15:01"]
     assert predictor._models == {}
     assert predictor.kind_support() == {
         Kind.pMHC_presentation: {
@@ -150,7 +150,7 @@ def test_predict_cross_product(caphla_home):
     results = predictor.predict(["SIINFEKL", "GILGFVFTL"])
     assert len(results) == 2
     assert [prediction.allele for prediction in results[0].preds] == [
-        "HLA-A*02:01", "HLA-DRA1*01:01-DRB1*15:01"]
+        "HLA-A*02:01", "HLA-DRB1*15:01"]
     assert predictor.calls[0] == [
         "SIINFEKL", "SIINFEKL", "GILGFVFTL", "GILGFVFTL"]
 
@@ -193,11 +193,18 @@ def test_all_upstream_alleles_normalize_to_library_keys():
     library = pd.read_csv(Path(CAPHLA_HOME) / "HLA_library.csv")
     keys = set(library["Allele Name"])
     classes = []
+    from mhctools.allele_normalization import AlleleIdentityError
+    rejected = []
     for allele in library["Allele Name"]:
-        _, key, mhc_class = normalize_caphla_allele(allele)
+        try:
+            _, key, mhc_class = normalize_caphla_allele(allele)
+        except AlleleIdentityError:
+            rejected.append(allele)
+            continue
         assert key in keys
         classes.append(mhc_class)
     assert set(classes) == {"I", "II"}
+    assert set(rejected) == {"H2-Qa1", "H2-Qa2"}
 
 
 @pytest.mark.requires_external_tool

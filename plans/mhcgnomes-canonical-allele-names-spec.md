@@ -1,9 +1,10 @@
 # Canonical allele identity migration (#631)
 
-Status: plan only, revised 2026-11-05 after review of the identity contract.
+Status: implementation in progress, 2026-11-05; release gates below remain required.
 Do not close #631 until the implementation, downstream checks and minor release
-ship. This revision resolves the accepted-type, pair-validation, cross-repository
-pairing, G/P-group and historical-alias findings; it changes no runtime identities.
+ship. The implementation covers accepted types, pair validation, cross-repository
+pairing, G/P groups and historical aliases; release 4.9 changes runtime identities
+as described in `docs/alleles.md`.
 
 ## Objective and completed prerequisites
 
@@ -19,11 +20,11 @@ of the legacy parsed tuple. Keep that predictor-specific knowledge in mhctools.
 A canonical identity and a native executable's accepted input spelling serve
 different purposes.
 
-The remaining compatibility layer is `allele_normalization.py`. It reconstructs
-names, truncates fields, removes meaningful leading zeros and silently chooses
-representatives for groups. CapHLA and DeepImmuno still normalize then parse a
-second time. The MHCflurry adapter still has special handling for original allele
-identities; audit the exact #544 path before removing it.
+The previous `allele_normalization.py` reconstructed names, truncated fields,
+removed meaningful leading zeros and silently chose representatives for groups.
+The implementation removes that layer and the redundant CapHLA/DeepImmuno parse
+cycle. MHCflurry keeps canonical requests separate from its native model keys,
+including the exact supported-key behavior required by #544.
 
 ## Proposed identity contract
 
@@ -308,3 +309,26 @@ globally resolving historical aliases or accepting G/P group identities, require
 a separate documented migration decision and cache-policy version. The audit
 must surface conflicting downstream requirements before implementation; it must
 not silently collapse identities to make a native tool or an old fixture pass.
+
+
+## Implementation audit (4.9.0 candidate)
+
+The shared fixture corpus is `tests/data/canonical_allele_identities.json`.
+The 41 core contract regressions pass with both the minimum mhcgnomes 3.68.1
+and current 3.70.1. The full captured native catalogs (NetMHCpan 4.2: 12,997;
+NetMHCIIpan 4.3: 11,048; NetMHC 4.0: 132) were classified with both parsers.
+The recorded counts, excluded entries, curated aliases and catalog hashes are
+in `tests/data/allele_lists/canonical-audit.json`.
+
+There is no persistent MHC prediction-cache format in mhctools. Its supported
+allele map is process-local and now keys on canonicalization policy, parser
+version and native catalog content. Model-weight caches and allele-independent
+cleavage caches are unaffected. External prediction caches must use the new
+policy namespace and preserve the request-to-model provenance exposed by the
+adapters. Migration notes in `docs/alleles.md` require invalidation/recomputation
+of legacy lossy rows and prohibit guessing missing original inputs.
+
+Topiary's existing PR #578 is being extended to share this corpus and reject
+G/P typings, with composed cache/serialization/occurrence coverage. Its null
+expression eligibility remains separate. It must pass review, full gates and
+release before the mhctools minor release ships.

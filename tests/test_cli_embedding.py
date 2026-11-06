@@ -27,7 +27,7 @@ def _optional_parser():
     (["HLA-A*02:01 HLA-B*07:02"], ["HLA-A*02:01", "HLA-B*07:02"]),
     (["HLA-A*02:01,HLA-B*07:02", "HLA-C*07:02"],
      ["HLA-A*02:01", "HLA-B*07:02", "HLA-C*07:02"]),
-    (["H2-Kb", "H2-Db"], ["H-2-Kb", "H-2-Db"]),
+    (["H2-Kb", "H2-Db"], ["H2-K*b", "H2-D*b"]),
 ])
 def test_allele_arguments_preserve_the_string_contract(tokens, expected):
     args = _optional_parser().parse_args(["--mhc-alleles", *tokens])

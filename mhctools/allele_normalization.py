@@ -1,298 +1,140 @@
-"""
-Compatibility helpers for allele normalization/parsing backed by mhcgnomes.
+"""Lossless canonical MHC identities, with parsing owned by mhcgnomes.
 
-This module preserves the subset of mhcnames behavior relied on by mhctools:
-- normalize_allele_name
-- parse_classi_or_classii_allele_name
-- AlleleParseError
+Canonical names describe requests. Predictor-specific spellings and model
+resolution belong at the adapter boundary, never in these identity keys.
 """
 
-from collections import namedtuple
+from functools import lru_cache
+from importlib.metadata import version
 
-from mhcgnomes import Allele, Pair, ParseError, parse
+from mhcgnomes import Allele, AlleleWithoutGene, Pair, ParseError, parse
 
 
 AlleleParseError = ParseError
-
-AlleleName = namedtuple("AlleleName", [
-    "species",
-    "gene",
-    "allele_family",
-    "allele_code",
-])
-
-_DRA1_0101 = AlleleName(
-    species="HLA",
-    gene="DRA1",
-    allele_family="01",
-    allele_code="01")
-
-_parse_cache = {}
-_normalized_allele_cache = {}
+ALLELE_IDENTITY_POLICY = "mhctools-canonical-v1"
+PARSER_OPTIONS = dict(
+    use_allele_aliases=False,
+    infer_class2_pairing=False,
+    collapse_singleton_haplotypes=True,
+    collapse_singleton_serotypes=False,
+    max_allele_fields=None,
+    raise_on_error=True,
+)
 
 
-def _normalize_species(species_prefix):
-    if species_prefix in ("H2", "H-2"):
-        return "H-2"
-    return species_prefix
+class AlleleIdentityError(ValueError):
+    """A parsed MHC name does not identify one specific allele or valid pair.
 
-
-def _normalize_gene(species, gene_name):
-    gene_name = str(gene_name).upper()
-    # Preserve historical mhcnames behavior of expanding human DRA to DRA1.
-    if species == "HLA" and gene_name == "DRA":
-        return "DRA1"
-    return gene_name
-
-
-def _normalize_family(family):
-    family = str(family)
-    if family.isdigit():
-        if len(family) == 1:
-            family = "0" + family
-        elif len(family) == 3 and family[0] == "0":
-            family = family[1:]
-    return family
-
-
-def _normalize_code(code):
-    code = str(code)
-    if len(code) == 0:
-        return "01"
-    if code.isdigit() and len(code) == 3 and code[0] == "0":
-        return code[1:]
-    return code
-
-
-def _annotation_parse_error(parsed_allele):
-    original = parsed_allele.raw_string or parsed_allele.to_string()
-    suffix = "".join(parsed_allele.annotations)
-    if len(suffix) == 0:
-        suffix = "".join(str(m) for m in parsed_allele.mutations)
-    return AlleleParseError(
-        "The suffix '%s' of '%s' was not parsed" % (suffix, original))
-
-
-def _allele_name_from_parsed_allele(parsed_allele):
-    if not isinstance(parsed_allele, Allele):
-        raise AlleleParseError("Malformed MHC type %s" % (parsed_allele,))
-
-    if parsed_allele.annotations or parsed_allele.mutations:
-        raise _annotation_parse_error(parsed_allele)
-
-    species = _normalize_species(parsed_allele.species_prefix)
-    gene = _normalize_gene(species, parsed_allele.gene_name)
-    allele_fields = [str(field) for field in parsed_allele.allele_fields]
-
-    if len(allele_fields) == 0:
-        raise AlleleParseError("Malformed MHC type %s" % (parsed_allele,))
-
-    if len(allele_fields) == 1:
-        allele_family = ""
-        allele_code = allele_fields[0]
-    else:
-        allele_family = _normalize_family(allele_fields[0])
-        allele_code = _normalize_code(allele_fields[1])
-
-    if species == "H-2" and len(allele_family) == 0:
-        allele_code = allele_code.lower()
-
-    return AlleleName(
-        species=species,
-        gene=gene,
-        allele_family=allele_family,
-        allele_code=allele_code)
-
-
-def _mouse_shorthand_from_pair(parsed_pair):
+    Deliberately distinct from ParseError: raw-name fallback must never rescue
+    an ambiguous group, gene, or invalid pair.
     """
-    Convert mhcgnomes' H2-AA/AB or H2-EA/EB class-II pair forms to
-    historical mhcnames shorthand (H-2-IAx / H-2-IEx).
+
+
+def validate_allele_identity(parsed):
+    """Return a specific mhcgnomes identity, or raise AlleleIdentityError.
+
+    Pairs must contain a concrete alpha chain followed by a concrete beta
+    chain of the same species. Supported locus combinations are a model
+    capability, not a nomenclature rule. G/P typings and allele groups cannot
+    stand in for one member; expression suffixes and full resolution survive.
     """
-    alpha = parsed_pair.alpha
-    beta = parsed_pair.beta
-
-    if not isinstance(alpha, Allele) or not isinstance(beta, Allele):
-        return None
-
-    alpha_species = _normalize_species(alpha.species_prefix)
-    beta_species = _normalize_species(beta.species_prefix)
-    if alpha_species != "H-2" or beta_species != "H-2":
-        return None
-
-    alpha_gene = str(alpha.gene_name).upper()
-    beta_gene = str(beta.gene_name).upper()
-    if (alpha_gene, beta_gene) == ("AA", "AB"):
-        locus = "IA"
-    elif (alpha_gene, beta_gene) == ("EA", "EB"):
-        locus = "IE"
-    else:
-        return None
-
-    alpha_fields = [str(x) for x in alpha.allele_fields]
-    beta_fields = [str(x) for x in beta.allele_fields]
-    if len(alpha_fields) != 1 or len(beta_fields) != 1:
-        return None
-
-    alpha_code = alpha_fields[0].lower()
-    beta_code = beta_fields[0].lower()
-    if alpha_code != beta_code:
-        return None
-
-    return AlleleName(
-        species="H-2",
-        gene=locus,
-        allele_family="",
-        allele_code=alpha_code)
+    if isinstance(parsed, Pair):
+        alpha, beta = parsed.alpha, parsed.beta
+        if not (
+                isinstance(alpha, Allele) and isinstance(beta, Allele)
+                and alpha.species == beta.species
+                and alpha.is_class2_alpha and beta.is_class2_beta):
+            raise AlleleIdentityError(
+                "%s is not a valid class-II alpha/beta pair; provide explicit "
+                "alleles of the same species in alpha/beta order" % parsed.to_string())
+        validate_allele_identity(alpha)
+        validate_allele_identity(beta)
+    elif isinstance(parsed, Allele):
+        if parsed.is_allele_group or set(parsed.annotations).intersection("GP"):
+            raise AlleleIdentityError(
+                "%s is an ambiguous allele group; provide a specific allele. "
+                "mhctools does not choose a group member." % parsed.to_string())
+    elif not isinstance(parsed, AlleleWithoutGene):
+        raise AlleleIdentityError(
+            "%s is a %s, not a specific allele or explicit class-II pair; "
+            "provide a specific allele. mhctools does not choose a group member."
+            % (parsed.to_string(), type(parsed).__name__))
+    return parsed
 
 
-def _choose_representative_allele(parsed_result):
-    if isinstance(parsed_result, Allele):
-        return parsed_result
+@lru_cache(maxsize=16384)
+def parse_allele(name):
+    """Parse and validate a lossless canonical allele identity.
 
-    representative = getattr(parsed_result, "representative", None)
-    if isinstance(representative, Allele):
-        return representative
+    Accept mhcgnomes Allele, AlleleWithoutGene, and ordered class-II Pair
+    identities. Preserve fields, zeros, and expression annotations; never infer
+    a missing chain or resolve historical allele aliases. The documented ``;``
+    pair separator and ``_`` spelling of ``*`` remain accepted.
 
-    alleles = getattr(parsed_result, "alleles", None)
-    if alleles:
-        first = alleles[0]
-        if isinstance(first, Allele):
-            return first
-
-    raise AlleleParseError("Could not parse '%s'" % (parsed_result.raw_string,))
-
-
-def _serotype_or_supertype_to_allele_name(parsed_result):
+    Raises
+    ------
+    mhcgnomes.ParseError
+        The spelling cannot be parsed.
+    AlleleIdentityError
+        The parsed name is ambiguous or is not a valid allele identity.
     """
-    mhcnames maps serotypes/supertypes (e.g. A2, B7, A02) to a two-field
-    allele ending in :01 (e.g. HLA-A*02:01, HLA-B*07:01).
-    """
-    species = _normalize_species(getattr(parsed_result, "species_prefix", ""))
-    gene = str(getattr(parsed_result, "gene_name", "")).upper()
-    name = str(getattr(parsed_result, "name", ""))
-
-    if not species or not gene or not name:
-        return None
-
-    upper_name = name.upper()
-    if not upper_name.startswith(gene):
-        return None
-
-    family = upper_name[len(gene):]
-    if not family.isdigit():
-        return None
-
-    return AlleleName(
-        species=species,
-        gene=gene,
-        allele_family=_normalize_family(family),
-        allele_code="01")
-
-
-def parse_classi_or_classii_allele_name(name, infer_pair=True):
-    cache_key = (name, infer_pair)
-    if cache_key in _parse_cache:
-        return _parse_cache[cache_key]
-
     if not isinstance(name, str):
         raise TypeError("Expected allele name string but got %s" % (type(name),))
-
-    # Normalize separators: semicolons are used as pair separators in some
-    # publications (e.g. "DQA1*01:02;DRB1*15:01"), convert to "/" which
-    # mhcgnomes understands. Underscores stand in for "*" in some formats.
-    normalized_name = name.strip().replace(";", "/").replace("_", "*")
-
-    try:
-        parsed = parse(
-            normalized_name,
-            infer_class2_pairing=infer_pair,
-            raise_on_error=True)
-    except ParseError as e:
-        raise AlleleParseError(str(e))
-
-    if isinstance(parsed, Pair):
-        mouse_shorthand = _mouse_shorthand_from_pair(parsed)
-        if mouse_shorthand is not None:
-            result = (mouse_shorthand,)
-        else:
-            if not isinstance(parsed.alpha, Allele) or not isinstance(parsed.beta, Allele):
-                raise AlleleParseError("Malformed MHC type %s" % (name,))
-            result = (
-                _allele_name_from_parsed_allele(parsed.alpha),
-                _allele_name_from_parsed_allele(parsed.beta),
-            )
-    else:
-        serotype_or_supertype = _serotype_or_supertype_to_allele_name(parsed)
-        if serotype_or_supertype is not None:
-            result = (serotype_or_supertype,)
-        else:
-            representative_allele = _choose_representative_allele(parsed)
-            result = (_allele_name_from_parsed_allele(representative_allele),)
-
-    _parse_cache[cache_key] = result
-    return result
+    parsed = parse(name.strip().replace(";", "/"),
+                   **PARSER_OPTIONS)
+    return validate_allele_identity(parsed)
 
 
-def normalize_allele_name(raw_allele, omit_dra1=False, infer_class2_pair=True):
-    cache_key = (raw_allele, omit_dra1, infer_class2_pair)
-    if cache_key in _normalized_allele_cache:
-        return _normalized_allele_cache[cache_key]
+def normalize_allele_name(raw_allele, omit_dra1=False, infer_class2_pair=False):
+    """Return mhcgnomes' canonical, lossless spelling of a specific identity.
 
-    parsed_alleles = parse_classi_or_classii_allele_name(
-        raw_allele,
-        infer_pair=infer_class2_pair)
-
-    species = parsed_alleles[0].species
-
-    # Optionally omit the alpha allele, e.g. for IEDB predictors.
-    if omit_dra1 and len(parsed_alleles) == 2:
-        alpha, beta = parsed_alleles
-        if alpha == _DRA1_0101:
-            parsed_alleles = (beta,)
-
-    normalized_parts = [species]
-    for parsed_allele in parsed_alleles:
-        if len(parsed_allele.allele_family) > 0:
-            normalized_parts.append("%s*%s:%s" % (
-                parsed_allele.gene,
-                parsed_allele.allele_family,
-                parsed_allele.allele_code))
-        else:
-            normalized_parts.append("%s%s" % (
-                parsed_allele.gene,
-                parsed_allele.allele_code))
-
-    normalized = "-".join(normalized_parts)
-    _normalized_allele_cache[cache_key] = normalized
-    return normalized
+    The legacy projection/inference keywords are accepted only when false
+    during the 4.9 deprecation cycle. True values raise a migration error:
+    explicit pairs and native formatters replace those identity-changing modes.
+    """
+    if omit_dra1 or infer_class2_pair:
+        raise AlleleIdentityError(
+            "Canonical identities no longer infer class-II partners or omit "
+            "DRA. Supply an explicit alpha/beta pair, or use a native allele "
+            "formatter for tool-specific spellings; leave infer_class2_pair "
+            "and omit_dra1 false.")
+    return parse_allele(raw_allele).to_string()
 
 
 def normalize_allele_name_or_raw(name):
-    """
-    Normalize an allele name via mhcgnomes, or fall back to a canonical "raw"
-    spelling for names it can't parse.
+    """Canonicalize a name, retaining raw spelling only on a parsing failure.
 
-    Some alleles appear in a predictor's own supported list (e.g. netMHCpan's
-    ``-listMHC``) yet are rejected by mhcgnomes: exotic non-human alleles such
-    as ``H-2-Qa1`` or ``BoLA-amani.1``, and HLA low/null-expression variants
-    such as ``HLA-A30:14L``. For these we key on the predictor's own spelling
-    so that a requested allele and the same allele echoed back in the
-    predictor's output resolve to a single identity.
-
-    The raw fallback strips surrounding whitespace and the ``*`` gene/allele
-    separator (which a predictor may add or omit — netMHCpan prints
-    ``HLA-A*30:14L`` for a requested ``HLA-A30:14L``), preserving case to match
-    the predictor's ``-listMHC`` / output spelling.
-
-    Note: because parseable names are uppercased before normalization but the
-    raw fallback preserves case, un-normalizable exotic alleles are effectively
-    **case-sensitive** — request them exactly as the predictor's ``-listMHC``
-    spells them (e.g. ``H-2-Qa1``, not ``h-2-qa1``), or validation against the
-    raw supported list won't match.
+    Raw names preserve case and strip whitespace and ``*``. Callers must
+    validate these against the native tool's catalog before prediction.
+    Parsed groups, genes and invalid pairs always raise AlleleIdentityError.
     """
     stripped = str(name).strip()
     try:
-        return normalize_allele_name(stripped.upper())
-    except AlleleParseError:
+        parsed = parse_allele(stripped)
+    except ParseError:
         return stripped.replace("*", "")
+    return parsed.to_string()
+
+
+def native_allele_identity(name):
+    """Resolve one *verified native catalog entry* to a canonical identity.
+
+    Only an allele-group spelling may consult mhcgnomes' curated historical
+    aliases. Specific identities are never renamed. This function is not a
+    user-input normalizer: an ambiguous request must fail even if a catalog
+    uses that spelling for a historical allele.
+    """
+    normalized = name.strip().replace(";", "/")
+    try:
+        parsed = parse(normalized, **PARSER_OPTIONS)
+    except ParseError:
+        return name.strip().replace("*", "")
+    if isinstance(parsed, Allele) and parsed.is_allele_group:
+        parsed = parse(normalized, **dict(PARSER_OPTIONS, use_allele_aliases=True))
+    return validate_allele_identity(parsed).to_string()
+
+
+def allele_identity_provenance():
+    """Return the canonicalization policy and parser version for cache keys."""
+    return dict(policy=ALLELE_IDENTITY_POLICY, mhcgnomes=version("mhcgnomes"),
+                parser_options=dict(PARSER_OPTIONS))

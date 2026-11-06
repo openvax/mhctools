@@ -125,10 +125,10 @@ def test_netmhc_pan_exotic_unnormalizable_alleles():
     with a '*' (HLA-A*30:14L), so both spellings must resolve to one identity.
     """
     cases = [
-        ("H-2-Qa1", "H-2-Qa1"),
+
         ("BoLA-amani.1", "BoLA-amani.1"),
-        ("HLA-A30:14L", "HLA-A30:14L"),   # requested without '*'
-        ("HLA-A*30:14L", "HLA-A30:14L"),  # requested with '*', same identity
+        ("HLA-A30:14L", "HLA-A*30:14L"),   # requested without '*'
+        ("HLA-A*30:14L", "HLA-A*30:14L"),  # requested with '*', same identity
     ]
     peptides = ["SIINFEKLL", "GILGFVFTL"]
     for requested, expected_identity in cases:
