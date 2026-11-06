@@ -11,7 +11,9 @@ tool it serves.
 from pathlib import Path
 
 import pytest
-from mhcgnomes import Allele, ParseError, parse
+from mhcgnomes import Allele, AlleleWithoutGene, ParseError, parse
+
+from mhctools.allele_normalization import AlleleIdentityError
 
 from mhctools.allele_formats import (
     caphla_allele_key,
@@ -27,7 +29,7 @@ from mhctools.allele_formats import (
 DATA = Path(__file__).parent / "data" / "allele_lists"
 HUMAN_OR_MOUSE = ("HLA-", "H-2-", "DRB")
 # Gene-level names mhcgnomes parses as genes, not alleles (pirl-unc/mhcgnomes#190).
-KNOWN_UNPARSED = {"H-2-Qa1", "H-2-Qa2"}
+KNOWN_UNPARSED = {"H-2-Qa1", "H-2-Qa2", "H2-Qa1", "H2-Qa2"}
 
 
 # --- spelling tables -------------------------------------------------------
@@ -49,7 +51,7 @@ def test_default_drops_star(name, expected):
     ("HLA-B*57:01", "HLA-B5701"),
     ("H-2-Kb", "H-2-Kb"),
     ("Mamu-B*10:01", "Mamu-B1001"),
-    ("Mamu-B01", "Mamu-B01"),
+    ("Mamu-B*001:01", "Mamu-B0101"),
 ])
 def test_netmhc4(name, expected):
     assert netmhc4_allele_name(parse_allele(name)) == expected
@@ -124,7 +126,7 @@ def test_formatter_declines(formatter, name):
 
 @pytest.mark.parametrize("name", ["A2", "HLA-A", "not an allele", ""])
 def test_parse_allele_rejects_non_alleles(name):
-    with pytest.raises(ParseError):
+    with pytest.raises((ParseError, AlleleIdentityError)):
         parse_allele(name)
 
 
@@ -135,7 +137,8 @@ def test_parse_allele_requires_a_string():
 
 def test_parse_allele_returns_alleles_and_pairs():
     assert isinstance(parse_allele("HLA-A*02:01"), Allele)
-    assert not isinstance(parse_allele("HLA-DRB1*01:01"), Allele)
+    assert isinstance(parse_allele("HLA-DRB1*01:01"), Allele)
+    assert not isinstance(parse_allele("HLA-DRA*01:01/DRB1*01:01"), Allele)
 
 
 # --- format_allele ---------------------------------------------------------
@@ -146,15 +149,15 @@ def test_format_allele_parses_and_formats():
 
 def test_format_allele_propagates_errors_without_fallback():
     with pytest.raises(ParseError):
-        format_allele("H-2-Qa1", netmhc4_allele_name)
+        format_allele("native-Xfoo", netmhc4_allele_name)
     with pytest.raises(ParseError):
         format_allele("HLA-A*02:01", netmhciipan_allele_name)
 
 
 def test_format_allele_fallback_gets_the_original_name():
     assert format_allele(
-        "H-2-Qa1", netmhc4_allele_name, fallback=lambda name: name + "!") == \
-        "H-2-Qa1!"
+        "native-Xfoo", netmhc4_allele_name, fallback=lambda name: name + "!") == \
+        "native-Xfoo!"
 
 
 # --- against each tool's own list -------------------------------------------
@@ -177,7 +180,7 @@ def _sweep(filename, formatter):
     for name in _listed(filename):
         try:
             parsed = parse_allele(name)
-        except ParseError:
+        except (ParseError, AlleleIdentityError):
             unparsed.append(name)
             continue
         try:
@@ -200,7 +203,17 @@ def test_formatter_reproduces_listed_names_exactly(filename, formatter):
     listed = set(_listed(filename))
     formatted, _ = _sweep(filename, formatter)
     assert formatted
-    assert {n: o for n, o in formatted.items() if o not in listed} == {}
+    assert {n: o for n, o in formatted.items()
+            if o is not None and o not in listed
+            and not isinstance(parse_allele(n), AlleleWithoutGene)} == {}
+    # A listed allele without a generic formatter still round-trips through
+    # the native catalog; no naming rule is guessed for it.
+    from mhctools.base_commandline_predictor import BaseCommandlinePredictor
+    mapping = BaseCommandlinePredictor._normalized_supported_alleles(
+        filename, "-list", listed)
+    for name, output in formatted.items():
+        if output is None or output not in listed:
+            assert parse_allele(name).to_string() in mapping
 
 
 @pytest.mark.parametrize("filename,formatter", [

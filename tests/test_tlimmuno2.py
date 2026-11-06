@@ -180,7 +180,7 @@ def test_tlimmuno2_end_to_end():
         assert len(result.preds) == 1
         pred = result.preds[0]
         assert pred.kind == Kind.immunogenicity
-        assert pred.allele == "DRB1_0803"
+        assert pred.allele == "HLA-DRB1*08:03"
         assert pred.predictor_name == "tlimmuno2"
         assert 0.0 <= pred.score <= 1.0
         assert pred.percentile_rank is not None

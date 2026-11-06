@@ -25,7 +25,7 @@ Class-II alleles use MixMHC2pred's own nomenclature (``HLA-`` dropped, ``_``
 separators, paired α/β chains joined by ``__``): e.g. ``DRB1_15_01``,
 ``DQA1_01_02__DQB1_06_02``. :func:`to_mixmhc2pred_allele` maps the usual
 spellings (``HLA-DRB1*15:01``, the mhcgnomes-canonical
-``HLA-DRA1*01:01-DRB1*15:01``, or the native ``DRB1_15_01``) onto that form.
+``HLA-DRA*01:01/DRB1*15:01``, or the native ``DRB1_15_01``) onto that form.
 
 Upstream: https://github.com/GfellerLab/MixMHC2pred
 Cite: Racle et al., *Nat. Biotechnol.* 2019; Racle et al., bioRxiv 2022.
@@ -38,36 +38,31 @@ from tempfile import NamedTemporaryFile, mkdtemp
 import pandas as pd
 
 from .base_predictor import BasePredictor, _check_flank_inputs
+from .allele_normalization import parse_allele
+from mhcgnomes import Pair
 from .cleanup_context import CleanupFiles
 from .pred import Kind, PeptideResult, Prediction
 from .process_helpers import run_command
 
 
 def to_mixmhc2pred_allele(allele):
-    """Convert a class-II allele name to MixMHC2pred's nomenclature.
+    """Format a validated human class-II identity for MixMHC2pred.
 
-    Handles ``HLA-DRB1*15:01``, the mhcgnomes-canonical
-    ``HLA-DRA1*01:01-DRB1*15:01`` (the explicit DRA1 α-chain is dropped —
-    MixMHC2pred names DR alleles by their DRB chain only), paired DP/DQ chains,
-    and names already in MixMHC2pred form. Examples::
-
-        HLA-DRB1*15:01              -> DRB1_15_01
-        HLA-DRA1*01:01-DRB1*15:01   -> DRB1_15_01
-        HLA-DQA1*01:02-DQB1*06:02   -> DQA1_01_02__DQB1_06_02
-        DRB1_15_01                  -> DRB1_15_01
+    Native ``DRB1_15_01`` and ``DQA1_01_02__DQB1_06_02`` input spellings
+    are also accepted. DRA is implicit in the tool; canonical identities
+    retain an explicit pair supplied by the caller.
     """
-    text = str(allele).strip()
-    if text.upper().startswith("HLA-"):
-        text = text[4:]
-    # mhcgnomes joins paired α/β chains with '-'; users may use '/'.
-    text = text.replace("/", "-")
-    chains = [
-        chain.replace("*", "_").replace(":", "_")
-        for chain in text.split("-") if chain
-    ]
-    # The DRA1 α-chain is implicit in MixMHC2pred's DR naming.
-    chains = [chain for chain in chains if not chain.upper().startswith("DRA")]
-    return "__".join(chains)
+    parsed = parse_allele(allele.replace("__", "/"))
+    if not parsed.is_class2 or parsed.species_prefix != "HLA":
+        raise ValueError("MixMHC2pred requires human class-II alleles")
+    chains = (parsed.alpha, parsed.beta) if isinstance(parsed, Pair) else (parsed,)
+    if isinstance(parsed, Pair) and parsed.alpha.gene_name == "DRA":
+        chains = (parsed.beta,)
+    if len(chains) == 1 and not chains[0].gene_name.startswith("DRB"):
+        raise ValueError("MixMHC2pred requires an explicit alpha/beta pair for DP/DQ")
+    return "__".join(
+        chain.gene_name + "_" + "_".join(chain.allele_fields)
+        + "".join(chain.annotations) for chain in chains)
 
 
 def _default_program_name():
@@ -115,18 +110,17 @@ class MixMHC2pred(BasePredictor):
             alleles,
             default_peptide_lengths=[15],
             program_name=None):
+        if isinstance(alleles, str):
+            alleles = alleles.split(",")
+        canonical = [parse_allele(a.replace("__", "/")).to_string() for a in alleles]
         BasePredictor.__init__(
             self,
-            alleles=alleles,
+            alleles=canonical,
             default_peptide_lengths=default_peptide_lengths,
             min_peptide_length=9,
             max_peptide_length=25,
             allow_X_in_peptides=False,
-            allow_lowercase_in_peptides=False,
-            # Keep MixMHC2pred-native names (DRB1_15_01, ...) verbatim; HLA
-            # spellings are still canonicalized. to_mixmhc2pred_allele maps
-            # either onto the CLI form.
-            keep_unparseable_alleles=True)
+            allow_lowercase_in_peptides=False)
         self.program_name = program_name or _default_program_name()
 
     def predict(self, peptides, n_flanks=None, c_flanks=None):

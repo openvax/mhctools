@@ -24,57 +24,57 @@ from mhctools.allele_normalization import normalize_allele_name
 def test_dra1_drb1_slash_no_colons():
     """HLA-DRA1*0101/HLA-DRB1*0401 (PMID 25342727)"""
     assert normalize_allele_name("HLA-DRA1*0101/HLA-DRB1*0401") == \
-        "HLA-DRA1*01:01-DRB1*04:01"
+        "HLA-DRA*01:01/DRB1*04:01"
 
 
 def test_dra_drb1_slash_with_colons():
     """HLA-DRA*01:01/DRB1*03:01 (IEDB MHCalleleId/631)"""
     assert normalize_allele_name("HLA-DRA*01:01/DRB1*03:01") == \
-        "HLA-DRA1*01:01-DRB1*03:01"
+        "HLA-DRA*01:01/DRB1*03:01"
 
 
 def test_dqa1_drb1_semicolon():
     """HLA-DQA1*01:02;DRB1*15:01 (JBC 2015)"""
     assert normalize_allele_name("HLA-DQA1*01:02;DRB1*15:01") == \
-        "HLA-DQA1*01:02-DRB1*15:01"
+        "HLA-DQA1*01:02/DRB1*15:01"
 
 
 # -- Other common Class II formats --
 
-def test_drb1_beta_only_infers_alpha():
-    """Beta-only DRB1 should infer DRA1*01:01 alpha."""
+def test_drb1_beta_only_preserves_missing_alpha():
+    """Beta-only DRB1 retains its own identity without an inferred partner."""
     assert normalize_allele_name("HLA-DRB1*07:01") == \
-        "HLA-DRA1*01:01-DRB1*07:01"
+        "HLA-DRB1*07:01"
 
 
 def test_dpa1_dpb1_slash():
     assert normalize_allele_name("HLA-DPA1*01:03/DPB1*04:01") == \
-        "HLA-DPA1*01:03-DPB1*04:01"
+        "HLA-DPA1*01:03/DPB1*04:01"
 
 
 def test_dqa1_dqb1_slash():
     assert normalize_allele_name("HLA-DQA1*05:01/DQB1*02:01") == \
-        "HLA-DQA1*05:01-DQB1*02:01"
+        "HLA-DQA1*05:01/DQB1*02:01"
 
 
 def test_drb1_no_colons():
     """Four-digit format without colons."""
     assert normalize_allele_name("HLA-DRB1*0401") == \
-        "HLA-DRA1*01:01-DRB1*04:01"
+        "HLA-DRB1*04:01"
 
 
 # -- Mouse Class II --
 
 def test_mouse_ia():
-    assert normalize_allele_name("H-2-IAb") == "H-2-IAb"
+    assert normalize_allele_name("H-2-IAb") == "H2-AA*b/AB*b"
 
 
 def test_mouse_ia_no_dash():
-    assert normalize_allele_name("H2-IAd") == "H-2-IAd"
+    assert normalize_allele_name("H2-IAd") == "H2-AA*d/AB*d"
 
 
 def test_mouse_ie():
-    assert normalize_allele_name("H-2-IEk") == "H-2-IEk"
+    assert normalize_allele_name("H-2-IEk") == "H2-EA*k/EB*k"
 
 
 # -- Class I sanity (no regressions) --
@@ -88,4 +88,4 @@ def test_class1_compact():
 
 
 def test_class1_mouse():
-    assert normalize_allele_name("H-2-Kb") == "H-2-Kb"
+    assert normalize_allele_name("H-2-Kb") == "H2-K*b"

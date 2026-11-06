@@ -12,8 +12,7 @@
 
 """
 Unit tests for supporting alleles that netMHCpan lists but mhcgnomes can't
-parse (issue #220): exotic non-human alleles (H-2-Qa1, BoLA-amani.1) and HLA
-low/null-expression variants (HLA-A30:14L).
+parse (issue #220): synthetic tool-listed raw names and retained expression annotations.
 
 The key invariant is that a requested allele and the same allele echoed back
 in a predictor's output resolve to a single identity, so `_check_results`
@@ -47,13 +46,13 @@ def test_parseable_allele_is_normalized():
 def test_unparseable_non_human_kept_verbatim():
     # These netMHCpan names don't parse at all; keep the tool's own spelling
     # (including original case, which the output echoes).
-    for name in ["H-2-Qa1", "H-2-Qa2", "BoLA-amani.1", "BoLA-JSP.1",
+    for name in ["BoLA-amani.1", "BoLA-JSP.1",
                  "BoLA-T2a", "BoLA-gb1.7"]:
         assert normalize_allele_name_or_raw(name) == name
 
 
 def test_whitespace_is_stripped():
-    assert normalize_allele_name_or_raw("  H-2-Qa1 \n") == "H-2-Qa1"
+    assert normalize_allele_name_or_raw("  native-Xfoo \n") == "native-Xfoo"
 
 
 def test_star_stripped_from_unparseable_fallback():
@@ -61,7 +60,7 @@ def test_star_stripped_from_unparseable_fallback():
     # spellings must collapse to one identity so results match.
     bare = normalize_allele_name_or_raw("HLA-A30:14L")
     starred = normalize_allele_name_or_raw("HLA-A*30:14L")
-    assert bare == starred == "HLA-A30:14L"
+    assert bare == starred == "HLA-A*30:14L"
 
 
 def test_request_and_echo_share_identity():
@@ -69,7 +68,7 @@ def test_request_and_echo_share_identity():
     # whatever netMHCpan echoes back reduce to the same string.
     for requested, echoed in [
             ("HLA-A30:14L", "HLA-A*30:14L"),   # star added by netMHCpan
-            ("H-2-Qa1", "H-2-Qa1"),            # verbatim
+            ("native-Xfoo", "native-Xfoo"),            # verbatim
             ("BoLA-amani.1", "BoLA-amani.1")]:
         assert (normalize_allele_name_or_raw(requested) ==
                 normalize_allele_name_or_raw(echoed))
@@ -83,27 +82,27 @@ def test_check_hla_alleles_raises_by_default():
     # Default behavior (used by IEDB / in-process predictors) must still
     # reject names it can't normalize.
     with pytest.raises(AlleleParseError):
-        BasePredictor._check_hla_alleles(["H-2-Qa1"])
+        BasePredictor._check_hla_alleles(["native-Xfoo"])
 
 
 def test_check_hla_alleles_keeps_unparseable_when_requested():
     result = set(BasePredictor._check_hla_alleles(
-        ["H-2-Qa1", "BoLA-amani.1"], keep_unparseable=True))
-    assert result == {"H-2-Qa1", "BoLA-amani.1"}
+        ["native-Xfoo", "BoLA-amani.1"], keep_unparseable=True))
+    assert result == {"native-Xfoo", "BoLA-amani.1"}
 
 
 def test_check_hla_alleles_still_normalizes_parseable_when_keeping():
     # Mixing parseable and unparseable: parseable ones are still canonicalized.
     result = set(BasePredictor._check_hla_alleles(
-        ["hla-a*02:01", "H-2-Qa1"], keep_unparseable=True))
-    assert result == {"HLA-A*02:01", "H-2-Qa1"}
+        ["hla-a*02:01", "native-Xfoo"], keep_unparseable=True))
+    assert result == {"HLA-A*02:01", "native-Xfoo"}
 
 
 def test_check_hla_alleles_dedupes_star_variants_of_unparseable():
     # Two spellings of the same un-normalizable allele collapse to one entry.
     result = BasePredictor._check_hla_alleles(
         ["HLA-A30:14L", "HLA-A*30:14L"], keep_unparseable=True)
-    assert result == ["HLA-A30:14L"]
+    assert result == ["HLA-A*30:14L"]
 
 
 # ---------------------------------------------------------------------------
@@ -114,11 +113,11 @@ def test_cli_mhc_alleles_keep_exotic():
     from mhctools.cli.args import make_mhc_arg_parser, mhc_alleles_from_args
     args = make_mhc_arg_parser().parse_args([
         "--mhc-predictor", "netmhcpan",
-        "--mhc-alleles", "BoLA-amani.1,HLA-A*02:01 H-2-Qa1"])
+        "--mhc-alleles", "BoLA-amani.1,HLA-A*02:01 native-Xfoo"])
     # Parseable allele is canonicalized; exotic ones are kept verbatim rather
     # than raising an AlleleParseError at the CLI layer.
     assert mhc_alleles_from_args(args) == [
-        "BoLA-amani.1", "HLA-A*02:01", "H-2-Qa1"]
+        "BoLA-amani.1", "HLA-A*02:01", "native-Xfoo"]
 
 
 # ---------------------------------------------------------------------------
@@ -134,13 +133,13 @@ def test_parser_keeps_unparseable_output_allele():
 -----------------------------------------------------------------------------------
   pos          HLA      peptide         Core Offset  I_pos  I_len  D_pos  D_len        iCore        Identity 1-log50k(aff) Affinity(nM)    %Rank  BindLevel
 -----------------------------------------------------------------------------------
-    0      H-2-Qa1    SIINFEKLL    SIINFEKLL      0      0      0      0      0    SIINFEKLL         SEQ_A           0.349      1147.39     4.50
+    0      native-Xfoo    SIINFEKLL    SIINFEKLL      0      0      0      0      0    SIINFEKLL         SEQ_A           0.349      1147.39     4.50
 -----------------------------------------------------------------------------------
 
-Protein PEPLIST. Allele H-2-Qa1. Number of high binders 0. Number of weak binders 0. Number of peptides 1
+Protein PEPLIST. Allele native-Xfoo. Number of high binders 0. Number of weak binders 0. Number of peptides 1
 -----------------------------------------------------------------------------------
 """
     preds = parse_netmhc4_stdout(stdout)
     assert len(preds) == 1
-    assert preds[0].allele == "H-2-Qa1"       # raw name, not raised on
+    assert preds[0].allele == "native-Xfoo"       # raw name, not raised on
     assert preds[0].peptide == "SIINFEKLL"

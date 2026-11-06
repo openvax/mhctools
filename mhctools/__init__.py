@@ -36,6 +36,11 @@ if TYPE_CHECKING:
     from .tcr import (
         TCR as TCR,
     )
+    from .allele_normalization import (
+        AlleleIdentityError as AlleleIdentityError,
+        allele_identity_provenance as allele_identity_provenance,
+        normalize_allele_name as normalize_allele_name,
+    )
     from .allele_formats import (
         caphla_allele_key as caphla_allele_key,
         deepimmuno_allele_name as deepimmuno_allele_name,
@@ -372,7 +377,10 @@ _LAZY_IMPORTS = {
     "netmhc4_allele_name": (".allele_formats", "netmhc4_allele_name"),
     "netmhc_allele_name": (".allele_formats", "netmhc_allele_name"),
     "netmhciipan_allele_name": (".allele_formats", "netmhciipan_allele_name"),
-    "parse_allele": (".allele_formats", "parse_allele"),
+    "parse_allele": (".allele_normalization", "parse_allele"),
+    "AlleleIdentityError": (".allele_normalization", "AlleleIdentityError"),
+    "allele_identity_provenance": (".allele_normalization", "allele_identity_provenance"),
+    "normalize_allele_name": (".allele_normalization", "normalize_allele_name"),
     "prefer_allele_spelling": (".allele_formats", "prefer_allele_spelling"),
     "AnnotationSpec": (".annotate", "AnnotationSpec"),
     "annotate_table": (".annotate", "annotate_table"),
@@ -563,7 +571,7 @@ def __dir__():
     return sorted(set(globals()) | set(_LAZY_IMPORTS))
 
 
-__version__ = "4.8.3"
+__version__ = "4.9.1"
 
 __all__ = [
     "CleaveNet",
@@ -598,6 +606,9 @@ __all__ = [
     "netmhc_allele_name",
     "netmhciipan_allele_name",
     "parse_allele",
+    "AlleleIdentityError",
+    "allele_identity_provenance",
+    "normalize_allele_name",
     "prefer_allele_spelling",
     "parse_annotation_spec",
     "ArtifactStatus",

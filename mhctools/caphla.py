@@ -23,13 +23,8 @@ from importlib import util
 import os
 from pathlib import Path
 
-from mhcgnomes import Allele, Gene, ParseError, parse
-
 from .allele_formats import caphla_allele_key
-from .allele_normalization import (
-    AlleleParseError,
-    normalize_allele_name,
-)
+from .allele_normalization import parse_allele
 from .optional_backend import common_checkout_paths
 from .pred import COLUMNS, Kind, PeptideResult, Prediction
 from .wrapper_base import NewModelPredictorMixin
@@ -67,48 +62,11 @@ def _find_caphla_home(caphla_path=None):
         "or pass caphla_path= to the constructor.")
 
 
-def _canonical_name(parsed):
-    """Canonical identity of an allele that the compatibility normalizer
-    rejects (expression variants, gene-level aliases)."""
-    if isinstance(parsed, Gene):
-        return "H-2-%s" % parsed.gene_name
-    chains = (parsed,) if isinstance(parsed, Allele) else (
-        parsed.alpha, parsed.beta)
-    parts = []
-    for chain in chains:
-        gene = chain.gene_name
-        if chain.species_prefix == "HLA" and gene == "DRA":
-            gene = "DRA1"
-        parts.append(
-            gene + "*" + ":".join(chain.allele_fields) +
-            "".join(chain.annotations))
-    species = chains[0].species_prefix
-    return "-".join([
-        "H-2" if species == "H2" else species] + parts)
-
-
 def normalize_caphla_allele(allele):
-    """Return ``(canonical_name, CapHLA_key, class)`` for an MHC allele.
-
-    Parsing comes from mhcgnomes and the key from
-    :func:`mhctools.allele_formats.caphla_allele_key`. The compatibility
-    normalizer rejects expression suffixes such as N/L and gene-level aliases,
-    which mhcgnomes parses and CapHLA has keys for, so those take the
-    mhcgnomes result directly.
-    """
-    raw = str(allele).strip()
-    try:
-        canonical = normalize_allele_name(raw)
-        parsed = parse(canonical, infer_class2_pairing=True, raise_on_error=True)
-    except AlleleParseError:
-        parsed = parse(raw, infer_class2_pairing=True, raise_on_error=True)
-        canonical = _canonical_name(parsed)
-    try:
-        key = caphla_allele_key(parsed)
-    except ParseError as e:
-        raise AlleleParseError(str(e))
-    mhc_class = "II" if str(parsed.mhc_class).startswith("II") else "I"
-    return canonical, key, mhc_class
+    """Return lossless canonical identity, native CapHLA key, and MHC class."""
+    parsed = parse_allele(allele)
+    return (parsed.to_string(), caphla_allele_key(parsed),
+            "II" if parsed.is_class2 else "I")
 
 
 def _load_upstream_class(path, module_name, class_name):
