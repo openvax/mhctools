@@ -1,0 +1,222 @@
+[
+  {
+    "mhcgnomes": "3.68.1",
+    "tools": {
+      "netmhc4": {
+        "aliases": {
+          "Mamu-A01": "Mamu-A1*001:01",
+          "Mamu-A02": "Mamu-A1*002:01",
+          "Mamu-A07": "Mamu-A1*007:01",
+          "Mamu-A11": "Mamu-A1*011:01",
+          "Mamu-B01": "Mamu-B*001:01",
+          "Mamu-B03": "Mamu-B*003:01",
+          "Mamu-B08": "Mamu-B*008:01",
+          "Mamu-B52": "Mamu-B*052:01"
+        },
+        "counts": {
+          "Allele": 116,
+          "AlleleWithoutGene": 7,
+          "curated_alias": 8,
+          "excluded": 1
+        },
+        "excluded": [
+          "Mamu-B17"
+        ],
+        "sha256": "91440c6b0539299c3dc4350caa803ef27936b218a5c8eab078c79c8f89e137dc"
+      },
+      "netmhcii43": {
+        "aliases": {},
+        "counts": {
+          "Allele": 3082,
+          "Pair": 7966
+        },
+        "excluded": [],
+        "sha256": "aaad5c2b824b21efcaf4cf77e66b2363cc3090ccb0b1cedd6f29bfc6c51fd0ad"
+      },
+      "netmhcpan42": {
+        "aliases": {
+          "Mamu-A01": "Mamu-A1*001:01",
+          "Mamu-A02": "Mamu-A1*002:01",
+          "Mamu-A03": "Mamu-A1*003:01",
+          "Mamu-A04": "Mamu-A1*004:01:01",
+          "Mamu-A06": "Mamu-A1*006:01",
+          "Mamu-A07": "Mamu-A1*007:01",
+          "Mamu-A11": "Mamu-A1*011:01",
+          "Mamu-A19": "Mamu-A1*019:01",
+          "Mamu-A21": "Mamu-A1*003:06",
+          "Mamu-A23": "Mamu-A1*023:01",
+          "Mamu-A25": "Mamu-A1*025:01",
+          "Mamu-A26": "Mamu-A1*026:01",
+          "Mamu-A28": "Mamu-A1*028:01",
+          "Mamu-B01": "Mamu-B*001:01",
+          "Mamu-B03": "Mamu-B*003:01",
+          "Mamu-B08": "Mamu-B*008:01",
+          "Mamu-B39": "Mamu-B*039:01",
+          "Mamu-B52": "Mamu-B*052:01",
+          "Mamu-B66": "Mamu-B*066:01"
+        },
+        "counts": {
+          "Allele": 12924,
+          "AlleleWithoutGene": 12,
+          "curated_alias": 19,
+          "excluded": 42
+        },
+        "excluded": [
+          "H-2-Qa1",
+          "H2-Qa1",
+          "H-2-Qa2",
+          "H2-Qa2",
+          "Mamu-A24",
+          "Mamu-AG:01",
+          "Mamu-B02",
+          "Mamu-B04",
+          "Mamu-B05",
+          "Mamu-B07",
+          "Mamu-B12",
+          "Mamu-B17",
+          "Mamu-B19",
+          "Mamu-B20",
+          "Mamu-B21",
+          "Mamu-B22",
+          "Mamu-B24",
+          "Mamu-B27",
+          "Mamu-B28",
+          "Mamu-B36",
+          "Mamu-B37",
+          "Mamu-B38",
+          "Mamu-B40",
+          "Mamu-B41",
+          "Mamu-B43",
+          "Mamu-B44",
+          "Mamu-B45",
+          "Mamu-B46",
+          "Mamu-B47",
+          "Mamu-B48",
+          "Mamu-B49",
+          "Mamu-B53",
+          "Mamu-B55",
+          "Mamu-B57",
+          "Mamu-B61",
+          "Mamu-B63",
+          "Mamu-B64",
+          "Mamu-B65",
+          "Mamu-B67",
+          "Mamu-B69",
+          "Mamu-B70",
+          "Mamu-B71"
+        ],
+        "sha256": "60fda77f1fedd099fad13dfd4aa32bea2e9b5c9690d698d1210820e3d119ad15"
+      }
+    }
+  },
+  {
+    "mhcgnomes": "3.70.1",
+    "tools": {
+      "netmhc4": {
+        "aliases": {
+          "Mamu-A01": "Mamu-A1*001:01",
+          "Mamu-A02": "Mamu-A1*002:01",
+          "Mamu-A07": "Mamu-A1*007:01",
+          "Mamu-A11": "Mamu-A1*011:01",
+          "Mamu-B01": "Mamu-B*001:01",
+          "Mamu-B03": "Mamu-B*003:01",
+          "Mamu-B08": "Mamu-B*008:01",
+          "Mamu-B52": "Mamu-B*052:01"
+        },
+        "counts": {
+          "Allele": 116,
+          "AlleleWithoutGene": 7,
+          "curated_alias": 8,
+          "excluded": 1
+        },
+        "excluded": [
+          "Mamu-B17"
+        ],
+        "sha256": "91440c6b0539299c3dc4350caa803ef27936b218a5c8eab078c79c8f89e137dc"
+      },
+      "netmhcii43": {
+        "aliases": {},
+        "counts": {
+          "Allele": 3082,
+          "Pair": 7966
+        },
+        "excluded": [],
+        "sha256": "aaad5c2b824b21efcaf4cf77e66b2363cc3090ccb0b1cedd6f29bfc6c51fd0ad"
+      },
+      "netmhcpan42": {
+        "aliases": {
+          "Mamu-A01": "Mamu-A1*001:01",
+          "Mamu-A02": "Mamu-A1*002:01",
+          "Mamu-A03": "Mamu-A1*003:01",
+          "Mamu-A04": "Mamu-A1*004:01:01",
+          "Mamu-A06": "Mamu-A1*006:01",
+          "Mamu-A07": "Mamu-A1*007:01",
+          "Mamu-A11": "Mamu-A1*011:01",
+          "Mamu-A19": "Mamu-A1*019:01",
+          "Mamu-A21": "Mamu-A1*003:06",
+          "Mamu-A23": "Mamu-A1*023:01",
+          "Mamu-A25": "Mamu-A1*025:01",
+          "Mamu-A26": "Mamu-A1*026:01",
+          "Mamu-A28": "Mamu-A1*028:01",
+          "Mamu-B01": "Mamu-B*001:01",
+          "Mamu-B03": "Mamu-B*003:01",
+          "Mamu-B08": "Mamu-B*008:01",
+          "Mamu-B39": "Mamu-B*039:01",
+          "Mamu-B52": "Mamu-B*052:01",
+          "Mamu-B66": "Mamu-B*066:01"
+        },
+        "counts": {
+          "Allele": 12924,
+          "AlleleWithoutGene": 12,
+          "curated_alias": 19,
+          "excluded": 42
+        },
+        "excluded": [
+          "H-2-Qa1",
+          "H2-Qa1",
+          "H-2-Qa2",
+          "H2-Qa2",
+          "Mamu-A24",
+          "Mamu-AG:01",
+          "Mamu-B02",
+          "Mamu-B04",
+          "Mamu-B05",
+          "Mamu-B07",
+          "Mamu-B12",
+          "Mamu-B17",
+          "Mamu-B19",
+          "Mamu-B20",
+          "Mamu-B21",
+          "Mamu-B22",
+          "Mamu-B24",
+          "Mamu-B27",
+          "Mamu-B28",
+          "Mamu-B36",
+          "Mamu-B37",
+          "Mamu-B38",
+          "Mamu-B40",
+          "Mamu-B41",
+          "Mamu-B43",
+          "Mamu-B44",
+          "Mamu-B45",
+          "Mamu-B46",
+          "Mamu-B47",
+          "Mamu-B48",
+          "Mamu-B49",
+          "Mamu-B53",
+          "Mamu-B55",
+          "Mamu-B57",
+          "Mamu-B61",
+          "Mamu-B63",
+          "Mamu-B64",
+          "Mamu-B65",
+          "Mamu-B67",
+          "Mamu-B69",
+          "Mamu-B70",
+          "Mamu-B71"
+        ],
+        "sha256": "60fda77f1fedd099fad13dfd4aa32bea2e9b5c9690d698d1210820e3d119ad15"
+      }
+    }
+  }
+]

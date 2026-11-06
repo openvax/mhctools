@@ -132,7 +132,7 @@ def test_presentation_best_allele_is_attribution_not_affinity_lookup_key():
         supported=["HLA-A*02:01"])
     p = MHCflurry(alleles=["HLA-A*02:01"], predictor=fake)
     result = p.predict(["SIINFEKLA"])[0]
-    assert result.presentation.allele == "HLA-A0201"
+    assert result.presentation.allele == "HLA-A*02:01"
     assert result.presentation.score == 0.75
 
 
@@ -429,12 +429,15 @@ def test_resolves_actual_supported_keys(allele_key_wrapper, requested, key):
     fake = _key_predictor(allele_key_wrapper, [key])
     model = allele_key_wrapper(
         [requested], predictor=fake, include_affinity_percentile_ranks=False)
-    assert model.alleles == [key]
+    from mhctools.allele_normalization import normalize_allele_name_or_raw
+    canonical = normalize_allele_name_or_raw(requested)
+    assert model.alleles == [canonical]
+    assert model._allele_model_names == {canonical: key}
 
 
 @pytest.mark.parametrize('requested', [
-    'DLA-88*999:99', 'HLA-A*99:99', 'foo', 'A2', 'HLA-A*02',
-    'HLA-A*02:01:01', 'HLA-A*02:01N', 'HLA-DQA1*01:01',
+    'DLA-88*999:99', 'HLA-A*99:99', 'foo',
+    'HLA-A*02:01N', 'HLA-DQA1*01:01',
 ])
 def test_rejects_unknown_or_non_equivalent_identities(allele_key_wrapper, requested):
     from mhctools.unsupported_allele import UnsupportedAllele
@@ -451,7 +454,8 @@ def test_exact_key_wins_but_ambiguous_non_exact_identity_is_rejected(allele_key_
     for exact in supported:
         model = allele_key_wrapper(
             [exact], predictor=fake, include_affinity_percentile_ranks=False)
-        assert model.alleles == [exact]
+        assert model.alleles == ["DLA-88*001:01"]
+        assert model._allele_model_names == {"DLA-88*001:01": exact}
     with pytest.raises(UnsupportedAllele, match='Ambiguous'):
         allele_key_wrapper(
             ['dla-88*001:01'], predictor=fake,
@@ -466,11 +470,12 @@ def test_preserves_requested_order_and_forwards_resolved_keys(allele_key_wrapper
         requested, predictor=fake, include_affinity_percentile_ranks=False)
     peptides = ['SIINFEKLA', 'SIINFEKLL']
     results = model.predict(peptides)
-    assert model.alleles == expected
+    canonical = ["DLA-88*003:02", "H2-K*b", "HLA-A*02:01", "DLA-88*001:01"]
+    assert model.alleles == canonical
     affinity = fake.affinity_predictor if allele_key_wrapper is MHCflurry else fake
     assert affinity.affinity_calls[-1]['alleles'] == [a for a in expected for _ in peptides]
     assert affinity.affinity_calls[-1]['peptides'] == peptides * len(expected)
-    assert all({p.allele for p in r.filter(kind=Kind.pMHC_affinity)} == set(expected)
+    assert all({p.allele for p in r.filter(kind=Kind.pMHC_affinity)} == set(canonical)
                for r in results)
     if allele_key_wrapper is MHCflurry:
         assert fake.predict_calls[-1]['alleles'] == expected
@@ -482,3 +487,28 @@ def test_percent_rank_support_uses_actual_dla_key(allele_key_wrapper):
         allele_key_wrapper, [key], percent_rank_transforms={key: object()})
     model = allele_key_wrapper(['DLA-88*01:01'], predictor=fake)
     assert model.alleles == [key]
+
+
+@pytest.mark.parametrize('requested', ['A2', 'HLA-A*02', 'HLA-A*02:01P'])
+def test_mhcflurry_rejects_groups_even_if_native_key_is_listed(allele_key_wrapper, requested):
+    from mhctools.allele_normalization import AlleleIdentityError
+    fake = _key_predictor(allele_key_wrapper, [requested])
+    with pytest.raises(AlleleIdentityError):
+        allele_key_wrapper([requested], predictor=fake)
+
+
+def test_model_resolution_never_overwrites_requested_identity(allele_key_wrapper):
+    canonical = ['HLA-A*02:01', 'HLA-A*02:01:01:01']
+    fake = _key_predictor(allele_key_wrapper, ['HLA-A*02:01'])
+    options = dict(include_affinity_percentile_ranks=False)
+    if allele_key_wrapper is MHCflurry:
+        options['presentation_allele_mode'] = 'per_allele'
+    model = allele_key_wrapper(canonical, predictor=fake, **options)
+    assert model.alleles == canonical
+    assert model.allele_provenance()['model_alleles'] == {
+        name: 'HLA-A*02:01' for name in canonical}
+    for result in model.predict(['SIINFEKLL']):
+        assert {p.allele for p in result.filter(kind=Kind.pMHC_affinity)} == set(canonical)
+        if allele_key_wrapper is MHCflurry:
+            assert {p.allele for p in result.filter(kind=Kind.pMHC_presentation)} == set(canonical)
+    assert {p.allele for p in model.predict_peptides(['SIINFEKLL'])} == set(canonical)

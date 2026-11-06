@@ -446,3 +446,20 @@ def test_real_checkpoint_regression_current_pytorch():
         0.001, 22.142, 28.797], abs=5e-4)
     assert predictor.last_qc["warning"].tolist() == [
         "-", "-", "Error TRAV-TRBV"]
+
+
+
+def test_catalog_classifies_ambiguous_targets_without_blocking_valid_model(tmp_path, caplog):
+    home = _make_home(tmp_path)
+    path = home / 'pretrained_models' / 'info_models.csv'
+    catalog = pd.read_csv(path)
+    extra = catalog.iloc[0].copy()
+    extra['MixTCRpred_model_name'] = 'H-2q_example'
+    extra['MHC'] = 'H-2q'
+    pd.concat([catalog, extra.to_frame().T]).to_csv(path, index=False)
+    with caplog.at_level('WARNING', logger='mhctools.mixtcrpred'):
+        models = mixtcrpred.model_catalog(home)
+    assert {model.name for model in models} == {MODEL, 'DPB10401_TFEYVSQPFLMDLE'}
+    assert 'H-2q_example' in caplog.text
+    assert 'Haplotype' in caplog.text
+    assert MixTCRpred.resolve_model('GILGFVFTL', 'HLA-A*02:01', home).name == MODEL

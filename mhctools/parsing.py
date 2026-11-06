@@ -140,7 +140,8 @@ def parse_stdout(
         rank_index=None,
         ic50_index=None,
         ignored_value_indices={},
-        transforms={}):
+        transforms={},
+        allele_normalizer=normalize_allele_name_or_raw):
     """
     Generic function for parsing any NetMHC* output, given expected indices
     of values of interest.
@@ -222,7 +223,7 @@ def parse_stdout(
             source_sequence_name=original_key,
             offset=offset,
             peptide=peptide,
-            allele=normalize_allele_name_or_raw(allele),
+            allele=allele_normalizer(allele),
             score=score,
             affinity=ic50,
             percentile_rank=rank,
@@ -232,7 +233,8 @@ def parse_stdout(
 def parse_netmhc3_stdout(
         stdout,
         prediction_method_name="netmhc3",
-        sequence_key_mapping=None):
+        sequence_key_mapping=None,
+        allele_normalizer=normalize_allele_name_or_raw):
     """
     Parse the output format for NetMHC 3.x, which looks like:
 
@@ -251,6 +253,7 @@ def parse_netmhc3_stdout(
         stdout=stdout,
         prediction_method_name=prediction_method_name,
         sequence_key_mapping=sequence_key_mapping,
+        allele_normalizer=allele_normalizer,
         key_index=4,
         offset_index=0,
         peptide_index=1,
@@ -263,7 +266,8 @@ def parse_netmhc3_stdout(
 def parse_netmhc4_stdout(
         stdout,
         prediction_method_name="netmhc4",
-        sequence_key_mapping=None):
+        sequence_key_mapping=None,
+        allele_normalizer=normalize_allele_name_or_raw):
     """
     # Peptide length 9
     # Rank Threshold for Strong binding peptides   0.500
@@ -286,6 +290,7 @@ def parse_netmhc4_stdout(
         stdout=stdout,
         prediction_method_name=prediction_method_name,
         sequence_key_mapping=sequence_key_mapping,
+        allele_normalizer=allele_normalizer,
         key_index=10,
         offset_index=0,
         peptide_index=2,
@@ -297,7 +302,8 @@ def parse_netmhc4_stdout(
 def parse_netmhcpan28_stdout(
         stdout,
         prediction_method_name="netmhcpan",
-        sequence_key_mapping=None):
+        sequence_key_mapping=None,
+        allele_normalizer=normalize_allele_name_or_raw):
     """
     # Affinity Threshold for Strong binding peptides  50.000',
     # Affinity Threshold for Weak binding peptides 500.000',
@@ -324,6 +330,7 @@ def parse_netmhcpan28_stdout(
         stdout=stdout,
         prediction_method_name=prediction_method_name,
         sequence_key_mapping=sequence_key_mapping,
+        allele_normalizer=allele_normalizer,
         key_index=3,
         offset_index=0,
         peptide_index=2,
@@ -335,7 +342,8 @@ def parse_netmhcpan28_stdout(
 def parse_netmhcpan3_stdout(
         stdout,
         prediction_method_name="netmhcpan",
-        sequence_key_mapping=None):
+        sequence_key_mapping=None,
+        allele_normalizer=normalize_allele_name_or_raw):
     """
     # Rank Threshold for Strong binding peptides   0.500
     # Rank Threshold for Weak binding peptides   2.000
@@ -355,6 +363,7 @@ def parse_netmhcpan3_stdout(
         stdout=stdout,
         prediction_method_name=prediction_method_name,
         sequence_key_mapping=sequence_key_mapping,
+        allele_normalizer=allele_normalizer,
         key_index=10,
         offset_index=0,
         peptide_index=2,
@@ -369,7 +378,8 @@ def parse_netmhcpan4_stdout(
         stdout,
         prediction_method_name="netmhcpan",
         sequence_key_mapping=None,
-        mode="binding_affinity"):
+        mode="binding_affinity",
+        allele_normalizer=normalize_allele_name_or_raw):
     """
     # NetMHCpan version 4.0
 
@@ -400,6 +410,7 @@ def parse_netmhcpan4_stdout(
         stdout=stdout,
         prediction_method_name=prediction_method_name,
         sequence_key_mapping=sequence_key_mapping,
+        allele_normalizer=allele_normalizer,
         key_index=10,
         offset_index=0,
         peptide_index=2,
@@ -413,7 +424,8 @@ def parse_netmhcpan41_stdout(
         stdout,
         prediction_method_name="netmhcpan",
         sequence_key_mapping=None,
-        mode="binding_affinity"):
+        mode="binding_affinity",
+        allele_normalizer=normalize_allele_name_or_raw):
     """
 	NetMHCpan version 4.1b
 	# Rank Threshold for Strong binding peptides   0.500
@@ -438,6 +450,7 @@ def parse_netmhcpan41_stdout(
         stdout=stdout,
         prediction_method_name=prediction_method_name,
         sequence_key_mapping=sequence_key_mapping,
+        allele_normalizer=allele_normalizer,
         key_index=10,
         offset_index=0,
         peptide_index=2,
@@ -523,7 +536,8 @@ def parse_netmhcpan_to_preds(
         stdout,
         predictor_name="netMHCpan",
         predictor_version="",
-        sequence_key_mapping=None):
+        sequence_key_mapping=None,
+        allele_normalizer=normalize_allele_name_or_raw):
     """
     Auto-detecting parser for NetMHCpan output. Returns list[Prediction].
 
@@ -605,7 +619,7 @@ def parse_netmhcpan_to_preds(
             offset -= 1
 
         peptide = str(fields[peptide_index])
-        allele = normalize_allele_name_or_raw(str(fields[allele_index]))
+        allele = allele_normalizer(str(fields[allele_index]))
 
         key = str(fields[key_index])
         if sequence_key_mapping:
@@ -694,7 +708,8 @@ def parse_netmhcpan_stdout(
         stdout,
         prediction_method_name="netmhcpan",
         sequence_key_mapping=None,
-        mode=None):
+        mode=None,
+        allele_normalizer=normalize_allele_name_or_raw):
     """
     Auto-detecting parser for NetMHCpan output. Returns list[BindingPrediction]
     for backward compatibility.
@@ -704,7 +719,8 @@ def parse_netmhcpan_stdout(
     preds = parse_netmhcpan_to_preds(
         stdout=stdout,
         predictor_name=prediction_method_name,
-        sequence_key_mapping=sequence_key_mapping)
+        sequence_key_mapping=sequence_key_mapping,
+        allele_normalizer=allele_normalizer)
 
     # For compat, pick one Prediction per data row based on mode
     if mode == "elution_score":
@@ -731,7 +747,8 @@ def parse_netmhcpan_stdout(
 def parse_netmhccons_stdout(
         stdout,
         prediction_method_name="netmhccons",
-        sequence_key_mapping=None):
+        sequence_key_mapping=None,
+        allele_normalizer=normalize_allele_name_or_raw):
     """
     # Affinity Threshold for Strong binding peptides  50.000',
     # Affinity Threshold for Weak binding peptides 500.000',
@@ -757,6 +774,7 @@ def parse_netmhccons_stdout(
         stdout=stdout,
         prediction_method_name=prediction_method_name,
         sequence_key_mapping=sequence_key_mapping,
+        allele_normalizer=allele_normalizer,
         key_index=3,
         offset_index=0,
         peptide_index=2,
@@ -768,7 +786,8 @@ def parse_netmhccons_stdout(
 def parse_netmhciipan_stdout(
         stdout,
         prediction_method_name="netmhciipan",
-        sequence_key_mapping=None):
+        sequence_key_mapping=None,
+        allele_normalizer=normalize_allele_name_or_raw):
     """
     # Threshold for Strong binding peptides (IC50)	50.000 nM
     # Threshold for Weak binding peptides (IC50)	500.000 nM
@@ -797,6 +816,7 @@ def parse_netmhciipan_stdout(
         stdout=stdout,
         prediction_method_name=prediction_method_name,
         sequence_key_mapping=sequence_key_mapping,
+        allele_normalizer=allele_normalizer,
         key_index=3,
         offset_index=0,
         peptide_index=2,
@@ -809,7 +829,8 @@ def parse_netmhciipan4_stdout(
         stdout,
         prediction_method_name="netmhciipan",
         sequence_key_mapping=None,
-        mode="elution_score"):
+        mode="elution_score",
+        allele_normalizer=normalize_allele_name_or_raw):
     """
     # Threshold for Strong binding peptides (%Rank) 2%
     # Threshold for Weak binding peptides (%Rank)   10%
@@ -854,6 +875,7 @@ def parse_netmhciipan4_stdout(
         stdout=stdout,
         prediction_method_name=prediction_method_name,
         sequence_key_mapping=sequence_key_mapping,
+        allele_normalizer=allele_normalizer,
         key_index=6,
         offset_index=0,
         peptide_index=2,
@@ -868,7 +890,8 @@ def parse_netmhcstabpan(
         stdout,
         prediction_method_name="netmhcstabpan",
         sequence_key_mapping=None,
-        mode=None):
+        mode=None,
+        allele_normalizer=normalize_allele_name_or_raw):
     """
     # NetMHCstabpan version 1.0
 
@@ -898,6 +921,7 @@ def parse_netmhcstabpan(
         stdout=stdout,
         prediction_method_name=prediction_method_name,
         sequence_key_mapping=sequence_key_mapping,
+        allele_normalizer=allele_normalizer,
         key_index=3,
         offset_index=0,
         peptide_index=2,
@@ -914,7 +938,8 @@ def parse_netmhciipan43_stdout(
         stdout,
         prediction_method_name="netmhciipan",
         sequence_key_mapping=None,
-        mode="elution_score"):
+        mode="elution_score",
+        allele_normalizer=normalize_allele_name_or_raw):
     """
     # Threshold for Strong binding peptides (%Rank)  1.00%
     # Threshold for Weak binding peptides (%Rank)    5.00%
@@ -988,6 +1013,7 @@ def parse_netmhciipan43_stdout(
         stdout=stdout,
         prediction_method_name=prediction_method_name,
         sequence_key_mapping=sequence_key_mapping,
+        allele_normalizer=allele_normalizer,
         key_index=key_index,
         offset_index=0,
         peptide_index=2,

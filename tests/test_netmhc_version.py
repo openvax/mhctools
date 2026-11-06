@@ -71,3 +71,14 @@ def test_multiple_lengths_netmhc3():
         protein_sequence_dict,
         peptide_lengths=[10, 11])
     eq_(5, len(binding_predictions))
+
+
+@pytest.mark.requires_external_tool
+def test_native_catalog_aliases_preserve_explicit_mamu_and_bola_requests():
+    from mhctools import NetMHC4
+    identities = ['Mamu-A1*001:01', 'BoLA-T2b', 'BoLA-T2c']
+    predictor = NetMHC4(alleles=identities)
+    assert predictor._allele_cli_names['Mamu-A1*001:01'] == 'Mamu-A01'
+    predictions = predictor.predict_peptides(['SIINFEKLL'])
+    assert {p.allele for p in predictions} == set(identities)
+    assert len(predictions) == 3

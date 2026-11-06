@@ -1,0 +1,35 @@
+{
+  "policy": "mhctools-canonical-v1",
+  "minimum_mhcgnomes": "3.68.1",
+  "accepted": [
+    ["hla-a0201", "HLA-A*02:01"],
+    ["HLA-A*02:01:01:01", "HLA-A*02:01:01:01"],
+    ["DLA-88*001:01", "DLA-88*001:01"],
+    ["H2-Kb", "H2-K*b"],
+    ["H2-IAb", "H2-AA*b/AB*b"],
+    ["H2-IAd", "H2-AA*d/AB*d"],
+    ["HLA-DRB1*01:01", "HLA-DRB1*01:01"],
+    ["HLA-DQB1*06:02", "HLA-DQB1*06:02"],
+    ["HLA-DRA1*0101/HLA-DRB1*0101", "HLA-DRA*01:01/DRB1*01:01"],
+    ["HLA-DQA1*01:02;DQB1*06:02", "HLA-DQA1*01:02/DQB1*06:02"],
+    ["HLA-DPA1*01:03-DPB1*04:01", "HLA-DPA1*01:03/DPB1*04:01"],
+    ["BoLA-T2b", "BoLA-T2b"],
+    ["BoLA-T2c", "BoLA-T2c"],
+    ["HLA-A30:14L", "HLA-A*30:14L"],
+    ["HLA-A*24:09N", "HLA-A*24:09N"],
+    ["HLA-A*32:11Q", "HLA-A*32:11Q"],
+    ["HLA-MICA*001", "HLA-MICA*001"],
+    ["HLA-C*04:22", "HLA-C*04:22"],
+    ["Mamu-A1*001:01", "Mamu-A1*001:01"]
+  ],
+  "rejected": [
+    "A2", "A02", "HLA-A*02", "HLA-A", "H-2-Qa1", "Mamu-B17", "Mamu-A01",
+    "HLA-A*02:01:01G", "HLA-A*02:01P", "SLA-1*15XX",
+    "HLA-A*02:01/HLA-A*03:01",
+    "HLA-DRB1*01:01/HLA-DRA*01:01",
+    "HLA-DQA1*01:02/HLA-DQA1*05:01",
+    "HLA-DQA1*01/DQB1*06:02",
+    "HLA-DQA1*01:02P/DQB1*06:02",
+    "HLA-DQA1*01:02/DQB1*06:02:01G"
+  ]
+}

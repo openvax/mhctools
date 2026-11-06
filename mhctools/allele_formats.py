@@ -9,7 +9,7 @@ knowledge about the tool, not about MHC nomenclature, so it lives here.
 API
 ---
 :func:`parse_allele`
-    Parse a name into an mhcgnomes ``Allele`` or ``Pair``.
+    Parse a validated canonical ``Allele``, ``AlleleWithoutGene`` or ``Pair``.
 :func:`format_allele`
     Parse a name and format it for a tool, with an optional fallback for names
     mhcgnomes cannot parse.
@@ -30,13 +30,13 @@ allele, ...). Formatters never guess.
 Command-line predictors prefer the spelling found in the tool's own
 ``-listMHC`` output (see ``BaseCommandlinePredictor``); a formatter is only
 used when the name is not found there. Names mhcgnomes cannot parse
-(``H-2-Qa1``, ``BoLA-DRB3_00101``) have no parse result to format and follow the
-tool's own list verbatim.
+have no parse result to format and require a verified native-list match.
+Parsed genes, groups and invalid pairs are rejected even with a raw fallback.
 """
 
-from functools import lru_cache
+from mhcgnomes import Allele, AlleleWithoutGene, Gene, Pair, ParseError
 
-from mhcgnomes import Allele, Gene, Pair, ParseError, parse
+from .allele_normalization import parse_allele, validate_allele_identity
 
 __all__ = [
     "parse_allele",
@@ -53,46 +53,6 @@ __all__ = [
 # --------------------------------------------------------------------------
 # Parsing
 # --------------------------------------------------------------------------
-
-@lru_cache(maxsize=4096)
-def parse_allele(name):
-    """
-    Parse an allele name with mhcgnomes.
-
-    Tolerates the ``;`` pair separator used in some publications and ``_``
-    standing in for ``*``, and infers the alpha chain of class II beta chains
-    (``HLA-DRB1*01:01`` becomes the pair ``HLA-DRA*01:01/DRB1*01:01``).
-
-    Parameters
-    ----------
-    name : str
-
-    Returns
-    -------
-    mhcgnomes.Allele or mhcgnomes.Pair
-
-    Raises
-    ------
-    mhcgnomes.ParseError
-        If mhcgnomes cannot parse the name, or it is not a specific allele or
-        allele pair (a serotype such as ``A2`` names a group of alleles).
-    """
-    if not isinstance(name, str):
-        raise TypeError("Expected allele name string but got %s" % (type(name),))
-    parsed = parse(
-        name.strip().replace(";", "/").replace("_", "*"),
-        infer_class2_pairing=True,
-        raise_on_error=True)
-    if isinstance(parsed, Allele):
-        return parsed
-    if (isinstance(parsed, Pair)
-            and isinstance(parsed.alpha, Allele)
-            and isinstance(parsed.beta, Allele)):
-        return parsed
-    raise ParseError(
-        "%r is a %s, not a specific allele or allele pair" % (
-            name, type(parsed).__name__))
-
 
 def format_allele(name, formatter, fallback=None):
     """
@@ -197,6 +157,9 @@ def netmhc_allele_name(parsed):
     ``prepare_allele_name``. Class II pairs have no syntax in these tools and
     are joined with ``-``.
     """
+    validate_allele_identity(parsed)
+    if isinstance(parsed, AlleleWithoutGene):
+        return parsed.to_string()
     if isinstance(parsed, Pair):
         return "%s-%s" % (
             netmhc_allele_name(parsed.alpha),
@@ -215,7 +178,10 @@ def netmhc4_allele_name(parsed):
     three-digit family is dropped.
     Class II and expression suffixes are not supported (its list has none).
     """
-    if isinstance(parsed, Pair):
+    validate_allele_identity(parsed)
+    if isinstance(parsed, AlleleWithoutGene):
+        return parsed.to_string()
+    if isinstance(parsed, Pair) or not parsed.is_class1:
         raise ParseError("NetMHC 4 is class I only, got %s" % (parsed,))
     fields = _fields(parsed)
     if len(fields[0]) == 3 and fields[0].startswith("0"):
@@ -228,13 +194,16 @@ def netmhciipan_allele_name(parsed):
     """
     NetMHCIIpan spelling. The tool accepts only:
 
-    - ``DRB1_0101`` for human DR beta chains (the DR alpha chain is invariant
-      and is dropped), including expression variants (``DRB5_0108N``);
+    - ``DRB1_0101`` for human DR beta chains (the DR alpha chain
+      is implicit in this tool and is omitted), including expression variants (``DRB5_0108N``);
     - ``HLA-DQA10501-DQB10636`` for other human alpha/beta pairs;
     - ``H-2-IAb`` / ``H-2-IEk`` for mouse class II.
 
     Anything else, including class I, raises ``ParseError``.
     """
+    validate_allele_identity(parsed)
+    if not isinstance(parsed, (Allele, Pair)):
+        raise ParseError("NetMHCIIpan requires a class-II allele or explicit pair")
     if isinstance(parsed, Allele):
         # A bare beta chain only arrives here when mhcgnomes did not pair it.
         return _drb_name(parsed)
@@ -265,7 +234,8 @@ def deepimmuno_allele_name(parsed):
 
     Class I only, no expression suffixes (the table has none).
     """
-    if isinstance(parsed, Pair):
+    validate_allele_identity(parsed)
+    if not isinstance(parsed, Allele) or not parsed.is_class1:
         raise ParseError("DeepImmuno is class I only, got %s" % (parsed,))
     return _with_species(
         parsed,
@@ -298,6 +268,9 @@ def caphla_allele_key(parsed):
         except KeyError:
             raise ParseError(
                 "CapHLA does not support gene-level MHC name %s" % name)
+    validate_allele_identity(parsed)
+    if isinstance(parsed, AlleleWithoutGene):
+        raise ParseError("CapHLA has no spelling for %s" % parsed.to_string())
     if isinstance(parsed, Allele):
         return _caphla_chain(parsed, include_species=True)
     mouse = _mouse_class2(parsed)
