@@ -40,7 +40,7 @@ class _PairStubPredictor(BaseCommandlinePredictor):
     def prepare_allele_name(self, allele_name):
         return allele_name
 
-    def _run_commands_and_collect_predictions(
+    def run_commands_and_collect_predictions(
             self, commands, input_filenames, temp_dir_list,
             sequence_key_mapping=None):
         predictions = []

@@ -6,6 +6,7 @@ first prediction, start with [getting started](getting-started.md).
 | Task | Reference | Explanation and examples |
 |---|---|---|
 | Read predictions and scores | [Results](#results) | [Results and DataFrames](results.md) |
+| Scan a protein with the right flanks | [Protein-scan flank windows](#protein-scan-flank-windows) | [Protein-scan recipe](recipes.md#scan-proteins-instead-of-peptides) |
 | Describe a peptide or TCR | [Inputs](#inputs) | [Input shapes](predictors/index.md#input-shapes) |
 | Add predictions to a table | [Table annotation](#annotating-tables) | [Annotation recipe](recipes.md) |
 | Spell an allele for a tool | [Allele spellings](#allele-spellings) | [Allele names](alleles.md#in-each-tools-spelling) |
@@ -17,35 +18,6 @@ first prediction, start with [getting started](getting-started.md).
 Predictor-specific setup and examples are in the [family guides](predictors/index.md).
 The [predictor matrix](predictor-matrix.md) lists Python classes and command-line
 names for every supported model.
-
-## Vaccine trajectories
-
-Supply explicit rates and current-fragment cleavage assessments, then summarize
-or compare matched endpoints. These are conditional calculations with no fitted
-physiological defaults. See the [trajectory guide](vaccine-trajectory.md) for
-units and the [comparison workflow](vaccine-comparison.md) for interpretation.
-
-::: mhctools.VaccineDose
-
-::: mhctools.VaccineTrajectoryInput
-
-::: mhctools.simulate_vaccine_trajectory
-
-::: mhctools.summarize_vaccine_trajectory
-
-::: mhctools.assess_vaccine_windows
-
-::: mhctools.vaccine_window_rows
-
-::: mhctools.format_vaccine_window_report
-
-::: mhctools.summarize_core_exposure
-
-::: mhctools.format_vaccine_trajectory_report
-
-::: mhctools.compare_vaccine_trajectories
-
-::: mhctools.format_vaccine_comparison_report
 
 ## Results
 
@@ -70,6 +42,18 @@ and [sample helper](https://github.com/openvax/mhctools/blob/master/mhctools/sam
 ::: mhctools.MeasurementContext
 
 ::: mhctools.MultiSample
+
+## Protein-scan flank windows
+
+`BasePredictor.protein_flank_lengths()` returns the maximum upstream and
+downstream context lengths used by `predict_proteins` and
+`predict_proteins_dataframe`. MHCflurry resolves them from the loaded processing
+model. Protein ends can shorten the emitted strings; consumers must retain the
+configured limits instead of inferring them from those strings. Zero means
+that side supplies no residues. Explicit `predict_dataframe` flank strings are
+separate inputs and are not defined by the scan-window limits. Custom scanner
+subclasses should override this public method instead of the former private
+`_predict_protein_flank_lengths` hook.
 
 ## Inputs
 
@@ -188,14 +172,31 @@ and [batch assessment](https://github.com/openvax/mhctools/blob/master/mhctools/
 
 ::: mhctools.cleavenet.CleaveNetScore
 
-### Protein-scan flank windows
+## Vaccine trajectories
 
-`BasePredictor.protein_flank_lengths()` returns the maximum upstream and
-downstream context lengths used by `predict_proteins` and
-`predict_proteins_dataframe`. MHCflurry resolves them from the loaded processing
-model. Protein ends can shorten the emitted strings; consumers must retain the
-configured limits instead of inferring them from those strings. Zero means
-that side supplies no residues. Explicit `predict_dataframe` flank strings are
-separate inputs and are not defined by the scan-window limits. Custom scanner
-subclasses should override this public method instead of the former private
-`_predict_protein_flank_lengths` hook.
+Supply explicit rates and current-fragment cleavage assessments, then summarize
+or compare matched endpoints. These are conditional calculations with no fitted
+physiological defaults. See the [trajectory guide](vaccine-trajectory.md) for
+units and the [comparison workflow](vaccine-comparison.md) for interpretation.
+
+::: mhctools.VaccineDose
+
+::: mhctools.VaccineTrajectoryInput
+
+::: mhctools.simulate_vaccine_trajectory
+
+::: mhctools.summarize_vaccine_trajectory
+
+::: mhctools.assess_vaccine_windows
+
+::: mhctools.vaccine_window_rows
+
+::: mhctools.format_vaccine_window_report
+
+::: mhctools.summarize_core_exposure
+
+::: mhctools.format_vaccine_trajectory_report
+
+::: mhctools.compare_vaccine_trajectories
+
+::: mhctools.format_vaccine_comparison_report

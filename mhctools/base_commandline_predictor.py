@@ -614,15 +614,39 @@ class BaseCommandlinePredictor(BasePredictor):
             args.append(input_filename)
         return args
 
-    def _run_commands_and_collect_predictions(
+    def run_commands_and_parse(
             self,
             commands,
             input_filenames,
             temp_dir_list,
-            sequence_key_mapping=None):
-        if sequence_key_mapping is None:
-            sequence_key_mapping = defaultdict(lambda: "seq")
-        binding_predictions = []
+            parse_one):
+        """
+        Run the commands, parse each output with ``parse_one``, clean up.
+
+        Parameters
+        ----------
+        commands : dict
+            Maps open output file objects to the command writing to them.
+        input_filenames : list of str
+            Input files to delete once finished (or on error).
+        temp_dir_list : list of str
+            Temporary directories to delete once finished (or on error).
+        parse_one : callable
+            Takes the text of one command's output and returns a list.
+
+        Returns
+        -------
+        list
+            Concatenated parse results, in command order.
+
+        Raises
+        ------
+        RuntimeError
+            If a command fails.
+        ValueError
+            If no output could be parsed into predictions.
+        """
+        results = []
 
         # Cleanup either when finished or if an exception gets raised by
         # deleting the input and output files
@@ -644,61 +668,96 @@ class BaseCommandlinePredictor(BasePredictor):
                         error, _output_tail(outputs))) from error
             outputs = _read_command_outputs(commands)
             for file_contents in outputs:
-                binding_predictions.extend(
-                    self._parse_output(
-                        self.parse_output_fn,
-                        stdout=file_contents,
-                        sequence_key_mapping=sequence_key_mapping,
-                        prediction_method_name=self.program_name))
+                results.extend(parse_one(file_contents))
 
-        if len(binding_predictions) == 0:
+        if len(results) == 0:
             raise ValueError(
                 "No parseable predictions from %s. Predictor output tail:\n%s"
                 % (self.program_name, _output_tail(outputs)))
-        return BindingPredictionCollection(binding_predictions)
+        return results
 
-    def _run_commands_and_collect_preds(
+    def run_commands_and_collect_predictions(
             self,
             commands,
             input_filenames,
             temp_dir_list,
             sequence_key_mapping=None):
-        """Like _run_commands_and_collect_predictions but returns list[Pred]."""
+        """
+        Run the commands and parse their output with ``parse_output_fn``.
+
+        This is the legacy ``BindingPrediction`` path used by
+        ``predict_peptides``, and by ``predict``/``predict_pairs`` when the
+        predictor has no ``parse_to_preds_fn``. Otherwise those use
+        ``run_commands_and_collect_preds``, which returns ``Pred`` objects.
+        A parser that accepts an ``allele_normalizer`` argument receives one
+        that resolves native output names against this predictor's allele
+        catalog.
+
+        Parameters
+        ----------
+        commands : dict
+            Maps open output file objects to the command writing to them.
+        input_filenames : list of str
+            Input files to delete once finished (or on error).
+        temp_dir_list : list of str
+            Temporary directories to delete once finished (or on error).
+        sequence_key_mapping : dict, optional
+            Maps the predictor's sequence names back to the caller's keys;
+            every name maps to ``"seq"`` by default.
+
+        Returns
+        -------
+        BindingPredictionCollection
+
+        Raises
+        ------
+        RuntimeError
+            If a command fails.
+        ValueError
+            If no output could be parsed into predictions.
+        """
         if sequence_key_mapping is None:
             sequence_key_mapping = defaultdict(lambda: "seq")
-        all_preds = []
+        binding_predictions = self.run_commands_and_parse(
+            commands,
+            input_filenames,
+            temp_dir_list,
+            lambda stdout: self._parse_output(
+                self.parse_output_fn,
+                stdout=stdout,
+                sequence_key_mapping=sequence_key_mapping,
+                prediction_method_name=self.program_name))
+        return BindingPredictionCollection(binding_predictions)
 
-        filenames_to_delete = list(input_filenames) + [
-            f.name for f in commands.keys()]
-        with CleanupFiles(
-                filenames=filenames_to_delete,
-                directories=temp_dir_list):
-            try:
-                run_multiple_commands_redirect_stdout(
-                    commands,
-                    print_commands=True,
-                    process_limit=self.process_limit,
-                    redirect_stderr_to_stdout=True)
-            except CalledProcessError as error:
-                outputs = _read_command_outputs(commands)
-                raise RuntimeError(
-                    "%s\nPredictor output tail:\n%s" % (
-                        error, _output_tail(outputs))) from error
-            outputs = _read_command_outputs(commands)
-            for file_contents in outputs:
-                all_preds.extend(
-                    self._parse_output(
-                        self.parse_to_preds_fn,
-                        stdout=file_contents,
-                        sequence_key_mapping=sequence_key_mapping,
-                        predictor_name=self.program_name))
+    def run_commands_and_collect_preds(
+            self,
+            commands,
+            input_filenames,
+            temp_dir_list,
+            sequence_key_mapping=None):
+        """
+        Run the commands and parse their output with ``parse_to_preds_fn``.
 
-        if len(all_preds) == 0:
-            raise ValueError(
-                "No parseable predictions from %s. Predictor output tail:\n%s"
-                % (self.program_name, _output_tail(outputs)))
+        Same parameters, errors and allele normalization as
+        ``run_commands_and_collect_predictions``, but returns the ``Pred``
+        objects that ``predict`` and ``predict_pairs`` use when the predictor
+        defines ``parse_to_preds_fn``.
 
-        return all_preds
+        Returns
+        -------
+        list of Pred
+        """
+        if sequence_key_mapping is None:
+            sequence_key_mapping = defaultdict(lambda: "seq")
+        return self.run_commands_and_parse(
+            commands,
+            input_filenames,
+            temp_dir_list,
+            lambda stdout: self._parse_output(
+                self.parse_to_preds_fn,
+                stdout=stdout,
+                sequence_key_mapping=sequence_key_mapping,
+                predictor_name=self.program_name))
 
     def _build_peptide_commands(
             self,
@@ -762,7 +821,7 @@ class BaseCommandlinePredictor(BasePredictor):
             peptides=peptides,
             alleles=alleles,
             allele_cli_names=allele_cli_names)
-        results = self._run_commands_and_collect_predictions(
+        results = self.run_commands_and_collect_predictions(
             commands=commands,
             input_filenames=input_filenames,
             temp_dir_list=dirs)
@@ -789,7 +848,7 @@ class BaseCommandlinePredictor(BasePredictor):
                 peptides=unique_peptides,
                 alleles=alleles,
                 allele_cli_names=allele_cli_names)
-            predictions = self._run_commands_and_collect_preds(
+            predictions = self.run_commands_and_collect_preds(
                 commands=commands,
                 input_filenames=input_filenames,
                 temp_dir_list=dirs)

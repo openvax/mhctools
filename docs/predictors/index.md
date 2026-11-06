@@ -23,6 +23,7 @@ see the [predictor matrix](../predictor-matrix.md).
 | ERAP1 trimming | [ERAMER](processing.md#eramer) |
 | Immunogenicity | [Calis](immunogenicity.md#calis), [PRIME](immunogenicity.md#prime), [BigMHC (IM)](binding.md#bigmhc), [DeepImmuno](immunogenicity.md#deepimmuno), [TLimmuno2](immunogenicity.md#tlimmuno2) (II) |
 | TCR recognition | [NetTCR](tcr.md#nettcr), [Tulip](tcr.md#tulip), [MixTCRpred](tcr.md#mixtcrpred) |
+| Descriptive foreignness | [WEIRDO](foreignness.md) |
 | Peptide half-life | [Cavaco](peptide-pk.md#cavaco), [PeptiVerse](peptide-pk.md#peptiverse), [PlifePred2](peptide-pk.md#plifepred2) |
 | Cell penetration classification | [PeptiVerse CPP](uptake.md#peptiverse-cpp) |
 | Peptidase activity | [peptidase activity API](../cleavage/index.md) |
@@ -40,7 +41,7 @@ The prediction method and its inputs depend on the family:
 |---|---|---|
 | Peptides + alleles | `predict(peptides)` on a predictor built with `alleles=` | [NetMHCpan](binding.md#netmhcpan), [NetMHC](binding.md#netmhc), [NetMHCcons](binding.md#netmhccons), [NetMHCIIpan](binding.md#netmhciipan), [NetMHCstabpan](binding.md#netmhcstabpan), [MHCflurry](binding.md#mhcflurry), [BigMHC](binding.md#bigmhc), [CapHLA](binding.md#caphla), [MixMHCpred](binding.md#mixmhcpred), [MixMHC2pred](binding.md#mixmhc2pred), [SMM](binding.md#smm-and-smm-pmbec), [PRIME](immunogenicity.md#prime), [DeepImmuno](immunogenicity.md#deepimmuno), [TLimmuno2](immunogenicity.md#tlimmuno2) |
 | Peptides + flanks | `predict(peptides, n_flanks=..., c_flanks=...)` | [Pepsickle](processing.md#pepsickle), [NetChop](processing.md#netchop), [NetCleave](processing.md#netcleave) (class II needs a C-terminal flank of at least 3 residues) |
-| Peptides only | `predict(peptides)` | [Calis](immunogenicity.md#calis), [DeepTAP](processing.md#deeptap), [ERAMER](processing.md#eramer), [Cavaco](peptide-pk.md#cavaco), [PeptiVerse](peptide-pk.md#peptiverse), [PlifePred2](peptide-pk.md#plifepred2), [PeptiVerse CPP](uptake.md#peptiverse-cpp) |
+| Peptides only | `predict(peptides)` | [Calis](immunogenicity.md#calis), [DeepTAP](processing.md#deeptap), [ERAMER](processing.md#eramer), [Cavaco](peptide-pk.md#cavaco), [PeptiVerse](peptide-pk.md#peptiverse), [PlifePred2](peptide-pk.md#plifepred2), [PeptiVerse CPP](uptake.md#peptiverse-cpp), [WEIRDO](foreignness.md) |
 | Peptides + TCR | `predict_pairs([(peptide, tcr)])` or `predict(peptides, tcrs)` | [NetTCR](tcr.md#nettcr), [Tulip](tcr.md#tulip) (also `mhc=`) |
 | TCRs against a fixed target | `predict_tcrs(tcrs)` on a model chosen for one pMHC | [MixTCRpred](tcr.md#mixtcrpred) |
 | Exact chemical form | `predict([PeptideInput(...)])` | Cavaco, PeptiVerse half-life and CPP (strings still work; unsupported modifications are rejected) |

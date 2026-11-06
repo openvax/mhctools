@@ -99,11 +99,11 @@ def test_legacy_netmhcpan_predict_and_pairs_emit_only_native_affinity(monkeypatc
             if p.peptide == "AAPVATPAL" and p.allele == allele])
 
     monkeypatch.setattr(predictor, "_build_peptide_commands", lambda **kwargs: ({}, [], []))
-    monkeypatch.setattr(predictor, "_run_commands_and_collect_predictions", replay)
+    monkeypatch.setattr(predictor, "run_commands_and_collect_predictions", replay)
     # A regression to the native multi-endpoint path must fail before any process starts.
     def forbidden(*args, **kwargs):
         raise AssertionError("Legacy interface selected the multi-endpoint runner")
-    monkeypatch.setattr(predictor, "_run_commands_and_collect_preds", forbidden)
+    monkeypatch.setattr(predictor, "run_commands_and_collect_preds", forbidden)
     for results in (predictor.predict(["AAPVATPAL"]),
                     predictor.predict_pairs([("AAPVATPAL", allele)])):
         predictions = [p for result in results for p in result.preds]
