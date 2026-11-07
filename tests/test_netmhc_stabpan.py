@@ -86,7 +86,7 @@ def test_netmhc_stabpan_groups_mixed_length_peptides(monkeypatch):
         staticmethod(lambda command, flag: {"HLA-A02:01"}))
     monkeypatch.setattr(
         NetMHCstabpan,
-        "_run_commands_and_collect_predictions",
+        "run_commands_and_collect_predictions",
         fake_collect)
     monkeypatch.setattr(
         NetMHCstabpan,

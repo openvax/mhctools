@@ -109,7 +109,7 @@ class _StubPredictor(BaseCommandlinePredictor):
             return self._prepare(allele_name)
         return super().prepare_allele_name(allele_name)
 
-    def _run_commands_and_collect_predictions(
+    def run_commands_and_collect_predictions(
             self, commands, input_filenames, temp_dir_list,
             sequence_key_mapping=None):
         # Capture the commands instead of running them, and clean up the temp
