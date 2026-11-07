@@ -49,6 +49,13 @@ def no_user_installs(monkeypatch, tmp_path):
             monkeypatch.delenv(variable, raising=False)
     monkeypatch.delenv("ERAMER_PWM", raising=False)
     monkeypatch.delenv("PHAGESCOUT_HOME", raising=False)
+    # Newer MHCflurry releases resolve their download directory from HOME on
+    # first use and keep it for the process. Restore that cache afterwards so
+    # a lookup made here cannot point later MHCflurry tests at this home.
+    from mhcflurry import downloads as mhcflurry_downloads
+    for name in ("_DOWNLOADS_DIR", "_CURRENT_RELEASE"):
+        monkeypatch.setattr(
+            mhcflurry_downloads, name, getattr(mhcflurry_downloads, name))
     return home
 
 
