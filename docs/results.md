@@ -94,6 +94,7 @@ that kind, or `None`:
 | `tap_transport` | `result.tap_transport` |
 | `erap_trimming` | `result.erap_trimming` |
 | `immunogenicity` | `result.immunogenicity` |
+| `foreignness` | `result.foreignness` |
 | `pMHC_TCR_binding` | `result.tcr_binding` |
 | `peptide_half_life` | `result.peptide_half_life` (also `serum_half_life`, `plasma_half_life`, `blood_half_life` by matrix) |
 
