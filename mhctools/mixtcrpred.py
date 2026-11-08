@@ -37,7 +37,8 @@ from urllib.request import urlopen
 
 import pandas as pd
 
-from .process_helpers import python_imports_available
+from .artifacts import resolve_artifact_path
+from .process_helpers import python_imports_available, resolve_sidecar_python
 from .allele_normalization import (
     AlleleIdentityError, native_allele_identity, normalize_allele_name_or_raw,
 )
@@ -54,14 +55,6 @@ ZENODO_RETRY_DELAYS = (2, 5)
 _RETRYABLE_HTTP_STATUS = frozenset((408, 429, 500, 502, 503, 504))
 _MODEL_MANIFEST = ".mhctools-mixtcrpred-models.json"
 _STANDARD_AMINO_ACIDS = frozenset("ACDEFGHIKLMNPQRSTVWYX-")
-_REQUIRED_HOME_PATHS = (
-    "MixTCRpred.py",
-    "src/dataloaders.py",
-    "src/models.py",
-    "src/utils.py",
-    "pretrained_models/anchors_perc_rank.pickle",
-    "pretrained_models/info_models.csv",
-)
 
 
 @dataclass(frozen=True)
@@ -88,38 +81,6 @@ class MixTCRpredModel:
         return asdict(self)
 
 
-def _valid_home(path):
-    path = Path(path)
-    return all((path / relative).is_file() for relative in _REQUIRED_HOME_PATHS)
-
-
-def _resolve_home(mixtcrpred_path=None, data_dir=None):
-    """Resolve a user-managed or mhctools-managed MixTCRpred checkout."""
-    for source, value in (
-            ("mixtcrpred_path argument", mixtcrpred_path),
-            ("MIXTCRPRED_HOME", os.environ.get("MIXTCRPRED_HOME"))):
-        if value:
-            path = Path(value).expanduser().resolve()
-            if not _valid_home(path):
-                raise FileNotFoundError(
-                    "MixTCRpred directory from %s is incomplete: %s" % (
-                        source, path))
-            return path
-
-    for value in ("~/MixTCRpred", "~/code/MixTCRpred"):
-        path = Path(value).expanduser()
-        if _valid_home(path):
-            return path.resolve()
-
-    from .artifacts import artifact_status
-    status = artifact_status("mixtcrpred", data_dir=data_dir)
-    if status.status == "ready":
-        return Path(status.path).resolve()
-    raise FileNotFoundError(
-        "MixTCRpred is not installed. Run `mhctools fetch mixtcrpred "
-        "--accept-license`, or set MIXTCRPRED_HOME to a licensed checkout.")
-
-
 def _manager_for_home(home):
     return (
         "mhctools"
@@ -130,7 +91,7 @@ def _manager_for_home(home):
 
 def model_catalog(mixtcrpred_path=None, data_dir=None):
     """Return all pMHC-specific MixTCRpred models and local weight status."""
-    home = _resolve_home(mixtcrpred_path, data_dir=data_dir)
+    home = resolve_artifact_path("mixtcrpred", mixtcrpred_path, data_dir=data_dir)
     manager = _manager_for_home(home)
     catalog_path = home / "pretrained_models" / "info_models.csv"
     result = []
@@ -354,7 +315,7 @@ def fetch_models(
     identify existing downloads. Unrecorded weights still require Zenodo
     verification. ``refresh_metadata=True`` rechecks remote metadata too.
     """
-    home = _resolve_home(mixtcrpred_path, data_dir=data_dir)
+    home = resolve_artifact_path("mixtcrpred", mixtcrpred_path, data_dir=data_dir)
     catalog = model_catalog(mixtcrpred_path=home)
     selected = _select_catalog_models(
         catalog,
@@ -423,21 +384,6 @@ def print_model_catalog(
     print(format_table(headers, rows, stream=sys.stdout))
 
 
-def _resolve_python(mixtcrpred_python=None):
-    value = mixtcrpred_python or os.environ.get("MIXTCRPRED_PYTHON")
-    if value:
-        path = Path(value).expanduser()
-        if path.is_file():
-            # Do not resolve a virtualenv's interpreter symlink: invoking the
-            # target binary directly would discard the environment prefix.
-            return str(path.absolute())
-        executable = shutil.which(str(value))
-        if executable:
-            return executable
-        raise FileNotFoundError("MixTCRpred Python does not exist: %s" % value)
-    return sys.executable
-
-
 # Third-party modules reachable from the sidecar's own import chain
 # (src/dataloaders, src/models, src/utils). Deliberately not every import under
 # upstream's src/: natsort, for one, is only used by a V-gene helper that
@@ -466,7 +412,7 @@ def mixtcrpred_runtime_available(mixtcrpred_python=None, timeout=120):
     environment = os.environ.copy()
     environment["PYTHONNOUSERSITE"] = "1"
     return python_imports_available(
-        _resolve_python(mixtcrpred_python), MIXTCRPRED_SIDECAR_MODULES,
+        resolve_sidecar_python(mixtcrpred_python, "MIXTCRPRED_PYTHON"), MIXTCRPRED_SIDECAR_MODULES,
         timeout=timeout, env=environment)
 
 
@@ -565,8 +511,8 @@ class MixTCRpred:
             mixtcrpred_python=None,
             checkpoint_path=None,
             batch_size=256):
-        self.mixtcrpred_home = _resolve_home(mixtcrpred_path)
-        self.mixtcrpred_python = _resolve_python(mixtcrpred_python)
+        self.mixtcrpred_home = resolve_artifact_path("mixtcrpred", mixtcrpred_path)
+        self.mixtcrpred_python = resolve_sidecar_python(mixtcrpred_python, "MIXTCRPRED_PYTHON")
         catalog = model_catalog(mixtcrpred_path=self.mixtcrpred_home)
         selected = _select_catalog_models(catalog, models=[model])
         self.model_info = selected[0]

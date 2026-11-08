@@ -41,7 +41,7 @@ import sys
 import numpy as np
 import pandas as pd
 
-from .optional_backend import common_checkout_paths
+from .artifacts import resolve_artifact_path
 from .pred import COLUMNS, Kind, PeptideResult, Prediction
 from .tcr import TCR
 
@@ -157,41 +157,6 @@ def _load_interpreter(model_path):
         return tf.lite.Interpreter(model_path=model_path)
 
 
-def _find_nettcr_dir(nettcr_path=None):
-    """Resolve the NetTCR-2.2 installation directory.
-
-    Checks, in order:
-    1. The *nettcr_path* argument
-    2. The ``NETTCR_DIR`` environment variable
-    3. Conventional ``NetTCR-2.2`` / ``nettcr`` checkout locations
-
-    An explicitly-provided path (argument or ``NETTCR_DIR``) is validated up
-    front so a typo fails with a clear message rather than later when no
-    models are found.
-    """
-    clone_hint = "Clone from https://github.com/mnielLab/NetTCR-2.2"
-    for source, path in (
-            ("nettcr_path argument", nettcr_path),
-            ("NETTCR_DIR", os.environ.get("NETTCR_DIR"))):
-        if path:
-            if not os.path.isdir(path):
-                raise FileNotFoundError(
-                    "NetTCR-2.2 directory from %s does not exist: %s. %s"
-                    % (source, path, clone_hint))
-            return path
-    for candidate in common_checkout_paths("NetTCR-2.2", "nettcr"):
-        if os.path.isdir(candidate):
-            return str(candidate)
-    from .artifacts import artifact_status
-    managed = artifact_status("nettcr")
-    if managed.manager == "mhctools" and managed.status == "ready":
-        return managed.path
-    raise FileNotFoundError(
-        "NetTCR-2.2 not found. Set NETTCR_DIR or pass nettcr_path= to the "
-        "constructor. Run `mhctools fetch nettcr --accept-license`. %s"
-        % clone_hint)
-
-
 def _encode_feature(sequences, feature):
     """BLOSUM50-encode a list of sequences for one NetTCR feature.
 
@@ -258,7 +223,7 @@ class NetTCR(object):
             accept_license=accept_license)
 
     def __init__(self, nettcr_path=None, checkpoint_dir=None):
-        self.nettcr_dir = _find_nettcr_dir(nettcr_path)
+        self.nettcr_dir = str(resolve_artifact_path("nettcr", nettcr_path))
         if checkpoint_dir is None:
             checkpoint_dir = os.path.join(
                 self.nettcr_dir, "models", "nettcr_2_2_pan", "checkpoint")

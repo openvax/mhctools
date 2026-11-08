@@ -40,17 +40,15 @@ DeepTAP's evaluation is self-reported and no independent TAP benchmark exists â€
 a useful pathway signal, not a validated oracle.
 """
 
-import os
-import sys
-from os.path import exists, isdir, isfile, join
+from os.path import exists, join
 from tempfile import mkdtemp
 
 import pandas as pd
 
+from .artifacts import resolve_artifact_path
 from .cleanup_context import CleanupFiles
-from .optional_backend import common_checkout_paths
 from .pred import Kind, PeptideResult, Prediction
-from .process_helpers import python_imports_available, run_command
+from .process_helpers import python_imports_available, resolve_sidecar_python, run_command
 from .wrapper_base import AlleleFreePredictor
 
 # DeepTAP one-hot encodes the 20 standard amino acids plus "X" (unknown /
@@ -62,46 +60,9 @@ _VALID_AMINO_ACIDS = frozenset("ACDEFGHIKLMNPQRSTVWYX")
 _TASK_TYPES = ("cla", "reg")
 
 
-def _find_deeptap_home(deeptap_home=None):
-    """Resolve the DeepTAP checkout directory (holds ``deeptap.py`` + ``model/``).
-
-    Checks, in order: the *deeptap_home* argument, ``$DEEPTAP_HOME``, then
-    ``~/DeepTAP`` / ``~/code/DeepTAP``.
-    """
-    candidate = deeptap_home or os.environ.get("DEEPTAP_HOME")
-    if not candidate:
-        for home in common_checkout_paths("DeepTAP"):
-            if isdir(home):
-                candidate = str(home)
-                break
-    if not candidate:
-        from .artifacts import artifact_status
-        managed = artifact_status("deeptap")
-        if managed.manager == "mhctools" and managed.status == "ready":
-            candidate = managed.path
-    if not candidate:
-        raise FileNotFoundError(
-            "DeepTAP not found. Set DEEPTAP_HOME or pass deeptap_home= to the "
-            "constructor. Run `mhctools fetch deeptap` or clone from "
-            "https://github.com/zjupgx/DeepTAP")
-    if not isfile(join(candidate, "deeptap.py")):
-        raise FileNotFoundError(
-            "deeptap.py not found in %r â€” is this a DeepTAP checkout?"
-            % candidate)
-    return candidate
-
-
 # Third-party modules DeepTAP's own CLI imports. Everything else it needs is
 # in the checkout, so these decide whether the sidecar can run at all.
 DEEPTAP_SIDECAR_MODULES = ("torch", "pytorch_lightning", "numpy", "pandas")
-
-
-def _resolve_python(deeptap_python=None):
-    """Interpreter the sidecar runs under: explicit argument, then
-    ``$DEEPTAP_PYTHON``, then the current interpreter."""
-    return (deeptap_python
-            or os.environ.get("DEEPTAP_PYTHON")
-            or sys.executable)
 
 
 def deeptap_runtime_available(deeptap_python=None, timeout=120):
@@ -112,7 +73,7 @@ def deeptap_runtime_available(deeptap_python=None, timeout=120):
     it need not have at all.
     """
     return python_imports_available(
-        _resolve_python(deeptap_python), DEEPTAP_SIDECAR_MODULES,
+        resolve_sidecar_python(deeptap_python, "DEEPTAP_PYTHON"), DEEPTAP_SIDECAR_MODULES,
         timeout=timeout)
 
 
@@ -159,8 +120,8 @@ class DeepTAP(AlleleFreePredictor):
                 "cannot exceed that (got %d)"
                 % (DEEPTAP_MAX_PEPTIDE_LENGTH, max_peptide_length))
         self.task_type = task_type
-        self.deeptap_home = _find_deeptap_home(deeptap_home)
-        self.deeptap_python = _resolve_python(deeptap_python)
+        self.deeptap_home = str(resolve_artifact_path("deeptap", deeptap_home))
+        self.deeptap_python = resolve_sidecar_python(deeptap_python, "DEEPTAP_PYTHON")
         self.max_peptide_length = max_peptide_length
 
     def __str__(self):

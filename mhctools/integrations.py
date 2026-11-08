@@ -14,14 +14,17 @@ implies that its dependencies work or that it can reproduce a prediction.
 """
 
 from dataclasses import asdict, dataclass
+from importlib import import_module
 import json
 import math
 import subprocess
 import sys
+import time
 from typing import Optional
 
 from .artifacts import artifact_status, list_artifacts
 from .optional_backend import probe_executable
+from .process_helpers import resolve_sidecar_python
 
 
 from .capabilities import CAPABILITY_LEVELS as CAPABILITY_LEVELS
@@ -73,6 +76,27 @@ _EXECUTABLE_ARGS = {
     "prime": ("-h",),
 }
 
+# Import predictor modules only when their runtime is actually requested.
+_SIDECAR_PROBES = {
+    "deepimmuno": ("deepimmuno_runtime_available", "DEEPIMMUNO_PYTHON"),
+    "deeptap": ("deeptap_runtime_available", "DEEPTAP_PYTHON"),
+    "tlimmuno2": ("tlimmuno2_runtime_available", "TLIMMUNO2_PYTHON"),
+    "mixtcrpred": ("mixtcrpred_runtime_available", "MIXTCRPRED_PYTHON"),
+}
+
+# Files can be located for these integrations, but no bounded runtime probe
+# has been implemented. Keep that gap explicit when adding a new artifact.
+_NO_RUNTIME_PROBE = {
+    "bigmhc": "BigMHC model import and runtime compatibility are not probed",
+    "caphla": "CapHLA model import and runtime compatibility are not probed",
+    "cleavenet": "CleaveNet's isolated TensorFlow runtime is not probed",
+    "eramer": "ERAMER workbook loading is not probed",
+    "netcleave": "NetCleave's isolated Keras runtime is not probed",
+    "nettcr": "NetTCR's TFLite runtime and model loading are not probed",
+    "phagescout": "PhageScout profile loading is not probed",
+    "tulip": "TULIP's isolated transformer runtime is not probed",
+}
+
 _LAUNCH_FAILURE_PATTERNS = (
     "no binaries found",
     "cannot execute binary file",
@@ -105,10 +129,11 @@ def _probe_command(path, args, timeout):
     )
 
 
-def _probe_python_import(module_name, timeout):
+def _probe_python_import(module_name, timeout, python_executable=None):
+    python_executable = python_executable or sys.executable
     try:
         completed = subprocess.run(
-            [sys.executable, "-c", "import %s" % module_name],
+            [python_executable, "-c", "import %s" % module_name],
             capture_output=True,
             text=True,
             timeout=timeout,
@@ -120,7 +145,47 @@ def _probe_python_import(module_name, timeout):
         return _ProbeResult(
             False, None, "import probe exited with code %d: %s" % (
                 completed.returncode, diagnostic or "no diagnostic output"))
-    return _ProbeResult(True, None, "package import probe succeeded")
+    return _ProbeResult(True, None, "package import probe succeeded in %s" % python_executable)
+
+
+def _probe_sidecar(name, timeout):
+    function_name, variable = _SIDECAR_PROBES[name]
+    try:
+        python = resolve_sidecar_python(environment_variable=variable)
+        probe = getattr(import_module("." + name, __package__), function_name)
+        runnable = probe(python, timeout=timeout)
+    except (ImportError, OSError, RuntimeError, ValueError) as error:
+        return _ProbeResult(False, None, "%s runtime check failed: %s" % (name, error))
+    detail = (
+        "%s dependency compatibility check succeeded in %s; inference not tested"
+        % (name, python) if runnable else
+        "%s dependency compatibility check failed or timed out after %ss in %s; "
+        "check the interpreter's dependencies and %s"
+        % (name, timeout, python, variable))
+    return _ProbeResult(runnable, None, detail)
+
+
+def _probe_pepsickle(timeout):
+    from .pepsickle import resolve_pepsickle_python
+    try:
+        # In-vitro-2 shares the epitope interpreter. The original GB model may
+        # use a different environment; neither check may silently use the host.
+        runtimes = dict.fromkeys(
+            resolve_pepsickle_python(family) or sys.executable
+            for family in ("epitope", "in-vitro"))
+    except (OSError, RuntimeError) as error:
+        return _ProbeResult(False, None, str(error))
+    deadline = time.monotonic() + timeout
+    for python in runtimes:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            return _ProbeResult(False, None, "Pepsickle runtime checks timed out")
+        result = _probe_python_import("pepsickle", remaining, python)
+        if not result.runnable:
+            return _ProbeResult(False, None, "%s: %s" % (python, result.detail))
+    return _ProbeResult(
+        True, None, "Pepsickle package imports succeeded in %s; inference not tested"
+        % ", ".join(runtimes))
 
 
 def _probe_calis():
@@ -193,6 +258,8 @@ print(json.dumps({'score': prediction.score, 'expected': expected, 'atol': smoke
 
 
 def _run_probe(status, timeout):
+    if status.name in _SIDECAR_PROBES:
+        return _probe_sidecar(status.name, timeout)
     if status.name == "weirdo":
         return _probe_weirdo(timeout)
     if status.name == "calis":
@@ -205,7 +272,7 @@ def _run_probe(status, timeout):
     if status.name in ("mhcflurry", "mhcflurry-affinity"):
         return _probe_python_import("mhcflurry", timeout)
     if status.name == "pepsickle":
-        return _probe_python_import("pepsickle", timeout)
+        return _probe_pepsickle(timeout)
     return None
 
 
@@ -245,6 +312,8 @@ def integration_status(name, check="runnable", data_dir=None, timeout=10):
             detail = (
                 "No bounded runtime probe is registered; files are located "
                 "but execution has not been established")
+            if status.name in _NO_RUNTIME_PROBE:
+                detail += ". " + _NO_RUNTIME_PROBE[status.name]
         else:
             runnable = result.runnable
             detail = result.detail

@@ -16,10 +16,10 @@ import json
 import logging
 import os
 from pathlib import Path
-import shutil
 import subprocess
 import sys
 
+from .process_helpers import resolve_sidecar_python
 from .cleavage import CleavageModel, CleavageResult, CleavageSite, coerce_peptide
 from .proteasome_predictor import ProteasomePredictor
 from .pepsickle_runtime import runtime_identity
@@ -45,17 +45,23 @@ for _family in ("in-vitro", "in-vitro-2"):
                 model_type=_family, human_only=_human, proteasome_type=_type)
 
 
-def _runtime_executable(model_type, python_executable=None):
+def resolve_pepsickle_python(model_type, python_executable=None):
+    """Return the model family's configured Python, or None for host execution.
+
+    Explicit paths win. The original in-vitro GB model then uses
+    PEPSICKLE_GB_PYTHON when set; all families otherwise use PEPSICKLE_PYTHON.
+    Prediction and capability checks share this selection policy.
+    """
     value = python_executable
     if value is None and model_type == "in-vitro":
         value = os.environ.get("PEPSICKLE_GB_PYTHON")
     value = value or os.environ.get("PEPSICKLE_PYTHON")
     if not value:
         return None
-    resolved = shutil.which(os.path.expanduser(str(value)))
-    if resolved is None:
-        raise RuntimeError("Pepsickle Python executable is not runnable: %s" % value)
-    return os.path.abspath(resolved)
+    try:
+        return resolve_sidecar_python(value)
+    except FileNotFoundError as error:
+        raise RuntimeError("Pepsickle Python executable is not runnable: %s" % value) from error
 
 
 def _pepsickle_identity(human_only, model_type="epitope", python_executable=None,
@@ -157,7 +163,7 @@ class Pepsickle(ProteasomePredictor):
         )
         self.threshold = threshold
         self.human_only = human_only
-        self.python_executable = _runtime_executable(model_type, python_executable)
+        self.python_executable = resolve_pepsickle_python(model_type, python_executable)
         self.isolate_subprocess = bool(isolate_subprocess or self.python_executable)
         self.subprocess_timeout = subprocess_timeout
         self.model_type = model_type
@@ -239,7 +245,7 @@ class Pepsickle(ProteasomePredictor):
         try:
             # A catalog/motif-only batch must not boot configured containers.
             # Selected predictors resolve their real identity before inference.
-            identity = (None if _runtime_executable(model_type) else
+            identity = (None if resolve_pepsickle_python(model_type) else
                         _pepsickle_identity(human_only, model_type))
         except (ImportError, OSError, RuntimeError,
                 importlib.metadata.PackageNotFoundError):

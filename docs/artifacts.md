@@ -103,6 +103,24 @@ upstream setup scripts, or duplicate a cache owned by another package.
 
 ## Where snapshots live
 
+The inventory and predictor constructors use the same snapshot resolver. A
+constructor's explicit path wins, followed by the predictor's environment
+variable, a complete checkout under `~/NAME` or `~/code/NAME`, and finally the
+managed snapshot. The registry defines the conventional names for each tool;
+CleaveNet uses its configured or managed location only. ERAMER also accepts a
+single PWM file through `ERAMER_PWM` or its constructor.
+
+Every selected checkout must contain the registry's required assets, including
+model files matched by wildcard patterns. An incomplete conventional checkout
+is skipped. An incomplete explicit path or environment override fails with the
+missing paths listed; fix or unset that override to select another installation.
+Managed snapshots additionally require a matching provenance manifest.
+
+Python callers can use `resolve_artifact_path(name, explicit=None, data_dir=None)`
+from `mhctools` to apply this same policy. It returns a checkout directory, or
+the PWM file for ERAMER. `MHCTOOLS_DATA_DIR` selects the managed storage root for
+constructors as well as the inventory.
+
 mhctools-managed snapshots default to the platform's user data directory:
 `~/Library/Application Support/mhctools` on macOS, `~/.local/share/mhctools` on
 Linux. To put them on shared or scratch storage, set `MHCTOOLS_DATA_DIR`, pass
@@ -149,6 +167,21 @@ reference-backed probes. A successful help command establishes `runnable`, not
 `reproduced`.
 
 The earlier `mhctools integrations` spelling still works as an alias.
+
+DeepImmuno, DeepTAP, TLimmuno2, and MixTCRpred have bounded dependency probes.
+They use the same interpreter and dependency environment as prediction,
+including each backend's `*_PYTHON` setting. Pepsickle checks both its normal
+interpreter (`PEPSICKLE_PYTHON`, or the current Python) and its original in-vitro
+GB interpreter (`PEPSICKLE_GB_PYTHON`, when configured). Repeated interpreters
+are checked once. Interpreter paths retain virtualenv symlinks so checks and
+predictions see the selected environment's packages. Invalid configured
+interpreters fail instead of falling back to the current Python.
+
+These dependency checks establish `runnable` only; model inference and
+reference reproduction remain unverified. BigMHC, CapHLA, CleaveNet, ERAMER,
+NetCleave, NetTCR, PhageScout, and TULIP currently have no registered runtime
+probe. Their report explains the gap and leaves `runnable` unknown even when
+their assets are located.
 
 ## Licensing
 

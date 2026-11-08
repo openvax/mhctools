@@ -8,13 +8,12 @@ import json
 import math
 import os
 from pathlib import Path
-import shutil
-import sys
 import tempfile
 from typing import Tuple
 
 import pandas as pd
 
+from .process_helpers import resolve_sidecar_python
 from .optional_backend import (
     BackendInventory, BackendSpec, backend_inventory, inspect_artifact,
     prediction_cache_key, run_python_sidecar,
@@ -180,20 +179,9 @@ class CleaveNet:
                      accept_license=accept_license)
 
     def __init__(self, cleavenet_home=None, cleavenet_python=None, subprocess_timeout=300):
-        from .artifacts import artifact_status
-        candidate = cleavenet_home or os.environ.get("CLEAVENET_HOME")
-        if not candidate:
-            status = artifact_status("cleavenet")
-            if status.status == "ready":
-                candidate = status.path
-        if not candidate:
-            raise FileNotFoundError("Run `mhctools fetch cleavenet` or set CLEAVENET_HOME")
-        self.home = Path(candidate).expanduser().resolve()
-        interpreter = cleavenet_python or os.environ.get("CLEAVENET_PYTHON") or sys.executable
-        path = Path(interpreter).expanduser()
-        self.python = str(path.absolute()) if path.is_file() else shutil.which(str(interpreter))
-        if not self.python:
-            raise FileNotFoundError("CleaveNet interpreter not found: %s" % interpreter)
+        from .artifacts import resolve_artifact_path
+        self.home = resolve_artifact_path("cleavenet", cleavenet_home)
+        self.python = resolve_sidecar_python(cleavenet_python, "CLEAVENET_PYTHON")
         self.subprocess_timeout = subprocess_timeout
         self.artifact_inventory = backend_inventory(
             CLEAVENET_BACKEND_SPEC,

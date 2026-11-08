@@ -1,5 +1,6 @@
 """Whole-substrate contracts and pinned-source CleaveNet conformance."""
 
+from tests.snapshot_fixtures import populate_snapshot
 import json
 import os
 from pathlib import Path
@@ -18,6 +19,7 @@ REFERENCE = json.loads((Path(__file__).parent / "data/cleavenet_source_reference
 def predictor(tmp_path, monkeypatch):
     # Keep an actual checksum verification path without creating model stand-ins.
     from mhctools.optional_backend import sha256_file
+    populate_snapshot(tmp_path, "cleavenet")
     source = tmp_path / "source.txt"
     source.write_text("reviewed runtime")
     monkeypatch.setattr(cleavenet, "_ARTIFACTS", {

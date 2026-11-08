@@ -14,12 +14,14 @@
 
 import errno
 import os
+from pathlib import Path
 import signal
 import sys
-from subprocess import Popen, TimeoutExpired
+from subprocess import Popen, TimeoutExpired, check_output
 import tempfile
 from threading import Event, Thread
 import time
+import venv
 from unittest.mock import patch, MagicMock
 
 import pytest
@@ -30,8 +32,52 @@ from mhctools.process_helpers import (
     legacy_keras_environment,
     legacy_keras_runtime_available,
     python_imports_available,
+    resolve_sidecar_python,
     run_multiple_commands_redirect_stdout,
 )
+
+
+def test_sidecar_python_precedence_and_command_lookup(tmp_path, monkeypatch):
+    explicit = tmp_path / "explicit-python"
+    configured = tmp_path / "configured-python"
+    for executable in (explicit, configured):
+        executable.symlink_to(sys.executable)
+    monkeypatch.setenv("TEST_SIDECAR_PYTHON", str(configured))
+    assert resolve_sidecar_python(explicit, "TEST_SIDECAR_PYTHON") == str(explicit)
+    assert resolve_sidecar_python(environment_variable="TEST_SIDECAR_PYTHON") == str(configured)
+    monkeypatch.delenv("TEST_SIDECAR_PYTHON")
+    assert resolve_sidecar_python(environment_variable="TEST_SIDECAR_PYTHON") == sys.executable
+    monkeypatch.setenv("PATH", str(tmp_path))
+    assert resolve_sidecar_python("configured-python") == str(configured)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    assert resolve_sidecar_python("~/explicit-python") == str(explicit)
+
+
+@pytest.mark.parametrize("kind", ["missing", "directory", "not-executable"])
+def test_invalid_sidecar_python_never_falls_back(tmp_path, monkeypatch, kind):
+    invalid = tmp_path / kind
+    if kind == "directory":
+        invalid.mkdir()
+    elif kind == "not-executable":
+        invalid.write_text("#!/bin/sh\n")
+    monkeypatch.setenv("TEST_SIDECAR_PYTHON", sys.executable)
+    with pytest.raises(FileNotFoundError, match="from argument"):
+        resolve_sidecar_python(invalid, "TEST_SIDECAR_PYTHON")
+    monkeypatch.setenv("TEST_SIDECAR_PYTHON", str(invalid))
+    with pytest.raises(FileNotFoundError, match="from TEST_SIDECAR_PYTHON"):
+        resolve_sidecar_python(environment_variable="TEST_SIDECAR_PYTHON")
+
+
+@pytest.mark.skipif(os.name != "posix", reason="virtualenv symlink regression")
+def test_sidecar_python_preserves_virtualenv_packages(tmp_path):
+    environment = tmp_path / "sidecar"
+    venv.EnvBuilder(with_pip=False, symlinks=True).create(environment)
+    python = environment / "bin" / "python"
+    assert python.is_symlink()
+    resolved = resolve_sidecar_python(python)
+    assert resolved == str(python)
+    prefix = check_output([resolved, "-c", "import sys; print(sys.prefix)"], text=True).strip()
+    assert Path(prefix) == environment
 
 
 @pytest.mark.skipif(os.name != "posix", reason="POSIX process-group behavior")

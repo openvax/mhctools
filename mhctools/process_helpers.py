@@ -13,10 +13,13 @@
 import errno
 import logging
 import os
+from pathlib import Path
+import shutil
 import signal
 import subprocess
 from subprocess import Popen, CalledProcessError, STDOUT, TimeoutExpired
 import time
+import sys
 from multiprocessing import cpu_count
 
 logger = logging.getLogger(__name__)
@@ -24,6 +27,37 @@ logger = logging.getLogger(__name__)
 # Retry settings for Popen when the OS is out of process slots.
 _POPEN_MAX_RETRIES = 5
 _POPEN_BASE_DELAY = 1.0  # seconds, doubled each retry
+
+
+def resolve_sidecar_python(argument=None, environment_variable=None):
+    """Select an executable Python without resolving virtualenv symlinks.
+
+    Parameters
+    ----------
+    argument : path-like, optional
+        Explicit interpreter path or command name. Takes precedence over the
+        environment variable, then defaults to the running interpreter.
+    environment_variable : str, optional
+        Predictor-specific variable naming its interpreter.
+
+    Returns
+    -------
+    str
+        Absolute executable path, retaining a virtualenv's symlink so its
+        packages remain available. Invalid explicit/configured values raise
+        ``FileNotFoundError`` instead of falling back to another interpreter.
+    """
+    configured = os.environ.get(environment_variable) if environment_variable else None
+    value = argument or configured or sys.executable
+    path = Path(value).expanduser()
+    executable = str(path.absolute()) if path.is_file() else shutil.which(str(path))
+    if executable and os.access(executable, os.X_OK):
+        return os.path.abspath(executable)
+    source = "argument" if argument else environment_variable if configured else "sys.executable"
+    raise FileNotFoundError(
+        "Python does not exist or is not an executable file: %s (from %s)"
+        % (value, source))
+
 
 class AsyncProcess(object):
     """

@@ -73,12 +73,11 @@ pickled code. Point ``PEPTIVERSE_HOME`` only at a snapshot you trust.
 import os
 import math
 from pathlib import Path
-import shutil
-import sys
 import tempfile
 
 import pandas as pd
 
+from .process_helpers import resolve_sidecar_python
 from .optional_backend import (
     BackendSpec,
     backend_inventory,
@@ -290,21 +289,6 @@ def _esm2_artifacts(esm_home):
     return artifacts
 
 
-def _resolve_python(peptiverse_python=None):
-    value = peptiverse_python or os.environ.get("PEPTIVERSE_PYTHON")
-    if not value:
-        return sys.executable
-    path = Path(value).expanduser()
-    if path.is_file():
-        # Do not resolve a virtualenv interpreter symlink: invoking the target
-        # binary directly would discard the environment prefix.
-        return str(path.absolute())
-    executable = shutil.which(str(value))
-    if executable:
-        return executable
-    raise FileNotFoundError("PeptiVerse Python does not exist: %s" % value)
-
-
 class PeptiVerse(AlleleFreePredictor):
     """Serum half-life predictions from a local PeptiVerse snapshot.
 
@@ -372,7 +356,7 @@ class PeptiVerse(AlleleFreePredictor):
         self.peptiverse_home = _find_peptiverse_home(peptiverse_home)
         self.peptiverse_esm_home = _find_esm_home(
             self.peptiverse_home, peptiverse_esm_home)
-        self.peptiverse_python = _resolve_python(peptiverse_python)
+        self.peptiverse_python = resolve_sidecar_python(peptiverse_python, "PEPTIVERSE_PYTHON")
         self.device = device
         self.uncertainty = uncertainty
         self.max_peptide_length = max_peptide_length

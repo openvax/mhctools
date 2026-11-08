@@ -22,9 +22,10 @@ from .peptide_input import coerce_peptide_inputs, sequence_only_chemistry_error
 from .peptiverse import (
     ESM2_REVISION, UPSTREAM_REVISION, PEPTIVERSE_MAX_PEPTIDE_LENGTH,
     _PEPTIVERSE_ARTIFACTS, _esm2_artifacts, _find_esm_home,
-    _resolve_peptiverse_source, _resolve_python,
+    _resolve_peptiverse_source,
 )
 from .pred import Kind, MeasurementContext, PeptideResult, Prediction
+from .process_helpers import resolve_sidecar_python
 from .wrapper_base import AlleleFreePredictor
 
 
@@ -80,7 +81,7 @@ class PeptiVerseCPP(AlleleFreePredictor):
             raise ValueError("max_peptide_length must be an integer in [1, 1020]")
         self.peptiverse_home = _resolve_peptiverse_source(peptiverse_home)
         self.peptiverse_esm_home = _find_esm_home(self.peptiverse_home, peptiverse_esm_home)
-        self.peptiverse_python = _resolve_python(peptiverse_python)
+        self.peptiverse_python = resolve_sidecar_python(peptiverse_python, "PEPTIVERSE_PYTHON")
         self.device, self.uncertainty = device, uncertainty
         self.max_peptide_length = max_peptide_length
         self.subprocess_timeout = subprocess_timeout

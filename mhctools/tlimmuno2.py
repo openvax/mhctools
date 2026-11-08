@@ -44,17 +44,16 @@ a prioritization aid, not ground truth.
 """
 
 import logging
-import os
-import sys
-from os.path import exists, isfile, join
+from os.path import exists, join
 from tempfile import mkdtemp
 
 import pandas as pd
 
+from .artifacts import resolve_artifact_path
 from .cleanup_context import CleanupFiles
 from .pred import Kind, PeptideResult, Prediction
 from .process_helpers import (
-    legacy_keras_environment, legacy_keras_runtime_available, run_command,
+    legacy_keras_environment, legacy_keras_runtime_available, resolve_sidecar_python, run_command,
 )
 from .wrapper_base import NewModelPredictorMixin
 from .allele_normalization import normalize_allele_name
@@ -67,35 +66,6 @@ logger = logging.getLogger(__name__)
 TLIMMUNO2_MAX_PEPTIDE_LENGTH = 21
 
 _PSEUDOSEQ_RELPATH = join("Python", "data", "pseudosequence.2016.all.X.dat")
-
-
-def _find_tlimmuno2_home(tlimmuno2_home=None):
-    """Resolve the TLimmuno2 checkout directory (holds ``Python/TLimmuno2.py``).
-
-    Checks, in order: the *tlimmuno2_home* argument, ``$TLIMMUNO2_HOME``,
-    ``~/TLimmuno2`` / ``~/code/TLimmuno2``, then the pinned snapshot installed
-    by ``mhctools fetch tlimmuno2``. A complete user-managed checkout wins so an
-    existing install keeps being used.
-    """
-    candidate = tlimmuno2_home or os.environ.get("TLIMMUNO2_HOME")
-    if not candidate:
-        from .artifacts import artifact_status
-        # Share the inventory's complete-asset validation and precedence.
-        installed = artifact_status("tlimmuno2")
-        if installed.status == "ready":
-            candidate = installed.path
-    if not candidate:
-        raise FileNotFoundError(
-            "TLimmuno2 not found. Set TLIMMUNO2_HOME or pass tlimmuno2_home= "
-            "to the constructor. Run `mhctools fetch tlimmuno2 "
-            "--accept-license`; upstream publishes no license, so that flag "
-            "records that you confirmed your own use is authorized. Clone "
-            "from https://github.com/XSLiuLab/TLimmuno2")
-    if not isfile(join(candidate, "Python", "TLimmuno2.py")):
-        raise FileNotFoundError(
-            "Python/TLimmuno2.py not found in %r — is this a TLimmuno2 checkout?"
-            % candidate)
-    return candidate
 
 
 def _load_valid_alleles(tlimmuno2_home):
@@ -127,14 +97,6 @@ def _tlimmuno2_allele(allele, valid_alleles):
         "'DRB1_0803' or 'HLA-DPA10103-DPB10101'." % allele)
 
 
-def _resolve_python(tlimmuno2_python=None):
-    """Interpreter the sidecar runs under: explicit argument, then
-    ``$TLIMMUNO2_PYTHON``, then the current interpreter."""
-    return (tlimmuno2_python
-            or os.environ.get("TLIMMUNO2_PYTHON")
-            or sys.executable)
-
-
 def tlimmuno2_runtime_available(tlimmuno2_python=None, timeout=120):
     """Whether that interpreter can load TLimmuno2's Keras 2 SavedModels.
 
@@ -143,7 +105,7 @@ def tlimmuno2_runtime_available(tlimmuno2_python=None, timeout=120):
     TensorFlow may be too new for the committed weights.
     """
     return legacy_keras_runtime_available(
-        _resolve_python(tlimmuno2_python), timeout=timeout)
+        resolve_sidecar_python(tlimmuno2_python, "TLIMMUNO2_PYTHON"), timeout=timeout)
 
 
 class TLimmuno2(NewModelPredictorMixin):
@@ -188,8 +150,8 @@ class TLimmuno2(NewModelPredictorMixin):
         if not alleles:
             raise ValueError("TLimmuno2 requires at least one allele")
         self.alleles = [normalize_allele_name(a) for a in alleles]
-        self.tlimmuno2_home = _find_tlimmuno2_home(tlimmuno2_home)
-        self.tlimmuno2_python = _resolve_python(tlimmuno2_python)
+        self.tlimmuno2_home = str(resolve_artifact_path("tlimmuno2", tlimmuno2_home))
+        self.tlimmuno2_python = resolve_sidecar_python(tlimmuno2_python, "TLIMMUNO2_PYTHON")
         self._valid_alleles = None
 
     def __str__(self):

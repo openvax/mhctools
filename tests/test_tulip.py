@@ -27,13 +27,12 @@ import subprocess
 import pandas as pd
 import pytest
 
+from mhctools.artifacts import resolve_artifact_path
 from mhctools import TCR
 from mhctools.pred import COLUMNS, Kind
 from mhctools.tulip import (
     Tulip,
     MISSING_TOKEN,
-    _find_tulip_home,
-    _find_tulip_python,
 )
 
 
@@ -42,21 +41,14 @@ from mhctools.tulip import (
 # ---------------------------------------------------------------------------
 
 def test_find_tulip_home_missing_raises():
-    with pytest.raises(FileNotFoundError, match="does not exist"):
-        _find_tulip_home("/nonexistent/tulip")
+    with pytest.raises(FileNotFoundError, match="incomplete"):
+        resolve_artifact_path("tulip", "/nonexistent/tulip")
 
 
 def test_find_tulip_home_without_predict_py_raises(tmp_path):
     # Directory exists but isn't a TULIP checkout (no predict.py).
-    with pytest.raises(FileNotFoundError, match="no predict.py"):
-        _find_tulip_home(str(tmp_path))
-
-
-def test_find_tulip_python_not_executable_raises(tmp_path):
-    not_exe = tmp_path / "python"
-    not_exe.write_text("#!/bin/sh\n")   # exists but not chmod +x
-    with pytest.raises(FileNotFoundError, match="not an executable"):
-        _find_tulip_python(str(not_exe))
+    with pytest.raises(FileNotFoundError, match="predict.py"):
+        resolve_artifact_path("tulip", str(tmp_path))
 
 
 def test_clean_maps_empty_to_missing_token():
