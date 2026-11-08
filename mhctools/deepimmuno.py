@@ -40,20 +40,18 @@ it generalizes to novel neoepitopes (independent benchmarks put the field near
 AUC 0.5-0.65) — a prioritization aid, not ground truth.
 """
 
-import os
-import sys
-from os.path import exists, isdir, isfile, join
+from os.path import exists, join
 from tempfile import mkdtemp
 
 import pandas as pd
 
+from .artifacts import resolve_artifact_path
 from .allele_formats import deepimmuno_allele_name, format_allele
 from .allele_normalization import normalize_allele_name
 from .cleanup_context import CleanupFiles
-from .optional_backend import common_checkout_paths
 from .pred import Kind, PeptideResult, Prediction
 from .process_helpers import (
-    legacy_keras_environment, legacy_keras_runtime_available, run_command,
+    legacy_keras_environment, legacy_keras_runtime_available, resolve_sidecar_python, run_command,
 )
 from .wrapper_base import NewModelPredictorMixin
 
@@ -61,35 +59,6 @@ from .wrapper_base import NewModelPredictorMixin
 # 10 with a gap inserted after position 5, and any other length leaves the
 # encoding undefined. So 9 and 10 are the only lengths it can score.
 DEEPIMMUNO_PEPTIDE_LENGTHS = (9, 10)
-
-
-def _find_deepimmuno_home(deepimmuno_home=None):
-    """Resolve the DeepImmuno checkout directory (holds ``deepimmuno-cnn.py``).
-
-    Checks, in order: the *deepimmuno_home* argument, ``$DEEPIMMUNO_HOME``, then
-    ``~/DeepImmuno`` / ``~/code/DeepImmuno``.
-    """
-    candidate = deepimmuno_home or os.environ.get("DEEPIMMUNO_HOME")
-    if not candidate:
-        for home in common_checkout_paths("DeepImmuno"):
-            if isdir(home):
-                candidate = str(home)
-                break
-    if not candidate:
-        from .artifacts import artifact_status
-        managed = artifact_status("deepimmuno")
-        if managed.manager == "mhctools" and managed.status == "ready":
-            candidate = managed.path
-    if not candidate:
-        raise FileNotFoundError(
-            "DeepImmuno not found. Set DEEPIMMUNO_HOME or pass deepimmuno_home= "
-            "to the constructor. Run `mhctools fetch deepimmuno` or clone from "
-            "https://github.com/frankligy/DeepImmuno")
-    if not isfile(join(candidate, "deepimmuno-cnn.py")):
-        raise FileNotFoundError(
-            "deepimmuno-cnn.py not found in %r — is this a DeepImmuno checkout?"
-            % candidate)
-    return candidate
 
 
 def _deepimmuno_allele(allele):
@@ -102,14 +71,6 @@ def _deepimmuno_allele(allele):
     return format_allele(allele, deepimmuno_allele_name)
 
 
-def _resolve_python(deepimmuno_python=None):
-    """Interpreter the sidecar runs under: explicit argument, then
-    ``$DEEPIMMUNO_PYTHON``, then the current interpreter."""
-    return (deepimmuno_python
-            or os.environ.get("DEEPIMMUNO_PYTHON")
-            or sys.executable)
-
-
 def deepimmuno_runtime_available(deepimmuno_python=None, timeout=120):
     """Whether that interpreter can load DeepImmuno's Keras 2 checkpoint.
 
@@ -118,7 +79,7 @@ def deepimmuno_runtime_available(deepimmuno_python=None, timeout=120):
     TensorFlow may be too new for the committed weights.
     """
     return legacy_keras_runtime_available(
-        _resolve_python(deepimmuno_python), timeout=timeout)
+        resolve_sidecar_python(deepimmuno_python, "DEEPIMMUNO_PYTHON"), timeout=timeout)
 
 
 class DeepImmuno(NewModelPredictorMixin):
@@ -152,8 +113,8 @@ class DeepImmuno(NewModelPredictorMixin):
         if not alleles:
             raise ValueError("DeepImmuno requires at least one allele")
         self.alleles = [normalize_allele_name(a) for a in alleles]
-        self.deepimmuno_home = _find_deepimmuno_home(deepimmuno_home)
-        self.deepimmuno_python = _resolve_python(deepimmuno_python)
+        self.deepimmuno_home = str(resolve_artifact_path("deepimmuno", deepimmuno_home))
+        self.deepimmuno_python = resolve_sidecar_python(deepimmuno_python, "DEEPIMMUNO_PYTHON")
 
     def __str__(self):
         return "DeepImmuno(alleles=%s, deepimmuno_home=%r)" % (

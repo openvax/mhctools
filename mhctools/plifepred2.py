@@ -104,12 +104,11 @@ accuracy is optimistic for novel peptides.
 import math
 import os
 from pathlib import Path
-import shutil
-import sys
 import tempfile
 
 import pandas as pd
 
+from .process_helpers import resolve_sidecar_python
 from .optional_backend import (
     BackendSpec,
     backend_inventory,
@@ -279,21 +278,6 @@ def _artifact_inventory(
         })
 
 
-def _resolve_python(plifepred2_python=None):
-    value = plifepred2_python or os.environ.get("PLIFEPRED2_PYTHON")
-    if not value:
-        return sys.executable
-    path = Path(value).expanduser()
-    if path.is_file():
-        # Do not resolve a virtualenv interpreter symlink: invoking the target
-        # binary directly would discard the environment prefix.
-        return str(path.absolute())
-    executable = shutil.which(str(value))
-    if executable:
-        return executable
-    raise FileNotFoundError("PlifePred2 Python does not exist: %s" % value)
-
-
 class PlifePred2(AlleleFreePredictor):
     """Peptide half-life predictions from local PlifePred2 + Pfeature.
 
@@ -337,7 +321,7 @@ class PlifePred2(AlleleFreePredictor):
             subprocess_timeout=300):
         self.plifepred2_home = _find_plifepred2_home(plifepred2_home)
         self.pfeature_home = _find_pfeature_home(pfeature_home)
-        self.plifepred2_python = _resolve_python(plifepred2_python)
+        self.plifepred2_python = resolve_sidecar_python(plifepred2_python, "PLIFEPRED2_PYTHON")
         self.assume_log10_seconds = assume_log10_seconds
         self.subprocess_timeout = subprocess_timeout
         self.artifact_inventory = _artifact_inventory(

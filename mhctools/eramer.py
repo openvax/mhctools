@@ -37,10 +37,7 @@ treat the score (roughly -1..1, higher = more likely trimmed) as a pathway
 prior, not a validated oracle.
 """
 
-import os
-from os.path import isdir, isfile, join
-
-from .optional_backend import common_checkout_paths
+from .artifacts import resolve_artifact_path
 from .pred import Kind, PeptideResult, Prediction
 from .wrapper_base import AlleleFreePredictor
 
@@ -51,49 +48,6 @@ ERAMER_MAX_PRECURSOR_LENGTH = 16
 _PWM_LENGTHS = tuple(range(
     ERAMER_MIN_PRECURSOR_LENGTH, ERAMER_MAX_PRECURSOR_LENGTH + 1))
 _VALID_AMINO_ACIDS = frozenset("ACDEFGHIKLMNPQRSTVWY")
-
-
-_MISSING_PWM_HELP = (
-    "Set ERAMER_HOME to a clone of https://github.com/aalokaily/ERAMER "
-    "(or pass eramer_home= / pwm_path=). mhctools does not vendor the "
-    "GPL-licensed PWM.")
-
-
-def _find_pwm_path(eramer_home=None, pwm_path=None):
-    """Resolve the path to ERAMER's ``PWM.xlsx``.
-
-    An explicit *pwm_path* or *eramer_home* is honored exactly (and must exist —
-    no silent fallback). Otherwise the resolver tries ``$ERAMER_PWM``, then
-    ``$ERAMER_HOME/PWM.xlsx``, then conventional user checkout locations.
-    """
-    if pwm_path:
-        if isfile(pwm_path):
-            return pwm_path
-        raise FileNotFoundError(
-            "ERAMER PWM not found at pwm_path=%r." % pwm_path)
-    if eramer_home:
-        candidate = join(eramer_home, "PWM.xlsx")
-        if isfile(candidate):
-            return candidate
-        raise FileNotFoundError(
-            "PWM.xlsx not found in eramer_home=%r." % eramer_home)
-
-    candidates = []
-    if os.environ.get("ERAMER_PWM"):
-        candidates.append(os.environ["ERAMER_PWM"])
-    if os.environ.get("ERAMER_HOME"):
-        candidates.append(join(os.environ["ERAMER_HOME"], "PWM.xlsx"))
-    for home in common_checkout_paths("ERAMER"):
-        if isdir(home):
-            candidates.append(join(home, "PWM.xlsx"))
-    from .artifacts import artifact_status
-    managed = artifact_status("eramer")
-    if managed.manager == "mhctools" and managed.status == "ready":
-        candidates.append(join(managed.path, "PWM.xlsx"))
-    for candidate in candidates:
-        if isfile(candidate):
-            return candidate
-    raise FileNotFoundError("ERAMER's PWM.xlsx not found. " + _MISSING_PWM_HELP)
 
 
 def load_pwm(pwm_path):
@@ -202,7 +156,7 @@ class ERAMER(AlleleFreePredictor):
                 "intermediate must still be a >=9mer with a PWM); got %d"
                 % (ERAMER_MAX_PRECURSOR_LENGTH - 1, epitope_length))
         self.epitope_length = epitope_length
-        self.pwm_path = _find_pwm_path(eramer_home, pwm_path)
+        self.pwm_path = str(resolve_artifact_path("eramer", pwm_path or eramer_home))
         self._weights_by_length = None
 
     def __str__(self):

@@ -20,16 +20,17 @@ with ``DEEPIMMUNO_PYTHON`` optionally naming an interpreter that has TensorFlow
 with Keras 2, or newer TensorFlow plus the ``tf-keras`` shim).
 """
 
+from tests.snapshot_fixtures import populate_snapshot
 import os
 from functools import lru_cache
 from tempfile import NamedTemporaryFile
 
 import pytest
 
+from mhctools.artifacts import resolve_artifact_path
 from mhctools import DeepImmuno, Kind
 from mhctools.deepimmuno import (
     _deepimmuno_allele,
-    _find_deepimmuno_home,
     deepimmuno_runtime_available,
     parse_deepimmuno_results,
 )
@@ -79,9 +80,7 @@ def test_deepimmuno_allele_format():
 # --- construction / validation (no binary needed) ---------------------------
 
 def _stub_home(tmp_path):
-    """A minimal fake DeepImmuno checkout (just a deepimmuno-cnn.py marker)."""
-    (tmp_path / "deepimmuno-cnn.py").write_text("# stub\n")
-    return str(tmp_path)
+    return str(populate_snapshot(tmp_path, "deepimmuno"))
 
 
 def test_default_kind_and_support(tmp_path):
@@ -121,7 +120,7 @@ def test_peptide_length_validation(tmp_path):
 # --- end-to-end (requires a DeepImmuno checkout) ----------------------------
 
 try:
-    DEEPIMMUNO_HOME = _find_deepimmuno_home()
+    DEEPIMMUNO_HOME = resolve_artifact_path("deepimmuno")
 except FileNotFoundError:
     DEEPIMMUNO_HOME = None
 

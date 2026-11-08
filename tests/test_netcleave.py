@@ -10,17 +10,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from tests.snapshot_fixtures import populate_snapshot
 import sys
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
+from mhctools.artifacts import resolve_artifact_path
 from mhctools.netcleave import (
     NetCleave,
     NetCleave_I,
     NetCleave_II,
-    _find_netcleave_dir,
 )
 from mhctools.pred import COLUMNS, Kind
 
@@ -35,19 +36,24 @@ def test_init_invalid_class():
 
 
 def test_init_missing_path_raises():
-    with pytest.raises(FileNotFoundError, match="does not exist"):
+    with pytest.raises(FileNotFoundError, match="incomplete"):
         NetCleave(netcleave_path="/nonexistent/netcleave")
 
 
 @pytest.mark.parametrize("constructor", [NetCleave, NetCleave_I, NetCleave_II])
 @pytest.mark.parametrize("argument,environment,expected", [
-    ("/explicit/python", "/configured/python", "/explicit/python"),
-    (None, "/configured/python", "/configured/python"),
+    ("explicit-python", "configured-python", "explicit-python"),
+    (None, "configured-python", "configured-python"),
     (None, None, sys.executable),
 ])
 def test_runtime_selection(constructor, argument, environment, expected, tmp_path, monkeypatch):
     """The explicit override, configured isolated runtime and default all work."""
-    (tmp_path / "NetCleave.py").touch()
+    for name in ("explicit-python", "configured-python"):
+        (tmp_path / name).symlink_to(sys.executable)
+    argument = str(tmp_path / argument) if argument else None
+    environment = str(tmp_path / environment) if environment else None
+    expected = str(tmp_path / expected)
+    populate_snapshot(tmp_path, "netcleave")
     model = tmp_path / "model"
     model.mkdir()
     (model / "model_model.h5").touch()
@@ -64,7 +70,7 @@ def test_runtime_selection(constructor, argument, environment, expected, tmp_pat
 def test_prediction_uses_writable_scratch_not_model_checkout(tmp_path, monkeypatch):
     checkout = tmp_path / "netcleave"
     checkout.mkdir()
-    (checkout / "NetCleave.py").touch()
+    populate_snapshot(checkout, "netcleave")
     model = checkout / "model"
     model.mkdir()
     (model / "model_model.h5").touch()
@@ -88,7 +94,7 @@ def test_prediction_uses_writable_scratch_not_model_checkout(tmp_path, monkeypat
     monkeypatch.setattr("mhctools.netcleave.subprocess.run", fake_run)
     assert predictor._run_netcleave([("SIINFEKL", "SIINFEKLDGH", "FEKLDGH")]) == [0.75]
     assert not workdirs[0].exists()
-    assert not (checkout / "output").exists()
+    assert not list((checkout / "output").iterdir())
 
 
 # ---------------------------------------------------------------------------
@@ -97,7 +103,7 @@ def test_prediction_uses_writable_scratch_not_model_checkout(tmp_path, monkeypat
 # ---------------------------------------------------------------------------
 
 try:
-    NETCLEAVE_DIR = _find_netcleave_dir()
+    NETCLEAVE_DIR = resolve_artifact_path("netcleave")
 except FileNotFoundError:
     NETCLEAVE_DIR = None
 

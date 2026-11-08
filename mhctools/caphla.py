@@ -20,12 +20,11 @@ Cite: Chang and Wu, Briefings in Bioinformatics 2025, bbae595.
 
 import csv
 from importlib import util
-import os
 from pathlib import Path
 
+from .artifacts import resolve_artifact_path
 from .allele_formats import caphla_allele_key
 from .allele_normalization import parse_allele
-from .optional_backend import common_checkout_paths
 from .pred import COLUMNS, Kind, PeptideResult, Prediction
 from .wrapper_base import NewModelPredictorMixin
 
@@ -34,32 +33,6 @@ CAPHLA_REVISION = "33ebdd6ce6dadbbb1c66b026ce4b5d81dbf3a831"
 CAPHLA_PEPTIDE_LENGTHS = tuple(range(7, 26))
 _AMINO_ACIDS = "ACDEFGHIKLMNPQRSTVWYX"
 _AMINO_ACID_INDEX = {amino_acid: i for i, amino_acid in enumerate(_AMINO_ACIDS)}
-
-
-def _find_caphla_home(caphla_path=None):
-    """Resolve and validate a CapHLA upstream snapshot."""
-    for source, path in (
-            ("caphla_path argument", caphla_path),
-            ("CAPHLA_HOME", os.environ.get("CAPHLA_HOME"))):
-        if path:
-            candidate = Path(path).expanduser().resolve()
-            if not (candidate / "EL_model.py").is_file():
-                raise FileNotFoundError(
-                    "CapHLA directory from %s is invalid: %s" % (
-                        source, candidate))
-            return str(candidate)
-
-    for legacy in common_checkout_paths("CapHLA"):
-        if (legacy / "EL_model.py").is_file():
-            return str(legacy.resolve())
-
-    from .artifacts import artifact_status
-    managed = artifact_status("caphla")
-    if managed.manager == "mhctools" and managed.status == "ready":
-        return managed.path
-    raise FileNotFoundError(
-        "CapHLA not found. Run `mhctools fetch caphla`, set CAPHLA_HOME, "
-        "or pass caphla_path= to the constructor.")
 
 
 def normalize_caphla_allele(allele):
@@ -127,7 +100,7 @@ class CapHLA(NewModelPredictorMixin):
             raise ValueError("batch_size must be positive")
 
         self.mode = mode
-        self.caphla_home = _find_caphla_home(caphla_path)
+        self.caphla_home = str(resolve_artifact_path("caphla", caphla_path))
         self.device = device
         self.batch_size = batch_size
         self._hla_library = self._load_hla_library()

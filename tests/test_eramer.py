@@ -23,8 +23,9 @@ from pathlib import Path
 
 import pytest
 
+from mhctools.artifacts import resolve_artifact_path
 from mhctools import ERAMER, Kind
-from mhctools.eramer import _find_pwm_path, _specificity, eramer_score
+from mhctools.eramer import _specificity, eramer_score
 
 
 # --- cascade math (synthetic PWM, no xlsx) ----------------------------------
@@ -77,7 +78,7 @@ def test_rejects_bad_epitope_length(tmp_path):
 
 
 def test_rejects_missing_pwm(tmp_path):
-    with pytest.raises(FileNotFoundError, match="not found"):
+    with pytest.raises(FileNotFoundError, match="incomplete"):
         ERAMER(pwm_path=str(tmp_path / "nope.xlsx"))
 
 
@@ -93,7 +94,7 @@ def test_peptide_validation(stub_predictor):
 # --- end-to-end (requires an ERAMER checkout + openpyxl) --------------------
 
 try:
-    ERAMER_HOME = str(Path(_find_pwm_path()).parent)
+    ERAMER_HOME = str(Path(resolve_artifact_path("eramer")).parent)
 except FileNotFoundError:
     ERAMER_HOME = None
 try:

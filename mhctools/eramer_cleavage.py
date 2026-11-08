@@ -3,11 +3,11 @@
 from dataclasses import replace
 import hashlib
 from io import BytesIO
-from pathlib import Path
 
 from .cleavage import (
     CleavageModel, CleavageResult, CleavageSite, coerce_peptide)
-from .eramer import _find_pwm_path, _specificity, load_pwm
+from .artifacts import resolve_artifact_path
+from .eramer import _specificity, load_pwm
 
 
 class ERAMERCleavage:
@@ -31,7 +31,7 @@ class ERAMERCleavage:
         scored_endpoint="site_cleavage")
 
     def __init__(self, eramer_home=None, pwm_path=None):
-        path = Path(_find_pwm_path(eramer_home, pwm_path)).expanduser().resolve()
+        path = resolve_artifact_path("eramer", pwm_path or eramer_home)
         data = path.read_bytes()
         self._weights = load_pwm(BytesIO(data))
         self.model = replace(self.model, version="pwm-sha256:" + hashlib.sha256(data).hexdigest())

@@ -291,8 +291,10 @@ def test_build_predictor_skips_dpl_for_bigmhc():
         alleles=["HLA-A*02:01"], peptide_lengths=[9, 10], args=args)
     assert pred.default_peptide_lengths == [9, 10]
 
-    # BigMHC would TypeError if dpl were passed; FileNotFoundError means
-    # it got through kwarg filtering and failed on path lookup
+    # Use an explicit missing path: a real checkout may be installed locally.
+    # BigMHC would TypeError if dpl were passed; FileNotFoundError means it got
+    # through kwarg filtering and failed on path lookup.
+    args.mhc_predictor_path = "/nonexistent/mhctools-test-bigmhc"
     with pytest.raises(FileNotFoundError):
         _build_predictor(
             BigMHC, "bigmhc",

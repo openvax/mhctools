@@ -44,13 +44,14 @@ import logging
 import os
 import shutil
 import subprocess
-import sys
 import tempfile
 import uuid
 from collections import defaultdict
 
 import pandas as pd
 
+from .process_helpers import resolve_sidecar_python
+from .artifacts import resolve_artifact_path
 from .base_predictor import (
     _check_flank_inputs,
     _normalize_sequence_dict,
@@ -65,38 +66,6 @@ NETCLEAVE_TIMEOUT_SECONDS = 600
 # NetCleave needs 3 residues downstream of the peptide C-terminus to build
 # the 4+3 cleavage site; without them it cannot score the site.
 _C_FLANK_REQUIRED = 3
-
-
-def _find_netcleave_dir(netcleave_path=None):
-    """Resolve the NetCleave installation directory.
-
-    Checks, in order: the *netcleave_path* argument, the ``NETCLEAVE_DIR``
-    environment variable, ``~/NetCleave`` and ``~/code/NetCleave``, then the
-    pinned snapshot installed by ``mhctools fetch netcleave``. A complete
-    user-managed checkout wins so an existing install keeps being used. An
-    explicitly-provided path is validated up front.
-    """
-    clone_hint = "Clone from https://github.com/BSC-CNS-EAPM/NetCleave"
-    for source, path in (
-            ("netcleave_path argument", netcleave_path),
-            ("NETCLEAVE_DIR", os.environ.get("NETCLEAVE_DIR"))):
-        if path:
-            if not os.path.isdir(path):
-                raise FileNotFoundError(
-                    "NetCleave directory from %s does not exist: %s. %s"
-                    % (source, path, clone_hint))
-            return path
-    from .artifacts import artifact_status
-    # Use the inventory's asset checks and user-before-managed precedence.
-    # An entry point alone does not make a partial checkout runnable.
-    installed = artifact_status("netcleave")
-    if installed.status == "ready":
-        return installed.path
-    raise FileNotFoundError(
-        "NetCleave not found. Set NETCLEAVE_DIR or pass netcleave_path= to "
-        "the constructor. Run `mhctools fetch netcleave --accept-license`; "
-        "upstream publishes no license, so that flag records that you "
-        "confirmed your own use is authorized. %s" % clone_hint)
 
 
 class NetCleave(object):
@@ -162,9 +131,9 @@ class NetCleave(object):
                 % (self.VALID_CLASSES, mhc_class))
         self.mhc_class = mhc_class
         self.mhc_allele = mhc_allele
-        self.netcleave_dir = _find_netcleave_dir(netcleave_path)
-        self.python_executable = (
-            python_executable or os.environ.get("NETCLEAVE_PYTHON") or sys.executable)
+        self.netcleave_dir = str(resolve_artifact_path("netcleave", netcleave_path))
+        self.python_executable = resolve_sidecar_python(
+            python_executable, "NETCLEAVE_PYTHON")
         self.subprocess_timeout = subprocess_timeout
 
         self._script = os.path.join(self.netcleave_dir, "NetCleave.py")

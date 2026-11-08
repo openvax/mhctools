@@ -51,11 +51,12 @@ from __future__ import annotations
 import csv
 import os
 import subprocess
-import sys
 import tempfile
 
 import pandas as pd
 
+from .process_helpers import resolve_sidecar_python
+from .artifacts import resolve_artifact_path
 from .pred import COLUMNS, Kind, PeptideResult, Prediction
 from .tcr import TCR
 
@@ -67,63 +68,6 @@ _CLONE_HINT = "Clone from https://github.com/barthelemymp/TULIP-TCR"
 _ENV_HINT = (
     "Build an isolated env (Python 3.11, torch + transformers==4.32.1) and "
     "point TULIP_PYTHON at its interpreter; see scripts/setup_tulip_env.sh")
-
-
-def _find_tulip_home(tulip_home=None):
-    """Resolve the TULIP-TCR checkout directory.
-
-    Checks, in order: the *tulip_home* argument, ``TULIP_HOME``, then
-    ``~/TULIP-TCR`` and ``~/code/TULIP-TCR``. An explicitly-provided path is
-    validated up front (including that it actually contains ``predict.py``)
-    so a typo fails clearly rather than deep inside a subprocess.
-    """
-    for source, path in (
-            ("tulip_home argument", tulip_home),
-            ("TULIP_HOME", os.environ.get("TULIP_HOME"))):
-        if path:
-            if not os.path.isdir(path):
-                raise FileNotFoundError(
-                    "TULIP-TCR directory from %s does not exist: %s. %s"
-                    % (source, path, _CLONE_HINT))
-            if not os.path.isfile(os.path.join(path, "predict.py")):
-                raise FileNotFoundError(
-                    "TULIP-TCR directory from %s has no predict.py: %s. %s"
-                    % (source, path, _CLONE_HINT))
-            return path
-    home = os.path.expanduser("~")
-    for candidate in (
-            os.path.join(home, "TULIP-TCR"),
-            os.path.join(home, "code", "TULIP-TCR")):
-        if os.path.isfile(os.path.join(candidate, "predict.py")):
-            return candidate
-    from .artifacts import artifact_status
-    managed = artifact_status("tulip")
-    if managed.manager == "mhctools" and managed.status == "ready":
-        return managed.path
-    raise FileNotFoundError(
-        "TULIP-TCR not found. Set TULIP_HOME or pass tulip_home= to the "
-        "constructor. Run `mhctools fetch tulip`. %s" % _CLONE_HINT)
-
-
-def _find_tulip_python(tulip_python=None):
-    """Resolve the interpreter used to run TULIP.
-
-    Checks the *tulip_python* argument then ``TULIP_PYTHON``. Falls back to
-    the interpreter running mhctools only as a last resort — that works only
-    if torch and transformers==4.32.1 happen to be importable there, which is
-    exactly the coupling this wrapper exists to avoid, so it is not the
-    recommended path.
-    """
-    for source, path in (
-            ("tulip_python argument", tulip_python),
-            ("TULIP_PYTHON", os.environ.get("TULIP_PYTHON"))):
-        if path:
-            if not (os.path.isfile(path) and os.access(path, os.X_OK)):
-                raise FileNotFoundError(
-                    "TULIP_PYTHON from %s is not an executable file: %s. %s"
-                    % (source, path, _ENV_HINT))
-            return path
-    return sys.executable
 
 
 class Tulip(object):
@@ -166,8 +110,8 @@ class Tulip(object):
             model_config=None,
             weights=None,
             batch_size=512):
-        self.tulip_home = _find_tulip_home(tulip_home)
-        self.tulip_python = _find_tulip_python(tulip_python)
+        self.tulip_home = str(resolve_artifact_path("tulip", tulip_home))
+        self.tulip_python = resolve_sidecar_python(tulip_python, "TULIP_PYTHON")
         if model_config is None:
             model_config = os.path.join(
                 self.tulip_home, "configs", "shallow.config.json")

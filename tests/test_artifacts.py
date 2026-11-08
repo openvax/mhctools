@@ -17,9 +17,6 @@ import pytest
 from mhctools import artifacts
 from mhctools.artifacts import ArtifactStatus, artifact_status, fetch, list_artifacts
 from mhctools.cli.script import main
-from mhctools.netcleave import _find_netcleave_dir
-from mhctools.optional_backend import common_checkout_paths
-from mhctools.tlimmuno2 import _find_tlimmuno2_home
 
 
 @pytest.fixture
@@ -42,8 +39,6 @@ def no_user_installs(monkeypatch, tmp_path):
     for snapshot in artifacts._SNAPSHOTS.values():
         if snapshot.environment_variable:
             monkeypatch.delenv(snapshot.environment_variable, raising=False)
-    for definition in artifacts._MANUAL_DIRECTORIES.values():
-        monkeypatch.delenv(definition["environment_variable"], raising=False)
     for definition in artifacts._MANUAL_EXECUTABLES.values():
         for variable in definition.get("environment_variables", ()):
             monkeypatch.delenv(variable, raising=False)
@@ -164,34 +159,6 @@ def test_unfetchable_missing_artifact_names_its_resolution_mechanism():
         assert "once installed." in message
 
 
-def test_inventory_covers_wrapper_checkout_paths():
-    """``ls``/``fetch`` must not call an install missing that a wrapper runs.
-
-    Each wrapper below resolves conventional checkouts through
-    ``common_checkout_paths``, which searches ``~/NAME`` and ``~/code/NAME``.
-    When the inventory listed only ``~/NAME``, ``mhctools fetch tlimmuno2``
-    exited 2 with "not installed" on a machine whose wrapper was happily
-    using ``~/code/TLimmuno2``.
-    """
-    expected = {
-        "caphla": ("CapHLA",),
-        "deepimmuno": ("DeepImmuno",),
-        "deeptap": ("DeepTAP",),
-        "eramer": ("ERAMER",),
-        "netcleave": ("NetCleave",),
-        "nettcr": ("NetTCR-2.2", "nettcr"),
-        "tlimmuno2": ("TLimmuno2",),
-    }
-    for name, directory_names in expected.items():
-        wrapper_paths = set(common_checkout_paths(*directory_names))
-        if name in artifacts._SNAPSHOTS:
-            listed = artifacts._SNAPSHOTS[name].legacy_paths
-        else:
-            listed = artifacts._MANUAL_DIRECTORIES[name]["legacy_paths"]
-        inventory_paths = {Path(path).expanduser() for path in listed}
-        assert wrapper_paths <= inventory_paths, name
-
-
 def test_data_path_precedence(monkeypatch, tmp_path):
     configured = tmp_path / "configured"
     explicit = tmp_path / "explicit"
@@ -227,90 +194,6 @@ def test_managed_status_finds_user_install(monkeypatch, tmp_path):
     assert status.status == "ready"
     assert status.manager == "user"
     assert status.path == str(tmp_path)
-
-
-@pytest.fixture(params=[
-    ("netcleave", "NetCleave", "NetCleave.py", _find_netcleave_dir),
-    ("tlimmuno2", "TLimmuno2", "Python/TLimmuno2.py", _find_tlimmuno2_home),
-])
-def snapshot_discovery(request, no_user_installs):
-    name, directory, entrypoint, resolver = request.param
-    snapshot = artifacts._SNAPSHOTS[name]
-    target = artifacts.managed_path(name)
-    _populate_snapshot_assets(target, snapshot)
-    (target / ".mhctools-artifact.json").write_text(json.dumps({
-        "name": name,
-        "repository": snapshot.repository,
-        "revision": snapshot.revision,
-    }))
-    return SimpleNamespace(
-        name=name, directory=directory, entrypoint=entrypoint,
-        resolver=resolver, snapshot=snapshot, target=target,
-        home=no_user_installs,
-    )
-
-
-def _populate_snapshot_assets(root, snapshot):
-    for relative in snapshot.required_paths:
-        path = root / relative
-        if path.suffix:
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.touch()
-        else:
-            path.mkdir(parents=True, exist_ok=True)
-
-
-@pytest.mark.parametrize("location", ["", "code"])
-@pytest.mark.parametrize("contents", ["empty", "entrypoint-only", "complete"])
-def test_automatic_discovery_agrees_with_inventory(
-        snapshot_discovery, location, contents):
-    install = snapshot_discovery
-    checkout = install.home / location / install.directory
-    checkout.mkdir(parents=True)
-    if contents == "entrypoint-only":
-        entrypoint = checkout / install.entrypoint
-        entrypoint.parent.mkdir(parents=True, exist_ok=True)
-        entrypoint.touch()
-    elif contents == "complete":
-        _populate_snapshot_assets(checkout, install.snapshot)
-
-    expected = checkout if contents == "complete" else install.target
-    status = artifact_status(install.name)
-    assert status.status == "ready"
-    assert status.manager == ("user" if contents == "complete" else "mhctools")
-    assert Path(status.path) == expected.resolve()
-    assert Path(install.resolver()).resolve() == expected.resolve()
-
-
-@pytest.mark.parametrize("override", ["argument", "environment"])
-def test_explicit_snapshot_override_is_preserved(
-        snapshot_discovery, monkeypatch, override):
-    install = snapshot_discovery
-    checkout = install.home / "custom"
-    entrypoint = checkout / install.entrypoint
-    entrypoint.parent.mkdir(parents=True)
-    entrypoint.touch()
-    if override == "environment":
-        monkeypatch.setenv(install.snapshot.environment_variable, str(checkout))
-        actual = install.resolver()
-    else:
-        monkeypatch.setenv(
-            install.snapshot.environment_variable, str(install.home / "absent"))
-        actual = install.resolver(str(checkout))
-    assert Path(actual) == checkout
-
-
-@pytest.mark.parametrize("override", ["argument", "environment"])
-def test_missing_explicit_snapshot_override_does_not_fall_back(
-        snapshot_discovery, monkeypatch, override):
-    install = snapshot_discovery
-    missing = str(install.home / "absent")
-    with pytest.raises(FileNotFoundError):
-        if override == "environment":
-            monkeypatch.setenv(install.snapshot.environment_variable, missing)
-            install.resolver()
-        else:
-            install.resolver(missing)
 
 
 def test_eramer_status_finds_direct_pwm(monkeypatch, tmp_path):
@@ -785,7 +668,6 @@ def test_tlimmuno2_is_a_fetchable_unlicensed_snapshot():
     # an 88 MB .RData session dump beside its code.
     assert snapshot.sparse_cone is False
     assert snapshot.sparse_paths == ("/Python/",)
-    assert "tlimmuno2" not in artifacts._MANUAL_DIRECTORIES
 
 
 def test_unlicensed_snapshots_require_acknowledgement_not_acceptance(tmp_path):

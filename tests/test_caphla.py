@@ -1,19 +1,20 @@
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 
+from tests.snapshot_fixtures import populate_snapshot
 import csv
 from pathlib import Path
 
 import pandas as pd
 import pytest
 
+from mhctools.artifacts import resolve_artifact_path
 from mhctools.caphla import (
     CAPHLA_REVISION,
     CapHLA,
     CapHLA_BA,
     CapHLA_EL,
     _affinity_nm,
-    _find_caphla_home,
     normalize_caphla_allele,
 )
 from mhctools.pred import COLUMNS, Kind
@@ -26,6 +27,7 @@ def test_artifact_revision_matches_wrapper():
 
 @pytest.fixture
 def caphla_home(tmp_path):
+    populate_snapshot(tmp_path, "caphla")
     for filename in ("BA_model.py", "EL_model.py"):
         (tmp_path / filename).touch()
     with (tmp_path / "HLA_library.csv").open("w", newline="") as output:
@@ -175,7 +177,7 @@ def test_predict_pairs_dataframe(caphla_home):
 
 def _installed_caphla_home():
     try:
-        home = _find_caphla_home()
+        home = resolve_artifact_path("caphla")
     except FileNotFoundError:
         return ""
     return home if (Path(home) / "test_out.csv").is_file() else ""

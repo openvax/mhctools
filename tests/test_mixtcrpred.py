@@ -6,6 +6,7 @@
 
 """Tests for the MixTCRpred catalog, downloads, and wrapper."""
 
+from mhctools.artifacts import _SNAPSHOTS
 from functools import lru_cache
 from io import BytesIO
 import hashlib
@@ -27,7 +28,7 @@ MODEL = "A0201_GILGFVFTL"
 
 def _make_home(tmp_path, checkpoint=True):
     home = tmp_path / "MixTCRpred"
-    for relative in mixtcrpred._REQUIRED_HOME_PATHS:
+    for relative in _SNAPSHOTS["mixtcrpred"].required_paths:
         path = home / relative
         path.parent.mkdir(parents=True, exist_ok=True)
         path.touch()
@@ -66,6 +67,8 @@ def _make_home(tmp_path, checkpoint=True):
     model_path = home / "pretrained_models" / ("model_%s.ckpt" % MODEL)
     if checkpoint:
         model_path.write_bytes(b"checkpoint")
+    else:
+        model_path.unlink()
     return home
 
 
@@ -185,13 +188,14 @@ def test_input_validation(field, value, error):
 
 def test_fetch_models_downloads_atomically_and_records_hashes(
         monkeypatch, tmp_path):
-    home = _make_home(tmp_path, checkpoint=False)
+    home = _make_home(tmp_path)
+    model = "DPB10401_TFEYVSQPFLMDLE"
     content = b"downloaded checkpoint"
     md5 = hashlib.md5(content, usedforsecurity=False).hexdigest()
     record = {
         "id": int(mixtcrpred.ZENODO_RECORD),
         "files": [{
-            "key": "model_%s.ckpt" % MODEL,
+            "key": "model_%s.ckpt" % model,
             "size": len(content),
             "checksum": "md5:%s" % md5,
             "links": {"self": "https://zenodo.example/model"},
@@ -205,15 +209,15 @@ def test_fetch_models_downloads_atomically_and_records_hashes(
         return BytesIO(content)
 
     monkeypatch.setattr(mixtcrpred, "urlopen", fake_urlopen)
-    selected = mixtcrpred.fetch_models(home, models=[MODEL])
+    selected = mixtcrpred.fetch_models(home, models=[model])
     assert selected[0].status == "ready"
     assert Path(selected[0].path).read_bytes() == content
     manifest = json.loads((
         home / "pretrained_models" /
         mixtcrpred._MODEL_MANIFEST).read_text())
     assert manifest["record"] == mixtcrpred.ZENODO_RECORD
-    assert manifest["models"][MODEL]["md5"] == md5
-    assert len(manifest["models"][MODEL]["sha256"]) == 64
+    assert manifest["models"][model]["md5"] == md5
+    assert len(manifest["models"][model]["sha256"]) == 64
 
     def unavailable(url, timeout):
         raise OSError("fixture offline")
@@ -221,19 +225,19 @@ def test_fetch_models_downloads_atomically_and_records_hashes(
     monkeypatch.setattr(mixtcrpred, "urlopen", unavailable)
     monkeypatch.setattr(mixtcrpred, "ZENODO_RETRY_DELAYS", (0, 0))
     # A previously verified checkpoint can be used with no network access.
-    assert mixtcrpred.fetch_models(home, models=[MODEL])[0].status == "ready"
+    assert mixtcrpred.fetch_models(home, models=[model])[0].status == "ready"
     with pytest.raises(RuntimeError, match="fixture offline"):
-        mixtcrpred.fetch_models(home, models=[MODEL], refresh_metadata=True)
+        mixtcrpred.fetch_models(home, models=[model], refresh_metadata=True)
 
     path = Path(selected[0].path)
     # Same size, different contents: size alone must never verify a cache.
     path.write_bytes(b"x" * len(content))
     with pytest.raises(RuntimeError, match="does not match its recorded"):
-        mixtcrpred.fetch_models(home, models=[MODEL])
+        mixtcrpred.fetch_models(home, models=[model])
 
     path.unlink()
     with pytest.raises(RuntimeError, match="fixture offline"):
-        mixtcrpred.fetch_models(home, models=[MODEL])
+        mixtcrpred.fetch_models(home, models=[model])
 
 
 def test_unrecorded_cached_model_requires_remote_verification(monkeypatch, tmp_path):

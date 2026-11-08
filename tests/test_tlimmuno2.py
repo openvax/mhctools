@@ -21,15 +21,16 @@ that has TensorFlow with Keras 2, or newer TensorFlow plus the ``tf-keras``
 shim). They are slow: TLimmuno2 scores ~90k background peptides per allele.
 """
 
+from tests.snapshot_fixtures import populate_snapshot
 import os
 from functools import lru_cache
 from tempfile import NamedTemporaryFile
 
 import pytest
 
+from mhctools.artifacts import resolve_artifact_path
 from mhctools import TLimmuno2, Kind
 from mhctools.tlimmuno2 import (
-    _find_tlimmuno2_home,
     _tlimmuno2_allele,
     parse_tlimmuno2_results,
     tlimmuno2_runtime_available,
@@ -106,10 +107,7 @@ def test_allele_mapping_rejects_unknown():
 # --- construction / validation (no binary needed) ---------------------------
 
 def _stub_home(tmp_path):
-    """A minimal fake TLimmuno2 checkout (just a Python/TLimmuno2.py marker)."""
-    (tmp_path / "Python").mkdir()
-    (tmp_path / "Python" / "TLimmuno2.py").write_text("# stub\n")
-    return str(tmp_path)
+    return str(populate_snapshot(tmp_path, "tlimmuno2"))
 
 
 def test_default_kind_and_support(tmp_path):
@@ -146,7 +144,7 @@ def test_peptide_validation(tmp_path):
 # --- end-to-end (requires a TLimmuno2 checkout) -----------------------------
 
 try:
-    TLIMMUNO2_HOME = _find_tlimmuno2_home()
+    TLIMMUNO2_HOME = resolve_artifact_path("tlimmuno2")
 except FileNotFoundError:
     TLIMMUNO2_HOME = None
 

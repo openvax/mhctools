@@ -37,21 +37,7 @@ import tempfile
 
 from platformdirs import user_data_path
 
-
-def _checkout_paths(*directory_names):
-    """Name the user checkout locations the wrappers actually search.
-
-    Wrappers resolve conventional checkouts through
-    :func:`mhctools.optional_backend.common_checkout_paths`, which looks in
-    both ``~/NAME`` and ``~/code/NAME``. The inventory has to name the same
-    locations, or ``ls`` and ``fetch`` would call an install missing while the
-    wrapper happily runs it. ``test_inventory_covers_wrapper_checkout_paths``
-    keeps the two definitions in step.
-    """
-    return tuple(
-        "~/%s" % suffix
-        for directory_name in directory_names
-        for suffix in (directory_name, "code/%s" % directory_name))
+from .optional_backend import common_checkout_paths
 
 
 @dataclass(frozen=True)
@@ -89,7 +75,7 @@ class _Snapshot:
     # have, so the acknowledgement must not be worded as accepting a license.
     unlicensed: bool = False
     environment_variable: str = ""
-    legacy_paths: tuple = ()
+    checkout_names: tuple = ()
 
 
 # Revisions are deliberately immutable. Updating one is a reviewed mhctools
@@ -123,7 +109,7 @@ _SNAPSHOTS = {
             "c7e37a249317704bf96a1e3881a7ece3c3c977a6/LICENSE"),
         acceptance_required=True,
         environment_variable="BIGMHC_DIR",
-        legacy_paths=("~/bigmhc",),
+        checkout_names=("bigmhc",),
     ),
     "caphla": _Snapshot(
         repository="https://github.com/changyunjian/CapHLA.git",
@@ -137,7 +123,7 @@ _SNAPSHOTS = {
             "https://github.com/changyunjian/CapHLA/blob/"
             "33ebdd6ce6dadbbb1c66b026ce4b5d81dbf3a831/LICENSE"),
         environment_variable="CAPHLA_HOME",
-        legacy_paths=_checkout_paths("CapHLA"),
+        checkout_names=("CapHLA",),
     ),
     "deepimmuno": _Snapshot(
         repository="https://github.com/frankligy/DeepImmuno.git",
@@ -149,7 +135,7 @@ _SNAPSHOTS = {
             "https://github.com/frankligy/DeepImmuno/blob/"
             "df42ac5b6bddfe531268335e2dcb496559cd488b/LICENSE"),
         environment_variable="DEEPIMMUNO_HOME",
-        legacy_paths=_checkout_paths("DeepImmuno"),
+        checkout_names=("DeepImmuno",),
     ),
     "deeptap": _Snapshot(
         repository="https://github.com/zjupgx/DeepTAP.git",
@@ -161,7 +147,7 @@ _SNAPSHOTS = {
             "https://github.com/zjupgx/DeepTAP/blob/"
             "d2dad5bdea146ecc245304f509e97ae8137f94fd/LICENSE"),
         environment_variable="DEEPTAP_HOME",
-        legacy_paths=_checkout_paths("DeepTAP"),
+        checkout_names=("DeepTAP",),
     ),
     "eramer": _Snapshot(
         repository="https://github.com/aalokaily/ERAMER.git",
@@ -172,7 +158,7 @@ _SNAPSHOTS = {
             "https://github.com/aalokaily/ERAMER/blob/"
             "7745d5cf72d99bcda1c73f26ca746d025b46b7f3/LICENSE"),
         environment_variable="ERAMER_HOME",
-        legacy_paths=_checkout_paths("ERAMER"),
+        checkout_names=("ERAMER",),
     ),
     "netcleave": _Snapshot(
         repository="https://github.com/BSC-CNS-EAPM/NetCleave.git",
@@ -206,7 +192,7 @@ _SNAPSHOTS = {
         acceptance_required=True,
         unlicensed=True,
         environment_variable="NETCLEAVE_DIR",
-        legacy_paths=_checkout_paths("NetCleave"),
+        checkout_names=("NetCleave",),
     ),
     "nettcr": _Snapshot(
         repository="https://github.com/mnielLab/NetTCR-2.2.git",
@@ -226,7 +212,7 @@ _SNAPSHOTS = {
             "academic_software_license_agreement.pdf"),
         acceptance_required=True,
         environment_variable="NETTCR_DIR",
-        legacy_paths=_checkout_paths("NetTCR-2.2", "nettcr"),
+        checkout_names=("NetTCR-2.2", "nettcr"),
     ),
     "mixtcrpred": _Snapshot(
         repository="https://github.com/GfellerLab/MixTCRpred.git",
@@ -252,7 +238,7 @@ _SNAPSHOTS = {
             "acd6f57444bde675840890207c74ca3b0c7ffac2/LICENSE.md"),
         acceptance_required=True,
         environment_variable="MIXTCRPRED_HOME",
-        legacy_paths=_checkout_paths("MixTCRpred"),
+        checkout_names=("MixTCRpred",),
     ),
     "tlimmuno2": _Snapshot(
         repository="https://github.com/XSLiuLab/TLimmuno2.git",
@@ -278,7 +264,7 @@ _SNAPSHOTS = {
         acceptance_required=True,
         unlicensed=True,
         environment_variable="TLIMMUNO2_HOME",
-        legacy_paths=_checkout_paths("TLimmuno2"),
+        checkout_names=("TLimmuno2",),
     ),
     "tulip": _Snapshot(
         repository="https://github.com/barthelemymp/TULIP-TCR.git",
@@ -293,7 +279,7 @@ _SNAPSHOTS = {
             "https://github.com/barthelemymp/TULIP-TCR/blob/"
             "798fab97a3b13d08dcbfc381ea643e8dc14297c2/LICENSE"),
         environment_variable="TULIP_HOME",
-        legacy_paths=_checkout_paths("TULIP-TCR"),
+        checkout_names=("TULIP-TCR",),
     ),
 }
 
@@ -361,12 +347,6 @@ _MANUAL_EXECUTABLES = {
         "detail": "Install PRIME under its academic/non-commercial license",
     },
 }
-
-# Distributions that cannot be fetched but are still worth resolving. Empty
-# today: TLimmuno2 moved to _SNAPSHOTS once "no license file" was recognized
-# as the same situation NetCleave is in, which mhctools handles with an
-# explicit unlicensed acknowledgement rather than by refusing to fetch.
-_MANUAL_DIRECTORIES = {}
 
 
 def data_path(data_dir=None):
@@ -545,11 +525,16 @@ def _canonical_name(name):
 
 
 def _snapshot_is_valid(path, snapshot):
+    return not _missing_snapshot_paths(path, snapshot)
+
+
+def _missing_snapshot_paths(path, snapshot):
+    """Name absent required assets, including unmatched model-file patterns."""
     path = Path(path)
-    return (
-        all((path / relative).exists() for relative in snapshot.required_paths)
-        and all(list(path.glob(pattern)) for pattern in snapshot.required_globs)
-    )
+    return [relative for relative in snapshot.required_paths
+            if not (path / relative).exists()] + [
+        pattern for pattern in snapshot.required_globs
+        if not any(candidate.is_file() for candidate in path.glob(pattern))]
 
 
 def _managed_snapshot_is_valid(name, path, snapshot):
@@ -567,35 +552,38 @@ def _managed_snapshot_is_valid(name, path, snapshot):
     )
 
 
-def _user_snapshot_path(name, snapshot):
-    if name == "eramer":
-        pwm_path = os.environ.get("ERAMER_PWM")
-        if pwm_path and Path(pwm_path).expanduser().is_file():
-            return Path(pwm_path).expanduser().resolve()
-    if snapshot.environment_variable:
-        configured = os.environ.get(snapshot.environment_variable)
-        if configured and _snapshot_is_valid(configured, snapshot):
-            return Path(configured).expanduser().resolve()
-    for legacy in snapshot.legacy_paths:
-        candidate = Path(legacy).expanduser()
-        if _snapshot_is_valid(candidate, snapshot):
-            return candidate.resolve()
-    return None
-
-
-def _snapshot_status(name, data_dir=None):
+def _snapshot_status(name, data_dir=None, explicit=None):
     snapshot = _SNAPSHOTS[name]
-    user_path = _user_snapshot_path(name, snapshot)
-    if user_path is not None:
+    overrides = [("explicit path", explicit)]
+    if name == "eramer":
+        overrides.append(("ERAMER_PWM", os.environ.get("ERAMER_PWM")))
+    overrides.append((snapshot.environment_variable,
+                      os.environ.get(snapshot.environment_variable)))
+    for source, value in overrides:
+        if not value:
+            continue
+        path = Path(value).expanduser().resolve()
+        if source == "ERAMER_PWM" or (name == "eramer" and path.is_file()):
+            missing = [] if path.is_file() else ["PWM file"]
+        else:
+            missing = _missing_snapshot_paths(path, snapshot)
         return ArtifactStatus(
-            name=name,
-            status="ready",
-            manager="user",
-            version="unknown",
-            path=str(user_path),
-            fetchable=True,
-            detail="Using an existing user-managed upstream installation",
+            name=name, status="missing" if missing else "ready",
+            manager="user", version="unknown", path=str(path), fetchable=True,
+            detail=("%s from %s at %s is incomplete; missing: %s. "
+                    "Fix or unset the override before selecting another installation."
+                    % (name, source, path, ", ".join(missing))
+                    if missing else "Using %s from %s" % (name, source)),
         )
+
+    # Resolve HOME at lookup time, not while importing the snapshot registry.
+    for candidate in common_checkout_paths(*snapshot.checkout_names):
+        if _snapshot_is_valid(candidate, snapshot):
+            return ArtifactStatus(
+                name=name, status="ready", manager="user", version="unknown",
+                path=str(candidate.resolve()), fetchable=True,
+                detail="Using an existing user-managed upstream installation",
+            )
 
     path = managed_path(name, data_dir=data_dir)
     ready = _managed_snapshot_is_valid(name, path, snapshot)
@@ -627,6 +615,43 @@ def _snapshot_status(name, data_dir=None):
         fetchable=True,
         detail=detail,
     )
+
+
+def resolve_artifact_path(name, explicit=None, data_dir=None):
+    """Select complete snapshot assets using the inventory's discovery policy.
+
+    Parameters
+    ----------
+    name : str
+        Snapshot-backed artifact name, such as ``deeptap`` or ``nettcr``.
+    explicit : path-like, optional
+        Constructor override. Takes precedence over the artifact's environment
+        variable. Invalid overrides raise instead of selecting another install.
+    data_dir : path-like, optional
+        Base directory for managed snapshots. Complete conventional user
+        checkouts still take precedence, as in :func:`artifact_status`.
+
+    Returns
+    -------
+    pathlib.Path
+        Validated checkout root, or the PWM file for ERAMER. Automatic checkouts
+        must contain every required asset; managed snapshots also need matching
+        provenance. This checks installation assets, not runtime dependencies.
+    """
+    canonical = _canonical_name(name)
+    if canonical not in _SNAPSHOTS:
+        raise ValueError("%s is not a snapshot-backed artifact" % name)
+    status = _snapshot_status(canonical, data_dir=data_dir, explicit=explicit)
+    if status.status != "ready":
+        snapshot = _SNAPSHOTS[canonical]
+        command = "mhctools fetch %s" % canonical
+        if snapshot.acceptance_required:
+            command += " --accept-license"
+        raise FileNotFoundError(
+            "%s. Set %s to a complete installation or run `%s`." % (
+                status.detail.rstrip("."), snapshot.environment_variable, command))
+    path = Path(status.path)
+    return path / "PWM.xlsx" if canonical == "eramer" and path.is_dir() else path
 
 
 def _manual_executable_status(name):
@@ -664,30 +689,9 @@ def _manual_executable_status(name):
     )
 
 
-def _manual_directory_status(name):
-    definition = _MANUAL_DIRECTORIES[name]
-    candidates = []
-    configured = os.environ.get(definition["environment_variable"])
-    if configured:
-        candidates.append(Path(configured).expanduser())
-    candidates.extend(Path(path).expanduser() for path in definition["legacy_paths"])
-    root = next((
-        path.resolve() for path in candidates
-        if (path / definition["required_path"]).is_file()), None)
-    return ArtifactStatus(
-        name=name,
-        status="ready" if root else "missing",
-        manager="manual",
-        version="unknown" if root else "",
-        path=str(root) if root else "",
-        fetchable=False,
-        detail=definition["detail"],
-    )
-
-
 def _all_names():
     return {"phagescout"} | set(_STATUS_FUNCTIONS) | set(_SNAPSHOTS) | set(
-        _MANUAL_EXECUTABLES) | set(_MANUAL_DIRECTORIES)
+        _MANUAL_EXECUTABLES)
 
 
 def artifact_status(name, data_dir=None):
@@ -700,8 +704,6 @@ def artifact_status(name, data_dir=None):
         return _snapshot_status(canonical, data_dir=data_dir)
     if canonical in _MANUAL_EXECUTABLES:
         return _manual_executable_status(canonical)
-    if canonical in _MANUAL_DIRECTORIES:
-        return _manual_directory_status(canonical)
     try:
         status_function = _STATUS_FUNCTIONS[canonical]
     except KeyError:
@@ -977,9 +979,6 @@ def _unfetchable_message(name, status):
     definition = _MANUAL_EXECUTABLES.get(name, {})
     variables = list(definition.get("environment_variables", ()))
     executables = list(definition.get("executables", ()))
-    directory = _MANUAL_DIRECTORIES.get(name, {})
-    if directory:
-        variables.append(directory["environment_variable"])
     if variables:
         hints.append("set %s" % " or ".join(variables))
     if executables:
@@ -1043,6 +1042,8 @@ def fetch(
         )
     if canonical in _SNAPSHOTS:
         current = _snapshot_status(canonical, data_dir=data_dir)
+        if current.manager == "user" and current.status != "ready":
+            raise FileNotFoundError(current.detail)
         if data_dir is None and version is None and current.status == "ready":
             status = current
         else:

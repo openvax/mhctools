@@ -16,12 +16,12 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from mhctools.artifacts import resolve_artifact_path
 from mhctools import TCR
 from mhctools.nettcr import (
     NetTCR,
     _BLOSUM50,
     _encode_feature,
-    _find_nettcr_dir,
     _suppress_native_stderr,
 )
 from mhctools.pred import COLUMNS, Kind
@@ -96,13 +96,13 @@ def test_encode_batch():
 # ---------------------------------------------------------------------------
 
 def test_init_missing_path_raises():
-    with pytest.raises(FileNotFoundError, match="does not exist"):
+    with pytest.raises(FileNotFoundError, match="incomplete"):
         NetTCR(nettcr_path="/nonexistent/nettcr")
 
 
 def test_init_no_models_raises(tmp_path):
     # Directory exists but contains no *.tflite ensemble.
-    with pytest.raises(FileNotFoundError, match="No NetTCR"):
+    with pytest.raises(FileNotFoundError, match="missing"):
         NetTCR(nettcr_path=str(tmp_path))
 
 
@@ -111,7 +111,7 @@ def test_init_no_models_raises(tmp_path):
 # ---------------------------------------------------------------------------
 
 try:
-    NETTCR_DIR = _find_nettcr_dir()
+    NETTCR_DIR = resolve_artifact_path("nettcr")
 except FileNotFoundError:
     NETTCR_DIR = None
 if NETTCR_DIR and not os.path.isdir(os.path.join(

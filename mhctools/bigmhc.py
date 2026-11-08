@@ -31,6 +31,7 @@ import sys
 import pandas as pd
 import torch
 
+from .artifacts import resolve_artifact_path
 from .pred import (
     COLUMNS,
     Kind,
@@ -39,32 +40,6 @@ from .pred import (
 )
 from .wrapper_base import NewModelPredictorMixin
 from .allele_normalization import normalize_allele_name
-
-
-def _find_bigmhc_dir(bigmhc_path=None):
-    """Resolve the BigMHC installation directory.
-
-    Checks, in order:
-    1. The *bigmhc_path* argument
-    2. The ``BIGMHC_DIR`` environment variable
-    3. ``~/bigmhc``
-    """
-    if bigmhc_path:
-        return bigmhc_path
-    env = os.environ.get("BIGMHC_DIR")
-    if env:
-        return env
-    home = os.path.join(os.path.expanduser("~"), "bigmhc")
-    if os.path.isdir(home):
-        return home
-    from .artifacts import artifact_status
-    managed = artifact_status("bigmhc")
-    if managed.manager == "mhctools" and managed.status == "ready":
-        return managed.path
-    raise FileNotFoundError(
-        "BigMHC not found. Set BIGMHC_DIR or pass bigmhc_path= to the constructor. "
-        "Run `mhctools fetch bigmhc --accept-license` or clone from "
-        "https://github.com/KarchinLab/bigmhc")
 
 
 def _import_bigmhc_modules(bigmhc_dir):
@@ -127,15 +102,9 @@ class BigMHC(NewModelPredictorMixin):
                 "mode must be one of %s, got %r" % (self.VALID_MODES, mode))
         self.alleles = [normalize_allele_name(a) for a in alleles]
         self.mode = mode
-        self.bigmhc_dir = _find_bigmhc_dir(bigmhc_path)
+        self.bigmhc_dir = str(resolve_artifact_path("bigmhc", bigmhc_path))
         self.device = device
         self.max_batch_size = max_batch_size
-
-        # Validate installation
-        src_dir = os.path.join(self.bigmhc_dir, "src")
-        if not os.path.isfile(os.path.join(src_dir, "bigmhc.py")):
-            raise FileNotFoundError(
-                "bigmhc.py not found in %s" % src_dir)
 
         # Lazy-loaded state
         self._models = None

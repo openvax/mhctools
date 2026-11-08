@@ -20,15 +20,16 @@ a DeepTAP checkout is available (``DEEPTAP_HOME`` pointing at a clone, with
 pytorch-lightning).
 """
 
+from tests.snapshot_fixtures import populate_snapshot
 import os
 from functools import lru_cache
 from tempfile import NamedTemporaryFile
 
 import pytest
 
+from mhctools.artifacts import resolve_artifact_path
 from mhctools import DeepTAP, Kind
 from mhctools.deeptap import (
-    _find_deeptap_home,
     deeptap_runtime_available,
     parse_deeptap_results,
 )
@@ -110,9 +111,7 @@ def test_tap_transport_value_direction():
 # --- construction / validation (no binary needed) ---------------------------
 
 def _stub_home(tmp_path):
-    """A minimal fake DeepTAP checkout (just a deeptap.py marker file)."""
-    (tmp_path / "deeptap.py").write_text("# stub\n")
-    return str(tmp_path)
+    return str(populate_snapshot(tmp_path, "deeptap"))
 
 
 def test_default_kind_and_support(tmp_path):
@@ -153,7 +152,7 @@ def test_peptide_validation(tmp_path):
 # --- end-to-end (requires a DeepTAP checkout) -------------------------------
 
 try:
-    DEEPTAP_HOME = _find_deeptap_home()
+    DEEPTAP_HOME = resolve_artifact_path("deeptap")
 except FileNotFoundError:
     DEEPTAP_HOME = None
 

@@ -59,6 +59,7 @@ if TYPE_CHECKING:
     from .artifacts import (
         ArtifactStatus as ArtifactStatus,
         artifact_status as artifact_status,
+        resolve_artifact_path as resolve_artifact_path,
         data_path as data_path,
         fetch as fetch,
         list_artifacts as list_artifacts,
@@ -387,6 +388,7 @@ _LAZY_IMPORTS = {
     "parse_annotation_spec": (".annotate", "parse_annotation_spec"),
     "ArtifactStatus": (".artifacts", "ArtifactStatus"),
     "artifact_status": (".artifacts", "artifact_status"),
+    "resolve_artifact_path": (".artifacts", "resolve_artifact_path"),
     "data_path": (".artifacts", "data_path"),
     "fetch": (".artifacts", "fetch"),
     "list_artifacts": (".artifacts", "list_artifacts"),
@@ -571,7 +573,7 @@ def __dir__():
     return sorted(set(globals()) | set(_LAZY_IMPORTS))
 
 
-__version__ = "4.9.3"
+__version__ = "4.9.4"
 
 __all__ = [
     "CleaveNet",
@@ -613,6 +615,7 @@ __all__ = [
     "parse_annotation_spec",
     "ArtifactStatus",
     "artifact_status",
+    "resolve_artifact_path",
     "data_path",
     "fetch",
     "list_artifacts",
