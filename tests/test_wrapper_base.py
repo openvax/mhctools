@@ -15,6 +15,7 @@
 """Tests for the shared new-model wrapper base classes."""
 
 import pytest
+from tests.snapshot_fixtures import populate_snapshot
 
 from mhctools.pred import COLUMNS, Kind, Prediction, PeptideResult
 from mhctools.wrapper_base import AlleleFreePredictor, NewModelPredictorMixin
@@ -64,10 +65,8 @@ def test_inherited_predict_dataframe():
     (BigMHC_IM, Kind.immunogenicity),
 ])
 def test_bigmhc_fixed_mode_supported_kinds(factory, kind, tmp_path):
-    # Construction checks the source path; model loading stays lazy.
-    source = tmp_path / "src"
-    source.mkdir()
-    (source / "bigmhc.py").touch()
+    # Construction validates the full asset layout; model loading stays lazy.
+    populate_snapshot(tmp_path, "bigmhc")
     predictor = factory(alleles=["HLA-A*02:01"], bigmhc_path=str(tmp_path))
     assert predictor.supported_kinds == (kind,)
     assert predictor.kind_support() == {
