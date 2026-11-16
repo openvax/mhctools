@@ -221,4 +221,4 @@ directory, and records that inference was not repeated in `provenance.json`.
   <https://doi.org/10.1126/sciadv.adj6367>
 - Individual peptidase references and applicability limits are retained in
   the timestamped run's `tables/model_catalog.csv` and documented in
-  [the cleavage guide](../../docs/cleavage.md).
+  [the cleavage guide](../../docs/cleavage/index.md).
