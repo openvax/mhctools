@@ -159,7 +159,7 @@ def cleavenet(root, python, config):
 
 def nettcr(root, python, config):
     # NetTCR runs in-process. Install mhctools[nettcr] in the caller's env;
-    # its LiteRT interpreter needs no TensorFlow or Keras environment.
+    # its supported interpreter is supplied by that extra.
     config["NETTCR_DIR"] = fetch("nettcr", "--accept-license")
 
 

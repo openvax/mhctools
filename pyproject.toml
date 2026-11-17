@@ -52,10 +52,10 @@ pepsickle = []
 vaccine-report = []
 caphla = []
 nettcr = [
-  # A TFLite runtime for NetTCR's bundled models. ai-edge-litert is the
-  # lightweight option; tensorflow also works. Fetch the tested pan weights
-  # with `mhctools fetch nettcr --accept-license`.
-  "ai-edge-litert",
+  # LiteRT currently unconditionally requires a Python<3.11 backport (#651).
+  # Use the supported TensorFlow interpreter on Python 3.11-3.13 until its
+  # upstream dependency marker is released. Keep the tested interpreter API.
+  "tensorflow>=2.21,<2.22",
 ]
 mixtcrpred = [
   # Runtime for the separately licensed upstream checkout. MixTCRpred's

@@ -25,6 +25,15 @@ NetTCR ships its pretrained weights in its git repository as small TFLite
 models. This wrapper runs the pan cross-validation ensemble in-process and does
 not need NetTCR's conda environment.
 
+Install `mhctools[nettcr]` in Python 3.11–3.13. This extra uses the tested
+TensorFlow 2.21 TFLite interpreter. Current LiteRT releases unconditionally
+require a backport declared incompatible with Python 3.11 and newer
+([#651](https://github.com/openvax/mhctools/issues/651)); the upstream marker
+fix is pending. Python 3.14 NetTCR installation awaits a compatible runtime
+wheel, while the core mhctools package continues to support Python 3.14.
+Use a fresh environment when switching from the affected LiteRT extra so
+obsolete runtime/backport installations do not leave conflicting metadata.
+
 ```python
 from mhctools import NetTCR, TCR
 

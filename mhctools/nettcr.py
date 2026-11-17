@@ -36,6 +36,7 @@ from __future__ import annotations
 import contextlib
 import glob
 import os
+import warnings
 import sys
 
 import numpy as np
@@ -150,10 +151,19 @@ def _load_interpreter(model_path):
         import tensorflow as tf
     except ImportError as e:
         raise ImportError(
-            "NetTCR needs a TFLite runtime. Install one of: "
-            "`ai-edge-litert` (recommended, lightweight), `tflite-runtime`, "
-            "or `tensorflow`.") from e
-    with _suppress_native_stderr():
+            "NetTCR needs a TFLite runtime. Install `mhctools[nettcr]` "
+            "in a Python 3.11-3.13 environment. The extra uses TensorFlow "
+            "while LiteRT's Python-version dependency marker is awaiting "
+            "an upstream fix.") from e
+    with warnings.catch_warnings(), _suppress_native_stderr():
+        # TensorFlow 2.21 still supplies this tested interpreter, but emits a
+        # migration notice recommending LiteRT, whose current dependency
+        # metadata is incompatible with our supported Python versions (#651).
+        # Only that notice is filtered; model errors and other warnings stay
+        # visible. The extra bounds the supported interpreter release series.
+        warnings.filterwarnings(
+            "ignore", message=r"\s*Warning: tf\.lite\.Interpreter is deprecated",
+            category=UserWarning)
         return tf.lite.Interpreter(model_path=model_path)
 
 
