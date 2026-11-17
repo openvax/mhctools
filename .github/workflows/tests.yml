@@ -307,6 +307,12 @@ jobs:
             tests: tests/test_deepimmuno.py tests/test_tlimmuno2.py tests/test_netcleave.py tests/test_artifacts.py
           - group: nettcr
             tests: tests/test_nettcr.py
+          - group: nettcr
+            python-version: "3.12"
+            tests: tests/test_nettcr.py
+          - group: nettcr
+            python-version: "3.13"
+            tests: tests/test_nettcr.py
           - group: deeptap
             tests: tests/test_deeptap.py
     steps:
@@ -314,7 +320,7 @@ jobs:
 
       - uses: actions/setup-python@v7
         with:
-          python-version: "3.11"
+          python-version: ${{ matrix.python-version || '3.11' }}
           cache: pip
 
       - name: Install test dependencies
@@ -332,9 +338,12 @@ jobs:
             env/test-backends/PeptiVerse
           key: half-life-${{ runner.os }}-${{ hashFiles('mhctools/peptiverse.py', 'mhctools/peptiverse_cpp.py', 'mhctools/peptiverse_cpp_benchmark.py') }}
 
-      - name: Install the NetTCR LiteRT interpreter
+      - name: Install the compatible NetTCR interpreter
         if: matrix.group == 'nettcr'
-        run: python -m pip install -e ".[nettcr]"
+        run: |
+          python -m pip install -e ".[nettcr]" uv
+          python -m pip check
+          uv pip check --python python
 
       - name: Provision upstream models and isolated runtimes
         run: python scripts/setup_test_backends.py ${{ matrix.group }} --python python --accept-license
@@ -343,8 +352,12 @@ jobs:
         run: |
           source env/test-backends/activate.sh
           flags=()
-          if [[ '${{ matrix.group }}' == 'nettcr' || '${{ matrix.group }}' == 'keras' ]]; then
+          if [[ '${{ matrix.group }}' == 'keras' ]]; then
             python -c "import importlib.util; assert importlib.util.find_spec('tensorflow') is None, 'TensorFlow leaked into the mhctools host'"
+            flags=(-W error)
+          fi
+          if [[ '${{ matrix.group }}' == 'nettcr' ]]; then
+            python -c "import tensorflow; print(tensorflow.__version__)"
             flags=(-W error)
           fi
           if [[ '${{ matrix.group }}' == 'gfeller' ]]; then

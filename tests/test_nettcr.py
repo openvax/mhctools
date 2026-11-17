@@ -11,6 +11,9 @@
 # limitations under the License.
 
 import os
+import sys
+from types import SimpleNamespace
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -22,6 +25,7 @@ from mhctools.nettcr import (
     NetTCR,
     _BLOSUM50,
     _encode_feature,
+    _load_interpreter,
     _suppress_native_stderr,
 )
 from mhctools.pred import COLUMNS, Kind
@@ -50,6 +54,24 @@ def test_suppress_native_stderr_restores_on_exception(capfd):
             raise ValueError("boom")
     os.write(2, b"still-works\n")  # would raise if fd 2 were left closed
     assert "still-works" in capfd.readouterr().err
+
+
+def test_tensorflow_migration_notice_does_not_hide_other_warnings(monkeypatch):
+    for name in ["ai_edge_litert", "ai_edge_litert.interpreter",
+                 "tflite_runtime", "tflite_runtime.interpreter"]:
+        monkeypatch.setitem(sys.modules, name, None)
+    sentinel = object()
+
+    def interpreter(**kwargs):
+        warnings.warn("    Warning: tf.lite.Interpreter is deprecated", UserWarning)
+        warnings.warn("unexpected runtime warning", UserWarning)
+        return sentinel
+
+    monkeypatch.setitem(sys.modules, "tensorflow", SimpleNamespace(
+        lite=SimpleNamespace(Interpreter=interpreter)))
+    with pytest.warns(UserWarning, match="unexpected runtime warning") as captured:
+        assert _load_interpreter("model.tflite") is sentinel
+    assert len(captured) == 1
 
 
 def test_encode_shape():

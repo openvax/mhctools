@@ -41,8 +41,8 @@ tests; dedicated CI jobs provision Pepsickle, SMM/SMM-PMBEC, DeepTAP, and the
 Keras-backed DeepImmuno/TLimmuno2/NetCleave models, then run real inference
 with `--require-all`. That flag makes a skipped model test fail its job.
 Different jobs are necessary because some upstream weights have separate
-licenses and older runtime requirements, and TensorFlow is deliberately kept
-out of the main interpreter.
+licenses and older runtime requirements. Legacy Keras runtimes stay isolated;
+NetTCR's optional extra supplies its supported in-process interpreter.
 
 “Setup group” is simply the name passed to `scripts/setup_test_backends.py`
 to provision one bundle. For example, `gfeller` provisions the Gfeller lab's
@@ -69,7 +69,7 @@ misconfiguration.
 | [PeptiVerse half-life](predictors/peptide-pk.md#peptiverse) and [CPP classification](predictors/uptake.md#peptiverse-cpp), [PlifePred2](predictors/peptide-pk.md#plifepred2) | `half-life` | `pytest tests/test_peptiverse.py tests/test_peptiverse_cpp.py tests/test_plifepred2.py --require-all` |
 | [Pepsickle](predictors/processing.md#pepsickle) neural and gradient-boosted models | `pepsickle` | `pytest tests/test_pepsickle_legacy.py tests/test_pepsickle_runtime.py --require-all` |
 | [SMM](predictors/binding.md#smm-and-smm-pmbec), [SMM-PMBEC](predictors/binding.md#smm-and-smm-pmbec) | `smm` | `python -m pytest tests/test_smm.py tests/test_smm_integration.py --require-all` |
-| [NetTCR](predictors/tcr.md#nettcr) (LiteRT) | `nettcr` | `python -m pytest tests/test_nettcr.py --require-all -W error` |
+| [NetTCR](predictors/tcr.md#nettcr) (TensorFlow TFLite, Python 3.11–3.13) | `nettcr` | `python -m pytest tests/test_nettcr.py --require-all -W error` |
 | [DeepTAP](predictors/processing.md#deeptap) classification and regression | `deeptap` | `python -m pytest tests/test_deeptap.py --require-all -ra` |
 | [DeepImmuno](predictors/immunogenicity.md#deepimmuno), [TLimmuno2](predictors/immunogenicity.md#tlimmuno2), [NetCleave](predictors/processing.md#netcleave) | `keras` | `python -m pytest tests/test_deepimmuno.py tests/test_tlimmuno2.py tests/test_netcleave.py --require-all -W error` |
 | Legacy [NetMHC](predictors/binding.md#netmhc) | `legacy` | `TEST_SH_MAX=2 ./test.sh --require-all -ra` |
@@ -89,8 +89,11 @@ Notes on what CI asserts:
   for multi-allele rows, duplicate peptides, sequence alignment, motifs/HTML,
   CLI output and nested PRIME execution. The host interpreter, pandas
   version and environment are checked before and after inference.
-- **NetTCR** runs with TensorFlow absent from the host and without skips or
-  warnings.
+- **NetTCR** runs with the declared TensorFlow 2.21 runtime on Python 3.11–3.13,
+  with both pip and uv dependency checks and no skipped model tests. Only its
+  known interpreter migration notice is filtered; other warnings fail the job.
+  LiteRT's upstream dependency marker and Python 3.14 runtime support remain
+  tracked in [#651](https://github.com/openvax/mhctools/issues/651).
 - **DeepImmuno, TLimmuno2 and NetCleave** run through the isolated interpreter
   with the host free of TensorFlow. DeepImmuno and TLimmuno2 tests probe Keras-2
   availability; NetCleave tests require their runtime whenever its model assets
