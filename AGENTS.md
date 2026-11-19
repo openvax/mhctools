@@ -48,6 +48,7 @@ Before telling the user a change is "complete":
 
 ### 1. Upfront Planning
 - For any non-trivial task (3+ steps or architectural): write a short spec first. If something goes sideways, STOP and re-plan — don't keep pushing.
+- The spec goes in the PR description. If it needs a file, keep it in `plans/` only until the PR that closes the issue merges; that PR deletes it. Lasting reasoning belongs in the issue, the PR or a `docs/` page.
 
 ### 2. Verification Before Done
 - Never claim complete without proof: tests green, CI green, PyPI version live.
