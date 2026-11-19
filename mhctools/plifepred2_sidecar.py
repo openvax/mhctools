@@ -22,6 +22,8 @@ pointing at checkouts it trusts.
 
 from argparse import ArgumentParser
 import csv
+from functools import lru_cache
+import importlib.util
 from pathlib import Path
 import shutil
 import subprocess
@@ -39,21 +41,22 @@ _PFEATURE_DATA_FILES = (
 
 _EXPECTED_SCIKIT_LEARN = "1.4.2"
 
-_OFFLINE_BOOTSTRAP = """
-import runpy
-import socket
-import sys
 
-def _network_disabled(*args, **kwargs):
-    raise RuntimeError("Network access disabled for Pfeature extraction")
+@lru_cache(maxsize=1)
+def _offline_bootstrap():
+    """Load ``_OFFLINE_BOOTSTRAP`` from sibling ``optional_backend.py``.
 
-socket.socket.connect = _network_disabled
-socket.socket.connect_ex = _network_disabled
-socket.create_connection = _network_disabled
-socket.getaddrinfo = _network_disabled
-sys.argv = sys.argv[1:]
-runpy.run_path(sys.argv[0], run_name="__main__")
-""".strip()
+    This sidecar runs in an isolated interpreter where ``mhctools`` is not
+    installed, so loading the pure-stdlib sibling module by path reuses the
+    single bootstrap definition without importing the ``mhctools`` package.
+    """
+    spec = importlib.util.spec_from_file_location(
+        "_mhctools_optional_backend_bootstrap",
+        Path(__file__).with_name("optional_backend.py"),
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module._OFFLINE_BOOTSTRAP
 
 
 def _parse_args():
@@ -108,7 +111,7 @@ def _run_pfeature(pfeature_home, fasta_path, features_path, timeout=None):
         command = [
             sys.executable,
             "-c",
-            _OFFLINE_BOOTSTRAP,
+            _offline_bootstrap(),
             str(script),
             "-i", str(Path(fasta_path).resolve()),
             "-o", str(Path(features_path).resolve()),

@@ -14,6 +14,9 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import quote
 from urllib.request import urlopen
 
+from ._resources import load_resource_bytes
+from .optional_backend import sha256_file
+
 
 RECORD = "21387981"
 LICENSE_URL = "https://creativecommons.org/licenses/by/4.0/legalcode"
@@ -84,11 +87,7 @@ def verify_file(path, size, expected):
     """Verify exact source bytes without reading a whole table into memory."""
     if path.stat().st_size != size:
         raise ValueError("PhageScout file size mismatch: %s" % path)
-    digest = hashlib.sha256()
-    with path.open("rb") as source:
-        for block in iter(lambda: source.read(1024 * 1024), b""):
-            digest.update(block)
-    if digest.hexdigest() != expected:
+    if sha256_file(path) != expected:
         raise ValueError("PhageScout file checksum mismatch: %s" % path)
 
 
@@ -109,7 +108,7 @@ def _directory_error(path, managed=False):
         if managed:
             if json.loads((path / ".mhctools-artifact.json").read_text()) != _manifest():
                 return "Invalid PhageScout artifact provenance"
-            expected_license = (Path(__file__).parent / "data/PHAGESCOUT_LICENSE.txt").read_bytes()
+            expected_license = load_resource_bytes("PHAGESCOUT_LICENSE.txt")
             if (path / "PHAGESCOUT_LICENSE.txt").read_bytes() != expected_license:
                 return "Invalid PhageScout license/attribution file"
     except (OSError, ValueError) as error:
@@ -153,8 +152,8 @@ def fetch_profiles(version=None, data_dir=None):
             _download_profile(url, staging / name, size, expected)
         (staging / ".mhctools-artifact.json").write_text(
             json.dumps(_manifest(), indent=2, sort_keys=True) + "\n")
-        shutil.copyfile(Path(__file__).parent / "data/PHAGESCOUT_LICENSE.txt",
-                        staging / "PHAGESCOUT_LICENSE.txt")
+        (staging / "PHAGESCOUT_LICENSE.txt").write_bytes(
+            load_resource_bytes("PHAGESCOUT_LICENSE.txt"))
         try:
             staging.rename(target)
         except OSError as error:

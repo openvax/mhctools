@@ -15,7 +15,6 @@ validated, and this output is neither a cleavage map nor serum survival.
 from collections import Counter
 from functools import lru_cache
 import hashlib
-from importlib import resources
 import json
 import math
 from numbers import Real
@@ -23,6 +22,7 @@ from types import MappingProxyType
 
 import pandas as pd
 
+from ._resources import load_json_resource
 from .peptide_input import coerce_peptide_inputs, sequence_only_chemistry_error
 from .pred import Kind, MeasurementContext, PeptideResult, Prediction
 from .wrapper_base import AlleleFreePredictor
@@ -41,11 +41,11 @@ _SCOPE = (
 
 @lru_cache(maxsize=1)
 def _model():
-    raw = resources.files("mhctools.data").joinpath(
-        "cavaco_published_model.json").read_bytes()
-    if hashlib.sha256(raw).hexdigest() != MODEL_SHA256:
-        raise ValueError("Cavaco bundled model data checksum mismatch")
-    data = json.loads(raw)
+    data = load_json_resource(
+        "cavaco_published_model.json",
+        expected_sha256=MODEL_SHA256,
+        error_message="Cavaco bundled model data checksum mismatch",
+    )
     # No mutable model state escapes the loader.
     return MappingProxyType({
         "pka": MappingProxyType({

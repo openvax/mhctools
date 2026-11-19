@@ -78,8 +78,7 @@ def test_default_dose_uses_average_mass_and_one_terminal_water(sequence, mass):
     dose = window["dose"]
     assert dose["molecular_weight_g_per_mol"] == pytest.approx(mass, rel=0, abs=0.0003)
     assert window["initial_copies"] == pytest.approx(6.02214076e17 / mass, rel=4e-6)
-    from biotite import __version__
-    assert "Biotite " + __version__ in dose["source"]
+    assert "ExPASy FindMod" in dose["source"]
     assert "average molecular weight of a free linear unmodified peptide" in dose["source"]
 
 

@@ -37,7 +37,7 @@ jobs:
       - name: Check package import and CLI startup
         run: |
           python -c "import mhctools; print(mhctools.__version__)"
-          python -c "import biotite, reportlab, weirdo, pepsickle, torch"
+          python -c "import weirdo, pepsickle, torch"
           mhctools --help
 
       - name: Run lint checks

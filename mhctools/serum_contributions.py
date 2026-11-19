@@ -5,11 +5,10 @@ The plasma library supplies a boundary spectrum, not enzyme turnover rates.
 """
 
 from dataclasses import dataclass
-import json
 import math
 from numbers import Integral
-from pathlib import Path
 
+from ._resources import load_json_resource
 from .serum_degradation import (
     _nonnegative, _simulate_target_paths, degradation_curve,
 )
@@ -42,7 +41,7 @@ class EnzymeCutRate:
 
 def serum_contribution_evidence():
     """Load the source-linked factual inventory; no network or model download."""
-    return json.loads((Path(__file__).parent / "data" / "serum_contributions.json").read_text())
+    return load_json_resource("serum_contributions.json")
 
 
 def serum_reference_kinetics(substrate_id, *, concentration_um, serum_fraction):
