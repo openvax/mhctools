@@ -224,7 +224,7 @@ def _run_single_predictor(predictor, args):
             "prediction model only). Use `mhctools predict-table` instead."
             % type(predictor).__name__)
     if args.input_fasta_file:
-        from pyensembl.fasta import parse_fasta_dictionary
+        from .._fasta import parse_fasta_dictionary
 
         input_dictionary = parse_fasta_dictionary(args.input_fasta_file)
         if not input_dictionary:

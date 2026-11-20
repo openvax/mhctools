@@ -7,10 +7,9 @@ LGPL-2.1 data; attribution, source hashes and license accompany the data.
 
 from functools import lru_cache
 import hashlib
-import json
 import math
-from pathlib import Path
 
+from ._resources import load_json_resource
 from .cleavage import CleavageModel, CleavageResult, CleavageSite, coerce_peptide
 
 
@@ -24,10 +23,11 @@ DATA_SHA256 = "da0ec86118f2039eaed4e6023ec0c320c0712a059f15304c472a8b830154aa32"
 
 @lru_cache(maxsize=1)
 def _data():
-    raw = (Path(__file__).parent / "data/itcell_profiles.json").read_bytes()
-    if hashlib.sha256(raw).hexdigest() != DATA_SHA256:
-        raise ValueError("ITCell profile data checksum mismatch")
-    return json.loads(raw)
+    return load_json_resource(
+        "itcell_profiles.json",
+        expected_sha256=DATA_SHA256,
+        error_message="ITCell profile data checksum mismatch",
+    )
 
 
 def _weights(profile, background):

@@ -10,9 +10,9 @@ import hashlib
 from io import StringIO
 import json
 import math
-from pathlib import Path
 from types import MappingProxyType
 
+from ._resources import load_json_resource
 from .cleavage import CleavageModel, CleavageResult, CleavageSite, coerce_peptide
 from .peptide_input import CANONICAL_AMINO_ACIDS
 
@@ -39,10 +39,11 @@ PHAGESCOUT_OPTIONAL_MODELS = {
 
 @lru_cache(maxsize=1)
 def _data():
-    raw = (Path(__file__).parent / "data/phagescout_profiles.json").read_bytes()
-    if hashlib.sha256(raw).hexdigest() != DATA_SHA256:
-        raise ValueError("PhageScout bundled data checksum mismatch")
-    return json.loads(raw)
+    return load_json_resource(
+        "phagescout_profiles.json",
+        expected_sha256=DATA_SHA256,
+        error_message="PhageScout bundled data checksum mismatch",
+    )
 
 
 def _asset(enzyme, profile):

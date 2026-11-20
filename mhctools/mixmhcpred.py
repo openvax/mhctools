@@ -40,9 +40,9 @@ from pathlib import Path
 from subprocess import STDOUT, CalledProcessError, TimeoutExpired, check_output
 from tempfile import TemporaryDirectory
 
-from biotite.sequence.io.fasta import FastaFile
 import pandas as pd
 
+from ._fasta import read_fasta_records, write_fasta_records
 from .allele_normalization import normalize_allele_name_or_raw
 from .base_predictor import BasePredictor, _check_flank_inputs
 from .binding_prediction import BindingPrediction
@@ -654,18 +654,8 @@ class MixMHCpred(BasePredictor):
                 (str(name), str(sequence))
                 for name, sequence in allele_sequences.items())
         else:
-            with open(allele_sequences) as fasta:
-                # Biotite ignores pre-header text. Reject it for user input,
-                # while allowing the blank/comment lines supported by FASTA.
-                for line in fasta:
-                    line = line.strip()
-                    if not line or line.startswith(";"):
-                        continue
-                    if not line.startswith(">"):
-                        raise ValueError("Sequence data appears before the first FASTA header")
-                    break
-                fasta.seek(0)
-                records = tuple(FastaFile.read_iter(fasta))
+            records = tuple(
+                read_fasta_records(allele_sequences, reject_pre_header=True))
         if not records:
             raise ValueError("At least one MHC-I allele sequence is required")
         names = [name for name, _ in records]
@@ -697,7 +687,7 @@ class MixMHCpred(BasePredictor):
             sequence_path = Path(temp_dir) / "alleles.fasta"
             peptide_path = Path(temp_dir) / "peptides.txt"
             stdout_path = Path(temp_dir) / "stdout.txt"
-            FastaFile.write_iter(sequence_path, records)
+            write_fasta_records(sequence_path, records)
             if peptide_list is not None:
                 peptide_path.write_text("\n".join(peptide_list) + "\n")
             run_output_dir = Path(persistent_dir or (Path(temp_dir) / "output"))
@@ -718,7 +708,7 @@ class MixMHCpred(BasePredictor):
                     "MixMHCpred exited without a non-empty sequence alignment. "
                     "Ensure MAFFT is installed and runnable. stdout: "
                     f"{stdout.strip()}")
-            aligned = tuple(FastaFile.read_iter(alignment_path))
+            aligned = tuple(read_fasta_records(alignment_path))
             if not aligned:
                 raise RuntimeError("MixMHCpred alignment contains no FASTA records")
             artifacts = (

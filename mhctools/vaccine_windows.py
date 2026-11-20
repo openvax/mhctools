@@ -9,10 +9,7 @@ from copy import deepcopy
 from dataclasses import asdict
 import math
 
-from biotite import __version__ as biotite_version
-from biotite.sequence import ProteinSequence
-from mhcgnomes import parse
-
+from .allele_normalization import AlleleParseError, parse_allele
 from .peptide_input import PeptideInput, sequence_only_chemistry_error
 from .serum_contributions import EnzymeCutRate
 from .serum_degradation import DegradationTarget
@@ -22,6 +19,44 @@ from .vaccine_trajectory import (
     simulate_vaccine_trajectory,
 )
 from .vaccine_trajectory_report import summarize_vaccine_trajectory, _number, _text
+
+# ExPASy FindMod average residue isotopic masses (Da) for the 20 canonical
+# L-amino acids, matching Biotite's ProteinSequence.get_molecular_weight(monoisotopic=False).
+_AVERAGE_RESIDUE_MASS = {
+    "A": 71.0788,
+    "C": 103.1388,
+    "D": 115.0886,
+    "E": 129.1155,
+    "F": 147.1766,
+    "G": 57.0519,
+    "H": 137.1411,
+    "I": 113.1594,
+    "K": 128.1741,
+    "L": 113.1594,
+    "M": 131.1926,
+    "N": 114.1038,
+    "P": 97.1167,
+    "Q": 128.1307,
+    "R": 156.1875,
+    "S": 87.0782,
+    "T": 101.1051,
+    "V": 99.1326,
+    "W": 186.2132,
+    "Y": 163.1760,
+}
+_AVERAGE_WATER_MASS = 18.015
+
+
+def _average_peptide_molecular_weight(sequence):
+    """Average molecular weight (Da) of a free linear unmodified canonical peptide."""
+    if not sequence:
+        raise ValueError("Peptide sequence must be non-empty")
+    try:
+        return math.fsum(_AVERAGE_RESIDUE_MASS[aa] for aa in sequence) + _AVERAGE_WATER_MASS
+    except KeyError as error:
+        raise ValueError(
+            "Unknown or noncanonical amino acid in peptide sequence: %r" % (error.args[0],)
+        ) from error
 
 
 def fragment_cleavage_table(sequence, assessments):
@@ -55,8 +90,8 @@ def _dose(candidate, peptide):
         return None
     return VaccineDose(
         amount=1, unit="ug", basis="assumed",
-        source="Requested 1 ug comparison; average molecular weight of a free linear unmodified peptide, Biotite %s" % biotite_version,
-        molecular_weight_g_per_mol=float(ProteinSequence(peptide.sequence).get_molecular_weight(monoisotopic=False)))
+        source="Requested 1 ug comparison; average molecular weight of a free linear unmodified peptide (ExPASy FindMod residue masses + H2O)",
+        molecular_weight_g_per_mol=_average_peptide_molecular_weight(peptide.sequence))
 
 
 def _aggregate(cores, delivery):
@@ -141,9 +176,12 @@ def assess_vaccine_windows(request):
             target.validate(peptide.sequence)
             if core.get("sequence", peptide.sequence[target.start:target.end]) != peptide.sequence[target.start:target.end]:
                 raise ValueError("Core sequence does not match its candidate interval")
-            allele = parse(core["allele"], raise_on_error=False)
             mhc_class = core["mhc_class"]
-            if mhc_class not in ("I", "II") or allele is None or not (allele.is_class1 if mhc_class == "I" else allele.is_class2):
+            try:
+                allele = parse_allele(core["allele"])
+            except (AlleleParseError, TypeError) as error:
+                raise ValueError("Each core allele must parse and match its MHC class") from error
+            if mhc_class not in ("I", "II") or not (allele.is_class1 if mhc_class == "I" else allele.is_class2):
                 raise ValueError("Each core allele must parse and match its MHC class")
             key = (target.start, target.end, allele.to_string())
             if key in identities:

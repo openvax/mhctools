@@ -198,7 +198,7 @@ def test_bundled_resource_identity_integrity_and_immutability(monkeypatch):
     _model.cache_clear()
     try:
         with monkeypatch.context() as patched:
-            patched.setattr("mhctools.cavaco.resources.files", lambda package: BadResource())
+            patched.setattr("mhctools._resources.files", lambda package: BadResource())
             with pytest.raises(ValueError, match="checksum mismatch"):
                 CavacoHalfLife()
     finally:

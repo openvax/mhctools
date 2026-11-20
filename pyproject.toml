@@ -32,12 +32,9 @@ dependencies = [
   "argcomplete>=3",
   "numpy>=2.0.0,<3.0.0",
   "pandas>=3,<4",
-  "biotite>=1.6,<3",
-  "reportlab",
   "weirdo>=2.2.0,<3",
   "pepsickle",
   "torch>=2",
-  "pyensembl>=2.3.0,<3.0.0",
   "sercol>=0.0.2",
   "mhcflurry>=2.0.0",
   "mhcgnomes>=3.68.1",
@@ -80,6 +77,7 @@ dev = [
   "ruff>=0.15.21,<0.17",
   "pytest",
   "pytest-cov",
+  "reportlab",
   "twine",
   "wheel",
 ]
@@ -100,7 +98,7 @@ version = { attr = "mhctools.__version__" }
 packages = ["mhctools", "mhctools.cli", "mhctools.data"]
 
 [tool.setuptools.package-data]
-"mhctools.data" = ["*.json", "ITCELL_LICENSE.txt", "PHAGESCOUT_LICENSE.txt", "CAVACO_LICENSE.txt"]
+"mhctools.data" = ["*.json", "ITCELL_LICENSE.txt", "PHAGESCOUT_LICENSE.txt", "CAVACO_LICENSE.txt", "SERUM_CALIBRATION_LICENSE.txt"]
 
 [tool.ruff]
 # Ruff's default rule selection changes between releases: 0.16 enabled a much

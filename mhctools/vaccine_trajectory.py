@@ -7,13 +7,12 @@ Local, node and systemic APCs and extracellular lymph/blood are distinct.
 
 from dataclasses import asdict, dataclass
 import math
-import json
 from numbers import Integral
-from pathlib import Path
 
-from mhcgnomes import parse
 import numpy as np
 
+from ._resources import load_json_resource
+from .allele_normalization import AlleleParseError, parse_allele
 from .serum_contributions import EnzymeCutRate
 from .serum_degradation import DegradationTarget, _input, _nonnegative
 
@@ -38,7 +37,7 @@ EXCLUSIONS = (
 
 def vaccine_trajectory_evidence():
     """Read the primary-source mechanism inventory; no fitted rate defaults."""
-    return json.loads((Path(__file__).parent / "data" / "vaccine_trajectory_evidence.json").read_text())
+    return load_json_resource("vaccine_trajectory_evidence.json")
 
 
 @dataclass(frozen=True)
@@ -278,8 +277,11 @@ class VaccineTrajectoryInput:
         if not isinstance(self.scenario, str) or not self.scenario.strip():
             raise ValueError("A nonempty scenario label is required")
         steps = vaccine_route_steps(self.delivery, self.mhc_class)
-        identity = parse(self.allele, raise_on_error=False)
-        if identity is None or not (identity.is_class1 if self.mhc_class == "I" else identity.is_class2):
+        try:
+            identity = parse_allele(self.allele)
+        except (AlleleParseError, TypeError) as error:
+            raise ValueError("Allele must parse with MHCgnomes and match the MHC class") from error
+        if not (identity.is_class1 if self.mhc_class == "I" else identity.is_class2):
             raise ValueError("Allele must parse with MHCgnomes and match the MHC class")
         if self.source_copies() <= 0:
             raise ValueError("initial_copies must be positive")
@@ -551,7 +553,7 @@ def simulate_vaccine_trajectory(model, times_hours, cleavage_rates=None, *, max_
               "mhctools_version": __version__, "algorithm": "linear first-order expected copies; uniformization",
               "scenario": model.scenario, "delivery": model.delivery, "administration": model.administration,
               "organism": model.organism, "times_hours": list(times),
-              "mhc_class": model.mhc_class, "allele": parse(model.allele).to_string(),
+              "mhc_class": model.mhc_class, "allele": parse_allele(model.allele).to_string(),
               "target": {**asdict(target), "sequence": sequence[target.start:target.end]},
               "coordinate_system": "zero-based half-open on full input; cut bonds local to current fragment",
               "source_units": "input peptide copies" if model.delivery == "slp" else "input carrier-bound RNA copies",
