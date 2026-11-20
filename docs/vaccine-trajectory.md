@@ -222,17 +222,15 @@ Every result preserves exclusions and primary-source evidence. Sensitivity range
 are not biological confidence intervals. Tests validate equations/bookkeeping,
 not human presentation accuracy.
 
-## Reproduce synthetic examples
+## Run from the command line
 
 ```sh
-python scripts/vaccine_trajectory_example.py --output /tmp/vaccine-trajectories
 mhctools vaccine-trajectory \
-  --input /tmp/vaccine-trajectories/slp-input.json \
+  --input slp-input.json \
   --output /tmp/slp-recomputed.json --report /tmp/slp-report.md
 ```
 
-The script writes inputs, outputs and a readable SLP/mRNA comparison. **Every
-numerical value is synthetic, not a Sid forecast.** CLI inputs include
+CLI inputs include
 `schema_version: 1`, model fields, `times_hours`, and `cleavage_assessments` indexed
 by compartment and original `[start,end)` interval, including exact sequence,
 channels, basis and source. Outputs are never overwritten. This complements the

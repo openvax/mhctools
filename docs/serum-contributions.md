@@ -147,25 +147,9 @@ protection. The default requires 14-residue inputs; other lengths need explicit
 transfer opt-in, and lengths below five remain unassessed. Run PeptiVerse and
 Cavaco clocks separately, alongside other explicit cut-allocation assumptions.
 
-## Reproduce the public example
+## Validation and caveats
 
-```sh
-python scripts/serum_contribution_example.py --output /tmp/serum-model
-```
-
-The example writes JSON and CSV for the NPY reference kinetics and synthetic
-target trajectories. Its chart, when matplotlib is installed, shows parent
-disappearance versus target survival in the terminal-only scenario. Synthetic
-rates and transferred library weights are labelled as assumptions. To audit
-the source counts, supply the downloaded Table S1:
-
-```sh
-python scripts/serum_contribution_example.py --output /tmp/serum-model \
-  --library-table /path/to/Table_S1.xlsx
-```
-
-This requires pandas/openpyxl and verifies the published file hash and all
-boundary counts. Analytic regression oracles check exponential survival,
+Analytic regression oracles check exponential survival,
 serial cuts, nonadditive enzyme removal, protective trimming, competing removal,
 missing fragment states and preservation of chemistry. These validate the
 calculation, not vaccine biological accuracy. Further calibration is tracked
