@@ -68,7 +68,6 @@ def half_life(root, python, config):
         ESM2_REVISION, UPSTREAM_REVISION, _ESM2_ARTIFACTS, _PEPTIVERSE_ARTIFACTS,
     )
     from mhctools.peptiverse_cpp import _CPP_ARTIFACTS, CPP_SCIKIT_VERSION
-    from mhctools.peptiverse_cpp_benchmark import CPP_METADATA_PATH
 
     runtime = make_env(root, "peptiverse-env", python, [
         "torch>=2.1", "transformers==4.46.0", "lightning==2.5.5", "xgboost",
@@ -83,7 +82,7 @@ def half_life(root, python, config):
         repo_id="ChatterjeeLab/PeptiVerse", revision=UPSTREAM_REVISION,
         local_dir=str(source),
         allow_patterns=sorted(set(_PEPTIVERSE_ARTIFACTS) | set(_CPP_ARTIFACTS)) +
-        ["tokenizer/*.py", CPP_METADATA_PATH])))
+        ["tokenizer/*.py"])))
     esm = capture(runtime, "-c", code, json.dumps(dict(
         repo_id="facebook/esm2_t33_650M_UR50D", revision=ESM2_REVISION,
         allow_patterns=list(_ESM2_ARTIFACTS) + ["model.safetensors"])))

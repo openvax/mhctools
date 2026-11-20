@@ -99,19 +99,6 @@ documents DPP4 resistance. These examples do not establish the lifetime of a
 linear vaccine construct. Unknown formulation, attachment, binding and terminal
 chemistry must remain unknown; do not silently score a modified peptide as free.
 
-The focused local exporter is `analyses/osteosarc_vaccine_cleavage/focused_stability_report.py`.
-It reads a frozen target-cascade directory and writes a new report directory:
-
-```sh
-python analyses/osteosarc_vaccine_cleavage/focused_stability_report.py \
-  --input /path/to/frozen-target-cascade --output /path/to/new-focused-report
-```
-
-It reuses native inference without changing predictor outputs, keeps all target
-annotations in the audit, and separates the primary mutant candidates from
-disclosed source references. This research exporter uses ReportLab, included
-in the normal mhctools installation.
-
 The enzyme guide distinguishes soluble blood activity, cell-surface exposure,
 intracellular processing and inflammation. There is no universal DPP4/FAP/ACE
 strength ranking: a [human-plasma experiment](https://doi.org/10.1152/ajpheart.2000.278.4.H1069)

@@ -74,21 +74,17 @@ of the scenario, rerun, and compare at the same horizon. Label the change in the
 scenario name and rate source. A spread across assumptions is not a confidence
 interval; no uncertainty distribution has been fitted.
 
-## Reproduce the complete demonstration
+## Run from the command line
 
 ```sh
-python scripts/vaccine_trajectory_example.py --output /tmp/vaccine-demo --plot
-mhctools vaccine-trajectory --input /tmp/vaccine-demo/slp-input.json \
+mhctools vaccine-trajectory --input slp-input.json \
   --output /tmp/slp-check.json --report /tmp/slp-check.md
 mhctools vaccine-compare \
-  --input /tmp/vaccine-demo/slp-trajectory.json /tmp/vaccine-demo/mrna-trajectory.json \
+  --input /tmp/slp-check.json /tmp/mrna-check.json \
   --output /tmp/comparison-check.json --report /tmp/comparison-check.md
 ```
 
-The script writes input files, full results, individual readable reports, a
-comparison and optionally a plot (Matplotlib is included in the base install).
-**Every rate is synthetic.** Each panel labels its peptide/transcript denominator;
-the panels do not establish equal-dose efficacy. Use new output paths on each run.
+Use new output paths on each run; existing output files are never overwritten.
 
 ## What is grounded, and what still needs calibration?
 

@@ -298,7 +298,7 @@ jobs:
           - group: phagescout
             tests: tests/test_phagescout.py tests/test_phagescout_artifacts.py tests/test_phagescout_full_profiles.py
           - group: half-life
-            tests: tests/test_peptiverse.py tests/test_peptiverse_cpp.py tests/test_peptiverse_cpp_benchmark.py tests/test_plifepred2.py
+            tests: tests/test_peptiverse.py tests/test_peptiverse_cpp.py tests/test_plifepred2.py
           - group: smm
             tests: tests/test_smm.py tests/test_smm_integration.py tests/test_smm_subset_provenance.py
           - group: gfeller
@@ -336,7 +336,7 @@ jobs:
           path: |
             ~/.cache/huggingface
             env/test-backends/PeptiVerse
-          key: half-life-${{ runner.os }}-${{ hashFiles('mhctools/peptiverse.py', 'mhctools/peptiverse_cpp.py', 'mhctools/peptiverse_cpp_benchmark.py') }}
+          key: half-life-${{ runner.os }}-${{ hashFiles('mhctools/peptiverse.py', 'mhctools/peptiverse_cpp.py') }}
 
       - name: Install the compatible NetTCR interpreter
         if: matrix.group == 'nettcr'

@@ -91,19 +91,15 @@ preprocessing. Broader benchmarking remains tracked in
 [#284](https://github.com/openvax/mhctools/issues/284) and
 [#291](https://github.com/openvax/mhctools/issues/291).
 
-### Bundled data and fixture regeneration
+### Bundled data and source oracle
 
 The app's root manifest declares CC0-1.0. Only descriptor data, factual
 coefficients, exact source hashes and attribution are bundled; no article
 figures or Electron dependencies are redistributed. The independent adapter
 is Apache-2.0. See `mhctools/data/CAVACO_LICENSE.txt` and the fixed
-`tests/data/cavaco_source_reference.json` source records. To regenerate the
-oracle, statically extract the author app's `calc.js`, `amino.json`,
-`codes.json` and `package.json` (do not execute its installer), then run
-`node scripts/record_cavaco_reference.js APP_SOURCE_DIRECTORY OUTPUT_JSON`.
-The script verifies all four source hashes, executes the unchanged JavaScript
-with a controlled DOM and no external I/O, and retains observed panel data.
-Node is only needed for fixture regeneration, never for prediction or tests.
+`tests/data/cavaco_source_reference.json` source records (verified against
+the author app's `calc.js`, `amino.json`, `codes.json` and `package.json`).
+Node is never needed for prediction or tests.
 
 See [target-preserving degradation scenarios](../target-degradation.md) to follow
 an exact epitope through successive fragment cuts, with separate estimators and
