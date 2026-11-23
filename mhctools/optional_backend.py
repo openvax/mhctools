@@ -13,6 +13,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import platform
 import shutil
 import subprocess
 from typing import Mapping, Optional, Sequence, Tuple
@@ -20,6 +21,13 @@ from typing import Mapping, Optional, Sequence, Tuple
 
 ARTIFACT_STATUS_VALUES = ("missing", "mismatch", "unverified", "verified")
 INFERENCE_STATUS_VALUES = ("not_run", "reproduced")
+
+
+def is_apple_silicon(system=None, machine=None):
+    """Return True on macOS Apple Silicon (Darwin arm64/aarch64)."""
+    sys_name = platform.system() if system is None else system
+    arch = platform.machine() if machine is None else machine
+    return str(sys_name).lower() == "darwin" and str(arch).lower() in ("arm64", "aarch64")
 
 
 def common_checkout_paths(*directory_names):

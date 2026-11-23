@@ -1,5 +1,7 @@
 """Headless test setup and the optional fully provisioned release gate."""
 
+import os
+
 import pytest
 
 
@@ -20,7 +22,12 @@ def pytest_configure(config):
 
 @pytest.fixture(scope="session")
 def netmhc3_runtime():
+    from mhctools.optional_backend import is_apple_silicon
     from tests.common import require_executable
+    if is_apple_silicon() and not os.environ.get("MHCTOOLS_FORCE_NETMHC3_TESTS"):
+        pytest.skip(
+            "netMHC-3.4 has no Apple Silicon build and cannot run under Rosetta 2"
+        )
     require_executable("netMHC-3.4", args=("-h",))
 
 
