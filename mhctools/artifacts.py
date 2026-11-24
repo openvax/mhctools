@@ -599,11 +599,17 @@ def _snapshot_status(name, data_dir=None, explicit=None):
             snapshot.license_name, snapshot.license_url)
     if name == "mixtcrpred" and ready:
         try:
-            from .mixtcrpred import model_catalog
-            models = model_catalog(mixtcrpred_path=path)
+            from .mixtcrpred import partition_model_catalog
+            catalog = partition_model_catalog(mixtcrpred_path=path)
+            models = catalog.models
             downloaded = sum(model.status == "ready" for model in models)
             detail += "; %d/%d pMHC model weights available" % (
                 downloaded, len(models))
+            if catalog.non_specific_models:
+                detail += (
+                    "; %d non-specific MHC target models excluded from "
+                    "single-allele catalog" % len(catalog.non_specific_models)
+                )
         except (OSError, RuntimeError, ValueError):
             pass
     return ArtifactStatus(
@@ -1005,7 +1011,8 @@ def fetch(
         accept_license=False,
         models=None,
         all_models=False,
-        high_confidence=False):
+        high_confidence=False,
+        include_non_specific=False):
     """Fetch a predictor's external artifacts and return their status.
 
     Native download managers retain ownership of their files. Tested upstream
@@ -1014,7 +1021,7 @@ def fetch(
     """
     canonical = _canonical_name(name)
     model_selection = bool(models or all_models or high_confidence)
-    if model_selection and canonical != "mixtcrpred":
+    if (model_selection or include_non_specific) and canonical != "mixtcrpred":
         raise ValueError(
             "Model selection is supported only for the mixtcrpred artifact")
     if canonical == "phagescout":
@@ -1060,6 +1067,7 @@ def fetch(
                 models=models,
                 all_models=all_models,
                 high_confidence=high_confidence,
+                include_non_specific=include_non_specific,
             )
             return _snapshot_status(canonical, data_dir=data_dir)
         return status

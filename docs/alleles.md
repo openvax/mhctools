@@ -144,6 +144,12 @@ separate from this lossless naming contract.
 
 
 The MixTCRpred catalog also contains four targets specified only as a haplotype,
-allele group or serotype. These are excluded with a diagnostic while valid
-models remain available; their precise identities require upstream evidence
+allele group, or serotype (`H-2q_GPEGAQGPRGEPGTP`, `B08_QIKVRVDMV`,
+`DQA01_LLEFYLAMPFATP`, and `DQ2_PQPELPYPQPE`). These are never relabeled with
+representative alleles and remain excluded from the single-allele catalog with a
+diagnostic while valid models stay available. Inspect them separately through
+`MixTCRpred.non_specific_catalog()` or `mhctools ls mixtcrpred --models --non-specific`,
+and opt in explicitly with `allow_non_specific_target=True` (or
+`--allow-non-specific`) when needed; non-specific runs report
+`mhc_dependence="mhc_group"` and leave `Prediction.allele` empty
 ([#649](https://github.com/openvax/mhctools/issues/649)).

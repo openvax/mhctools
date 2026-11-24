@@ -27,6 +27,7 @@ MHC_DEPENDENCE_VALUES = frozenset((
     "none",
     "single_allele",
     "haplotype",
+    "mhc_group",
 ))
 """Allowed ``kind_support()[kind]["mhc_dependence"]`` values."""
 

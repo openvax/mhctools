@@ -133,6 +133,7 @@ support["pMHC_affinity"]
 | `none` | The prediction is MHC-independent; `Prediction.allele` is empty. |
 | `single_allele` | The prediction is for one peptide/MHC allele pair; `Prediction.allele` is part of the key. |
 | `haplotype` | The prediction uses the requested MHC repertoire jointly; `Prediction.allele` may carry best-allele attribution but is not the prediction key. |
+| `mhc_group` | The prediction targets a non-specific MHC group, haplotype, or serotype (never relabeled as a single allele); `Prediction.allele` is empty and target metadata lives in `kind_support()` and `MeasurementContext`. |
 
 `mhc_class` is one of `none`, `I`, `II`, or `both`.
 
@@ -171,7 +172,7 @@ that `kind_support()` reports for each kind, which can differ by mode.
 | `ERAMER` | `erap_trimming` | `none` | `I` |
 | `NetTCR` | `pMHC_TCR_binding` | `none` | `I` |
 | `Tulip` | `pMHC_TCR_binding` | `single_allele` | `I` |
-| `MixTCRpred` | `pMHC_TCR_binding` | `single_allele` | model-specific |
+| `MixTCRpred` | `pMHC_TCR_binding` | `single_allele` (or `mhc_group` on explicit non-specific opt-in) | model-specific |
 | `PRIME`, `DeepImmuno` | `immunogenicity` | `single_allele` | `I` |
 | `TLimmuno2` | `immunogenicity` | `single_allele` | `II` |
 | `Calis` | `immunogenicity` | `none` | `I` |

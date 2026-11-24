@@ -23,6 +23,7 @@ from __future__ import annotations
 import csv
 from dataclasses import asdict, dataclass
 import hashlib
+from importlib.metadata import version as package_version
 import json
 import os
 import logging
@@ -35,14 +36,25 @@ import time
 from urllib.error import HTTPError
 from urllib.request import urlopen
 
+from mhcgnomes import Allele, Pair, ParseError, parse
 import pandas as pd
 
 from .artifacts import resolve_artifact_path
 from .process_helpers import python_imports_available, resolve_sidecar_python
 from .allele_normalization import (
-    AlleleIdentityError, native_allele_identity, normalize_allele_name_or_raw,
+    AlleleIdentityError,
+    PARSER_OPTIONS,
+    native_allele_identity,
+    normalize_allele_name_or_raw,
 )
-from .pred import COLUMNS, Kind, PeptideResult, Prediction
+from .pred import (
+    COLUMNS,
+    Kind,
+    MeasurementContext,
+    PeptideResult,
+    Prediction,
+    intern_measurement_context,
+)
 from .unsupported_residue import UnsupportedResidueError
 from .tcr import TCR
 
@@ -59,8 +71,48 @@ _STANDARD_AMINO_ACIDS = frozenset("ACDEFGHIKLMNPQRSTVWYX-")
 
 
 @dataclass(frozen=True)
+class MixTCRpredMHCTarget:
+    """Classified MHC target identity from one MixTCRpred catalog row.
+
+    Attributes
+    ----------
+    upstream_mhc : str
+        Exact ``MHC`` string as written in ``pretrained_models/info_models.csv``.
+    canonical_target : str
+        Lossless mhcgnomes canonical spelling for the parsed target (for
+        example ``HLA-A*02:01``, ``H2-q``, ``HLA-B*08``, ``HLA-DQA1*01``, or
+        ``HLA-DQ2``). Non-specific targets are never relabeled with a
+        representative allele.
+    target_kind : str
+        Structured target category: ``"allele"``, ``"pair"``, or ``"raw"`` for
+        specific targets; ``"haplotype"``, ``"allele_group"``, ``"serotype"``,
+        ``"typing_group"``, ``"invalid_pair"``, ``"gene"``, etc. for
+        non-specific targets.
+    is_specific_allele : bool
+        ``True`` only when the target resolves to a canonical single allele or
+        explicit class-II alpha/beta pair under strict normalization.
+    reason : str
+        Diagnostic reason for exclusion when ``is_specific_allele`` is
+        ``False``; empty string for specific targets.
+    mhcgnomes_version : str
+        Installed ``mhcgnomes`` version that produced this classification.
+    """
+
+    upstream_mhc: str
+    canonical_target: str
+    target_kind: str
+    is_specific_allele: bool
+    reason: str = ""
+    mhcgnomes_version: str = ""
+
+    def to_dict(self):
+        """Return a JSON-serializable representation."""
+        return asdict(self)
+
+
+@dataclass(frozen=True)
 class MixTCRpredModel:
-    """One pMHC-specific model in the upstream MixTCRpred catalog."""
+    """One single-allele pMHC-specific model in the upstream MixTCRpred catalog."""
 
     name: str
     peptide: str
@@ -82,6 +134,136 @@ class MixTCRpredModel:
         return asdict(self)
 
 
+@dataclass(frozen=True)
+class MixTCRpredNonSpecificModel:
+    """One MixTCRpred catalog model whose MHC target is not a single allele.
+
+    Covers catalog entries specified only as a haplotype (such as ``H2-q``),
+    an allele group (``HLA-B*08``, ``HLA-DQA1*01``), or a serotype
+    (``HLA-DQ2``). These entries are kept strictly separate from single-allele
+    :class:`MixTCRpredModel` records and deliberately expose ``mhc_target`` and
+    ``mhc_target_kind`` instead of a single-allele ``allele`` attribute.
+    """
+
+    name: str
+    peptide: str
+    mhc_target: str
+    mhc_target_kind: str
+    upstream_mhc: str
+    mhc_class: str
+    host_species: str
+    origin: str
+    training_tcrs: int
+    auc_5fold: float
+    high_confidence: bool
+    status: str
+    manager: str
+    path: str
+    reason: str
+    upstream_revision: str = UPSTREAM_REVISION
+    mhcgnomes_version: str = ""
+    version: str = "zenodo.%s" % ZENODO_RECORD
+
+    def to_dict(self):
+        """Return a JSON-serializable representation."""
+        return asdict(self)
+
+
+@dataclass(frozen=True)
+class MixTCRpredCatalog:
+    """Partitioned MixTCRpred catalog separating specific and non-specific targets."""
+
+    models: tuple[MixTCRpredModel, ...]
+    non_specific_models: tuple[MixTCRpredNonSpecificModel, ...]
+
+    def to_dict(self):
+        """Return a JSON-serializable representation."""
+        return {
+            "models": [model.to_dict() for model in self.models],
+            "non_specific_models": [
+                model.to_dict() for model in self.non_specific_models
+            ],
+        }
+
+
+def classify_catalog_mhc(raw_mhc):
+    """Classify one MixTCRpred catalog MHC string without guessing alleles.
+
+    Specific single alleles and explicit class-II alpha/beta pairs resolve
+    through :func:`mhctools.allele_normalization.native_allele_identity`.
+    Non-specific targets (haplotypes, allele groups, serotypes, typing groups,
+    genes, or invalid pairs) are preserved with their canonical mhcgnomes
+    target name, structured category, and rejection reason rather than
+    choosing a representative allele.
+    """
+    upstream = str(raw_mhc).strip()
+    normalized = upstream.replace(";", "/")
+    mhcgnomes_ver = package_version("mhcgnomes")
+    try:
+        identity = native_allele_identity(upstream)
+    except AlleleIdentityError as error:
+        parsed = parse(normalized, **PARSER_OPTIONS)
+        if isinstance(parsed, Allele):
+            if parsed.is_allele_group:
+                target_kind = "allele_group"
+            elif set(parsed.annotations).intersection("GP"):
+                target_kind = "typing_group"
+            else:
+                target_kind = "allele"
+        elif isinstance(parsed, Pair):
+            target_kind = "invalid_pair"
+        else:
+            target_kind = type(parsed).__name__.lower()
+        return MixTCRpredMHCTarget(
+            upstream_mhc=upstream,
+            canonical_target=parsed.to_string(),
+            target_kind=target_kind,
+            is_specific_allele=False,
+            reason=str(error),
+            mhcgnomes_version=mhcgnomes_ver,
+        )
+
+    try:
+        parsed = parse(normalized, **PARSER_OPTIONS)
+    except ParseError:
+        target_kind = "raw"
+    else:
+        if isinstance(parsed, Allele) and parsed.is_allele_group:
+            parsed = parse(
+                normalized, **dict(PARSER_OPTIONS, use_allele_aliases=True))
+        target_kind = "pair" if isinstance(parsed, Pair) else "allele"
+    return MixTCRpredMHCTarget(
+        upstream_mhc=upstream,
+        canonical_target=identity,
+        target_kind=target_kind,
+        is_specific_allele=True,
+        reason="",
+        mhcgnomes_version=mhcgnomes_ver,
+    )
+
+
+def resolve_non_specific_mhc_target(raw_mhc):
+    """Parse a caller-supplied non-specific MHC target query.
+
+    Accepts haplotypes (e.g. ``H-2q`` or ``H2-q``), allele groups
+    (``HLA-B*08``, ``HLA-DQA*01`` or ``HLA-DQA1*01``), and serotypes
+    (``HLA-DQ2``). Never chooses a representative allele. Raises
+    :class:`ValueError` when *raw_mhc* identifies a specific single allele
+    (use :meth:`MixTCRpred.resolve_model` instead) and
+    :class:`mhcgnomes.ParseError` when *raw_mhc* cannot be parsed.
+    """
+    upstream = str(raw_mhc).strip()
+    normalized = upstream.replace(";", "/")
+    parse(normalized, **PARSER_OPTIONS)
+    classified = classify_catalog_mhc(upstream)
+    if classified.is_specific_allele:
+        raise ValueError(
+            "%r resolves to specific allele %s; use "
+            "MixTCRpred.resolve_model() for single-allele targets"
+            % (raw_mhc, classified.canonical_target))
+    return classified
+
+
 def _manager_for_home(home):
     return (
         "mhctools"
@@ -90,12 +272,19 @@ def _manager_for_home(home):
     )
 
 
-def model_catalog(mixtcrpred_path=None, data_dir=None):
-    """Return all pMHC-specific MixTCRpred models and local weight status."""
+def partition_model_catalog(mixtcrpred_path=None, data_dir=None):
+    """Partition the MixTCRpred catalog into specific and non-specific models.
+
+    Returns a :class:`MixTCRpredCatalog` whose ``models`` tuple contains only
+    strictly verified single-allele / explicit-pair models and whose
+    ``non_specific_models`` tuple records haplotype, allele-group, and
+    serotype catalog entries with structured classification and provenance.
+    """
     home = resolve_artifact_path("mixtcrpred", mixtcrpred_path, data_dir=data_dir)
     manager = _manager_for_home(home)
     catalog_path = home / "pretrained_models" / "info_models.csv"
-    result = []
+    specific = []
+    non_specific = []
     with catalog_path.open(newline="") as input_file:
         for row in csv.DictReader(input_file):
             name = row["MixTCRpred_model_name"].strip()
@@ -109,53 +298,163 @@ def model_catalog(mixtcrpred_path=None, data_dir=None):
             checkpoint = (
                 home / "pretrained_models" / ("model_%s.ckpt" % name))
             upstream_class = row["MHC_class"].strip()
-            try:
-                identity = native_allele_identity(row["MHC"].strip())
-            except AlleleIdentityError as error:
-                logger.warning("Excluding MixTCRpred model %s: %s", name, error)
-                continue
-            result.append(MixTCRpredModel(
-                name=name,
-                peptide=row["Peptide"].strip(),
-                allele=identity,
-                upstream_allele=row["MHC"].strip(),
-                mhc_class={"MHCI": "I", "MHCII": "II"}.get(
-                    upstream_class, upstream_class),
-                host_species=row["Host_species"].strip(),
-                origin=row["Origin"].strip(),
-                training_tcrs=training_tcrs,
-                auc_5fold=float(row["AUC_5fold"]),
-                # Match upstream's --download_high implementation.
-                high_confidence=training_tcrs >= 50,
-                status="ready" if checkpoint.is_file() else "missing",
-                manager=manager,
-                path=str(checkpoint),
-            ))
-    return tuple(result)
+            mhc_class = {"MHCI": "I", "MHCII": "II"}.get(
+                upstream_class, upstream_class)
+            peptide = row["Peptide"].strip()
+            host_species = row["Host_species"].strip()
+            origin = row["Origin"].strip()
+            auc_5fold = float(row["AUC_5fold"])
+            # Match upstream's --download_high implementation.
+            high_confidence = training_tcrs >= 50
+            status = "ready" if checkpoint.is_file() else "missing"
+            target = classify_catalog_mhc(row["MHC"].strip())
+            if target.is_specific_allele:
+                specific.append(MixTCRpredModel(
+                    name=name,
+                    peptide=peptide,
+                    allele=target.canonical_target,
+                    upstream_allele=target.upstream_mhc,
+                    mhc_class=mhc_class,
+                    host_species=host_species,
+                    origin=origin,
+                    training_tcrs=training_tcrs,
+                    auc_5fold=auc_5fold,
+                    high_confidence=high_confidence,
+                    status=status,
+                    manager=manager,
+                    path=str(checkpoint),
+                ))
+            else:
+                non_specific.append(MixTCRpredNonSpecificModel(
+                    name=name,
+                    peptide=peptide,
+                    mhc_target=target.canonical_target,
+                    mhc_target_kind=target.target_kind,
+                    upstream_mhc=target.upstream_mhc,
+                    mhc_class=mhc_class,
+                    host_species=host_species,
+                    origin=origin,
+                    training_tcrs=training_tcrs,
+                    auc_5fold=auc_5fold,
+                    high_confidence=high_confidence,
+                    status=status,
+                    manager=manager,
+                    path=str(checkpoint),
+                    reason=target.reason,
+                    upstream_revision=UPSTREAM_REVISION,
+                    mhcgnomes_version=target.mhcgnomes_version,
+                ))
+    return MixTCRpredCatalog(
+        models=tuple(specific),
+        non_specific_models=tuple(non_specific),
+    )
 
 
-def _select_catalog_models(
+def model_catalog(mixtcrpred_path=None, data_dir=None):
+    """Return all single-allele pMHC-specific MixTCRpred models and weight status.
+
+    Catalog rows whose MHC target is a haplotype, allele group, or serotype
+    are excluded with a warning and remain available via
+    :func:`non_specific_model_catalog`.
+    """
+    catalog = partition_model_catalog(mixtcrpred_path, data_dir=data_dir)
+    for entry in catalog.non_specific_models:
+        logger.warning("Excluding MixTCRpred model %s: %s", entry.name, entry.reason)
+    return catalog.models
+
+
+def non_specific_model_catalog(mixtcrpred_path=None, data_dir=None):
+    """Return MixTCRpred catalog models with non-specific MHC targets.
+
+    Returns :class:`MixTCRpredNonSpecificModel` records for haplotype,
+    allele-group, and serotype targets without choosing representative
+    alleles.
+    """
+    return partition_model_catalog(
+        mixtcrpred_path, data_dir=data_dir).non_specific_models
+
+
+def select_catalog_models(
         catalog,
         models=None,
         all_models=False,
-        high_confidence=False):
+        high_confidence=False,
+        include_non_specific=False,
+        non_specific_catalog=()):
+    """Select MixTCRpred catalog models while enforcing non-specific target opt-in.
+
+    Parameters
+    ----------
+    catalog : MixTCRpredCatalog or iterable of MixTCRpredModel
+        Single-allele catalog entries, or a partitioned :class:`MixTCRpredCatalog`.
+    models : str or iterable of str, optional
+        Explicit model names to select.
+    all_models : bool, optional
+        Select all catalog models (single-allele only unless
+        ``include_non_specific=True``).
+    high_confidence : bool, optional
+        Select upstream high-confidence models (single-allele only unless
+        ``include_non_specific=True``).
+    include_non_specific : bool, optional
+        Explicit opt-in allowing non-specific group/haplotype/serotype models
+        to be selected. Default ``False``.
+    non_specific_catalog : iterable of MixTCRpredNonSpecificModel, optional
+        Non-specific entries when *catalog* is not a :class:`MixTCRpredCatalog`.
+
+    Returns
+    -------
+    list of MixTCRpredModel or MixTCRpredNonSpecificModel
+    """
+    if isinstance(catalog, MixTCRpredCatalog):
+        specific_entries = catalog.models
+        non_specific_entries = catalog.non_specific_models
+    else:
+        specific_entries = tuple(catalog)
+        non_specific_entries = tuple(non_specific_catalog)
+
     if sum(bool(value) for value in (models, all_models, high_confidence)) > 1:
         raise ValueError(
             "Choose model names, all_models, or high_confidence, not multiple")
+    pool = (
+        specific_entries + non_specific_entries
+        if include_non_specific else specific_entries
+    )
     if all_models:
-        return list(catalog)
+        return list(pool)
     if high_confidence:
-        return [model for model in catalog if model.high_confidence]
+        return [model for model in pool if model.high_confidence]
     if not models:
         return []
     if isinstance(models, str):
         models = [models]
-    by_name = {model.name.lower(): model for model in catalog}
+    by_name = {model.name.lower(): model for model in specific_entries}
+    non_specific_by_name = {
+        model.name.lower(): model for model in non_specific_entries
+    }
     selected = []
     for requested in models:
-        try:
-            model = by_name[str(requested).lower()]
-        except KeyError:
+        key = str(requested).lower()
+        if key in by_name:
+            model = by_name[key]
+        elif key in non_specific_by_name:
+            non_specific_entry = non_specific_by_name[key]
+            if not include_non_specific:
+                raise AlleleIdentityError(
+                    "MixTCRpred model %s targets non-specific MHC %s (%s, "
+                    "upstream %r) and is excluded from the single-allele "
+                    "catalog. mhctools does not relabel non-specific models "
+                    "with a representative allele. Inspect with "
+                    "MixTCRpred.non_specific_catalog() or opt in explicitly "
+                    "with allow_non_specific_target=True / "
+                    "include_non_specific=True." % (
+                        non_specific_entry.name,
+                        non_specific_entry.mhc_target,
+                        non_specific_entry.mhc_target_kind,
+                        non_specific_entry.upstream_mhc,
+                    )
+                )
+            model = non_specific_entry
+        else:
             raise ValueError(
                 "Unknown MixTCRpred model %r. Use `mhctools ls mixtcrpred "
                 "--models` to inspect the catalog." % requested)
@@ -309,20 +608,24 @@ def fetch_models(
         models=None,
         all_models=False,
         high_confidence=False,
-        refresh_metadata=False):
+        refresh_metadata=False,
+        include_non_specific=False):
     """Fetch weights; verify recorded downloads locally unless refreshing.
 
     An immutable Zenodo record and its saved MD5/SHA-256/size manifest
     identify existing downloads. Unrecorded weights still require Zenodo
     verification. ``refresh_metadata=True`` rechecks remote metadata too.
+    Non-specific group/haplotype/serotype models are excluded by default and
+    require ``include_non_specific=True``.
     """
     home = resolve_artifact_path("mixtcrpred", mixtcrpred_path, data_dir=data_dir)
-    catalog = model_catalog(mixtcrpred_path=home)
-    selected = _select_catalog_models(
+    catalog = partition_model_catalog(mixtcrpred_path=home)
+    selected = select_catalog_models(
         catalog,
         models=models,
         all_models=all_models,
         high_confidence=high_confidence,
+        include_non_specific=include_non_specific,
     )
     if not selected:
         return ()
@@ -346,7 +649,13 @@ def fetch_models(
     for model in pending:
         _fetch_one_model(model, files, manifest)
         _write_model_manifest(model_dir, manifest)
-    refreshed = {model.name: model for model in model_catalog(mixtcrpred_path=home)}
+    refreshed_catalog = partition_model_catalog(mixtcrpred_path=home)
+    refreshed = {
+        model.name: model
+        for model in (
+            refreshed_catalog.models + refreshed_catalog.non_specific_models
+        )
+    }
     return tuple(refreshed[model.name] for model in selected)
 
 
@@ -355,9 +664,13 @@ def print_model_catalog(
         data_dir=None,
         downloaded=False,
         high_confidence=False,
-        json_output=False):
+        json_output=False,
+        non_specific=False):
     """Print the model catalog for ``mhctools ls mixtcrpred --models``."""
-    models = model_catalog(mixtcrpred_path, data_dir=data_dir)
+    if non_specific:
+        models = non_specific_model_catalog(mixtcrpred_path, data_dir=data_dir)
+    else:
+        models = model_catalog(mixtcrpred_path, data_dir=data_dir)
     if downloaded:
         models = tuple(model for model in models if model.status == "ready")
     if high_confidence:
@@ -365,22 +678,43 @@ def print_model_catalog(
     if json_output:
         print(json.dumps([model.to_dict() for model in models], indent=2))
         return
-    headers = (
-        "MODEL", "PEPTIDE", "MHC", "CLASS", "SPECIES", "TRAINING",
-        "AUC", "CONFIDENCE", "STATUS", "MANAGER", "PATH")
-    rows = [(
-        model.name,
-        model.peptide,
-        model.allele,
-        model.mhc_class,
-        model.host_species,
-        str(model.training_tcrs),
-        "%.3f" % model.auc_5fold,
-        "high" if model.high_confidence else "low",
-        model.status,
-        model.manager,
-        model.path,
-    ) for model in models]
+    if non_specific:
+        headers = (
+            "MODEL", "PEPTIDE", "MHC_TARGET", "TARGET_KIND", "UPSTREAM_MHC",
+            "CLASS", "SPECIES", "TRAINING", "AUC", "CONFIDENCE", "STATUS",
+            "MANAGER", "PATH")
+        rows = [(
+            model.name,
+            model.peptide,
+            model.mhc_target,
+            model.mhc_target_kind,
+            model.upstream_mhc,
+            model.mhc_class,
+            model.host_species,
+            str(model.training_tcrs),
+            "%.3f" % model.auc_5fold,
+            "high" if model.high_confidence else "low",
+            model.status,
+            model.manager,
+            model.path,
+        ) for model in models]
+    else:
+        headers = (
+            "MODEL", "PEPTIDE", "MHC", "CLASS", "SPECIES", "TRAINING",
+            "AUC", "CONFIDENCE", "STATUS", "MANAGER", "PATH")
+        rows = [(
+            model.name,
+            model.peptide,
+            model.allele,
+            model.mhc_class,
+            model.host_species,
+            str(model.training_tcrs),
+            "%.3f" % model.auc_5fold,
+            "high" if model.high_confidence else "low",
+            model.status,
+            model.manager,
+            model.path,
+        ) for model in models]
     from .cli.formatting import format_table
     print(format_table(headers, rows, stream=sys.stdout))
 
@@ -460,6 +794,11 @@ class MixTCRpred:
         user-managed catalog instead.
     batch_size : int, optional
         Deterministic CPU inference batch size.
+    allow_non_specific_target : bool, optional
+        Explicit opt-in for catalog models whose upstream MHC target is a
+        haplotype, allele group, or serotype rather than a single canonical
+        allele. Default ``False``. Non-specific models are never advertised as
+        ``single_allele`` and leave ``Prediction.allele`` empty.
 
     Notes
     -----
@@ -476,7 +815,8 @@ class MixTCRpred:
             data_dir=None,
             accept_license=False,
             all_models=False,
-            high_confidence=False):
+            high_confidence=False,
+            include_non_specific=False):
         """Fetch licensed upstream code and selected CC-BY model weights."""
         from .artifacts import fetch
         return fetch(
@@ -487,17 +827,23 @@ class MixTCRpred:
             models=models,
             all_models=all_models,
             high_confidence=high_confidence,
+            include_non_specific=include_non_specific,
         )
 
     @classmethod
     def catalog(cls, mixtcrpred_path=None, data_dir=None):
-        """Return the available pMHC model catalog."""
+        """Return the available single-allele pMHC model catalog."""
         return model_catalog(mixtcrpred_path, data_dir=data_dir)
+
+    @classmethod
+    def non_specific_catalog(cls, mixtcrpred_path=None, data_dir=None):
+        """Return catalog models with non-specific group/haplotype/serotype targets."""
+        return non_specific_model_catalog(mixtcrpred_path, data_dir=data_dir)
 
     @classmethod
     def resolve_model(
             cls, peptide, allele, mixtcrpred_path=None, data_dir=None):
-        """Resolve a unique catalog model from its peptide/MHC target."""
+        """Resolve a unique single-allele catalog model from its peptide/MHC target."""
         normalized = normalize_allele_name_or_raw(allele)
         matches = [
             model for model in cls.catalog(mixtcrpred_path, data_dir=data_dir)
@@ -510,32 +856,77 @@ class MixTCRpred:
                     peptide, normalized, len(matches)))
         return matches[0]
 
+    @classmethod
+    def resolve_non_specific_model(
+            cls, peptide, mhc_target, mixtcrpred_path=None, data_dir=None):
+        """Resolve a unique non-specific catalog model from peptide and MHC group/haplotype/serotype."""
+        target = resolve_non_specific_mhc_target(mhc_target)
+        matches = [
+            model
+            for model in cls.non_specific_catalog(
+                mixtcrpred_path, data_dir=data_dir)
+            if model.peptide == str(peptide).upper()
+            and model.mhc_target == target.canonical_target
+            and model.mhc_target_kind == target.target_kind
+        ]
+        if len(matches) != 1:
+            raise ValueError(
+                "Expected one non-specific MixTCRpred model for %s / %s (%s), "
+                "found %d" % (
+                    peptide,
+                    target.canonical_target,
+                    target.target_kind,
+                    len(matches),
+                ))
+        return matches[0]
+
     def __init__(
             self,
             model,
             mixtcrpred_path=None,
             mixtcrpred_python=None,
             checkpoint_path=None,
-            batch_size=256):
+            batch_size=256,
+            allow_non_specific_target=False):
         self.mixtcrpred_home = resolve_artifact_path("mixtcrpred", mixtcrpred_path)
         self.mixtcrpred_python = resolve_sidecar_python(mixtcrpred_python, "MIXTCRPRED_PYTHON")
-        catalog = model_catalog(mixtcrpred_path=self.mixtcrpred_home)
-        selected = _select_catalog_models(catalog, models=[model])
+        catalog = partition_model_catalog(mixtcrpred_path=self.mixtcrpred_home)
+        selected = select_catalog_models(
+            catalog,
+            models=[model],
+            include_non_specific=allow_non_specific_target,
+        )
         self.model_info = selected[0]
+        self.is_non_specific_target = isinstance(
+            self.model_info, MixTCRpredNonSpecificModel)
         self.checkpoint_path = str(
             Path(checkpoint_path).expanduser().resolve()
             if checkpoint_path else self.model_info.path)
         if not Path(self.checkpoint_path).is_file():
+            non_specific_flag = (
+                " --allow-non-specific" if self.is_non_specific_target else ""
+            )
             raise FileNotFoundError(
                 "MixTCRpred checkpoint is missing: %s. Run `mhctools fetch "
-                "mixtcrpred --model %s --accept-license`." % (
-                    self.checkpoint_path, self.model_info.name))
+                "mixtcrpred --model %s%s --accept-license`." % (
+                    self.checkpoint_path,
+                    self.model_info.name,
+                    non_specific_flag,
+                ))
         if batch_size < 1:
             raise ValueError("batch_size must be positive")
         self.batch_size = int(batch_size)
         self.last_qc = pd.DataFrame()
 
     def __repr__(self):
+        if self.is_non_specific_target:
+            return (
+                "MixTCRpred(model=%s, mhc_target=%s, mhc_target_kind=%s)" % (
+                    self.model_info.name,
+                    self.model_info.mhc_target,
+                    self.model_info.mhc_target_kind,
+                )
+            )
         return "MixTCRpred(model=%s)" % self.model_info.name
 
     def __str__(self):
@@ -550,6 +941,15 @@ class MixTCRpred:
             UPSTREAM_REVISION, ZENODO_RECORD, self.model_info.name)
 
     def kind_support(self):
+        if self.is_non_specific_target:
+            return {
+                Kind.pMHC_TCR_binding: {
+                    "mhc_dependence": "mhc_group",
+                    "mhc_class": self.model_info.mhc_class,
+                    "mhc_target": self.model_info.mhc_target,
+                    "mhc_target_kind": self.model_info.mhc_target_kind,
+                }
+            }
         return {
             Kind.pMHC_TCR_binding: {
                 "mhc_dependence": "single_allele",
@@ -639,16 +1039,32 @@ class MixTCRpred:
             tcrs = [tcrs]
         tcrs = list(tcrs)
         output = self._run_sidecar(tcrs)
+        if self.is_non_specific_target:
+            allele = ""
+            measurement_context = intern_measurement_context(MeasurementContext(
+                estimate_type="ml_predicted",
+                detail=(
+                    "non_specific_mhc_target:%s=%s (upstream=%s)" % (
+                        self.model_info.mhc_target_kind,
+                        self.model_info.mhc_target,
+                        self.model_info.upstream_mhc,
+                    )
+                ),
+            ))
+        else:
+            allele = self.model_info.allele
+            measurement_context = None
         return [
             Prediction(
                 kind=Kind.pMHC_TCR_binding,
                 score=float(row.score),
                 peptide=self.model_info.peptide,
-                allele=self.model_info.allele,
+                allele=allele,
                 tcr=tcr.identifier,
                 percentile_rank=float(row.percentile_rank),
                 predictor_name=self._predictor_name(),
                 predictor_version=self.predictor_version,
+                measurement_context=measurement_context,
             )
             for tcr, row in zip(tcrs, output.itertuples(index=False))
         ]
@@ -683,7 +1099,14 @@ class MixTCRpred:
         output = self._run_sidecar(tcrs)
         dataframe["mixtcrpred_model"] = self.model_info.name
         dataframe["mixtcrpred_peptide"] = self.model_info.peptide
-        dataframe["mixtcrpred_allele"] = self.model_info.allele
+        if self.is_non_specific_target:
+            dataframe["mixtcrpred_allele"] = ""
+            dataframe["mixtcrpred_mhc_target"] = self.model_info.mhc_target
+            dataframe["mixtcrpred_mhc_target_kind"] = (
+                self.model_info.mhc_target_kind)
+            dataframe["mixtcrpred_upstream_mhc"] = self.model_info.upstream_mhc
+        else:
+            dataframe["mixtcrpred_allele"] = self.model_info.allele
         dataframe["mixtcrpred_score"] = output["score"].to_numpy()
         dataframe["mixtcrpred_percentile_rank"] = output[
             "percentile_rank"].to_numpy()

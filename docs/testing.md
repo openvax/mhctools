@@ -198,7 +198,15 @@ Immediately before upload, the script checks ownership and repeats the remote
 tag and PyPI checks. An existing release or failed lookup stops publication.
 
 Normal completion, errors and handled interrupts release only the caller's own
-lock. A killed process or lost network acknowledgement can leave a lock behind.
+lock. All remote Git operations in `deploy.sh` run with non-interactive SSH
+bounds (`BatchMode=yes`, `ConnectTimeout`, `ServerAliveInterval`,
+`ServerAliveCountMax`, respecting the user's SSH configuration) and a
+per-command wall-clock deadline (`DEPLOY_GIT_REMOTE_TIMEOUT`, default `120`s;
+SSH options configurable via `DEPLOY_SSH_CONNECT_TIMEOUT`,
+`DEPLOY_SSH_SERVER_ALIVE_INTERVAL`, and `DEPLOY_SSH_SERVER_ALIVE_COUNT_MAX`).
+A stalled transport terminates the child process group, names the stalled step
+on stderr, and attempts owner-checked lock cleanup before exiting non-zero. A
+killed process or lost network acknowledgement can still leave a lock behind.
 Inspect it with:
 
 ```sh
