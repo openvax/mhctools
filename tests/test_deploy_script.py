@@ -14,6 +14,11 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 LOCK = "refs/heads/release-lock"
+STARTUP_IDLE_TIMEOUT = 20.0
+STARTUP_MAX_TIMEOUT = 60.0
+COMMAND_TIMEOUT = 60.0
+GIT_TIMEOUT = 30.0
+WAIT_TIMEOUT = 60.0
 
 # Only replace expensive/external boundaries. Git, version edits, conditional
 # pushes and exit traps execute unchanged.
@@ -44,7 +49,7 @@ with (state / "events").open("a") as output:
     output.write(stage + "\n")
 (state / ("entered-" + stage)).touch()
 if stage == "test" and (state / "block-test").exists():
-    deadline = time.monotonic() + 20
+    deadline = time.monotonic() + 60
     while not (state / "continue").exists():
         if time.monotonic() > deadline:
             sys.exit("test gate was not released")
@@ -62,7 +67,7 @@ if stage == "build":
 def git(repo, *args):
     return subprocess.run(
         ["git", "-C", str(repo), *args], check=True, capture_output=True,
-        text=True, timeout=15).stdout.strip()
+        text=True, timeout=GIT_TIMEOUT).stdout.strip()
 
 
 def remote_ref(repo, ref):
@@ -126,27 +131,103 @@ def checkout(tmp_path, monkeypatch):
 def deploy(repo, env, *args):
     return subprocess.run(
         ["./deploy.sh", *args], cwd=repo, env=env, text=True,
-        capture_output=True, timeout=20)
+        capture_output=True, timeout=COMMAND_TIMEOUT)
+
+
+def progress_snapshot(paths):
+    """Capture observable file progress (existence, size, mtime_ns) for paths."""
+    snapshot = []
+    for path in paths:
+        try:
+            stat = path.stat()
+        except FileNotFoundError:
+            snapshot.append((False, 0, 0))
+        else:
+            snapshot.append((True, stat.st_size, stat.st_mtime_ns))
+    return tuple(snapshot)
+
+
+def wait_for_stage(
+        target,
+        process,
+        output_path,
+        *,
+        progress_paths=(),
+        events_path=None,
+        idle_timeout=STARTUP_IDLE_TIMEOUT,
+        max_timeout=STARTUP_MAX_TIMEOUT,
+        poll_interval=0.01,
+        clock=time.monotonic,
+        sleep=time.sleep):
+    """Wait until *target* appears while tolerating slow but advancing startup.
+
+    Extends the stall window whenever any path in *progress_paths* changes
+    (for example captured logs or recorded deployment stages), while always
+    enforcing the hard upper bound *max_timeout*.
+    """
+    watched = tuple(dict.fromkeys((output_path, *progress_paths)))
+    started = clock()
+    last_progress = started
+    last_snapshot = progress_snapshot(watched)
+    while not target.exists():
+        returncode = process.poll()
+        if returncode is not None:
+            output = output_path.read_text() if output_path.exists() else ""
+            raise AssertionError(
+                f"deploy process exited early with status {returncode} before "
+                f"creating {target.name}:\n{output}"
+            )
+        now = clock()
+        current_snapshot = progress_snapshot(watched)
+        if current_snapshot != last_snapshot:
+            last_snapshot = current_snapshot
+            last_progress = now
+        elapsed = now - started
+        idle = now - last_progress
+        if idle >= idle_timeout or elapsed >= max_timeout:
+            output = output_path.read_text() if output_path.exists() else ""
+            observed = (
+                events_path.read_text().splitlines()
+                if events_path is not None and events_path.exists() else []
+            )
+            reason = (
+                f"no progress for {idle:.2f}s (idle limit {idle_timeout:.2f}s)"
+                if idle >= idle_timeout
+                else f"exceeded max startup bound {max_timeout:.2f}s"
+            )
+            raise AssertionError(
+                f"Timed out waiting for {target.name} after {elapsed:.2f}s "
+                f"({reason}); observed events={observed!r}:\n{output}"
+            )
+        sleep(poll_interval)
 
 
 @contextmanager
 def paused_deploy(repo, state, env):
     (state / "block-test").touch()
-    with (state / "output").open("w") as output:
+    output_path = state / "output"
+    with output_path.open("w") as output:
         process = subprocess.Popen(
             ["./deploy.sh"], cwd=repo, env=env, stdout=output,
             stderr=subprocess.STDOUT, start_new_session=True)
         try:
-            deadline = time.monotonic() + 15
-            while not (state / "entered-test").exists():
-                assert process.poll() is None, (state / "output").read_text()
-                assert time.monotonic() < deadline, (state / "output").read_text()
-                time.sleep(0.01)
+            wait_for_stage(
+                state / "entered-test",
+                process,
+                output_path,
+                progress_paths=(
+                    output_path,
+                    state / "events",
+                    state / "entered-check",
+                    state / "entered-lint",
+                ),
+                events_path=state / "events",
+            )
             yield process
         finally:
             (state / "continue").touch()
             try:
-                process.wait(timeout=15)
+                process.wait(timeout=WAIT_TIMEOUT)
             except subprocess.TimeoutExpired:
                 os.killpg(process.pid, signal.SIGKILL)
                 process.wait(timeout=5)
@@ -215,7 +296,7 @@ def test_interrupt_releases_ownership(checkout):
     repo, state, env = checkout("release")
     with paused_deploy(repo, state, env) as process:
         os.killpg(process.pid, signal.SIGTERM)
-        process.wait(timeout=15)
+        process.wait(timeout=WAIT_TIMEOUT)
     assert process.returncode != 0
     assert remote_ref(repo, LOCK) is None
     assert "upload" not in events(state)
@@ -244,3 +325,126 @@ def test_requested_version_is_committed_and_tagged(checkout):
     assert git(repo, "rev-parse", "v0.0.2^{}") == commit
     assert remote_ref(repo, "refs/heads/main") == commit
     assert remote_ref(repo, LOCK) is None
+
+
+def test_wait_for_stage_extends_idle_window_on_progress_within_max_bound(tmp_path):
+    target = tmp_path / "entered-test"
+    output = tmp_path / "output"
+    events_file = tmp_path / "events"
+    output.write_text("starting\n")
+    now = [0.0]
+
+    def fake_clock():
+        return now[0]
+
+    def fake_sleep(seconds):
+        now[0] += seconds
+
+    class AdvancingProcess:
+        def __init__(self):
+            self.ticks = 0
+
+        def poll(self):
+            self.ticks += 1
+            if self.ticks == 4:
+                events_file.write_text("check\n")
+            elif self.ticks == 8:
+                output.write_text("starting\nacquired release lock\n")
+            elif self.ticks == 12:
+                target.touch()
+            return None
+
+    wait_for_stage(
+        target,
+        AdvancingProcess(),
+        output,
+        progress_paths=(output, events_file),
+        events_path=events_file,
+        idle_timeout=5.0,
+        max_timeout=20.0,
+        poll_interval=1.0,
+        clock=fake_clock,
+        sleep=fake_sleep,
+    )
+    assert target.exists()
+    assert now[0] > 5.0
+
+
+def test_wait_for_stage_fails_on_stall_and_enforces_max_bound(tmp_path):
+    target = tmp_path / "entered-test"
+    output = tmp_path / "output"
+    events_file = tmp_path / "events"
+    output.write_text("acquired release lock\n")
+    events_file.write_text("check\n")
+
+    def make_clock():
+        now = [0.0]
+
+        def clock():
+            return now[0]
+
+        def sleep(seconds):
+            now[0] += seconds
+
+        return clock, sleep
+
+    class RunningProcess:
+        def poll(self):
+            return None
+
+    clock, sleep = make_clock()
+    with pytest.raises(AssertionError, match="no progress") as exc_info:
+        wait_for_stage(
+            target,
+            RunningProcess(),
+            output,
+            progress_paths=(output, events_file),
+            events_path=events_file,
+            idle_timeout=5.0,
+            max_timeout=20.0,
+            poll_interval=1.0,
+            clock=clock,
+            sleep=sleep,
+        )
+    assert "acquired release lock" in str(exc_info.value)
+    assert "check" in str(exc_info.value)
+
+    class NoisyProcess:
+        def __init__(self):
+            self.counter = 0
+
+        def poll(self):
+            self.counter += 1
+            output.write_text(f"tick {self.counter}\n")
+            return None
+
+    clock, sleep = make_clock()
+    with pytest.raises(AssertionError, match="max startup bound"):
+        wait_for_stage(
+            target,
+            NoisyProcess(),
+            output,
+            progress_paths=(output,),
+            idle_timeout=10.0,
+            max_timeout=5.0,
+            poll_interval=1.0,
+            clock=clock,
+            sleep=sleep,
+        )
+
+    class ExitedProcess:
+        def poll(self):
+            return 2
+
+    clock, sleep = make_clock()
+    with pytest.raises(AssertionError, match="exited early with status 2"):
+        wait_for_stage(
+            target,
+            ExitedProcess(),
+            output,
+            idle_timeout=10.0,
+            max_timeout=20.0,
+            poll_interval=1.0,
+            clock=clock,
+            sleep=sleep,
+        )

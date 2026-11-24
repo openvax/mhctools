@@ -24,6 +24,10 @@ from .allele_normalization import (
 )
 
 from .unsupported_allele import UnsupportedAllele
+from .unsupported_residue import (
+    UnsupportedResidueError,
+    remap_unsupported_residue_indices,
+)
 from .binding_prediction_collection import BindingPredictionCollection
 from .pred import (
     Kind,
@@ -224,7 +228,15 @@ class BasePredictor(object):
             peptides, n_flanks, c_flanks)
         # The legacy collection has no input-occurrence identity. Score each
         # distinct peptide once, then expand against the original input list.
-        collection = self.predict_peptides(list(dict.fromkeys(peptide_list)))
+        unique_peptides = list(dict.fromkeys(peptide_list))
+        try:
+            collection = self.predict_peptides(unique_peptides)
+        except UnsupportedResidueError as error:
+            if len(unique_peptides) != len(peptide_list):
+                remapped = remap_unsupported_residue_indices(error, peptide_list)
+                if remapped is not error:
+                    raise remapped from error.__cause__
+            raise
         predictions = collection.to_preds(
             kind=self._default_pred_kind(),
             predictor_version=getattr(self, "predictor_version", ""))
@@ -536,10 +548,32 @@ class BasePredictor(object):
         max_length = self.max_peptide_length
         for index, p in enumerate(peptides):
             require_type(p, str, f"peptides: element at index {index}")
-            if not p.isalpha():
+            if not p:
                 raise ValueError("Invalid characters in peptide '%s'" % p)
-            elif check_X and "X" in p:
-                raise ValueError("Invalid character 'X' in peptide '%s'" % p)
+            elif not p.isalpha():
+                unsupported = {ch for ch in p if not ch.isalpha()}
+                if check_X and "X" in p:
+                    unsupported.add("X")
+                if check_X and not check_lower and "x" in p:
+                    unsupported.add("x")
+                raise UnsupportedResidueError(
+                    "Invalid characters in peptide '%s'" % p,
+                    peptides=(p,),
+                    residues=unsupported,
+                    input_indices=(index,),
+                    field="peptide",
+                    predictor_name=self.__class__.__name__,
+                )
+            elif check_X and ("X" in p or (not check_lower and "x" in p)):
+                unsupported = [ch for ch in ("X", "x") if ch in p and (ch == "X" or not check_lower)]
+                raise UnsupportedResidueError(
+                    "Invalid character 'X' in peptide '%s'" % p,
+                    peptides=(p,),
+                    residues=unsupported,
+                    input_indices=(index,),
+                    field="peptide",
+                    predictor_name=self.__class__.__name__,
+                )
             elif check_lower and not p.isupper():
                 raise ValueError("Invalid lowercase letters in peptide '%s'" % p)
             elif check_min_length and len(p) < min_length:

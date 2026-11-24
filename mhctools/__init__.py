@@ -321,6 +321,9 @@ if TYPE_CHECKING:
     from .unsupported_allele import (
         UnsupportedAllele as UnsupportedAllele,
     )
+    from .unsupported_residue import (
+        UnsupportedResidueError as UnsupportedResidueError,
+    )
     from .cleavenet import (
         CleaveNet as CleaveNet,
         CleaveNetResult as CleaveNetResult,
@@ -539,6 +542,7 @@ _LAZY_IMPORTS = {
     "RandomBindingPredictor": (".random_predictor", "RandomBindingPredictor"),
     "NetMHCstabpan": (".netmhcstabpan", "NetMHCstabpan"),
     "UnsupportedAllele": (".unsupported_allele", "UnsupportedAllele"),
+    "UnsupportedResidueError": (".unsupported_residue", "UnsupportedResidueError"),
     "CleaveNet": (".cleavenet", "CleaveNet"),
     "CleaveNetResult": (".cleavenet", "CleaveNetResult"),
     "CleaveNetScore": (".cleavenet", "CleaveNetScore"),
@@ -575,7 +579,7 @@ def __dir__():
     return sorted(set(globals()) | set(_LAZY_IMPORTS))
 
 
-__version__ = "4.9.10"
+__version__ = "4.10.0"
 
 # Importable from ``mhctools`` but left out of ``from mhctools import *``.
 # These vaccine-report and cleavage-track names were never in ``__all__``;

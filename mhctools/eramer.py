@@ -39,6 +39,7 @@ prior, not a validated oracle.
 
 from .artifacts import resolve_artifact_path
 from .pred import Kind, PeptideResult, Prediction
+from .unsupported_residue import UnsupportedResidueError
 from .wrapper_base import AlleleFreePredictor
 
 # ERAP1 processes precursors in this length range; ERAMER ships one PWM sheet
@@ -172,7 +173,7 @@ class ERAMER(AlleleFreePredictor):
         return self._weights_by_length
 
     def _check_peptides(self, peptides):
-        for peptide in peptides:
+        for index, peptide in enumerate(peptides):
             n = len(peptide)
             if not (ERAMER_MIN_PRECURSOR_LENGTH <= n
                     <= ERAMER_MAX_PRECURSOR_LENGTH):
@@ -187,9 +188,15 @@ class ERAMER(AlleleFreePredictor):
                     % (peptide, n, self.epitope_length))
             invalid = set(peptide) - _VALID_AMINO_ACIDS
             if invalid:
-                raise ValueError(
+                raise UnsupportedResidueError(
                     "Peptide %r contains non-standard amino acid(s): %s"
-                    % (peptide, "".join(sorted(invalid))))
+                    % (peptide, "".join(sorted(invalid))),
+                    peptides=(peptide,),
+                    residues=invalid,
+                    input_indices=(index,),
+                    field="peptide",
+                    predictor_name=self.__class__.__name__,
+                )
 
     def predict(self, peptides):
         """Predict ERAP1 trimming for a list of precursor peptides.

@@ -48,6 +48,7 @@ import pandas as pd
 from .artifacts import resolve_artifact_path
 from .cleanup_context import CleanupFiles
 from .pred import Kind, PeptideResult, Prediction
+from .unsupported_residue import UnsupportedResidueError
 from .process_helpers import python_imports_available, resolve_sidecar_python, run_command
 from .wrapper_base import AlleleFreePredictor
 
@@ -132,7 +133,7 @@ class DeepTAP(AlleleFreePredictor):
         return Kind.tap_transport
 
     def _check_peptides(self, peptides):
-        for peptide in peptides:
+        for index, peptide in enumerate(peptides):
             if not peptide:
                 raise ValueError("Empty peptide is not allowed")
             if len(peptide) > self.max_peptide_length:
@@ -142,9 +143,15 @@ class DeepTAP(AlleleFreePredictor):
                     % (self.max_peptide_length, peptide, len(peptide)))
             invalid = set(peptide) - _VALID_AMINO_ACIDS
             if invalid:
-                raise ValueError(
+                raise UnsupportedResidueError(
                     "Peptide %r contains characters DeepTAP cannot encode: %s"
-                    % (peptide, "".join(sorted(invalid))))
+                    % (peptide, "".join(sorted(invalid))),
+                    peptides=(peptide,),
+                    residues=invalid,
+                    input_indices=(index,),
+                    field="peptide",
+                    predictor_name=self.__class__.__name__,
+                )
 
     def predict(self, peptides):
         """Predict TAP transport for a list of peptides.

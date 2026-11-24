@@ -87,6 +87,7 @@ from .optional_backend import (
 )
 from .peptide_input import coerce_peptide_inputs, sequence_only_chemistry_error
 from .pred import Kind, MeasurementContext, PeptideResult, Prediction
+from .unsupported_residue import UnsupportedResidueError
 from .wrapper_base import AlleleFreePredictor
 
 #: Upstream revision this wrapper was written and verified against.
@@ -385,7 +386,7 @@ class PeptiVerse(AlleleFreePredictor):
         return self.artifact_inventory.predictor_version
 
     def _check_peptides(self, peptides):
-        for peptide in peptides:
+        for index, peptide in enumerate(peptides):
             if not peptide:
                 raise ValueError("Empty peptide is not allowed")
             if len(peptide) > self.max_peptide_length:
@@ -395,12 +396,18 @@ class PeptiVerse(AlleleFreePredictor):
                     % (self.max_peptide_length, peptide, len(peptide)))
             invalid = set(peptide) - _VALID_AMINO_ACIDS
             if invalid:
-                raise ValueError(
+                raise UnsupportedResidueError(
                     "Peptide %r contains characters the sequence model cannot "
                     "encode: %s. PeptiVerse's chemical-form (SMILES) models are "
                     "not wrapped, so modified peptides are rejected rather than "
                     "scored as their unmodified sequence."
-                    % (peptide, "".join(sorted(invalid))))
+                    % (peptide, "".join(sorted(invalid))),
+                    peptides=(peptide,),
+                    residues=invalid,
+                    input_indices=(index,),
+                    field="peptide",
+                    predictor_name=self.__class__.__name__,
+                )
 
     def _input_error(self, peptide_input):
         error = sequence_only_chemistry_error(peptide_input)

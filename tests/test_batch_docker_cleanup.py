@@ -1,11 +1,13 @@
 """Batch cancellation must reach containers, not just their host clients."""
 
+import importlib.util
 import os
 from pathlib import Path
 import re
 import shutil
 import subprocess
 import sys
+from types import SimpleNamespace
 
 import pytest
 
@@ -13,6 +15,14 @@ from mhctools.process_helpers import run_multiple_commands_redirect_stdout
 
 
 LAUNCHER = Path(__file__).resolve().parents[1] / "scripts/test-backends/run_netmhc.py"
+
+
+def _load_launcher_module():
+    spec = importlib.util.spec_from_file_location("run_netmhc_test", LAUNCHER)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
 
 
 @pytest.fixture(scope="module")
@@ -118,3 +128,129 @@ def test_launcher_preserves_errors_and_reports_failed_cleanup(
         assert "rm failed" in completed.stderr
     else:
         assert "create failed" in completed.stderr
+
+
+def test_resolve_startup_timeout_defaults_overrides_and_validation(monkeypatch):
+    launcher = _load_launcher_module()
+    monkeypatch.delenv(launcher.STARTUP_TIMEOUT_ENV, raising=False)
+    assert launcher.resolve_startup_timeout() == launcher.DEFAULT_STARTUP_TIMEOUT
+    assert launcher.resolve_startup_timeout(12.5) == 12.5
+
+    monkeypatch.setenv(launcher.STARTUP_TIMEOUT_ENV, "7.5")
+    assert launcher.resolve_startup_timeout() == 7.5
+    assert launcher.resolve_startup_timeout(4) == 4.0
+
+    for bad in ("0", "-3", "nan", "inf", "not-a-number"):
+        monkeypatch.setenv(launcher.STARTUP_TIMEOUT_ENV, bad)
+        with pytest.raises(ValueError, match=launcher.STARTUP_TIMEOUT_ENV):
+            launcher.resolve_startup_timeout()
+
+
+@pytest.mark.parametrize("cleanup_times_out", [False, True])
+def test_docker_create_timeout_reports_diagnostic_and_cleans_owned_container(
+        monkeypatch, capsys, cleanup_times_out):
+    launcher = _load_launcher_module()
+    run_calls = []
+    start_calls = []
+
+    def fake_run(cmd, **kwargs):
+        run_calls.append((cmd, kwargs))
+        if cmd[:2] == ["docker", "create"]:
+            raise subprocess.TimeoutExpired(cmd=cmd, timeout=kwargs["timeout"])
+        if cmd[:3] == ["docker", "rm", "--force"]:
+            if cleanup_times_out:
+                raise subprocess.TimeoutExpired(cmd=cmd, timeout=kwargs["timeout"])
+            return SimpleNamespace(returncode=0, stderr="")
+        raise AssertionError("Unexpected subprocess.run command: %r" % (cmd,))
+
+    def fake_call(cmd, **kwargs):
+        start_calls.append((cmd, kwargs))
+        return 0
+
+    monkeypatch.setattr(launcher.subprocess, "run", fake_run)
+    monkeypatch.setattr(launcher.subprocess, "call", fake_call)
+
+    returncode = launcher.run_container(["image:1", "cmd"], startup_timeout=12.5)
+    stderr = capsys.readouterr().err
+
+    assert returncode == 124
+    assert start_calls == []
+    assert len(run_calls) == 2
+
+    create_cmd, create_kwargs = run_calls[0]
+    rm_cmd, rm_kwargs = run_calls[1]
+    assert create_cmd[:3] == ["docker", "create", "--name"]
+    container_name = create_cmd[3]
+    assert container_name.startswith("mhctools-netmhc-")
+    assert create_kwargs["timeout"] == 12.5
+
+    assert rm_cmd == ["docker", "rm", "--force", container_name]
+    assert rm_kwargs["timeout"] == 3
+
+    assert "Timed out after 12.5s" in stderr
+    assert "docker create" in stderr
+    assert container_name in stderr
+    assert "Docker engine" in stderr
+    if cleanup_times_out:
+        assert "Could not remove " + container_name in stderr
+
+
+def test_startup_timeout_does_not_bound_prediction_runtime(monkeypatch):
+    launcher = _load_launcher_module()
+    run_calls = []
+    start_calls = []
+
+    def fake_run(cmd, **kwargs):
+        run_calls.append((cmd, kwargs))
+        return SimpleNamespace(returncode=0, stderr="")
+
+    def fake_call(cmd, **kwargs):
+        start_calls.append((cmd, kwargs))
+        return 0
+
+    monkeypatch.setattr(launcher.subprocess, "run", fake_run)
+    monkeypatch.setattr(launcher.subprocess, "call", fake_call)
+
+    returncode = launcher.run_container(["image:1", "cmd"], startup_timeout=5.0)
+    assert returncode == 0
+    assert run_calls[0][0][:3] == ["docker", "create", "--name"]
+    assert run_calls[0][1]["timeout"] == 5.0
+    container_name = run_calls[0][0][3]
+
+    assert start_calls == [(["docker", "start", "--attach", container_name], {})]
+    assert run_calls[1][0] == ["docker", "rm", "--force", container_name]
+    assert run_calls[1][1]["timeout"] == 3
+
+
+def test_launcher_subprocess_times_out_stalled_docker_create(tmp_path):
+    bundle = _bundle(tmp_path, "exit 0\n")
+    commands = tmp_path / "docker-commands"
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    docker = fake_bin / "docker"
+    docker.write_text(
+        "#!/bin/sh\n"
+        f"printf '%s\\n' \"$1\" >> '{commands}'\n"
+        "if [ \"$1\" = create ]; then\n"
+        "    sleep 5\n"
+        "fi\n"
+        "exit 0\n"
+    )
+    docker.chmod(0o755)
+
+    completed = subprocess.run(
+        [sys.executable, str(LAUNCHER), "netMHCcons"],
+        env=dict(
+            os.environ,
+            NETMHC_BUNDLE_HOME=str(bundle),
+            MHCTOOLS_DOCKER_STARTUP_TIMEOUT="0.5",
+            PATH=str(fake_bin) + os.pathsep + os.environ.get("PATH", os.defpath),
+        ),
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    assert completed.returncode == 124
+    assert commands.read_text().splitlines() == ["create", "rm"]
+    assert "docker create" in completed.stderr
+    assert "mhctools-netmhc-" in completed.stderr

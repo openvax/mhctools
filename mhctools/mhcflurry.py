@@ -28,8 +28,10 @@ from .base_predictor import BasePredictor
 from .base_predictor import _check_flank_inputs
 from .binding_prediction import BindingPrediction
 from .binding_prediction_collection import BindingPredictionCollection
+from .peptide_input import CANONICAL_AMINO_ACIDS
 from .pred import Kind, Prediction
 from .unsupported_allele import UnsupportedAllele
+from .unsupported_residue import UnsupportedResidueError
 
 logger = logging.getLogger(__name__)
 
@@ -276,6 +278,57 @@ def _check_affinity_percent_rank_support(affinity_predictor, alleles):
             % ", ".join(sorted(missing_alleles)))
 
 
+def translate_mhcflurry_residue_error(
+        error: Exception,
+        peptides: Sequence[str],
+) -> UnsupportedResidueError | None:
+    """Translate a native MHCflurry nonstandard-residue rejection.
+
+    Returns an :class:`~mhctools.UnsupportedResidueError` when ``error`` is a
+    native MHCflurry nonstandard-amino-acid ``ValueError`` (or passes through
+    an already-typed ``UnsupportedResidueError`` unchanged). Returns ``None``
+    for all other ``ValueError`` exceptions (length, allele, configuration, or
+    malformed-output errors) so callers can re-raise them unmodified.
+    """
+    if isinstance(error, UnsupportedResidueError):
+        return error
+    if not isinstance(error, ValueError):
+        return None
+    message = str(error)
+    if "peptides have nonstandard amino acids" not in message.lower():
+        return None
+
+    offending_peptides = []
+    offending_indices = []
+    offending_residues = set()
+    seen_peptides = set()
+    for index, peptide in enumerate(peptides):
+        invalid = [ch for ch in peptide if ch.upper() not in CANONICAL_AMINO_ACIDS]
+        if invalid:
+            offending_indices.append(index)
+            if peptide not in seen_peptides:
+                seen_peptides.add(peptide)
+                offending_peptides.append(peptide)
+            offending_residues.update(invalid)
+
+    if not offending_peptides:
+        for index, peptide in enumerate(peptides):
+            if peptide and (f"'{peptide}'" in message or f'"{peptide}"' in message):
+                offending_indices.append(index)
+                if peptide not in seen_peptides:
+                    seen_peptides.add(peptide)
+                    offending_peptides.append(peptide)
+
+    return UnsupportedResidueError(
+        message,
+        peptides=offending_peptides,
+        residues=offending_residues,
+        input_indices=offending_indices,
+        field="peptide",
+        predictor_name="mhcflurry",
+    )
+
+
 class MHCflurry(BasePredictor):
     """
     MHCflurry predictor using the modern Class1PresentationPredictor API.
@@ -428,11 +481,19 @@ class MHCflurry(BasePredictor):
         batch_requests = [a for a in allele_list for _ in peptide_list]
         batch_alleles = [self._allele_model_names[a] for a in batch_requests]
 
-        df = self.predictor.affinity_predictor.predict_to_dataframe(
-            peptides=batch_peptides,
-            alleles=batch_alleles,
-            include_percentile_ranks=self.include_affinity_percentile_ranks,
-        )
+        try:
+            df = self.predictor.affinity_predictor.predict_to_dataframe(
+                peptides=batch_peptides,
+                alleles=batch_alleles,
+                include_percentile_ranks=self.include_affinity_percentile_ranks,
+            )
+        except ValueError as error:
+            translated = translate_mhcflurry_residue_error(error, peptide_list)
+            if translated is not None:
+                if translated is error:
+                    raise
+                raise translated from error
+            raise
         binding_predictions = []
         for allele, row in zip(batch_requests, df.itertuples(index=False), strict=True):
             binding_predictions.append(BindingPrediction(
@@ -477,11 +538,19 @@ class MHCflurry(BasePredictor):
         batch_indices = list(range(len(peptide_list))) * len(allele_list)
 
         # Single batched call for affinity
-        aff_df = self.predictor.affinity_predictor.predict_to_dataframe(
-            peptides=batch_peptides,
-            alleles=batch_alleles,
-            include_percentile_ranks=self.include_affinity_percentile_ranks,
-        )
+        try:
+            aff_df = self.predictor.affinity_predictor.predict_to_dataframe(
+                peptides=batch_peptides,
+                alleles=batch_alleles,
+                include_percentile_ranks=self.include_affinity_percentile_ranks,
+            )
+        except ValueError as error:
+            translated = translate_mhcflurry_residue_error(error, peptide_list)
+            if translated is not None:
+                if translated is error:
+                    raise
+                raise translated from error
+            raise
 
         if self.presentation_allele_mode == "haplotype":
             presentation_alleles = list(dict.fromkeys(self._allele_model_names.values()))
@@ -501,7 +570,15 @@ class MHCflurry(BasePredictor):
             kwargs["n_flanks"] = n_flank_list
         if c_flank_list is not None:
             kwargs["c_flanks"] = c_flank_list
-        pres_df = self.predictor.predict(**kwargs)
+        try:
+            pres_df = self.predictor.predict(**kwargs)
+        except ValueError as error:
+            translated = translate_mhcflurry_residue_error(error, peptide_list)
+            if translated is not None:
+                if translated is error:
+                    raise
+                raise translated from error
+            raise
         expected_presentation_rows = len(peptide_list)
         if self.presentation_allele_mode == "per_allele":
             expected_presentation_rows *= len(allele_list)
@@ -734,11 +811,19 @@ class MHCflurry_Affinity(BasePredictor):
         batch_requests = [a for a in allele_list for _ in peptide_list]
         batch_alleles = [self._allele_model_names[a] for a in batch_requests]
 
-        df = self.predictor.predict_to_dataframe(
-            peptides=batch_peptides,
-            alleles=batch_alleles,
-            include_percentile_ranks=self.include_affinity_percentile_ranks,
-        )
+        try:
+            df = self.predictor.predict_to_dataframe(
+                peptides=batch_peptides,
+                alleles=batch_alleles,
+                include_percentile_ranks=self.include_affinity_percentile_ranks,
+            )
+        except ValueError as error:
+            translated = translate_mhcflurry_residue_error(error, peptide_list)
+            if translated is not None:
+                if translated is error:
+                    raise
+                raise translated from error
+            raise
         binding_predictions = []
         for allele, row in zip(batch_requests, df.itertuples(index=False), strict=True):
             binding_predictions.append(BindingPrediction(

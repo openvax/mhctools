@@ -43,6 +43,7 @@ from .allele_normalization import (
     AlleleIdentityError, native_allele_identity, normalize_allele_name_or_raw,
 )
 from .pred import COLUMNS, Kind, PeptideResult, Prediction
+from .unsupported_residue import UnsupportedResidueError
 from .tcr import TCR
 
 
@@ -429,9 +430,14 @@ def _validate_tcr(tcr):
                     name, sequence))
         invalid = sorted(set(sequence) - _STANDARD_AMINO_ACIDS)
         if invalid:
-            raise ValueError(
+            raise UnsupportedResidueError(
                 "MixTCRpred %s contains unsupported residues %s: %r" % (
-                    name, ", ".join(invalid), sequence))
+                    name, ", ".join(invalid), sequence),
+                peptides=(sequence,),
+                residues=invalid,
+                field=name,
+                predictor_name="MixTCRpred",
+            )
 
 
 class MixTCRpred:
