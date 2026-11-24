@@ -125,6 +125,18 @@ prediction.percentile_rank
 the raw score, percentile rank, fixed target metadata, corrected V/J names,
 V-derived CDR1/2 loops, and upstream-equivalent QC warning.
 
+Four catalog checkpoints in the pinned upstream revision target a non-specific
+MHC haplotype, allele group, or serotype rather than a single canonical allele
+(`H-2q_GPEGAQGPRGEPGTP`, `B08_QIKVRVDMV`, `DQA01_LLEFYLAMPFATP`, and
+`DQ2_PQPELPYPQPE`). mhctools never relabels them by choosing representative
+alleles and excludes them from `MixTCRpred.catalog()` and
+`MixTCRpred.resolve_model()`. Inspect them through
+`MixTCRpred.non_specific_catalog()` or
+`mhctools ls mixtcrpred --models --non-specific`; running or fetching them
+requires explicit opt-in (`allow_non_specific_target=True` /
+`--allow-non-specific`), reports `mhc_dependence="mhc_group"`, and leaves
+`Prediction.allele` empty.
+
 MixTCRpred code is academic/non-commercial and fetched directly from its
 original repository only after explicit acceptance. Optional checkpoints come
 from the authors' immutable CC-BY-4.0 Zenodo record and are checksum-verified

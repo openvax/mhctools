@@ -79,6 +79,11 @@ def make_ls_parser():
     parser.add_argument(
         "--high-confidence", action="store_true",
         help="With --models, show only upstream high-confidence models")
+    parser.add_argument(
+        "--non-specific", action="store_true",
+        help="With --models, list catalog models with non-specific "
+             "group/haplotype/serotype MHC targets instead of single-allele "
+             "models")
     return parser
 
 
@@ -98,11 +103,12 @@ def ls_main(args_list=None):
                 downloaded=args.downloaded,
                 high_confidence=args.high_confidence,
                 json_output=args.json,
+                non_specific=args.non_specific,
             )
         except (OSError, RuntimeError, ValueError) as error:
             parser.error(str(error))
-    if args.downloaded or args.high_confidence:
-        parser.error("--downloaded/--high-confidence require --models")
+    if args.downloaded or args.high_confidence or args.non_specific:
+        parser.error("--downloaded/--high-confidence/--non-specific require --models")
     try:
         statuses = list_artifacts(args.name or None, data_dir=args.data_dir)
     except CLI_ERROR_TYPES as error:
@@ -147,6 +153,10 @@ def make_fetch_parser():
         "--high-confidence", action="store_true",
         help="Fetch upstream's high-confidence weights (mixtcrpred only)")
     parser.add_argument(
+        "--allow-non-specific", action="store_true",
+        help="Allow fetching MixTCRpred models with non-specific "
+             "group/haplotype/serotype MHC targets (mixtcrpred only)")
+    parser.add_argument(
         "--json", action="store_true", help="Emit machine-readable JSON")
     return parser
 
@@ -158,8 +168,7 @@ def fetch_main(args_list=None):
 
     from ..artifacts import fetch
     try:
-        status = fetch(
-            args.name,
+        fetch_kwargs = dict(
             version=args.version,
             data_dir=args.data_dir,
             accept_license=args.accept_license,
@@ -167,6 +176,9 @@ def fetch_main(args_list=None):
             all_models=args.all_models,
             high_confidence=args.high_confidence,
         )
+        if args.allow_non_specific:
+            fetch_kwargs["include_non_specific"] = True
+        status = fetch(args.name, **fetch_kwargs)
     except CLI_ERROR_TYPES as error:
         # Every expected failure exits 2 with one error: line. Catching only
         # RuntimeError/ValueError let an OSError from the data directory, or

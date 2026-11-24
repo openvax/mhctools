@@ -17,9 +17,23 @@ from urllib.error import HTTPError
 import pandas as pd
 import pytest
 
-from mhctools import Kind, MixTCRpred, TCR
+from mhctools import (
+    AlleleIdentityError,
+    Kind,
+    MHC_DEPENDENCE_VALUES,
+    MixTCRpred,
+    MixTCRpredModel,
+    MixTCRpredNonSpecificModel,
+    TCR,
+)
 from mhctools import mixtcrpred
-from mhctools.mixtcrpred import mixtcrpred_runtime_available
+from mhctools.mixtcrpred import (
+    classify_catalog_mhc,
+    mixtcrpred_runtime_available,
+    non_specific_model_catalog,
+    partition_model_catalog,
+    resolve_non_specific_mhc_target,
+)
 from mhctools.cli.script import main
 
 
@@ -467,3 +481,319 @@ def test_catalog_classifies_ambiguous_targets_without_blocking_valid_model(tmp_p
     assert 'H-2q_example' in caplog.text
     assert 'Haplotype' in caplog.text
     assert MixTCRpred.resolve_model('GILGFVFTL', 'HLA-A*02:01', home).name == MODEL
+
+
+NON_SPECIFIC_UPSTREAM_ROWS = (
+    {
+        "MixTCRpred_model_name": "H-2q_GPEGAQGPRGEPGTP",
+        "Peptide": "GPEGAQGPRGEPGTP",
+        "Origin": "Mus musculus",
+        "MHC_class": "MHCII",
+        "MHC": "H-2q",
+        "Host_species": "MusMusculus",
+        "Number_training_abTCR": 60,
+        "AUC_5fold": 0.85,
+        "expected_target": "H2-q",
+        "expected_kind": "haplotype",
+        "query_variants": ("H-2q", "H2-q"),
+    },
+    {
+        "MixTCRpred_model_name": "B08_QIKVRVDMV",
+        "Peptide": "QIKVRVDMV",
+        "Origin": "CMV",
+        "MHC_class": "MHCI",
+        "MHC": "HLA-B*08",
+        "Host_species": "HomoSapiens",
+        "Number_training_abTCR": 42,
+        "AUC_5fold": 0.81,
+        "expected_target": "HLA-B*08",
+        "expected_kind": "allele_group",
+        "query_variants": ("HLA-B*08",),
+    },
+    {
+        "MixTCRpred_model_name": "DQA01_LLEFYLAMPFATP",
+        "Peptide": "LLEFYLAMPFATP",
+        "Origin": "Homo sapiens",
+        "MHC_class": "MHCII",
+        "MHC": "HLA-DQA*01",
+        "Host_species": "HomoSapiens",
+        "Number_training_abTCR": 55,
+        "AUC_5fold": 0.78,
+        "expected_target": "HLA-DQA1*01",
+        "expected_kind": "allele_group",
+        "query_variants": ("HLA-DQA*01", "HLA-DQA1*01"),
+    },
+    {
+        "MixTCRpred_model_name": "DQ2_PQPELPYPQPE",
+        "Peptide": "PQPELPYPQPE",
+        "Origin": "Triticum aestivum",
+        "MHC_class": "MHCII",
+        "MHC": "HLA-DQ2",
+        "Host_species": "HomoSapiens",
+        "Number_training_abTCR": 120,
+        "AUC_5fold": 0.91,
+        "expected_target": "HLA-DQ2",
+        "expected_kind": "serotype",
+        "query_variants": ("HLA-DQ2",),
+    },
+)
+
+
+def make_home_with_non_specific_targets(tmp_path, checkpoints=()):
+    """Create a MixTCRpred fixture containing both valid and the four #649 models."""
+    home = _make_home(tmp_path)
+    csv_path = home / "pretrained_models" / "info_models.csv"
+    catalog = pd.read_csv(csv_path)
+    extra_rows = [
+        {
+            key: value
+            for key, value in row.items()
+            if key not in ("expected_target", "expected_kind", "query_variants")
+        }
+        for row in NON_SPECIFIC_UPSTREAM_ROWS
+    ]
+    pd.concat([catalog, pd.DataFrame(extra_rows)], ignore_index=True).to_csv(
+        csv_path, index=False)
+    for model_name in checkpoints:
+        (home / "pretrained_models" / ("model_%s.ckpt" % model_name)).write_bytes(
+            b"checkpoint")
+    return home
+
+
+@pytest.mark.parametrize("row", NON_SPECIFIC_UPSTREAM_ROWS)
+def test_classify_catalog_mhc_preserves_non_specific_targets_without_relabeling(row):
+    target = classify_catalog_mhc(row["MHC"])
+    assert target.is_specific_allele is False
+    assert target.upstream_mhc == row["MHC"]
+    assert target.canonical_target == row["expected_target"]
+    assert target.target_kind == row["expected_kind"]
+    assert target.reason
+    assert target.mhcgnomes_version
+    json.dumps(target.to_dict())
+
+
+def test_classify_catalog_mhc_keeps_specific_alleles_and_pairs():
+    allele = classify_catalog_mhc("HLA-A*02:01")
+    assert allele.is_specific_allele is True
+    assert allele.canonical_target == "HLA-A*02:01"
+    assert allele.target_kind == "allele"
+    assert allele.reason == ""
+
+    pair = classify_catalog_mhc("HLA-DQA1*01:02/DQB1*06:02")
+    assert pair.is_specific_allele is True
+    assert pair.canonical_target == "HLA-DQA1*01:02/DQB1*06:02"
+    assert pair.target_kind == "pair"
+
+
+def test_partitioned_catalog_separates_all_four_non_specific_targets(tmp_path, caplog):
+    home = make_home_with_non_specific_targets(tmp_path)
+    partitioned = partition_model_catalog(home)
+    assert [m.name for m in partitioned.models] == [MODEL, "DPB10401_TFEYVSQPFLMDLE"]
+    assert all(isinstance(m, MixTCRpredModel) for m in partitioned.models)
+
+    non_specific = partitioned.non_specific_models
+    assert len(non_specific) == 4
+    assert non_specific == non_specific_model_catalog(home)
+    assert non_specific == MixTCRpred.non_specific_catalog(home)
+    assert all(isinstance(m, MixTCRpredNonSpecificModel) for m in non_specific)
+    for entry, expected in zip(non_specific, NON_SPECIFIC_UPSTREAM_ROWS):
+        assert entry.name == expected["MixTCRpred_model_name"]
+        assert entry.peptide == expected["Peptide"]
+        assert entry.mhc_target == expected["expected_target"]
+        assert entry.mhc_target_kind == expected["expected_kind"]
+        assert entry.upstream_mhc == expected["MHC"]
+        assert entry.upstream_revision == mixtcrpred.UPSTREAM_REVISION
+        assert entry.mhcgnomes_version
+        assert entry.reason
+        assert not hasattr(entry, "allele")
+
+    # Serialization works cleanly for both partitions.
+    payload = json.loads(json.dumps(partitioned.to_dict()))
+    assert len(payload["models"]) == 2
+    assert len(payload["non_specific_models"]) == 4
+
+    # Single-allele catalog still excludes all 4 with warnings while retaining
+    # valid checkpoints.
+    with caplog.at_level("WARNING", logger="mhctools.mixtcrpred"):
+        single_models = MixTCRpred.catalog(home)
+    assert {m.name for m in single_models} == {MODEL, "DPB10401_TFEYVSQPFLMDLE"}
+    for expected in NON_SPECIFIC_UPSTREAM_ROWS:
+        assert expected["MixTCRpred_model_name"] in caplog.text
+
+
+@pytest.mark.parametrize("row", NON_SPECIFIC_UPSTREAM_ROWS)
+def test_resolve_model_rejects_ambiguous_targets_while_non_specific_resolver_works(
+        tmp_path, row):
+    home = make_home_with_non_specific_targets(tmp_path)
+    with pytest.raises(AlleleIdentityError):
+        MixTCRpred.resolve_model(row["Peptide"], row["MHC"], home)
+
+    for variant in row["query_variants"]:
+        resolved = MixTCRpred.resolve_non_specific_model(
+            row["Peptide"], variant, home)
+        assert isinstance(resolved, MixTCRpredNonSpecificModel)
+        assert resolved.name == row["MixTCRpred_model_name"]
+        assert resolved.mhc_target == row["expected_target"]
+        assert resolved.mhc_target_kind == row["expected_kind"]
+
+    # Valid single-allele targets remain unaffected.
+    assert MixTCRpred.resolve_model("GILGFVFTL", "HLA-A*02:01", home).name == MODEL
+
+
+def test_resolve_non_specific_mhc_target_rejects_specific_allele():
+    with pytest.raises(ValueError, match="resolve_model"):
+        resolve_non_specific_mhc_target("HLA-A*02:01")
+
+
+@pytest.mark.parametrize("row", NON_SPECIFIC_UPSTREAM_ROWS)
+def test_constructor_rejects_non_specific_models_without_opt_in(tmp_path, row):
+    model_name = row["MixTCRpred_model_name"]
+    home = make_home_with_non_specific_targets(tmp_path, checkpoints=[model_name])
+    with pytest.raises(AlleleIdentityError, match=row["expected_kind"]):
+        MixTCRpred(model_name, mixtcrpred_path=home)
+
+
+def test_non_specific_model_explicit_opt_in_contract(monkeypatch, tmp_path):
+    model_name = "DQ2_PQPELPYPQPE"
+    home = make_home_with_non_specific_targets(tmp_path, checkpoints=[model_name])
+    predictor = MixTCRpred(
+        model_name,
+        mixtcrpred_path=home,
+        allow_non_specific_target=True,
+    )
+    assert predictor.is_non_specific_target is True
+    assert isinstance(predictor.model_info, MixTCRpredNonSpecificModel)
+    assert "mhc_target=HLA-DQ2" in repr(predictor)
+    assert "mhc_target_kind=serotype" in repr(predictor)
+
+    support = predictor.kind_support()[Kind.pMHC_TCR_binding]
+    assert support["mhc_dependence"] == "mhc_group"
+    assert support["mhc_dependence"] in MHC_DEPENDENCE_VALUES
+    assert support["mhc_dependence"] != "single_allele"
+    assert support["mhc_class"] == "II"
+    assert support["mhc_target"] == "HLA-DQ2"
+    assert support["mhc_target_kind"] == "serotype"
+
+    monkeypatch.setattr(
+        predictor, "_run_sidecar", lambda tcrs: _sidecar_output(len(tcrs)))
+    prediction = predictor.predict([_tcr()])[0].preds[0]
+    assert prediction.peptide == "PQPELPYPQPE"
+    assert prediction.allele == ""
+    assert prediction.measurement_context is not None
+    assert "serotype=HLA-DQ2" in prediction.measurement_context.detail
+    assert "upstream=HLA-DQ2" in prediction.measurement_context.detail
+
+    input_df = pd.DataFrame([{
+        "sample": "s1",
+        "cdr3_TRA": "CAGASGNTGKLIF",
+        "cdr3_TRB": "CASSIRASYEQYF",
+        "TRAV": "TRAV27",
+        "TRAJ": "TRAJ42",
+        "TRBV": "TRBV19",
+        "TRBJ": "TRBJ2-6",
+    }])
+    annotated = predictor.annotate_dataframe(input_df)
+    assert annotated["mixtcrpred_model"].tolist() == [model_name]
+    assert annotated["mixtcrpred_allele"].tolist() == [""]
+    assert annotated["mixtcrpred_mhc_target"].tolist() == ["HLA-DQ2"]
+    assert annotated["mixtcrpred_mhc_target_kind"].tolist() == ["serotype"]
+    assert annotated["mixtcrpred_upstream_mhc"].tolist() == ["HLA-DQ2"]
+
+
+def test_fetch_models_enforces_opt_in_for_non_specific_targets(monkeypatch, tmp_path):
+    home = make_home_with_non_specific_targets(tmp_path)
+    target_model = "B08_QIKVRVDMV"
+    content = b"b08 checkpoint"
+    md5 = hashlib.md5(content, usedforsecurity=False).hexdigest()
+    record = {
+        "id": int(mixtcrpred.ZENODO_RECORD),
+        "files": [{
+            "key": "model_%s.ckpt" % target_model,
+            "size": len(content),
+            "checksum": "md5:%s" % md5,
+            "links": {"self": "https://zenodo.example/b08"},
+        }],
+    }
+
+    def fake_urlopen(url, timeout):
+        if url == mixtcrpred.ZENODO_API_URL:
+            return BytesIO(json.dumps(record).encode())
+        return BytesIO(content)
+
+    monkeypatch.setattr(mixtcrpred, "urlopen", fake_urlopen)
+
+    with pytest.raises(AlleleIdentityError, match="allele_group"):
+        mixtcrpred.fetch_models(home, models=[target_model])
+
+    # Single-allele bulk selection never pulls non-specific models.
+    selected_high = mixtcrpred.select_catalog_models(
+        partition_model_catalog(home), high_confidence=True)
+    assert [m.name for m in selected_high] == [MODEL]
+
+    fetched = mixtcrpred.fetch_models(
+        home, models=[target_model], include_non_specific=True)
+    assert len(fetched) == 1
+    assert isinstance(fetched[0], MixTCRpredNonSpecificModel)
+    assert fetched[0].status == "ready"
+    assert Path(fetched[0].path).read_bytes() == content
+
+
+def test_cli_non_specific_catalog_listing_and_opt_in_scoring(
+        monkeypatch, tmp_path, capsys):
+    model_name = "DQ2_PQPELPYPQPE"
+    home = make_home_with_non_specific_targets(tmp_path, checkpoints=[model_name])
+    monkeypatch.setenv("MIXTCRPRED_HOME", str(home))
+
+    main(["ls", "mixtcrpred", "--models", "--non-specific", "--json"])
+    listed = json.loads(capsys.readouterr().out)
+    assert [entry["name"] for entry in listed] == [
+        row["MixTCRpred_model_name"] for row in NON_SPECIFIC_UPSTREAM_ROWS
+    ]
+    assert all("allele" not in entry for entry in listed)
+    assert listed[3]["mhc_target"] == "HLA-DQ2"
+    assert listed[3]["mhc_target_kind"] == "serotype"
+
+    main(["ls", "mixtcrpred", "--models", "--non-specific"])
+    table = capsys.readouterr().out
+    assert "MHC_TARGET" in table
+    assert "TARGET_KIND" in table
+    assert "H2-q" in table
+    assert "HLA-DQ2" in table
+
+    input_path = tmp_path / "tcrs.csv"
+    output_path = tmp_path / "scored.csv"
+    pd.DataFrame([{
+        "sample": "s1",
+        "cdr3_TRA": "CAGASGNTGKLIF",
+        "cdr3_TRB": "CASSIRASYEQYF",
+        "TRAV": "TRAV27",
+        "TRAJ": "TRAJ42",
+        "TRBV": "TRBV19",
+        "TRBJ": "TRBJ2-6",
+    }]).to_csv(input_path, index=False)
+    monkeypatch.setattr(
+        MixTCRpred,
+        "_run_sidecar",
+        lambda self, tcrs: _sidecar_output(len(tcrs)),
+    )
+
+    with pytest.raises(SystemExit) as raised:
+        main([
+            "mixtcrpred", "--model", model_name,
+            "--mixtcrpred-path", str(home),
+            "--input", str(input_path), "--out", str(output_path),
+        ])
+    assert raised.value.code == 2
+    assert "non-specific" in capsys.readouterr().err
+
+    main([
+        "mixtcrpred", "--model", model_name,
+        "--allow-non-specific",
+        "--mixtcrpred-path", str(home),
+        "--input", str(input_path), "--out", str(output_path),
+    ])
+    output = pd.read_csv(output_path, keep_default_na=False)
+    assert output["mixtcrpred_allele"].tolist() == [""]
+    assert output["mixtcrpred_mhc_target"].tolist() == ["HLA-DQ2"]
+    assert output["mixtcrpred_mhc_target_kind"].tolist() == ["serotype"]
+    assert output["mixtcrpred_upstream_mhc"].tolist() == ["HLA-DQ2"]

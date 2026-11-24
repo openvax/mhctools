@@ -347,6 +347,7 @@ if TYPE_CHECKING:
     from .mixtcrpred import (
         MixTCRpred as MixTCRpred,
         MixTCRpredModel as MixTCRpredModel,
+        MixTCRpredNonSpecificModel as MixTCRpredNonSpecificModel,
     )
     from .nettcr import (
         NetTCR as NetTCR,
@@ -557,6 +558,7 @@ _LAZY_IMPORTS = {
     "mhcflurry_composite_version": (".mhcflurry", "mhcflurry_composite_version"),
     "MixTCRpred": (".mixtcrpred", "MixTCRpred"),
     "MixTCRpredModel": (".mixtcrpred", "MixTCRpredModel"),
+    "MixTCRpredNonSpecificModel": (".mixtcrpred", "MixTCRpredNonSpecificModel"),
     "NetTCR": (".nettcr", "NetTCR"),
     "Tulip": (".tulip", "Tulip"),
 }
@@ -579,7 +581,7 @@ def __dir__():
     return sorted(set(globals()) | set(_LAZY_IMPORTS))
 
 
-__version__ = "4.10.0"
+__version__ = "4.11.0"
 
 # Importable from ``mhctools`` but left out of ``from mhctools import *``.
 # These vaccine-report and cleavage-track names were never in ``__all__``;

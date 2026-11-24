@@ -35,6 +35,11 @@ def make_parser():
     parser.add_argument(
         "--batch-size", type=int, default=256,
         help="TCRs scored per upstream invocation (default: %(default)s)")
+    parser.add_argument(
+        "--allow-non-specific", action="store_true",
+        help="Explicitly allow models whose upstream MHC target is a "
+             "haplotype, allele group, or serotype rather than a single "
+             "canonical allele")
     return parser
 
 
@@ -52,6 +57,7 @@ def main(args_list=None):
             mixtcrpred_path=args.mixtcrpred_path,
             mixtcrpred_python=args.mixtcrpred_python,
             batch_size=args.batch_size,
+            allow_non_specific_target=args.allow_non_specific,
         )
         dataframe = pd.read_csv(args.input, keep_default_na=False)
         output = predictor.annotate_dataframe(dataframe)

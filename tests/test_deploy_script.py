@@ -1,6 +1,7 @@
 """Exercise deployment coordination with real Git and a local bare origin."""
 
 from contextlib import contextmanager
+import json
 import os
 from pathlib import Path
 import shutil
@@ -448,3 +449,267 @@ def test_wait_for_stage_fails_on_stall_and_enforces_max_bound(tmp_path):
             clock=clock,
             sleep=sleep,
         )
+
+
+SSH_TRANSPORT_STUB = r'''
+import json
+import os
+from pathlib import Path
+import signal
+import sys
+import time
+
+argv = sys.argv[1:]
+remote_command = argv[-1]
+state = Path(os.environ["RELEASE_TEST_STATE"])
+log_path = state / "ssh-calls.jsonl"
+existing = []
+if log_path.exists():
+    for line in log_path.read_text().splitlines():
+        if line.strip():
+            try:
+                existing.append(json.loads(line))
+            except ValueError:
+                pass
+if "git-upload-pack" in remote_command:
+    kind = "upload-pack"
+elif "git-receive-pack" in remote_command:
+    kind = "receive-pack"
+else:
+    kind = "other"
+kind_count = sum(1 for item in existing if item.get("kind") == kind) + 1
+entry = {
+    "index": len(existing) + 1,
+    "kind": kind,
+    "kind_count": kind_count,
+    "argv": argv,
+    "remote_command": remote_command,
+}
+payload = (json.dumps(entry) + "\n").encode()
+fd = os.open(str(log_path), os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o644)
+try:
+    os.write(fd, payload)
+finally:
+    os.close(fd)
+
+stall_spec = os.environ.get("SSH_STALL_MATCH", "")
+should_stall = False
+for token in [item.strip() for item in stall_spec.split(",") if item.strip()]:
+    if token == f"{kind}:{kind_count}" or token == f"any:{entry['index']}":
+        should_stall = True
+        break
+
+if should_stall:
+    (state / "stalled-pids").open("a").write(f"{os.getpid()}\n")
+    if os.environ.get("SSH_IGNORE_SIGTERM") == "1":
+        signal.signal(signal.SIGTERM, signal.SIG_IGN)
+    time.sleep(300)
+    sys.exit(0)
+
+os.execvp("/bin/sh", ["/bin/sh", "-c", remote_command])
+'''
+
+
+def configure_ssh_transport(
+        tmp_path,
+        repo,
+        state,
+        env,
+        *,
+        stall_match="",
+        ignore_sigterm=False,
+        git_ssh_command=None,
+        extra_env=None):
+    """Route ``origin`` through an offline fake SSH transport script."""
+    ssh_bin = tmp_path / (repo.name + "-ssh-bin")
+    ssh_bin.mkdir(exist_ok=True)
+    ssh_script = ssh_bin / "ssh"
+    ssh_script.write_text(f"#!{sys.executable}\n" + SSH_TRANSPORT_STUB)
+    ssh_script.chmod(0o755)
+
+    origin_path = git(repo, "remote", "get-url", "origin")
+    if not origin_path.startswith("ssh://"):
+        git(
+            repo,
+            "remote",
+            "set-url",
+            "origin",
+            f"ssh://release-test.invalid{origin_path}",
+        )
+    git(repo, "config", "ssh.variant", "ssh")
+
+    updated = dict(env)
+    updated["PATH"] = f"{ssh_bin}{os.pathsep}{updated.get('PATH', '')}"
+    if git_ssh_command is None:
+        updated.pop("GIT_SSH_COMMAND", None)
+    else:
+        updated["GIT_SSH_COMMAND"] = git_ssh_command.format(ssh=ssh_script)
+    if stall_match:
+        updated["SSH_STALL_MATCH"] = stall_match
+    else:
+        updated.pop("SSH_STALL_MATCH", None)
+    if ignore_sigterm:
+        updated["SSH_IGNORE_SIGTERM"] = "1"
+    else:
+        updated.pop("SSH_IGNORE_SIGTERM", None)
+    if extra_env:
+        updated.update(extra_env)
+    return updated
+
+
+def read_ssh_calls(state):
+    """Return recorded invocations of the fake SSH transport."""
+    log_path = state / "ssh-calls.jsonl"
+    if not log_path.exists():
+        return []
+    return [json.loads(line) for line in log_path.read_text().splitlines()]
+
+
+def process_is_alive(pid):
+    """Return whether *pid* still exists in the OS process table."""
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
+
+
+def test_ssh_transport_applies_bounded_options_and_respects_user_command(
+        checkout, tmp_path):
+    repo, state, env = checkout("ssh-default")
+    ssh_env = configure_ssh_transport(
+        tmp_path,
+        repo,
+        state,
+        env,
+        extra_env={
+            "DEPLOY_SSH_CONNECT_TIMEOUT": "7",
+            "DEPLOY_SSH_SERVER_ALIVE_INTERVAL": "9",
+            "DEPLOY_SSH_SERVER_ALIVE_COUNT_MAX": "2",
+        },
+    )
+    result = deploy(repo, ssh_env)
+    assert result.returncode == 0, result.stdout + result.stderr
+    calls = read_ssh_calls(state)
+    assert calls, "expected git remote operations to invoke SSH transport"
+    for call in calls:
+        argv = call["argv"]
+        assert "BatchMode=yes" in argv
+        assert "ConnectTimeout=7" in argv
+        assert "ServerAliveInterval=9" in argv
+        assert "ServerAliveCountMax=2" in argv
+        assert "-F" not in argv
+
+    custom_repo, custom_state, custom_env = checkout("ssh-custom")
+    custom_ssh_env = configure_ssh_transport(
+        tmp_path,
+        custom_repo,
+        custom_state,
+        custom_env,
+        git_ssh_command="{ssh} -i /custom/deploy-key",
+    )
+    custom_result = deploy(custom_repo, custom_ssh_env, "0.0.2")
+    assert custom_result.returncode == 0, (
+        custom_result.stdout + custom_result.stderr
+    )
+    custom_calls = read_ssh_calls(custom_state)
+    assert custom_calls
+    for call in custom_calls:
+        argv = call["argv"]
+        assert argv[:2] == ["-i", "/custom/deploy-key"]
+        assert "BatchMode=yes" in argv
+        assert "ConnectTimeout=15" in argv
+        assert "ServerAliveInterval=15" in argv
+        assert "ServerAliveCountMax=3" in argv
+
+
+def test_stalled_preupload_fetch_times_out_kills_child_and_releases_lock(
+        checkout, tmp_path):
+    # Reproduces #657: initial preflight, lock acquisition, gates, build, and
+    # ownership recheck succeed, then the second `git fetch --tags origin`
+    # (upload-pack #3) stalls on a hung SSH transport that ignores SIGTERM.
+    repo, state, env = checkout("stalled-fetch")
+    inspector, _, _ = checkout("inspector")
+    ssh_env = configure_ssh_transport(
+        tmp_path,
+        repo,
+        state,
+        env,
+        stall_match="upload-pack:3",
+        ignore_sigterm=True,
+        extra_env={"DEPLOY_GIT_REMOTE_TIMEOUT": "3"},
+    )
+    started = time.monotonic()
+    result = deploy(repo, ssh_env)
+    elapsed = time.monotonic() - started
+
+    assert result.returncode == 124
+    assert elapsed < 25.0
+    assert "timed out after 3s" in result.stderr
+    assert "fetch tags from origin (pre-upload recheck)" in result.stderr
+    assert "build" in events(state)
+    assert "upload" not in events(state)
+    # Lock must be released cleanly by owner-checked cleanup once the stalled
+    # fetch is terminated.
+    assert remote_ref(inspector, LOCK) is None
+    assert remote_ref(inspector, "refs/tags/v0.0.1") is None
+
+    stalled_pids = [
+        int(line)
+        for line in (state / "stalled-pids").read_text().splitlines()
+        if line.strip()
+    ]
+    assert len(stalled_pids) == 1
+    assert not process_is_alive(stalled_pids[0])
+
+
+def test_stalled_lock_release_times_out_bounded_with_recovery_diagnostic(
+        checkout, tmp_path):
+    # Both the pre-upload fetch (upload-pack #3) and the subsequent lock
+    # release push (receive-pack #2) stall on an unresponsive transport.
+    repo, state, env = checkout("stalled-cleanup")
+    inspector, _, _ = checkout("inspector-cleanup")
+    ssh_env = configure_ssh_transport(
+        tmp_path,
+        repo,
+        state,
+        env,
+        stall_match="upload-pack:3,receive-pack:2",
+        extra_env={"DEPLOY_GIT_REMOTE_TIMEOUT": "3"},
+    )
+    started = time.monotonic()
+    result = deploy(repo, ssh_env)
+    elapsed = time.monotonic() - started
+
+    assert result.returncode == 124, result.stderr
+    assert elapsed < 30.0
+    assert "fetch tags from origin (pre-upload recheck)" in result.stderr, result.stderr
+    assert "release lock (refs/heads/release-lock)" in result.stderr, result.stderr
+    assert "could not release lock" in result.stderr
+    assert "docs/testing.md#release-ownership" in result.stderr
+    assert "upload" not in events(state)
+    # Lock remains intact on origin for operator inspection; never stolen.
+    assert remote_ref(inspector, LOCK) is not None
+
+
+@pytest.mark.parametrize(
+    "env_var,bad_value",
+    [
+        ("DEPLOY_SSH_CONNECT_TIMEOUT", "0"),
+        ("DEPLOY_SSH_SERVER_ALIVE_INTERVAL", "abc"),
+        ("DEPLOY_SSH_SERVER_ALIVE_COUNT_MAX", "-1"),
+        ("DEPLOY_GIT_REMOTE_TIMEOUT", "0"),
+        ("DEPLOY_GIT_REMOTE_TIMEOUT", "not-a-number"),
+    ],
+)
+def test_invalid_timeout_env_vars_fail_before_remote_operations(
+        checkout, env_var, bad_value):
+    repo, state, env = checkout("bad-timeout")
+    bad_env = dict(env, **{env_var: bad_value})
+    result = deploy(repo, bad_env)
+    assert result.returncode != 0
+    assert env_var in result.stderr
+    assert events(state) == []
+    assert remote_ref(repo, LOCK) is None
