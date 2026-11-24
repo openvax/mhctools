@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Run installed legacy NetMHC tools in the integration-test Linux runtime."""
 
+import math
 import os
 from pathlib import Path
 import signal
@@ -9,8 +10,36 @@ import sys
 from uuid import uuid4
 
 
-def run_container(arguments):
+DEFAULT_STARTUP_TIMEOUT = 30.0
+STARTUP_TIMEOUT_ENV = "MHCTOOLS_DOCKER_STARTUP_TIMEOUT"
+
+
+def resolve_startup_timeout(startup_timeout=None):
+    """Return a positive finite timeout (seconds) for container creation."""
+    raw = (
+        os.environ.get(STARTUP_TIMEOUT_ENV)
+        if startup_timeout is None else startup_timeout
+    )
+    if raw is None or (isinstance(raw, str) and not raw.strip()):
+        return DEFAULT_STARTUP_TIMEOUT
+    try:
+        value = float(raw)
+    except (TypeError, ValueError) as error:
+        raise ValueError(
+            "%s must be a positive number of seconds, got %r"
+            % (STARTUP_TIMEOUT_ENV, raw)
+        ) from error
+    if not math.isfinite(value) or value <= 0:
+        raise ValueError(
+            "%s must be a positive finite number of seconds, got %r"
+            % (STARTUP_TIMEOUT_ENV, raw)
+        )
+    return value
+
+
+def run_container(arguments, startup_timeout=None):
     """Own the container independently of the attached Docker client."""
+    timeout = resolve_startup_timeout(startup_timeout)
     name = "mhctools-netmhc-" + uuid4().hex
 
     def interrupted(signum, frame):
@@ -21,9 +50,22 @@ def run_container(arguments):
     try:
         # Create before starting: interruption during creation cannot leave a
         # running container whose identity the launcher has not recorded yet.
-        returncode = subprocess.run(
-            ["docker", "create", "--name", name] + arguments,
-            stdout=subprocess.DEVNULL).returncode
+        # Bound container creation so a stalled Docker engine surfaces promptly
+        # while keeping prediction runtime in `docker start --attach` separate.
+        try:
+            returncode = subprocess.run(
+                ["docker", "create", "--name", name] + arguments,
+                stdout=subprocess.DEVNULL,
+                timeout=timeout,
+            ).returncode
+        except subprocess.TimeoutExpired as error:
+            print(
+                "Timed out after %gs waiting for Docker container startup "
+                "(`docker create` for %s); the Docker engine may be stalled "
+                "or unresponsive (%s)" % (timeout, name, error),
+                file=sys.stderr,
+            )
+            returncode = 124
         if returncode == 0:
             returncode = subprocess.call(["docker", "start", "--attach", name])
     finally:
@@ -81,7 +123,11 @@ def main():
         "/bin/sh", "-c", 'mkdir -p /tmp/netmhc; exec "$@"', "sh",
         "/netmhc-bundle/bin/%s" % backend,
     ))
-    return run_container(command + arguments)
+    try:
+        startup_timeout = resolve_startup_timeout()
+    except ValueError as error:
+        raise SystemExit(str(error))
+    return run_container(command + arguments, startup_timeout=startup_timeout)
 
 
 if __name__ == "__main__":

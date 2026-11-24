@@ -43,6 +43,7 @@ import numpy as np
 import pandas as pd
 
 from .artifacts import resolve_artifact_path
+from .unsupported_residue import UnsupportedResidueError
 from .pred import COLUMNS, Kind, PeptideResult, Prediction
 from .tcr import TCR
 
@@ -187,9 +188,16 @@ def _encode_feature(sequences, feature):
             try:
                 arr[i, j] = _BLOSUM50[aa]
             except KeyError:
-                raise ValueError(
+                invalid = sorted(set(seq) - set(_BLOSUM50))
+                raise UnsupportedResidueError(
                     "Unknown amino acid %r in NetTCR feature %r sequence %r"
-                    % (aa, feature, seq))
+                    % (aa, feature, seq),
+                    peptides=(seq,),
+                    residues=invalid,
+                    input_indices=(i,),
+                    field=feature,
+                    predictor_name="NetTCR",
+                )
     arr /= _NORM_FACTOR
     return arr
 

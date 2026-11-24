@@ -31,6 +31,7 @@ neoepitopes) — a prioritization aid, not ground truth.
 """
 
 from .pred import Kind, PeptideResult, Prediction
+from .unsupported_residue import UnsupportedResidueError
 from .wrapper_base import AlleleFreePredictor
 
 # Per-amino-acid log-enrichment score, log(freq(aa | immunogenic) /
@@ -135,7 +136,7 @@ class Calis(AlleleFreePredictor):
         return Kind.immunogenicity
 
     def _check_peptides(self, peptides):
-        for peptide in peptides:
+        for index, peptide in enumerate(peptides):
             n = len(peptide)
             if n < self.min_peptide_length or n > self.max_peptide_length:
                 raise ValueError(
@@ -144,9 +145,15 @@ class Calis(AlleleFreePredictor):
                        peptide, n))
             invalid = set(peptide) - _VALID_AMINO_ACIDS
             if invalid:
-                raise ValueError(
+                raise UnsupportedResidueError(
                     "Peptide %r contains non-standard amino acid(s): %s"
-                    % (peptide, "".join(sorted(invalid))))
+                    % (peptide, "".join(sorted(invalid))),
+                    peptides=(peptide,),
+                    residues=invalid,
+                    input_indices=(index,),
+                    field="peptide",
+                    predictor_name=self.__class__.__name__,
+                )
 
     def predict(self, peptides):
         """Predict immunogenicity for a list of peptides.

@@ -118,6 +118,7 @@ from .optional_backend import (
 )
 from .peptide_input import coerce_peptide_inputs, sequence_only_chemistry_error
 from .pred import Kind, MeasurementContext, PeptideResult, Prediction
+from .unsupported_residue import UnsupportedResidueError
 from .wrapper_base import AlleleFreePredictor
 
 #: Upstream package version this wrapper was written and verified against.
@@ -349,7 +350,7 @@ class PlifePred2(AlleleFreePredictor):
         return self.artifact_inventory.predictor_version
 
     def _check_peptides(self, peptides):
-        for peptide in peptides:
+        for index, peptide in enumerate(peptides):
             if not peptide:
                 raise ValueError("Empty peptide is not allowed")
             if not (PLIFEPRED2_MIN_PEPTIDE_LENGTH
@@ -362,11 +363,17 @@ class PlifePred2(AlleleFreePredictor):
                        PLIFEPRED2_MAX_PEPTIDE_LENGTH, peptide, len(peptide)))
             invalid = set(peptide) - _VALID_AMINO_ACIDS
             if invalid:
-                raise ValueError(
+                raise UnsupportedResidueError(
                     "Peptide %r contains non-standard residues: %s. Only the "
                     "natural-peptide model is wrapped, so modified peptides "
                     "are rejected rather than scored as their unmodified "
-                    "sequence." % (peptide, "".join(sorted(invalid))))
+                    "sequence." % (peptide, "".join(sorted(invalid))),
+                    peptides=(peptide,),
+                    residues=invalid,
+                    input_indices=(index,),
+                    field="peptide",
+                    predictor_name=self.__class__.__name__,
+                )
 
     def _input_error(self, peptide_input):
         error = sequence_only_chemistry_error(peptide_input)

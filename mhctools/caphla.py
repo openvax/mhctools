@@ -26,6 +26,7 @@ from .artifacts import resolve_artifact_path
 from .allele_formats import caphla_allele_key
 from .allele_normalization import parse_allele
 from .pred import COLUMNS, Kind, PeptideResult, Prediction
+from .unsupported_residue import UnsupportedResidueError
 from .wrapper_base import NewModelPredictorMixin
 
 
@@ -207,16 +208,22 @@ class CapHLA(NewModelPredictorMixin):
             values, num_classes=len(_AMINO_ACIDS))
 
     def _check_peptides(self, peptides):
-        for peptide in peptides:
+        for index, peptide in enumerate(peptides):
             if len(peptide) not in CAPHLA_PEPTIDE_LENGTHS:
                 raise ValueError(
                     "CapHLA supports peptide lengths 7-25, got %d-mer %r" % (
                         len(peptide), peptide))
             invalid = set(peptide) - set(_AMINO_ACIDS[:-1])
             if invalid:
-                raise ValueError(
+                raise UnsupportedResidueError(
                     "CapHLA peptide %r has invalid amino acid(s): %s" % (
-                        peptide, "".join(sorted(invalid))))
+                        peptide, "".join(sorted(invalid))),
+                    peptides=(peptide,),
+                    residues=invalid,
+                    input_indices=(index,),
+                    field="peptide",
+                    predictor_name=self.__class__.__name__,
+                )
 
     def _predict_raw(self, peptides, allele_keys):
         self._ensure_loaded()

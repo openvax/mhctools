@@ -16,6 +16,8 @@ import hashlib
 import json
 import math
 
+from .unsupported_residue import UnsupportedResidueError
+
 
 CANONICAL_AMINO_ACIDS = frozenset("ACDEFGHIKLMNPQRSTVWY")
 N_TERM_VALUES = frozenset(("free", "acetylated", "unknown"))
@@ -141,9 +143,13 @@ class PeptideInput:
             raise ValueError("PeptideInput sequence must be uppercase")
         invalid = set(self.sequence) - CANONICAL_AMINO_ACIDS
         if invalid:
-            raise ValueError(
+            raise UnsupportedResidueError(
                 "non-standard residues cannot describe an unmodified "
-                f"sequence: {''.join(sorted(invalid))}")
+                f"sequence: {''.join(sorted(invalid))}",
+                peptides=(self.sequence,),
+                residues=invalid,
+                field="sequence",
+            )
         if self.n_term not in N_TERM_VALUES:
             raise ValueError(
                 f"n_term must be one of {sorted(N_TERM_VALUES)}, got "
