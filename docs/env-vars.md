@@ -11,7 +11,9 @@ mhctools runs in.
 
 | Variable | Used by | Meaning |
 |---|---|---|
-| `MHCTOOLS_DATA_DIR` | `fetch`, `ls`, every fetched snapshot | Root for mhctools-managed snapshots. Default is the platform user-data directory. |
+| `MHCTOOLS_DATA_DIR` | `fetch`, `ls`, every fetched snapshot | Package-specific root for mhctools-managed snapshots (takes precedence over `OPENVAX_DATA_CACHE`). |
+| `OPENVAX_DATA_CACHE` | `fetch`, `ls`, every fetched snapshot | Shared OpenVax cache root; mhctools stores artifacts under `<OPENVAX_DATA_CACHE>/mhctools` unless `MHCTOOLS_DATA_DIR` or `--data-dir` / `--cache-root` is set. |
+| `OPENVAX_OFFLINE`, `DATACACHE_OFFLINE` | `fetch`, PhageScout, MixTCRpred | Set to `1` / `true` to forbid remote artifact downloads while still allowing verified cache hits. |
 | `NETMHC_BUNDLE_HOME` | [NetChop](predictors/processing.md#netchop) | A bundle directory that contains your licensed DTU tools. |
 | `NETCHOP_HOME` | NetChop | The directory containing `bin/netChop`. |
 | `IEDB_MHCI_EXECUTABLE` | [SMM](predictors/binding.md#smm-and-smm-pmbec), [SMM-PMBEC](predictors/binding.md#smm-and-smm-pmbec) | Launcher that runs IEDB's `predict_binding.py`. |

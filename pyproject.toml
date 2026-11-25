@@ -30,6 +30,7 @@ classifiers = [
 ]
 dependencies = [
   "argcomplete>=3",
+  "datacache>=1.38.0,<2.0.0",
   "numpy>=2.0.0,<3.0.0",
   "pandas>=3,<4",
   "weirdo>=2.2.0,<3",

@@ -121,10 +121,14 @@ from `mhctools` to apply this same policy. It returns a checkout directory, or
 the PWM file for ERAMER. `MHCTOOLS_DATA_DIR` selects the managed storage root for
 constructors as well as the inventory.
 
-mhctools-managed snapshots default to the platform's user data directory:
-`~/Library/Application Support/mhctools` on macOS, `~/.local/share/mhctools` on
-Linux. To put them on shared or scratch storage, set `MHCTOOLS_DATA_DIR`, pass
-`--data-dir`, or use the Python `data_dir=` argument.
+mhctools-managed snapshots resolve their cache directory via `datacache.resolve_cache_dir`:
+an explicit `--data-dir` / `--cache-root` (or Python `data_dir=`) wins, then
+`MHCTOOLS_DATA_DIR`, then `<OPENVAX_DATA_CACHE>/mhctools`, then the shared
+OpenVax platform cache (or an existing populated legacy directory such as
+`~/Library/Application Support/mhctools`, `~/.local/share/mhctools`,
+`~/.cache/mhctools`, or `~/.mhctools`). Set `OPENVAX_OFFLINE=1` (or
+`DATACACHE_OFFLINE=1`) to forbid remote downloads while still reusing verified
+cached artifacts.
 
 Every snapshot lives under `artifacts/<tool>/<git-commit>/` and includes a
 `.mhctools-artifact.json` recording its source repository, exact commit, sparse

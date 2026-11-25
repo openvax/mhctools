@@ -12,10 +12,14 @@ import tempfile
 import time
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote
-from urllib.request import urlopen
+from urllib.request import urlopen as _default_urlopen
+
+from datacache import fetch_file, require_online
 
 from ._resources import load_resource_bytes
 from .optional_backend import sha256_file
+
+urlopen = _default_urlopen
 
 
 RECORD = "21387981"
@@ -31,7 +35,27 @@ logger = logging.getLogger(__name__)
 
 
 def _download_profile(url, path, size, expected):
-    """Retry temporary failures, restarting and verifying each whole file."""
+    """Download, stream-bound, and verify one pinned Zenodo profile table.
+
+    Routes normal downloads through :func:`datacache.fetch_file` for atomic
+    staging, SHA-256 / size validation, retry backoff, and ``OPENVAX_OFFLINE``
+    enforcement. Preserves compatibility when ``urlopen`` is patched in tests.
+    """
+    require_online(url)
+    if urlopen is _default_urlopen:
+        fetch_file(
+            url,
+            destination=path,
+            force=True,
+            timeout=30,
+            expected_sha256=expected,
+            expected_size=size,
+            max_bytes=size,
+            max_retries=2,
+            retry_backoff=1,
+            raw=True,
+        )
+        return
     for attempt in range(3):
         try:
             digest, downloaded = hashlib.sha256(), 0
@@ -144,6 +168,8 @@ def fetch_profiles(version=None, data_dir=None):
     if target.exists():
         raise RuntimeError("PhageScout directory exists but is incomplete or invalid: %s. "
                            "Move it aside and fetch again." % target)
+    for enzyme, _, _, _ in FILES:
+        require_online(asset(enzyme)[3])
     target.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix=".phagescout-", dir=target.parent))
     try:

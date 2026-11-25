@@ -3,7 +3,7 @@
 
 """Aligned CLI catalogs, with optional styling at the output boundary."""
 
-from .help import color_enabled
+from .help import color_enabled, style_status, style_table_header
 
 
 def format_table(headers, rows, *, stream=None):
@@ -18,12 +18,12 @@ def format_table(headers, rows, *, stream=None):
             cell = value.ljust(width)
             if colored and index:
                 if value in ("-", "not checked", "not applicable"):
-                    cell = "\033[2m" + cell + "\033[0m"
+                    cell = style_status(cell, level="dim", use_color=True)
                 elif header == "STATUS" and value in ("missing", "unavailable", "failed", "error"):
-                    cell = "\033[33m" + cell + "\033[0m"
+                    cell = style_status(cell, level="warning", use_color=True)
             cells.append(cell)
         line = "  ".join(cells).rstrip()
         if colored and index == 0:
-            line = "\033[1;36m" + line + "\033[0m"
+            line = style_table_header(line, use_color=True)
         lines.append(line)
     return "\n".join(lines)

@@ -60,7 +60,9 @@ def make_parser(command_name="predictors"):
         help="Seconds allowed for each bounded launch probe (default: 10)")
     parser.add_argument(
         "--data-dir",
-        help="Override MHCTOOLS_DATA_DIR for mhctools-managed artifacts")
+        "--cache-root",
+        dest="data_dir",
+        help="Override MHCTOOLS_DATA_DIR / OPENVAX_DATA_CACHE for mhctools-managed artifacts")
     parser.add_argument(
         "--json", action="store_true", help="Emit machine-readable JSON")
     return parser

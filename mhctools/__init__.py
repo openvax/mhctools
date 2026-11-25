@@ -581,7 +581,7 @@ def __dir__():
     return sorted(set(globals()) | set(_LAZY_IMPORTS))
 
 
-__version__ = "4.11.0"
+__version__ = "4.12.0"
 
 # Importable from ``mhctools`` but left out of ``from mhctools import *``.
 # These vaccine-report and cleavage-track names were never in ``__all__``;

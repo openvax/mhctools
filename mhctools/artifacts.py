@@ -35,6 +35,7 @@ import subprocess
 import sys
 import tempfile
 
+from datacache import get_data_dir, require_online, resolve_cache_dir
 from platformdirs import user_data_path
 
 from .optional_backend import common_checkout_paths
@@ -349,18 +350,39 @@ _MANUAL_EXECUTABLES = {
 }
 
 
+def _legacy_data_dirs():
+    """Return populated-cache fallback locations from prior mhctools conventions."""
+    candidates = (
+        user_data_path("mhctools", appauthor=False),
+        get_data_dir("mhctools"),
+        Path.home() / ".mhctools",
+    )
+    seen = set()
+    legacy = []
+    for candidate in candidates:
+        text = os.path.expanduser(os.fspath(candidate))
+        if os.path.isabs(text) and text not in seen:
+            seen.add(text)
+            legacy.append(text)
+    return tuple(legacy)
+
+
 def data_path(data_dir=None):
     """Return the base directory used for mhctools-managed artifacts.
 
-    The explicit argument takes precedence over ``MHCTOOLS_DATA_DIR`` and the
-    platform-native user data directory.
+    Precedence: explicit ``data_dir``, ``MHCTOOLS_DATA_DIR``,
+    ``OPENVAX_DATA_CACHE`` (``<OPENVAX_DATA_CACHE>/mhctools``), populated
+    shared platform cache, populated legacy cache directories (the platform
+    user-data directory, ``platform_cache_dir("mhctools")``, and
+    ``~/.mhctools``), then the default shared platform cache directory.
     """
-    if data_dir is not None:
-        return Path(data_dir).expanduser().resolve()
-    configured = os.environ.get("MHCTOOLS_DATA_DIR")
-    if configured:
-        return Path(configured).expanduser().resolve()
-    return Path(user_data_path("mhctools", appauthor=False)).resolve()
+    location = resolve_cache_dir(
+        "mhctools",
+        "MHCTOOLS_DATA_DIR",
+        override=data_dir,
+        legacy=_legacy_data_dirs(),
+    )
+    return Path(location.path).expanduser().resolve()
 
 
 def managed_path(name, data_dir=None):
@@ -734,6 +756,7 @@ def list_artifacts(names=None, data_dir=None):
 
 
 def _fetch_mhcflurry(name, download_name, relative_path, version=None):
+    require_online("https://github.com/openvax/mhcflurry")
     executable = shutil.which("mhcflurry-downloads")
     if executable is None:
         raise RuntimeError(
@@ -887,6 +910,8 @@ def _fetch_snapshot(name, version=None, data_dir=None, accept_license=False):
             "%s is distributed under the %s. Review %s, then rerun with "
             "--accept-license (or accept_license=True)." % (
                 name, snapshot.license_name, snapshot.license_url))
+
+    require_online(snapshot.repository)
 
     target.parent.mkdir(parents=True, exist_ok=True)
     temporary_root = Path(tempfile.mkdtemp(

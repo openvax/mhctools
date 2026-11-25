@@ -34,8 +34,9 @@ import sys
 import tempfile
 import time
 from urllib.error import HTTPError
-from urllib.request import urlopen
+from urllib.request import urlopen as _default_urlopen
 
+from datacache import OfflineError, fetch_bytes, fetch_file, require_online
 from mhcgnomes import Allele, Pair, ParseError, parse
 import pandas as pd
 
@@ -57,6 +58,8 @@ from .pred import (
 )
 from .unsupported_residue import UnsupportedResidueError
 from .tcr import TCR
+
+urlopen = _default_urlopen
 
 
 logger = logging.getLogger(__name__)
@@ -469,6 +472,8 @@ def _retry_zenodo(description, operation):
     for attempt in range(1, attempts + 1):
         try:
             return operation()
+        except OfflineError:
+            raise
         except (OSError, ValueError) as error:
             retryable = (
                 not isinstance(error, HTTPError)
@@ -492,20 +497,63 @@ def _retry_zenodo(description, operation):
 
 
 def _zenodo_files():
-    def read_metadata():
-        with urlopen(ZENODO_API_URL, timeout=60) as response:
-            return json.load(response)
+    require_online(ZENODO_API_URL)
+    if urlopen is _default_urlopen:
+        try:
+            raw = fetch_bytes(
+                ZENODO_API_URL,
+                timeout=60,
+                max_retries=len(ZENODO_RETRY_DELAYS),
+                retry_backoff=(
+                    ZENODO_RETRY_DELAYS[0] if ZENODO_RETRY_DELAYS else 0
+                ),
+            )
+            record = json.loads(raw.decode("utf-8"))
+        except OfflineError:
+            raise
+        except (OSError, ValueError) as error:
+            raise RuntimeError(
+                "Could not read MixTCRpred model metadata from %s: %s"
+                % (ZENODO_API_URL, error)) from error
+    else:
+        def read_metadata():
+            with urlopen(ZENODO_API_URL, timeout=60) as response:
+                return json.load(response)
 
-    record = _retry_zenodo(
-        "read MixTCRpred model metadata from %s" % ZENODO_API_URL,
-        read_metadata,
-    )
+        record = _retry_zenodo(
+            "read MixTCRpred model metadata from %s" % ZENODO_API_URL,
+            read_metadata,
+        )
     if str(record.get("id")) != ZENODO_RECORD:
         raise RuntimeError("Zenodo returned unexpected MixTCRpred record")
     return {entry["key"]: entry for entry in record.get("files", ())}
 
 
-def _download_zenodo_file(url, destination):
+def _download_zenodo_file(url, destination, expected_size=None):
+    require_online(url)
+    if urlopen is _default_urlopen:
+        try:
+            fetch_file(
+                url,
+                destination=destination,
+                force=True,
+                timeout=120,
+                expected_size=expected_size,
+                max_bytes=expected_size,
+                max_retries=len(ZENODO_RETRY_DELAYS),
+                retry_backoff=(
+                    ZENODO_RETRY_DELAYS[0] if ZENODO_RETRY_DELAYS else 0
+                ),
+                raw=True,
+            )
+        except OfflineError:
+            raise
+        except (OSError, ValueError) as error:
+            raise RuntimeError(
+                "Could not download MixTCRpred checkpoint from %s: %s"
+                % (url, error)) from error
+        return
+
     def download():
         # Truncate on every attempt so a partial response is never appended to
         # the retry. The caller checksum-verifies before atomic installation.
@@ -582,7 +630,7 @@ def _fetch_one_model(model, files, manifest):
                     mode="wb", dir=str(destination.parent),
                     prefix=".%s-" % filename, delete=False) as output:
                 temporary = Path(output.name)
-            _download_zenodo_file(url, temporary)
+            _download_zenodo_file(url, temporary, expected_size=expected_size)
             actual_md5, actual_sha256 = _hashes(temporary)
             if temporary.stat().st_size != expected_size or actual_md5 != expected_md5:
                 raise RuntimeError(
