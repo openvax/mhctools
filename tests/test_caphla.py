@@ -63,6 +63,10 @@ def test_allele_normalization_class_ii_heterodimer():
 def test_allele_normalization_mouse():
     assert normalize_caphla_allele("H-2-Db") == (
         "H2-D*b", "H2-Db", "I")
+    assert normalize_caphla_allele("H-2/IAb") == (
+        "H2-AA*b/AB*b", "H2-IAb", "II")
+    assert normalize_caphla_allele("H-2/IEk") == (
+        "H2-EA*k/EB*k", "H2-IEk", "II")
 
 
 def test_allele_normalization_expression_variants():
