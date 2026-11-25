@@ -28,7 +28,7 @@ mhctools runs in.
 | `NETCLEAVE_DIR` | [NetCleave](predictors/processing.md#netcleave) | A NetCleave clone. |
 | `NETTCR_DIR` | [NetTCR](predictors/tcr.md#nettcr) | A NetTCR checkout. |
 | `PEPTIVERSE_HOME`, `PEPTIVERSE_ESM_HOME` | [PeptiVerse half-life](predictors/peptide-pk.md#peptiverse), [CPP](predictors/uptake.md#peptiverse-cpp) | The pinned PeptiVerse snapshot and local ESM2 weights. |
-| `PLIFEPRED2_HOME`, `PFEATURE_HOME` | [PlifePred2](predictors/peptide-pk.md#plifepred2) | The `plifepred2` package and the pinned Pfeature checkout. |
+| `PLIFEPRED2_HOME`, `PFEATURE_HOME` | [PlifePred2](predictors/peptide-pk.md#plifepred2) | The `plifepred2` 1.1.0 package (`PFEATURE_HOME` optional; defaults to bundled `comp/`). |
 | `TLIMMUNO2_HOME` | [TLimmuno2](predictors/immunogenicity.md#tlimmuno2) | A TLimmuno2 clone. |
 | `TULIP_HOME` | [Tulip](predictors/tcr.md#tulip) | A TULIP-TCR checkout. |
 

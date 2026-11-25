@@ -4,20 +4,24 @@
 #
 #     http://www.apache.org/licenses/LICENSE-2.0
 
-"""Isolated runtime bridge to user-provided PlifePred2 and Pfeature checkouts.
+"""Isolated runtime bridge to user-provided PlifePred2 1.1.0 installations.
 
-Both upstreams are GPLv3, so nothing is vendored and neither is imported into
-the mhctools interpreter. This script runs in whatever interpreter owns them
-(``PLIFEPRED2_PYTHON``) and does two things:
+Upstream PlifePred2 and its bundled Pfeature script are GPLv3, so nothing is
+vendored and neither is imported into the mhctools interpreter. This script
+runs in whatever interpreter owns them (``PLIFEPRED2_PYTHON``) and does two
+things:
 
-1. Shells out to Pfeature's ``pfeature_comp.py`` for the quasi-sequence-order
-   descriptor. That script reads five ``Data/`` resources by relative path, so
-   each invocation gets an isolated working directory containing only those
-   verified resources.
-2. Loads PlifePred2's natural-peptide RandomForest and predicts.
+1. Shells out to Pfeature's ``pfeature_comp.py`` for the 13 sequence
+   descriptor groups used by PlifePred2 1.1.0. Because that script reads
+   ``Data/`` relative to its own path and writes scratch files into its
+   working directory, each invocation gets an isolated working directory
+   containing only the verified script and reviewed ``Data/`` resources.
+2. Selects the 100 features from ``sequence_features.tsv``, sets the five
+   natural-peptide modification flags (``d``, ``ct``, ``nt``, ``cyc``, ``ptm``)
+   to zero, loads ``Sequence_model.sav`` with joblib, and predicts.
 
 The model is loaded with joblib, which unpickles; the caller is responsible for
-pointing at checkouts it trusts.
+pointing at installations it trusts.
 """
 
 from argparse import ArgumentParser
@@ -29,17 +33,24 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import warnings
 
 
 _PFEATURE_DATA_FILES = (
     "Schneider-Wrede.csv",
     "Grantham.csv",
     "PhysicoChemical.csv",
+    "aaind.txt",
     "aaindex.csv",
     "AAIndexNames.csv",
+    "data",
+    "aa_attr_group.csv",
 )
 
-_EXPECTED_SCIKIT_LEARN = "1.4.2"
+_SEQUENCE_FEATURE_TYPES = (
+    "AAC,DPC,PCP,RRI,DDR,SEP,SER,SPC,CTC,CeTD,PAAC,APAAC,QSO")
+_MOD_FLAG_COLUMNS = ("d", "ct", "nt", "cyc", "ptm")
+_EXPECTED_SCIKIT_LEARN = "1.7.2"
 
 
 @lru_cache(maxsize=1)
@@ -63,6 +74,7 @@ def _parse_args():
     parser = ArgumentParser()
     parser.add_argument("--pfeature-home", required=True)
     parser.add_argument("--model", required=True)
+    parser.add_argument("--features", required=True)
     parser.add_argument("--input", required=True)
     parser.add_argument("--output", required=True)
     parser.add_argument("--pfeature-timeout", type=float)
@@ -72,26 +84,24 @@ def _parse_args():
 def _require_sklearn_version(actual):
     if actual != _EXPECTED_SCIKIT_LEARN:
         raise RuntimeError(
-            "PlifePred2 1.0 requires scikit-learn %s for exact forest "
-            "deserialization; got %s" % (_EXPECTED_SCIKIT_LEARN, actual))
+            "PlifePred2 1.1.0 requires scikit-learn %s for verified runtime "
+            "reproduction; got %s" % (_EXPECTED_SCIKIT_LEARN, actual))
 
 
 def _run_pfeature(pfeature_home, fasta_path, features_path, timeout=None):
-    """Run Pfeature's QSO job, returning nothing but writing *features_path*.
+    """Run Pfeature's sequence descriptor job, writing *features_path*.
 
-    Upstream's script is written to run from its own directory: it reads
-    ``Data/*.csv`` by relative path, scatters intermediates into the working
-    directory, and finishes with an unscoped ``glob.glob("sam_allcomp*")``
-    followed by ``os.remove`` on every match. Running it with the installation
-    as the working directory therefore requires that installation to be
-    writable, deletes any pre-existing ``sam_allcomp*`` files a user happens to
-    have there, and makes concurrent invocations race over shared intermediate
-    filenames.
+    Upstream's script resolves ``Data/*.csv`` relative to ``__file__`` and
+    scatters scratch files into ``-wd`` and the current working directory.
+    Running directly against the installation would risk leaking intermediates
+    or concurrent collisions.
 
-    So each extraction gets a private workspace with a copy of ``Data``
-    (~600 KB) and runs there. The installation is only ever read, the wildcard
-    cleanup can only reach this invocation's own scratch files, and concurrent
-    calls against one shared installation cannot collide.
+    Each extraction therefore gets a private workspace with a copy of
+    ``pfeature_comp.py`` and only the reviewed ``Data/`` resources, and runs
+    with both ``-wd`` and ``cwd`` pointed at that scratch directory. The
+    installation is only ever read, cleanup can only reach this invocation's
+    own scratch files, and concurrent calls against one shared installation
+    cannot collide.
     """
     pfeature_home = Path(pfeature_home)
     script = (pfeature_home / "pfeature_comp.py").resolve()
@@ -101,10 +111,13 @@ def _run_pfeature(pfeature_home, fasta_path, features_path, timeout=None):
             "Pfeature installation %r has no Data directory" % str(pfeature_home))
 
     with tempfile.TemporaryDirectory(prefix="mhctools_pfeature_run_") as run_dir:
-        # Copy only the resources in the reviewed inventory. A symlinked tree
-        # would let upstream's cleanup and writes reach the installation; a
-        # whole-tree copy would make unverified files available at runtime.
-        runtime_data = Path(run_dir) / "Data"
+        # Copy only the script and resources in the reviewed inventory.
+        # A symlinked tree would let upstream's cleanup and writes reach the
+        # installation; a whole-tree copy would expose unverified files.
+        run_root = Path(run_dir)
+        run_script = run_root / "pfeature_comp.py"
+        shutil.copy2(script, run_script)
+        runtime_data = run_root / "Data"
         runtime_data.mkdir()
         for name in _PFEATURE_DATA_FILES:
             shutil.copy2(data_source / name, runtime_data / name)
@@ -112,10 +125,11 @@ def _run_pfeature(pfeature_home, fasta_path, features_path, timeout=None):
             sys.executable,
             "-c",
             _offline_bootstrap(),
-            str(script),
+            str(run_script),
             "-i", str(Path(fasta_path).resolve()),
             "-o", str(Path(features_path).resolve()),
-            "-j", "QSO",
+            "-j", _SEQUENCE_FEATURE_TYPES,
+            "-wd", str(run_root),
         ]
         try:
             process = subprocess.run(
@@ -127,11 +141,11 @@ def _run_pfeature(pfeature_home, fasta_path, features_path, timeout=None):
             )
         except subprocess.TimeoutExpired as error:
             raise RuntimeError(
-                "Pfeature QSO extraction timed out after %s seconds"
+                "Pfeature descriptor extraction timed out after %s seconds"
                 % timeout) from error
         if process.returncode != 0:
             raise RuntimeError(
-                "Pfeature QSO extraction failed (exit %d):\n%s" % (
+                "Pfeature descriptor extraction failed (exit %d):\n%s" % (
                     process.returncode,
                     (process.stderr or process.stdout).strip()))
 
@@ -142,15 +156,25 @@ def main():
     import joblib
     import pandas as pd
     import sklearn
+    from sklearn.exceptions import InconsistentVersionWarning
 
     _require_sklearn_version(sklearn.__version__)
 
     with open(args.input, newline="") as handle:
         rows = list(csv.DictReader(handle))
 
+    selected_descriptors = [
+        str(column).strip()
+        for column in pd.read_csv(args.features, sep="\t").columns
+        if str(column).strip()
+    ]
+    if not selected_descriptors:
+        raise RuntimeError(
+            "No feature names found in %r" % args.features)
+
     with tempfile.TemporaryDirectory(prefix="mhctools_pfeature_") as tmp:
         fasta_path = Path(tmp) / "input.fasta"
-        features_path = Path(tmp) / "qso.csv"
+        features_path = Path(tmp) / "descriptors.csv"
         with open(fasta_path, "w") as handle:
             for row in rows:
                 handle.write(">%s\n%s\n" % (row["__mhctools_id"], row["peptide"]))
@@ -166,16 +190,31 @@ def main():
             "Pfeature returned %d feature rows for %d peptides"
             % (len(features), len(rows)))
 
-    model = joblib.load(args.model)
+    missing_selected = [
+        name for name in selected_descriptors if name not in features.columns]
+    if missing_selected:
+        raise RuntimeError(
+            "Pfeature output is missing feature(s) listed in sequence_features.tsv: %s"
+            % missing_selected[:10])
+
+    matrix = features.loc[:, selected_descriptors].copy()
+    for column in _MOD_FLAG_COLUMNS:
+        matrix[column] = 0
+
+    with warnings.catch_warnings():
+        # Upstream serialized Sequence_model.sav with scikit-learn 1.6.1 while
+        # plifepred2 1.1.0 pins scikit-learn==1.7.2.
+        warnings.simplefilter("ignore", category=InconsistentVersionWarning)
+        model = joblib.load(args.model)
     expected = list(model.feature_names_in_)
-    missing = [name for name in expected if name not in features.columns]
+    missing = [name for name in expected if name not in matrix.columns]
     if missing:
         raise RuntimeError(
-            "Pfeature output is missing feature(s) the model requires: %s. "
-            "Is the Pfeature checkout the version PlifePred2 was built "
-            "against?" % missing[:10])
-    # Raw model output is log10(half-life in seconds); the wrapper converts.
-    predictions = model.predict(features[expected])
+            "Feature matrix is missing feature(s) the model requires: %s. "
+            "Is the Pfeature installation the version PlifePred2 1.1.0 was "
+            "built against?" % missing[:10])
+    # Raw model output is log10(t); the wrapper optionally converts assuming seconds.
+    predictions = model.predict(matrix[expected])
 
     with open(args.output, "w", newline="") as handle:
         writer = csv.DictWriter(

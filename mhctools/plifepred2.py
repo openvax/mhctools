@@ -16,76 +16,65 @@
 
 .. warning::
 
-   **This endpoint's semantics are not established.** PlifePred2 ships no
-   publication, no training data and no target definition, so its units,
-   transform, species and assay matrix are all inferred from the artifacts.
-   By default this wrapper therefore reports only the model's native output as
-   ``score`` and leaves ``value`` empty. Pass ``assume_log10_seconds=True`` to
-   opt in to a half-life in hours, accepting the inference below.
+   **This endpoint's physical unit and assay matrix are not established.**
+   PlifePred2 1.1.0 documents the inverse target transform
+   (``y = log10(t)``) in its inference script, but ships no publication, no
+   training data, and no target unit or assay-matrix definition (its README
+   explicitly leaves the physical unit unconfirmed). By default this wrapper
+   therefore reports only the model's native ``log10`` output as ``score`` and
+   leaves ``value`` empty. Pass ``assume_log10_seconds=True`` to opt in to a
+   half-life in hours, accepting the unit inference below.
 
 What is actually known
 ----------------------
-Both shipped models are ``RandomForestRegressor``. That much is verified by
-loading them, and it is enough to establish one thing: the output is **not** a
-class probability, so upstream's README ("Halflife ... Predicted probability")
-and its CLI's ``predict_proba`` branch are both wrong — the branch is dead code
-and ``model.predict`` always runs. The output is a regression target on some
-monotone-in-half-life scale, which makes it usable for ranking whatever the
-transform turns out to be.
+The shipped sequence model (``models/Sequence_model.sav``) is a scikit-learn
+``ExtraTreesRegressor`` over 100 selected Pfeature sequence descriptors plus
+five binary modification flags (``d``, ``ct``, ``nt``, ``cyc``, ``ptm`` — all
+zero for natural peptides). Upstream's ``plifepred2.py`` applies ``10**y`` to
+the raw estimator output. Being monotone in half-life, the native output ranks
+peptides identically regardless of the underlying time unit.
 
 What is inferred, and how strongly
 ----------------------------------
-The evidence for ``log10(half-life in seconds)`` is circumstantial but not
-weak. Inverting the extreme leaf values of the shipped forests under that
-reading gives round durations — the natural model's maximum is 604800.0 s,
-exactly 7.000 days, and the modified model's is 8208000 s, exactly 95.0 days —
-agreeing to about seven significant figures. Under log2 or ln the same extrema
-invert to a few seconds up to a couple of minutes, which no half-life dataset
-would span. The minimum also inverts to 20.2 s, matching the 20-second floor
-documented by the lineage paper (Mathur et al. 2018, PLoS ONE 13(6):e0196829).
-
-That last point is the weakest of the three, and it is worth being precise
-about why. The same forests hold targets out to 7 and 95 days, which violates
-the 24-hour ceiling that paper also documents. So PlifePred2 was trained on a
-*different* dataset, and a filter from the old one cannot independently
-establish the new one's target. The round-number extrema stand on their own;
-the floor agreement is corroboration, not proof.
-
-Note also that the lineage paper states log2, not log10 — anyone carrying
-assumptions across from it will be wrong by a factor of log2(10) ~ 3.32.
+Reading the target unit as ``log10(half-life in seconds)`` matches the leaf
+range of ``Sequence_model.sav``: the minimum leaf value (``1.349725``) inverts
+to ``22.4 s`` (consistent with the ~20-second floor in the lineage paper,
+Mathur et al. 2018, PLoS ONE 13(6):e0196829) and the maximum (``6.331832``)
+inverts to ``24.85 days``. Under ``log2`` or ``ln`` the same extrema would
+invert to a few seconds up to ~9 minutes, which is implausible for a peptide
+half-life dataset. Because the maximum exceeds the 2018 paper's 24-hour
+ceiling, PlifePred2 was trained on a different dataset, so the lineage paper's
+filters cannot independently establish the target unit.
 
 What is not established at all
 ------------------------------
-   The **species and assay matrix**. Whether PlifePred2's data is whole blood,
-   plasma, serum or a mixture, from which species, and ex vivo or in vivo, is
-   unknown. The wrapper therefore uses generic ``Kind.peptide_half_life`` with
-   no invented matrix. Do not report this as a measured whole-blood property or
+The **species and assay matrix**. Whether PlifePred2's data is whole blood,
+plasma, serum or a mixture, from which species, and ex vivo or in vivo, is
+unknown. The wrapper therefore uses generic ``Kind.peptide_half_life`` with
+no invented matrix. Do not report this as a measured whole-blood property or
 treat it as interchangeable with :mod:`mhctools.peptiverse`'s human-serum
 endpoint. Resolving this needs the authors or a model-specific publication.
 
 Natural peptides only
 ---------------------
-Upstream ships a second model for modified peptides. It is not wrapped. Its
-modification flags (D-amino acid, terminal modifications, cyclization, PTM) are
-applied uniformly to every sequence in one invocation rather than per peptide,
-and this adapter does not consume the exact per-input chemical form carried by
-``PeptideInput``. Modified inputs and non-standard residues are rejected rather
-than reduced to the natural-peptide sequence model.
+Upstream's sequence model accepts five coarse global modification flags
+(D-amino acid, C-terminal, N-terminal, cyclization, PTM), and upstream also
+ships separate SMILES and PDB models. Only the unmodified natural-peptide
+sequence path (all five modification flags zero) is wrapped here; modified
+inputs and non-standard residues are rejected rather than reduced to the
+natural-peptide sequence model.
 
 Installation
 ------------
-Two GPLv3 installations, neither vendored:
+Installed as a separate GPLv3 package, never vendored:
 
-- ``PLIFEPRED2_HOME`` — the installed ``plifepred2`` package directory, holding
-  ``models/plifepred2_natural_model.sav`` (``pip install plifepred2`` into any
-  environment, then point at its ``site-packages/plifepred2``).
-- ``PFEATURE_HOME`` — a checkout of ``raghavagps/Pfeature``'s ``Standalone``
-  directory at revision ``93636eb95bed9df2893b7a0c56b1215e648ecdbf``,
-  holding ``pfeature_comp.py`` and ``Data/``.
-
-The Linux-only ``pfeature_comp`` binary that PlifePred2 bundles is **not** used.
-It is a PyInstaller freeze of Pfeature's ``pfeature_comp.py``; the pinned plain
-Python source is used in the isolated environment instead.
+- ``PLIFEPRED2_HOME`` — the installed ``plifepred2`` 1.1.0 package directory,
+  holding ``models/Sequence_model.sav``, ``models/sequence_features.tsv``, and
+  the bundled ``comp/pfeature_comp.py`` + ``comp/Data/`` resources
+  (``pip install plifepred2==1.1.0`` into an isolated environment, then point
+  at its ``site-packages/plifepred2``).
+- ``PFEATURE_HOME`` (optional) — overrides the bundled ``PLIFEPRED2_HOME/comp``
+  directory if a separate Pfeature directory is supplied.
 
 Provenance and limits
 ---------------------
@@ -93,12 +82,8 @@ Upstream: https://pypi.org/project/plifepred2/ and
 https://github.com/shindebpratik/plifepred2
 Lineage: https://doi.org/10.1371/journal.pone.0196829
 
-PlifePred2 itself cites no publication, so its training set is unverified beyond
-what the artifacts reveal; the ceiling change suggests a larger, later dataset
-than the 2018 one. In the lineage paper the composition-based natural model was
-the weaker of the pair (r = 0.643, against 0.743 for chemical descriptors), and
-sequences up to 90% similar were deliberately kept in the data, so reported
-accuracy is optimistic for novel peptides.
+PlifePred2 itself cites no publication, so its training set is unverified
+beyond what the artifacts reveal.
 """
 
 import math
@@ -122,33 +107,39 @@ from .unsupported_residue import UnsupportedResidueError
 from .wrapper_base import AlleleFreePredictor
 
 #: Upstream package version this wrapper was written and verified against.
-UPSTREAM_VERSION = "1.0"
-PFEATURE_REVISION = "93636eb95bed9df2893b7a0c56b1215e648ecdbf"
+UPSTREAM_VERSION = "1.1.0"
 
-#: sha256 of the ``plifepred2-1.0-py3-none-any.whl`` these paths were read from.
+#: sha256 of the ``plifepred2-1.1.0-py3-none-any.whl`` these paths were read from.
 UPSTREAM_WHEEL_SHA256 = (
-    "e0eb32928b7970d5a113d8826ef9e451c94f0156e0b628dddb0da7103ac2c32e")
+    "4af0c75e914c810110f38f4302c1d8a3fc6b1922791b6e0bf0130b9193132390")
 
-# Upstream's CLI silently drops anything outside this range; the wrapper rejects
-# instead, so a caller never gets a short result set with no explanation.
+# Enforce explicit peptide-length bounds rather than silently scoring
+# out-of-domain peptides.
 PLIFEPRED2_MIN_PEPTIDE_LENGTH = 12
 PLIFEPRED2_MAX_PEPTIDE_LENGTH = 100
 
 _VALID_AMINO_ACIDS = frozenset("ACDEFGHIKLMNPQRSTVWY")
 
-_NATURAL_MODEL = os.path.join("models", "plifepred2_natural_model.sav")
+_SEQUENCE_MODEL = os.path.join("models", "Sequence_model.sav")
+_SEQUENCE_FEATURES = os.path.join("models", "sequence_features.tsv")
+_SEQUENCE_FEATURE_TYPES = (
+    "AAC,DPC,PCP,RRI,DDR,SEP,SER,SPC,CTC,CeTD,PAAC,APAAC,QSO")
 
 _PLIFEPRED2_ARTIFACTS = {
-    _NATURAL_MODEL: (
-        "natural_peptide_random_forest",
-        "1c9009319685c7ba9a0ceb1fe5e00322590039cca4589c24f89bf3995f83080b",
+    _SEQUENCE_MODEL: (
+        "natural_peptide_extra_trees",
+        "a135bf82470edbd863025f3d6c2e508d701b47b291bd62e603e3d19e32db73dd",
         "joblib_pickle"),
+    _SEQUENCE_FEATURES: (
+        "selected_sequence_features",
+        "6ad121a72cbd338c9565735b55e78994804e9b86b0cad1012217211060d13420",
+        "tsv"),
 }
 
 _PFEATURE_ARTIFACTS = {
     "pfeature_comp.py": (
-        "qso_feature_implementation",
-        "f02f39ed2aa95dd282b0f20684c0f8570522a7a886c987b6acb3cf4a18a07936",
+        "sequence_descriptor_implementation",
+        "e2c1ee55747ee5ddd23709c868a371f158b0f477c3dab9a29f0371e138d94dbf",
         "python_source"),
     os.path.join("Data", "Schneider-Wrede.csv"): (
         "qso_distance_matrix",
@@ -162,6 +153,10 @@ _PFEATURE_ARTIFACTS = {
         "pfeature_startup_resource",
         "f8e94cf9464539ddd0e9e97a20da2fe0ffbdcb8a48c1a632d7117153bea11c04",
         "csv"),
+    os.path.join("Data", "aaind.txt"): (
+        "pfeature_startup_resource",
+        "c1f208dca562e550033a1079ba6d403dc6f0ef75dc9ef6238803f975d3cdc550",
+        "text"),
     os.path.join("Data", "aaindex.csv"): (
         "pfeature_startup_resource",
         "c18b4e54a40136b56533100e69c6f8251d80eb5923a02a00db6d00b14d843b65",
@@ -170,20 +165,25 @@ _PFEATURE_ARTIFACTS = {
         "pfeature_startup_resource",
         "608dca782677b57349c1a6a208be2411278db35fa739c26bdb522b275ebe0f43",
         "csv"),
+    os.path.join("Data", "data"): (
+        "paac_property_table",
+        "ee61f3c40c87ccacd1b2070faad781ad0ce2e923a52b74d2a9836e2a5884061d",
+        "tsv"),
+    os.path.join("Data", "aa_attr_group.csv"): (
+        "cetd_attribute_groups",
+        "8cfa34e00a569810ab9af6c2562e27bb3dc2064eac0f24ca2920faa7ea90b4d9",
+        "tsv"),
 }
 
 PLIFEPRED2_BACKEND_SPEC = BackendSpec(
     name="plifepred2",
     endpoint="peptide_half_life_unknown_matrix_native_regression",
-    developed_against="plifepred2@%s+pfeature@%s" % (
-        UPSTREAM_VERSION, PFEATURE_REVISION),
-    license="PlifePred2: GPL-3.0; Pfeature: GPL-3.0",
-    serialization="joblib pickle random forest",
+    developed_against="plifepred2@%s" % UPSTREAM_VERSION,
+    license="PlifePred2: GPL-3.0; bundled Pfeature: GPL-3.0",
+    serialization="joblib pickle extra-trees",
     entry_point="prediction_only",
-    # Real-model smoke recorded in docs/optional-backends.md. CI continues to
-    # exercise only the conformance path and never unpickles third-party data.
-    supported_platforms=("macos-arm64-cpu",),
-    supported_interpreters=("python3.12",),
+    supported_platforms=("linux-x86_64-cpu", "macos-arm64-cpu"),
+    supported_interpreters=("python3.11", "python3.12"),
 )
 
 _SECONDS_PER_HOUR = 3600.0
@@ -193,8 +193,9 @@ def half_life_hours(log10_seconds):
     """Convert a raw PlifePred2 prediction to hours.
 
     This applies the **inferred** ``log10(seconds)`` transform; see the module
-    docstring for the evidence and its limits. Upstream documents no target,
-    so a caller reaching for this is accepting that inference.
+    docstring for the evidence and its limits. Upstream documents ``10**y``
+    without confirming the physical time unit, so a caller reaching for this
+    is accepting that inference.
     """
     return (10.0 ** log10_seconds) / _SECONDS_PER_HOUR
 
@@ -209,40 +210,44 @@ def _find_plifepred2_home(plifepred2_home=None):
     if not candidate:
         raise FileNotFoundError(
             "PlifePred2 not found. Set PLIFEPRED2_HOME or pass "
-            "plifepred2_home= to the constructor. `pip install plifepred2` "
+            "plifepred2_home= to the constructor. `pip install plifepred2==1.1.0` "
             "into an environment and point at its site-packages/plifepred2.")
     candidate = str(Path(candidate).expanduser().resolve())
-    if not Path(candidate, _NATURAL_MODEL).is_file():
-        raise FileNotFoundError(
-            "%s not found in %r — is this an installed plifepred2 package?"
-            % (_NATURAL_MODEL, candidate))
+    for relative in (_SEQUENCE_MODEL, _SEQUENCE_FEATURES):
+        if not Path(candidate, relative).is_file():
+            raise FileNotFoundError(
+                "%s not found in %r — is this an installed plifepred2 1.1.0 package?"
+                % (relative, candidate))
     return candidate
 
 
-def _find_pfeature_home(pfeature_home=None):
-    """Resolve the Pfeature ``Standalone`` directory."""
+def _find_pfeature_home(pfeature_home=None, plifepred2_home=None):
+    """Resolve the Pfeature directory (bundled ``comp/`` or explicit checkout)."""
     candidate = pfeature_home or os.environ.get("PFEATURE_HOME")
+    if not candidate and plifepred2_home:
+        bundled = Path(plifepred2_home) / "comp"
+        if (bundled / "pfeature_comp.py").is_file():
+            candidate = str(bundled)
     if not candidate:
         home = Path.home() / "Pfeature" / "Standalone"
         if home.is_dir():
             candidate = str(home)
     if not candidate:
         raise FileNotFoundError(
-            "Pfeature not found. Set PFEATURE_HOME or pass pfeature_home= to "
-            "the constructor. Clone https://github.com/raghavagps/Pfeature and "
-            "point at its Standalone directory.")
+            "Pfeature not found. Use plifepred2 1.1.0's bundled comp/ directory, "
+            "set PFEATURE_HOME, or pass pfeature_home= to the constructor.")
     candidate = str(Path(candidate).expanduser().resolve())
     if not Path(candidate, "pfeature_comp.py").is_file():
         raise FileNotFoundError(
-            "pfeature_comp.py not found in %r — point at Pfeature's Standalone "
-            "directory, not the repository root." % candidate)
+            "pfeature_comp.py not found in %r — point at plifepred2's comp/ "
+            "directory or Pfeature's Standalone directory." % candidate)
     for relative in _PFEATURE_ARTIFACTS:
         if relative == "pfeature_comp.py":
             continue
         if not Path(candidate, relative).is_file():
             raise FileNotFoundError(
                 "%s not found in %r — the pinned Pfeature process reads this "
-                "resource before or during QSO extraction."
+                "resource during sequence descriptor extraction."
                 % (relative, candidate))
     return candidate
 
@@ -271,37 +276,35 @@ def _artifact_inventory(
         artifacts=artifacts,
         settings={
             "assume_log10_seconds": assume_log10_seconds,
-            "descriptor": "QSO",
+            "descriptor": _SEQUENCE_FEATURE_TYPES,
             "model_variant": "natural",
-            "qso_lag": 1,
-            "qso_weight": 0.1,
-            "scikit_learn": "1.4.2",
+            "scikit_learn": "1.7.2",
         })
 
 
 class PlifePred2(AlleleFreePredictor):
-    """Peptide half-life predictions from local PlifePred2 + Pfeature.
+    """Peptide half-life predictions from local PlifePred2 1.1.0.
 
     Parameters
     ----------
     plifepred2_home : str, optional
-        Installed ``plifepred2`` package directory. Resolved from the argument,
-        then ``$PLIFEPRED2_HOME``, then ``~/plifepred2``.
+        Installed ``plifepred2`` 1.1.0 package directory. Resolved from the
+        argument, then ``$PLIFEPRED2_HOME``, then ``~/plifepred2``.
     pfeature_home : str, optional
-        Pfeature ``Standalone`` directory. Resolved from the argument, then
-        ``$PFEATURE_HOME``, then ``~/Pfeature/Standalone``.
+        Pfeature directory containing ``pfeature_comp.py`` and ``Data/``.
+        Resolved from the argument, then ``$PFEATURE_HOME``, then bundled
+        ``<plifepred2_home>/comp``, then ``~/Pfeature/Standalone``.
     plifepred2_python : str, optional
-        Interpreter with scikit-learn, joblib, pandas and tqdm. Resolved from
-        the argument, then ``$PLIFEPRED2_PYTHON``, then the current interpreter.
-        Upstream pins ``scikit-learn==1.4.2``; a different version loads the
-        forest but warns, so give this its own environment to be exact.
+        Interpreter with ``plifepred2==1.1.0`` (``scikit-learn==1.7.2``,
+        ``joblib``, ``pandas``). Resolved from the argument, then
+        ``$PLIFEPRED2_PYTHON``, then the current interpreter.
     assume_log10_seconds : bool
         Opt in to reporting a half-life in hours by treating the model's output
-        as ``log10(seconds)``. Off by default: that transform is inferred from
-        the shipped forests, not documented by upstream (see the module
-        docstring). While off, ``value`` is left empty and only the native
-        output is reported, in ``score``. Turning it on is an assertion that
-        you accept the inference.
+        as ``log10(seconds)``. Off by default: upstream documents ``10**y``
+        without confirming the physical time unit (see the module docstring).
+        While off, ``value`` is left empty and only the native output is
+        reported, in ``score``. Turning it on is an assertion that you accept
+        the inference.
     allow_unverified_assets : bool
         Permit explicitly supplied files whose checksums differ from the pinned
         model and Pfeature inventory. False by default. Their actual identity
@@ -321,7 +324,8 @@ class PlifePred2(AlleleFreePredictor):
             allow_unverified_assets=False,
             subprocess_timeout=300):
         self.plifepred2_home = _find_plifepred2_home(plifepred2_home)
-        self.pfeature_home = _find_pfeature_home(pfeature_home)
+        self.pfeature_home = _find_pfeature_home(
+            pfeature_home, plifepred2_home=self.plifepred2_home)
         self.plifepred2_python = resolve_sidecar_python(plifepred2_python, "PLIFEPRED2_PYTHON")
         self.assume_log10_seconds = assume_log10_seconds
         self.subprocess_timeout = subprocess_timeout
@@ -491,7 +495,8 @@ class PlifePred2(AlleleFreePredictor):
             sidecar = Path(__file__).with_name("plifepred2_sidecar.py")
             arguments = [
                 "--pfeature-home", self.pfeature_home,
-                "--model", str(Path(self.plifepred2_home, _NATURAL_MODEL)),
+                "--model", str(Path(self.plifepred2_home, _SEQUENCE_MODEL)),
+                "--features", str(Path(self.plifepred2_home, _SEQUENCE_FEATURES)),
                 "--input", str(input_path),
                 "--output", str(output_path),
             ]

@@ -89,15 +89,11 @@ def half_life(root, python, config):
     config.update(PEPTIVERSE_HOME=str(source), PEPTIVERSE_PYTHON=str(runtime),
                   PEPTIVERSE_ESM_HOME=esm)
 
-    runtime = make_env(root, "plifepred2", python, [
-        "plifepred2==1.0", "numpy<2", "pandas<3", "tqdm"])
+    runtime = make_env(root, "plifepred2", python, ["plifepred2==1.1.0"])
     package = capture(runtime, "-c",
                       "import plifepred2; print(next(iter(plifepred2.__path__)))")
-    features = root / "Pfeature"
-    checkout(features, "https://github.com/raghavagps/Pfeature.git",
-             "93636eb95bed9df2893b7a0c56b1215e648ecdbf", "Standalone")
     config.update(PLIFEPRED2_HOME=package, PLIFEPRED2_PYTHON=str(runtime),
-                  PFEATURE_HOME=str(features / "Standalone"))
+                  PFEATURE_HOME=str(Path(package) / "comp"))
 
 
 def recognition(root, python, config):
