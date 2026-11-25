@@ -2,7 +2,7 @@
 
 import os
 
-from .help import HelpArgumentParser
+from .help import HelpArgumentParser, enable_argcomplete
 
 
 def autocomplete(prediction_parser, subcommands):
@@ -10,7 +10,6 @@ def autocomplete(prediction_parser, subcommands):
     if "_ARGCOMPLETE" not in os.environ:
         return
 
-    import argcomplete
     from argcomplete.lexers import split_line
 
     # Use argcomplete's lexer so quoted paths and a cursor inside the line work.
@@ -30,4 +29,4 @@ def autocomplete(prediction_parser, subcommands):
         commands.add_parser(
             command.name, aliases=list(command.aliases), help=command.help,
             add_help=False, parents=[command.make_parser()] if selected else [])
-    argcomplete.autocomplete(parser)
+    enable_argcomplete(parser)

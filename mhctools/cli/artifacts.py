@@ -67,7 +67,9 @@ def make_ls_parser():
     parser.add_argument("name", nargs="*", help="Optional artifact names")
     parser.add_argument(
         "--data-dir",
-        help="Override MHCTOOLS_DATA_DIR for mhctools-managed artifacts")
+        "--cache-root",
+        dest="data_dir",
+        help="Override MHCTOOLS_DATA_DIR / OPENVAX_DATA_CACHE for mhctools-managed artifacts")
     parser.add_argument(
         "--json", action="store_true", help="Emit machine-readable JSON")
     parser.add_argument(
@@ -136,7 +138,9 @@ def make_fetch_parser():
              "mhctools release was tested against.")
     parser.add_argument(
         "--data-dir",
-        help="Override MHCTOOLS_DATA_DIR for mhctools-managed artifacts")
+        "--cache-root",
+        dest="data_dir",
+        help="Override MHCTOOLS_DATA_DIR / OPENVAX_DATA_CACHE for mhctools-managed artifacts")
     parser.add_argument(
         "--accept-license",
         action="store_true",

@@ -388,7 +388,7 @@ See the [peptide half-life guide](predictors/peptide-pk.md) for examples and mod
 - CLI names: `plifepred2`
 - Prediction kinds: `peptide_half_life`
 - Default scanning lengths: (12-100)
-- Installation: `plifepred2==1.0` + Pfeature (`PLIFEPRED2_HOME`, `PFEATURE_HOME`)
+- Installation: `plifepred2==1.1.0` (`PLIFEPRED2_HOME`; bundles Pfeature under `comp/`)
 - License: open
 
 ## Cell penetration classification

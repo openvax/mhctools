@@ -10,68 +10,68 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Readable argparse help with optional terminal styling."""
+"""Readable argparse help with optional terminal styling via ``datacache.cli_help``."""
 
-import argparse
 import os
-import re
-import shutil
 import sys
 
+from datacache.cli_help import (
+    ANSI_BOLD,
+    ANSI_BOLD_CYAN,
+    ANSI_CYAN,
+    ANSI_DIM,
+    ANSI_RESET,
+    ANSI_YELLOW,
+    DIM_STATUS_VALUES,
+    HelpArgumentParser as _DatacacheHelpArgumentParser,
+    HelpFormatter,
+    OPTION_PATTERN,
+    WARNING_STATUS_VALUES,
+    classify_status,
+    color_enabled as _datacache_color_enabled,
+    enable_argcomplete,
+    style_help as _datacache_style_help,
+    style_status,
+    style_table_header,
+)
 
-_OPTION = re.compile(r"(?<![\w-])(--[a-zA-Z][\w-]*|-[a-zA-Z])\b")
+_OPTION = OPTION_PATTERN
+
+__all__ = [
+    "ANSI_BOLD",
+    "ANSI_BOLD_CYAN",
+    "ANSI_CYAN",
+    "ANSI_DIM",
+    "ANSI_RESET",
+    "ANSI_YELLOW",
+    "DIM_STATUS_VALUES",
+    "HelpArgumentParser",
+    "HelpFormatter",
+    "OPTION_PATTERN",
+    "WARNING_STATUS_VALUES",
+    "classify_status",
+    "color_enabled",
+    "enable_argcomplete",
+    "style_help",
+    "style_status",
+    "style_table_header",
+]
 
 
 def color_enabled(stream):
     """Return whether the destination supports optional terminal styling."""
-    return bool(
-        getattr(stream, "isatty", lambda: False)()
-        and "NO_COLOR" not in os.environ
-        and os.environ.get("TERM") != "dumb")
+    return "NO_COLOR" not in os.environ and _datacache_color_enabled(stream)
 
 
 def style_help(text, stream):
     """Style headings and flags only when writing to a color-capable terminal."""
     if not color_enabled(stream):
         return text
-
-    lines = []
-    for line in text.splitlines(keepends=True):
-        if line.rstrip().endswith(":") and not line[0].isspace():
-            line = "\033[1;36m" + line.rstrip("\n") + "\033[0m\n"
-        else:
-            line = _OPTION.sub(lambda match: "\033[36m" + match[0] + "\033[0m", line)
-            if line.startswith("usage:"):
-                line = line.replace("usage:", "\033[1musage:\033[0m", 1)
-        lines.append(line)
-    return "".join(lines)
+    return _datacache_style_help(text, stream)
 
 
-class HelpFormatter(argparse.RawDescriptionHelpFormatter):
-    """Limit reading width and separate options without adding table borders."""
-
-    def __init__(self, prog):
-        width = max(40, min(100, shutil.get_terminal_size().columns - 2))
-        super().__init__(prog, max_help_position=32, width=width)
-
-    def _split_lines(self, text, width):
-        # RST literals are useful in generated docs but noisy in terminal help.
-        return super()._split_lines(text.replace("``", ""), width)
-
-    def _format_action(self, action):
-        text = super()._format_action(action)
-        return text + "\n" if text else text
-
-
-class HelpArgumentParser(argparse.ArgumentParser):
+class HelpArgumentParser(_DatacacheHelpArgumentParser):
     """Keep format_help() plain; add color only when printing to a terminal."""
-
-    def __init__(self, *args, **kwargs):
-        kwargs.setdefault("formatter_class", HelpFormatter)
-        if sys.version_info >= (3, 14):
-            # Apply the same styling on all supported Python versions.
-            kwargs["color"] = False
-        super().__init__(*args, **kwargs)
 
     def print_help(self, file=None):
         stream = sys.stdout if file is None else file

@@ -106,18 +106,17 @@ not make that claim.
 
 ## PlifePred2 inventory
 
-[PlifePred2](predictors/peptide-pk.md#plifepred2) verifies the natural-peptide forest from the official 1.0 wheel,
-Pfeature's QSO implementation at revision
-`93636eb95bed9df2893b7a0c56b1215e648ecdbf`, both QSO distance matrices, and
-the three additional data files that Pfeature reads at process startup. Only
-those reviewed resources are copied into the isolated feature workspace.
+[PlifePred2](predictors/peptide-pk.md#plifepred2) verifies `models/Sequence_model.sav`
+and `models/sequence_features.tsv` from the official `plifepred2==1.1.0` wheel,
+along with its bundled `comp/pfeature_comp.py` implementation and the eight
+`comp/Data/` resource files required for the 13 sequence descriptor groups.
+Only those reviewed resources are copied into the isolated feature workspace.
 
-The official wheel pins scikit-learn 1.4.2. The sidecar checks that version
-before loading the joblib forest, so an interpreter that merely happens to
-unpickle it with warnings is not reported as exact reproduction. Both the
-outer predictor and nested Pfeature process run with socket access disabled and
-timeouts. The output-setting choice (`assume_log10_seconds`) is part of the
-identity because it changes whether a duration is emitted.
+The official `1.1.0` wheel pins scikit-learn `1.7.2`. The sidecar checks that
+version before loading the joblib estimator. Both the outer predictor and
+nested Pfeature process run with socket access disabled and timeouts. The
+output-setting choice (`assume_log10_seconds`) is part of the identity because
+it changes whether a duration is emitted.
 
 ## Capability matrix
 
@@ -132,7 +131,7 @@ only after that local smoke succeeds.
 |---|---|---|---|
 | [PeptiVerse](predictors/peptide-pk.md#peptiverse) | Human-serum half-life, exact `transformer_wt_log` | Exact source/model/calibration/ESM2 inventory; automated conformance | Opt-in smoke; no published platform combination yet |
 | [PeptiVerse CPP](predictors/uptake.md#peptiverse-cpp) | Canonical CPP classification, exact CPU `svm_gpu_wt` | Exact source/SVC/threshold/ESM2 inventory; runtime version guard | Direct native API and fixed-source conformance on Linux/macOS, Python 3.11, CPU |
-| [PlifePred2](predictors/peptide-pk.md#plifepred2) | Undocumented blood-half-life native regression | Exact forest/QSO/resources inventory; automated conformance | Reproduced on macOS arm64 / Python 3.12 / CPU; otherwise opt-in |
+| [PlifePred2](predictors/peptide-pk.md#plifepred2) | Undocumented blood-half-life native regression (`1.1.0`) | Exact ExtraTrees/descriptor/resources inventory; automated conformance | Reproduced on Linux x86_64 / Python 3.11 and macOS arm64 / Python 3.12 / CPU |
 | POSEIDON | None established | Blocked: research/training repository is not an inference-complete endpoint release | Not run |
 | PERSEU | None established | Blocked: interactive design path and serialized models do not provide a reviewed prediction-only entry point | Not run |
 
@@ -140,10 +139,11 @@ Finding a repository, dataset, or checkpoint is therefore never shown as an
 inference capability. A platform claim can be added only alongside a recorded
 real-model smoke result for that exact inventory.
 
-The PlifePred2 entry records a local smoke on 2026-09-14 with scikit-learn
-1.4.2 and asset identity
-`d1fb877035f93b1302a975c47c08a084d8757964692c64f89f108792da0915c0`.
-The verified backend returned native scores `3.157266404183623` and
-`3.7934723194625297` for the two opt-in reference peptides and advanced to
-`inference_reproduced`. This is evidence only for the listed runtime; it does
-not establish the endpoint's undocumented biological semantics.
+The PlifePred2 `1.1.0` entry records verified asset identity
+`744a7d71aacceb28fc1327b5ef4443abe069c47320bfc75acf7892b47750eb4d` with
+scikit-learn `1.7.2`, returning native scores `3.3686785145` and
+`3.7062108540` for the two opt-in reference peptides (matching upstream
+`plifepred2.py --mode natural` outputs `2337.106560` and `5084.062186` after
+`10**y`). This verifies numerical reproduction of the `1.1.0` artifact
+inventory; it does not establish the endpoint's undocumented physical unit or
+assay matrix.

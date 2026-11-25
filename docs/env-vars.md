@@ -11,7 +11,9 @@ mhctools runs in.
 
 | Variable | Used by | Meaning |
 |---|---|---|
-| `MHCTOOLS_DATA_DIR` | `fetch`, `ls`, every fetched snapshot | Root for mhctools-managed snapshots. Default is the platform user-data directory. |
+| `MHCTOOLS_DATA_DIR` | `fetch`, `ls`, every fetched snapshot | Package-specific root for mhctools-managed snapshots (takes precedence over `OPENVAX_DATA_CACHE`). |
+| `OPENVAX_DATA_CACHE` | `fetch`, `ls`, every fetched snapshot | Shared OpenVax cache root; mhctools stores artifacts under `<OPENVAX_DATA_CACHE>/mhctools` unless `MHCTOOLS_DATA_DIR` or `--data-dir` / `--cache-root` is set. |
+| `OPENVAX_OFFLINE`, `DATACACHE_OFFLINE` | `fetch`, PhageScout, MixTCRpred | Set to `1` / `true` to forbid remote artifact downloads while still allowing verified cache hits. |
 | `NETMHC_BUNDLE_HOME` | [NetChop](predictors/processing.md#netchop) | A bundle directory that contains your licensed DTU tools. |
 | `NETCHOP_HOME` | NetChop | The directory containing `bin/netChop`. |
 | `IEDB_MHCI_EXECUTABLE` | [SMM](predictors/binding.md#smm-and-smm-pmbec), [SMM-PMBEC](predictors/binding.md#smm-and-smm-pmbec) | Launcher that runs IEDB's `predict_binding.py`. |
@@ -26,7 +28,7 @@ mhctools runs in.
 | `NETCLEAVE_DIR` | [NetCleave](predictors/processing.md#netcleave) | A NetCleave clone. |
 | `NETTCR_DIR` | [NetTCR](predictors/tcr.md#nettcr) | A NetTCR checkout. |
 | `PEPTIVERSE_HOME`, `PEPTIVERSE_ESM_HOME` | [PeptiVerse half-life](predictors/peptide-pk.md#peptiverse), [CPP](predictors/uptake.md#peptiverse-cpp) | The pinned PeptiVerse snapshot and local ESM2 weights. |
-| `PLIFEPRED2_HOME`, `PFEATURE_HOME` | [PlifePred2](predictors/peptide-pk.md#plifepred2) | The `plifepred2` package and the pinned Pfeature checkout. |
+| `PLIFEPRED2_HOME`, `PFEATURE_HOME` | [PlifePred2](predictors/peptide-pk.md#plifepred2) | The `plifepred2` 1.1.0 package (`PFEATURE_HOME` optional; defaults to bundled `comp/`). |
 | `TLIMMUNO2_HOME` | [TLimmuno2](predictors/immunogenicity.md#tlimmuno2) | A TLimmuno2 clone. |
 | `TULIP_HOME` | [Tulip](predictors/tcr.md#tulip) | A TULIP-TCR checkout. |
 

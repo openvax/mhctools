@@ -60,30 +60,30 @@ def test_half_life_hours_inverts_log10_seconds():
 
 
 def test_inferred_transform_is_self_consistent_with_the_forest_extrema():
-    # NOT a validation of the transform -- upstream documents no target, and
-    # agreement with our own conversion is not external evidence. This pins
-    # the arithmetic behind the inference recorded in the module docstring, so
-    # that changing `half_life_hours` without revisiting that reasoning fails.
-    lowest_leaf_value = 1.30535
+    # NOT a validation of the unit -- upstream documents 10**y without
+    # confirming the physical time unit, and agreement with our own conversion
+    # is not external evidence. This pins the arithmetic behind the inference
+    # recorded in the module docstring, so that changing `half_life_hours`
+    # without revisiting that reasoning fails.
+    lowest_leaf_value = 1.349725
     assert half_life_hours(lowest_leaf_value) * 3600.0 == pytest.approx(
-        20.2, abs=0.1)
-    # The natural model's highest leaf value comes out at exactly seven days.
-    assert half_life_hours(5.78161) == pytest.approx(24.0 * 7, rel=1e-4)
+        22.37, abs=0.1)
+    # The 1.1.0 sequence model's highest leaf value inverts to ~24.85 days.
+    assert half_life_hours(6.331832) == pytest.approx(24.85 * 24.0, rel=1e-3)
 
 
 def test_log2_and_ln_readings_give_implausible_durations():
     # Guard the reasoning, not just the result. Under log2 or ln seconds the
-    # forests' extreme leaf values (1.30535, 6.91424) invert to a range of a
-    # couple of seconds up to about two minutes, which no peptide half-life
-    # dataset would span. This is what makes log10 the strongest reading; it
-    # is not proof, since the training targets themselves are undocumented.
-    lowest, highest = 1.30535, 6.91424
-    assert 2.0 ** lowest < 20.0                  # below the documented floor
-    assert 2.0 ** highest < 24 * 3600.0          # far below the documented cap
+    # forest's extreme leaf values (1.349725, 6.331832) invert to a range of a
+    # couple of seconds up to ~9 minutes, which no peptide half-life dataset
+    # would span.
+    lowest, highest = 1.349725, 6.331832
+    assert 2.0 ** lowest < 20.0                  # below the ~20 s floor
+    assert 2.0 ** highest < 24 * 3600.0          # far below 24 h
     assert math.exp(lowest) < 20.0
     assert math.exp(highest) < 24 * 3600.0
-    # log10 covers it: floor at 20 s, ceiling well past 24 h.
-    assert 10.0 ** lowest == pytest.approx(20.2, abs=0.1)
+    # log10 covers it: floor near 22 s, ceiling well past 24 h.
+    assert 10.0 ** lowest == pytest.approx(22.37, abs=0.1)
     assert 10.0 ** highest > 24 * 3600.0
 
 
@@ -202,16 +202,27 @@ def test_parse_results_rejects_missing_column():
 
 # --- construction and validation --------------------------------------------
 
-def _fake_homes(tmp_path):
+_PFEATURE_DATA_NAMES = (
+    "Schneider-Wrede.csv",
+    "Grantham.csv",
+    "PhysicoChemical.csv",
+    "aaind.txt",
+    "aaindex.csv",
+    "AAIndexNames.csv",
+    "data",
+    "aa_attr_group.csv",
+)
+
+
+def _fake_homes(tmp_path, bundled_pfeature=False):
     plifepred2 = tmp_path / "plifepred2"
     (plifepred2 / "models").mkdir(parents=True)
-    (plifepred2 / "models" / "plifepred2_natural_model.sav").write_text("")
-    pfeature = tmp_path / "Standalone"
+    (plifepred2 / "models" / "Sequence_model.sav").write_text("")
+    (plifepred2 / "models" / "sequence_features.tsv").write_text("QSO1_SC_A\n")
+    pfeature = (plifepred2 / "comp") if bundled_pfeature else (tmp_path / "Standalone")
     (pfeature / "Data").mkdir(parents=True)
     (pfeature / "pfeature_comp.py").write_text("")
-    for name in (
-            "Schneider-Wrede.csv", "Grantham.csv", "PhysicoChemical.csv",
-            "aaindex.csv", "AAIndexNames.csv"):
+    for name in _PFEATURE_DATA_NAMES:
         (pfeature / "Data" / name).write_text("")
     return str(plifepred2), str(pfeature)
 
@@ -225,8 +236,17 @@ def test_missing_plifepred2_home_is_reported(tmp_path, monkeypatch):
 
 def test_missing_model_file_is_reported(tmp_path, monkeypatch):
     monkeypatch.delenv("PLIFEPRED2_HOME", raising=False)
-    with pytest.raises(FileNotFoundError, match="natural_model.sav not found"):
+    with pytest.raises(FileNotFoundError, match="Sequence_model.sav not found"):
         PlifePred2(plifepred2_home=str(tmp_path))
+
+
+def test_bundled_comp_pfeature_is_auto_discovered(tmp_path, monkeypatch):
+    plifepred2_home, bundled_comp = _fake_homes(tmp_path, bundled_pfeature=True)
+    monkeypatch.delenv("PFEATURE_HOME", raising=False)
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
+    predictor = PlifePred2(
+        plifepred2_home=plifepred2_home, allow_unverified_assets=True)
+    assert predictor.pfeature_home == str(Path(bundled_comp).resolve())
 
 
 def test_missing_pfeature_home_is_reported(tmp_path, monkeypatch):
@@ -307,7 +327,7 @@ def test_unverified_assets_are_rejected_by_default(tmp_path):
 def test_predictor_version_carries_model_and_feature_identity(tmp_path):
     predictor = _predictor(tmp_path)
     version = predictor.predictor_version
-    assert "developed-against=plifepred2@1.0+pfeature@93636eb" in version
+    assert "developed-against=plifepred2@1.1.0" in version
     assert ";assets-sha256=" in version
     assert version.endswith(";status=mismatch")
 
@@ -426,20 +446,20 @@ def test_all_unsupported_partial_batch_does_not_run_sidecar(
 # --- end-to-end (opt-in) ----------------------------------------------------
 
 requires_plifepred2 = pytest.mark.skipif(
-    not (os.environ.get("PLIFEPRED2_HOME") and os.environ.get("PFEATURE_HOME")),
-    reason="set PLIFEPRED2_HOME and PFEATURE_HOME to run this")
+    not os.environ.get("PLIFEPRED2_HOME"),
+    reason="set PLIFEPRED2_HOME to run this")
 
 
 @pytest.mark.requires_external_tool
 @requires_plifepred2
 def test_end_to_end_matches_the_reference_values():
-    # Computed by running Pfeature's QSO extractor and the shipped forest
-    # directly, outside this wrapper.
+    # Computed by running PlifePred2 1.1.0's CLI (--mode natural) directly
+    # outside this wrapper.
     predictor = PlifePred2()
     results = predictor.predict(["SIINFEKLGGALQAKKY", "GILGFVFTLAAAKKWWWQ"])
     assert len(results) == 2
     raw = predictor.last_qc["log10_seconds"].tolist()
-    assert raw == pytest.approx([3.1572664, 3.79347232], rel=1e-6)
+    assert raw == pytest.approx([3.36867851, 3.70621085], rel=1e-6)
     assert predictor.artifact_inventory.status == "verified"
     assert predictor.artifact_inventory.capability == "inference_reproduced"
     for peptide, result, native in zip(
@@ -470,14 +490,14 @@ def test_end_to_end_scores_follow_their_peptides_when_reordered():
 @pytest.mark.requires_external_tool
 @requires_plifepred2
 def test_end_to_end_hours_require_explicit_opt_in():
-    # The duration is gated because the transform is inferred, not documented.
+    # The duration is gated because the physical unit is inferred, not documented.
     default = PlifePred2().predict(["SIINFEKLGGALQAKKY"])[0].preds[0]
     assert default.value is None
 
     opted_in = PlifePred2(assume_log10_seconds=True)
     pred = opted_in.predict(["SIINFEKLGGALQAKKY"])[0].preds[0]
     assert pred.value == pytest.approx(half_life_hours(default.score))
-    assert pred.value == pytest.approx(0.39899, rel=1e-4)
+    assert pred.value == pytest.approx(0.649196, rel=1e-4)
     # score stays the native output either way, so ranking is unaffected.
     assert pred.score == pytest.approx(default.score)
 
@@ -511,14 +531,15 @@ import argparse, glob, os, sys
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-i"); parser.add_argument("-o"); parser.add_argument("-j")
+parser.add_argument("-wd", default=".")
 args = parser.parse_args()
 
-# 1. Data must be reachable by RELATIVE path, as upstream reads it.
-open(os.path.join("Data", "Schneider-Wrede.csv")).close()
+# 1. Data must be reachable relative to __file__ and CWD.
+open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "Data", "Schneider-Wrede.csv")).close()
 
 # 2. Upstream scatters intermediates into the working directory.
 for name in ("sam_allcomp.qso_st", "sam_input.csv"):
-    with open(name, "w") as handle:
+    with open(os.path.join(args.wd, name), "w") as handle:
         handle.write("scratch\\n")
 
 # 3. Upstream's unscoped wildcard cleanup.
@@ -534,9 +555,7 @@ def _stub_installation(tmp_path):
     """A Pfeature-shaped installation whose extractor is the stub above."""
     home = tmp_path / "Standalone"
     (home / "Data").mkdir(parents=True)
-    for name in (
-            "Schneider-Wrede.csv", "Grantham.csv", "PhysicoChemical.csv",
-            "aaindex.csv", "AAIndexNames.csv"):
+    for name in _PFEATURE_DATA_NAMES:
         (home / "Data" / name).write_text("Name,A\nA,0\n")
     (home / "pfeature_comp.py").write_text(_DESTRUCTIVE_STUB)
     return home
@@ -638,8 +657,8 @@ def test_nested_pfeature_timeout_is_reported(tmp_path):
 def test_exact_scikit_learn_version_is_required_before_unpickling():
     from mhctools.plifepred2_sidecar import _require_sklearn_version
 
-    _require_sklearn_version("1.4.2")
-    with pytest.raises(RuntimeError, match="requires scikit-learn 1.4.2"):
+    _require_sklearn_version("1.7.2")
+    with pytest.raises(RuntimeError, match="requires scikit-learn 1.7.2"):
         _require_sklearn_version("1.9.0")
 
 

@@ -10,7 +10,7 @@ exposure](../exposure-results.md).
 |---|---|---|
 | [Cavaco](#cavaco) | Published-equation baseline; mixed/unknown assay matrix | built in, no extra runtime |
 | [PeptiVerse](#peptiverse) | Parent-peptide half-life in human serum | pinned PeptiVerse + ESM2 snapshots (`PEPTIVERSE_HOME`, `PEPTIVERSE_ESM_HOME`) + a torch/transformers Python |
-| [PlifePred2](#plifepred2) | Parent-peptide half-life, matrix unknown | `plifepred2==1.0` (`PLIFEPRED2_HOME`) + pinned Pfeature (`PFEATURE_HOME`) |
+| [PlifePred2](#plifepred2) | Parent-peptide half-life, matrix unknown | `plifepred2==1.1.0` (`PLIFEPRED2_HOME`; bundles Pfeature under `comp/`) |
 
 `peptide_half_life` records how long the parent peptide persists, in hours. Its
 context distinguishes a defined solution, serum/plasma/whole blood, cellular
@@ -161,47 +161,47 @@ a matching checksum shows identity, not safety, so use only snapshots you trust.
 
 ## PlifePred2
 
-This endpoint's semantics are not established. [PlifePred2](#plifepred2) ships no publication,
-no training data and no target definition, so its units, transform, species and
-assay matrix are all inferred from the artifacts. By default the wrapper
-reports only the model's native output and claims no duration at all.
+This endpoint's physical unit and assay matrix are not established.
+[PlifePred2](#plifepred2) 1.1.0 documents ``y = log10(t)`` in its inference
+script, but ships no publication, no training data, and no confirmed target
+unit or assay-matrix definition. By default the wrapper reports only the
+model's native ``log10`` output and claims no duration at all.
 
 ```python
 from mhctools import PlifePred2
 
-predictor = PlifePred2()                       # PLIFEPRED2_HOME + PFEATURE_HOME
+predictor = PlifePred2()                       # PLIFEPRED2_HOME (bundles comp/ Pfeature)
 results = predictor.predict(["SIINFEKLGGALQAKKY"])
 results[0].peptide_half_life.score             # native output, higher = longer-lived
 results[0].peptide_half_life.value             # None by default
 predictor.artifact_inventory.to_dict()         # exact files, hashes, capability
 predictor.last_qc["log10_seconds"]             # the same value, named
 
-# Opt in to a duration, accepting the inference below:
+# Opt in to a duration, accepting the unit inference below:
 opted_in = PlifePred2(assume_log10_seconds=True)
 opted_in.predict(["SIINFEKLGGALQAKKY"])[0].peptide_half_life.value # hours
 ```
 
 ### What is known
 
-Both shipped models are `RandomForestRegressor`, verified by
-loading them. So the output is not a class probability. Upstream's docs
-("Halflife … Predicted probability") and its CLI's `predict_proba` branch are
-both wrong, and the branch is dead code. Being monotone in half-life, the
-output ranks correctly whatever the transform turns out to be.
+The shipped sequence model (`models/Sequence_model.sav`) is a scikit-learn
+`ExtraTreesRegressor` over 100 selected Pfeature sequence descriptors plus
+five binary modification flags (`d`, `ct`, `nt`, `cyc`, `ptm` — all zero for
+natural peptides). Upstream's `plifepred2.py` applies `10**y` to the raw
+estimator output. Being monotone in half-life, the native output ranks
+peptides identically regardless of the underlying time unit.
 
 ### What is inferred
 
-`log10(half-life in seconds)` is the strongest reading. Inverting the forests'
-extreme leaf values under it gives round durations: exactly 7.000 days for the
-natural model and 95.0 days for the modified one, to about seven significant
-figures. Under log2 or ln the same range inverts instead to between a few
-seconds and a couple of minutes. The minimum lands on 20.2 s, matching the
-20-second floor in the lineage paper.
+`log10(half-life in seconds)` is the strongest reading. Inverting the forest's
+extreme leaf values under it gives `22.4 s` at the floor (consistent with the
+~20-second floor in the lineage paper) and `24.85 days` at the ceiling. Under
+`log2` or `ln` the same range inverts instead to between a few seconds and
+~9 minutes.
 
-That last point is corroboration rather than proof: the same forests hold
-targets past that paper's 24-hour ceiling, so [PlifePred2](#plifepred2) was
-trained on a different dataset, and the old filter cannot establish the new
-target. The lineage paper also states log2, not log10.
+Because the forest holds targets past the 2018 lineage paper's 24-hour
+ceiling, [PlifePred2](#plifepred2) was trained on a different dataset, and the
+old filter cannot independently establish the target unit.
 
 ### What is not established
 
@@ -210,19 +210,15 @@ uses generic `peptide_half_life` with `matrix=None`; do not report it as a
 measured whole-blood property or treat it as interchangeable with [PeptiVerse](#peptiverse)'s
 human-serum endpoint.
 
-Natural peptides only, 12–100 residues. Upstream's CLI silently drops
-out-of-range and modified sequences into an `eliminated_sequences.csv` and
-returns a shorter result set; mhctools rejects them instead so a caller never
-gets a quietly truncated answer.
+Natural peptides only, 12–100 residues; non-standard residues and modified
+`PeptideInput` values are rejected explicitly rather than scored as unmodified
+sequences.
 
-The Linux-only `pfeature_comp` binary that `plifepred2` bundles is not used.
-It is a PyInstaller freeze of Pfeature's `pfeature_comp.py`, and that plain
-Python source computes the same descriptor on any platform. Both upstreams are
-GPLv3, so neither is vendored and neither is imported into the mhctools
-interpreter.
+PlifePred2 1.1.0 bundles plain-Python Pfeature (`comp/pfeature_comp.py` and
+`comp/Data/`) inside the wheel. Because PlifePred2 and Pfeature are GPLv3,
+nothing is vendored and neither is imported into the mhctools interpreter;
+mhctools runs them inside a separate isolated interpreter with verified
+checksums and an isolated scratch workspace.
 
 PlifePred2 cites no publication of its own, so its training set is unverified
-beyond what the artifacts reveal. In the lineage paper the composition-based
-natural model was the weaker of the pair (r = 0.643 against 0.743), and
-sequences up to 90% similar were deliberately kept in the data, so reported
-accuracy is optimistic for novel peptides.
+beyond what the artifacts reveal.

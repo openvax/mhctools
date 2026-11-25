@@ -287,7 +287,7 @@ ROWS = [
          kinds=["peptide_half_life"], mhc_class="none",
          inputs="peptides only (12-100 residues, natural)", lengths="(12-100)",
          artifact=None,
-         install="`plifepred2==1.0` + Pfeature (`PLIFEPRED2_HOME`, `PFEATURE_HOME`)",
+         install="`plifepred2==1.1.0` (`PLIFEPRED2_HOME`; bundles Pfeature under `comp/`)",
          license="open", page="predictors/peptide-pk.md#plifepred2"),
 ]
 

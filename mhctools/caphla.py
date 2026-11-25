@@ -21,6 +21,7 @@ Cite: Chang and Wu, Briefings in Bioinformatics 2025, bbae595.
 import csv
 from importlib import util
 from pathlib import Path
+import re
 
 from .artifacts import resolve_artifact_path
 from .allele_formats import caphla_allele_key
@@ -34,11 +35,17 @@ CAPHLA_REVISION = "33ebdd6ce6dadbbb1c66b026ce4b5d81dbf3a831"
 CAPHLA_PEPTIDE_LENGTHS = tuple(range(7, 26))
 _AMINO_ACIDS = "ACDEFGHIKLMNPQRSTVWYX"
 _AMINO_ACID_INDEX = {amino_acid: i for i, amino_acid in enumerate(_AMINO_ACIDS)}
+# Upstream CapHLA HLA_library.csv lists mouse class II alleles with a slash
+# between the species prefix and locus (e.g. "H-2/IAb") alongside "H2-IAb".
+_CAPHLA_MOUSE_SLASH_RE = re.compile(r"^(H-?2)/(I[AE][A-Za-z0-9]+)$")
 
 
 def normalize_caphla_allele(allele):
     """Return lossless canonical identity, native CapHLA key, and MHC class."""
-    parsed = parse_allele(allele)
+    raw = str(allele).strip() if isinstance(allele, str) else allele
+    if isinstance(raw, str):
+        raw = _CAPHLA_MOUSE_SLASH_RE.sub(r"\1-\2", raw)
+    parsed = parse_allele(raw)
     return (parsed.to_string(), caphla_allele_key(parsed),
             "II" if parsed.is_class2 else "I")
 
