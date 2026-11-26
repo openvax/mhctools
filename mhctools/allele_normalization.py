@@ -33,10 +33,11 @@ class AlleleIdentityError(ValueError):
 def validate_allele_identity(parsed):
     """Return a specific mhcgnomes identity, or raise AlleleIdentityError.
 
-    Pairs must contain a concrete alpha chain followed by a concrete beta
-    chain of the same species. Supported locus combinations are a model
-    capability, not a nomenclature rule. G/P typings and allele groups cannot
-    stand in for one member; expression suffixes and full resolution survive.
+    Pairs must contain a concrete alpha chain and a concrete beta chain of
+    the same species and locus (``mhcgnomes>=3.83.0`` validates heterodimer
+    chains and canonicalizes reversed beta/alpha Class II pairs to
+    ``alpha/beta`` order). G/P typings and allele groups cannot stand in for
+    one member; expression suffixes and full resolution survive.
     """
     if isinstance(parsed, Pair):
         alpha, beta = parsed.alpha, parsed.beta
@@ -62,11 +63,35 @@ def validate_allele_identity(parsed):
     return parsed
 
 
+def _looks_like_invalid_allele_pair(normalized_name):
+    """Return True if ``normalized_name`` splits on ``/`` into parseable MHC
+    parts that failed heterodimer pair parsing (e.g. Class I/Class I,
+    alpha/alpha, beta/beta, or cross-locus Class II such as DQA1/DRB1).
+    """
+    if "/" not in normalized_name:
+        return False
+    parts = [part.strip() for part in normalized_name.split("/")]
+    if len(parts) < 2 or any(not part for part in parts):
+        return False
+    parse_opts = dict(PARSER_OPTIONS, raise_on_error=False)
+    first = parse(parts[0], **parse_opts)
+    if first is None:
+        return False
+    default_species = getattr(first, "species", None)
+    for part in parts[1:]:
+        part_opts = dict(parse_opts)
+        if default_species is not None:
+            part_opts["default_species"] = default_species
+        if parse(part, **part_opts) is None:
+            return False
+    return True
+
+
 @lru_cache(maxsize=16384)
 def parse_allele(name):
     """Parse and validate a lossless canonical allele identity.
 
-    Accept mhcgnomes Allele, AlleleWithoutGene, and ordered class-II Pair
+    Accept mhcgnomes Allele, AlleleWithoutGene, and valid class-II Pair
     identities. Preserve fields, zeros, and expression annotations; never infer
     a missing chain or resolve historical allele aliases. The documented ``;``
     pair separator and ``_`` spelling of ``*`` remain accepted.
@@ -80,8 +105,16 @@ def parse_allele(name):
     """
     if not isinstance(name, str):
         raise TypeError("Expected allele name string but got %s" % (type(name),))
-    parsed = parse(name.strip().replace(";", "/"),
-                   **PARSER_OPTIONS)
+    normalized = name.strip().replace(";", "/")
+    try:
+        parsed = parse(normalized, **PARSER_OPTIONS)
+    except ParseError as exc:
+        if _looks_like_invalid_allele_pair(normalized):
+            raise AlleleIdentityError(
+                "%s is not a valid class-II alpha/beta pair; provide explicit "
+                "same-locus alleles of the same species" % normalized
+            ) from exc
+        raise
     return validate_allele_identity(parsed)
 
 

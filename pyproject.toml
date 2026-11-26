@@ -30,7 +30,7 @@ classifiers = [
 ]
 dependencies = [
   "argcomplete>=3",
-  "datacache>=1.38.0,<2.0.0",
+  "datacache>=1.39.0,<2.0.0",
   "numpy>=2.0.0,<3.0.0",
   "pandas>=3,<4",
   "weirdo>=2.2.0,<3",
@@ -38,7 +38,7 @@ dependencies = [
   "torch>=2",
   "sercol>=0.0.2",
   "mhcflurry>=2.0.0",
-  "mhcgnomes>=3.68.1",
+  "mhcgnomes>=3.83.0",
   "platformdirs>=3.0.0",
   "matplotlib",
 ]
