@@ -16,7 +16,12 @@ Regression tests for Class II MHC allele name formats found in the wild.
 Covers the formats listed in issue #31 and other common variants.
 """
 
-from mhctools.allele_normalization import normalize_allele_name
+import pytest
+
+from mhctools.allele_normalization import (
+    AlleleIdentityError,
+    normalize_allele_name,
+)
 
 
 # -- Formats from issue #31 --
@@ -33,10 +38,22 @@ def test_dra_drb1_slash_with_colons():
         "HLA-DRA*01:01/DRB1*03:01"
 
 
-def test_dqa1_drb1_semicolon():
-    """HLA-DQA1*01:02;DRB1*15:01 (JBC 2015)"""
-    assert normalize_allele_name("HLA-DQA1*01:02;DRB1*15:01") == \
-        "HLA-DQA1*01:02/DRB1*15:01"
+def test_dqa1_dqb1_semicolon():
+    """Semicolon pair separator normalizes to canonical slash for valid pairs."""
+    assert normalize_allele_name("HLA-DQA1*01:02;DQB1*06:02") == \
+        "HLA-DQA1*01:02/DQB1*06:02"
+
+
+def test_dqa1_drb1_cross_locus_rejected():
+    """Cross-locus Class II pairs (DQA1/DRB1) are rejected by mhcgnomes>=3.83.0."""
+    with pytest.raises(AlleleIdentityError):
+        normalize_allele_name("HLA-DQA1*01:02;DRB1*15:01")
+
+
+def test_drb1_dra_reversed_canonicalizes():
+    """Reversed beta/alpha pairs canonicalize to alpha/beta (mhcgnomes>=3.83.0)."""
+    assert normalize_allele_name("HLA-DRB1*01:01/HLA-DRA*01:01") == \
+        "HLA-DRA*01:01/DRB1*01:01"
 
 
 # -- Other common Class II formats --
